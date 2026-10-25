@@ -561,11 +561,10 @@ public enum DeviceMetrics: CaseIterable, Equatable {
         case .iPhoneX, .iPhone12Mini, .iPhone13Mini:
             return false
         default:
-            return self.hasTopNotch
+            // The badge used to be notch-only, so on a Dynamic Island phone (where the Banana Island setting is meant to
+            // work) it was never shown.
+            return self.hasTopNotch || self.hasDynamicIsland
         }
-        // The badge used to be notch-only, so on a Dynamic Island phone (where the Banana Island setting is meant to
-        // work) it was never shown.
-        return self.hasTopNotch || self.hasDynamicIsland
     }
     
     /// Top edge of the badge in unzoomed points. The badge is only ever seen on screenshots and recordings, which do

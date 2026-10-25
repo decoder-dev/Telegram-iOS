@@ -782,7 +782,11 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                             strongSelf.backgroundNode.clipsToBounds = higCardRadius > 0.0
                             strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: 0.0), size: CGSize(width: nodeLayout.contentSize.width - higCardInset * 2.0, height: nodeLayout.contentSize.height))
                             strongSelf.containerNode.frame = CGRect(origin: CGPoint(), size: nodeLayout.contentSize)
-                            strongSelf.updateRevealOptionsHighlightedBackgroundFrame(strongSelf.highlightedBackgroundNode, frame: CGRect(origin: CGPoint(x: higCardInset, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width - higCardInset * 2.0, height: nodeLayout.size.height + topHighlightInset)), activeCornerRadius: higCardRadius, aboveNodes: [strongSelf.backgroundNode])
+                            // Plain style: the highlight spans the full-width separator's extent (ChatListItem's rule), out of the
+                            // side safe areas and ending where the separators end when there is a right inset (iPhone Duo's strip).
+                            let highlightLeftInset: CGFloat = item.style == .plain ? params.leftInset : 0.0
+                            let highlightRightInset: CGFloat = item.style == .plain && !params.rightInset.isZero ? params.rightInset + separatorRightInset : 0.0
+                            strongSelf.updateRevealOptionsHighlightedBackgroundFrame(strongSelf.highlightedBackgroundNode, frame: CGRect(origin: CGPoint(x: highlightLeftInset + higCardInset, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width - highlightLeftInset - highlightRightInset - higCardInset * 2.0, height: nodeLayout.size.height + topHighlightInset)), activeCornerRadius: higCardRadius, aboveNodes: [strongSelf.backgroundNode])
                             
                             strongSelf.updateRevealOptionsSeparatorNodes(top: strongSelf.topStripeNode, bottom: strongSelf.bottomStripeNode, topIsHidden: revealTopSeparatorIsHidden, bottomIsHidden: revealBottomSeparatorIsHidden)
                             strongSelf.updateLayout(size: nodeLayout.contentSize, leftInset: params.leftInset, rightInset: params.rightInset)

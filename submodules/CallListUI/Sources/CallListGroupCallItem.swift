@@ -457,7 +457,11 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                             strongSelf.backgroundNode.layer.maskedCorners = maskedCorners
                             strongSelf.backgroundNode.clipsToBounds = higCardRadius > 0.0
                             strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: 0.0), size: CGSize(width: nodeLayout.contentSize.width - higCardInset * 2.0, height: nodeLayout.contentSize.height))
-                            strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width - higCardInset * 2.0, height: nodeLayout.size.height + topHighlightInset))
+                            // Plain style: the highlight spans the full-width separator's extent (ChatListItem's rule), out of the
+                            // side safe areas and ending where the separators end when there is a right inset (iPhone Duo's strip).
+                            let highlightLeftInset: CGFloat = item.style == .plain ? params.leftInset : 0.0
+                            let highlightRightInset: CGFloat = item.style == .plain && !params.rightInset.isZero ? params.rightInset + separatorRightInset : 0.0
+                            strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: highlightLeftInset + higCardInset, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width - highlightLeftInset - highlightRightInset - higCardInset * 2.0, height: nodeLayout.size.height + topHighlightInset))
                             strongSelf.highlightedBackgroundNode.cornerRadius = higCardRadius
                             strongSelf.highlightedBackgroundNode.layer.maskedCorners = maskedCorners
                             
