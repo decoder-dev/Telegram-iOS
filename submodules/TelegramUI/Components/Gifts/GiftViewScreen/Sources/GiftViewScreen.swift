@@ -3377,6 +3377,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 isChannelGift = false
                 isMyOwnedUniqueGift = false
                 isMyHostedUniqueGift = false
+                isMyWalletGift = false
                 canGiftUpgrade = false
                 canUpgrade = false
             }
