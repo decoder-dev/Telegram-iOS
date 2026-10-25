@@ -396,7 +396,7 @@ public final class BrowserBookmarksScreen: ViewController {
         
         super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false))
         
-        self._hasGlassStyle = false
+        self._hasGlassStyle = true
                 
         self.navigationPresentation = .modal
         self.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)

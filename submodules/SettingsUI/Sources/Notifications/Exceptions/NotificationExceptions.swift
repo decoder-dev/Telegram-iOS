@@ -40,7 +40,7 @@ public class NotificationExceptionsController: ViewController {
         
         super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData))
         
-        self._hasGlassStyle = false
+        self._hasGlassStyle = true
         
         self.removeAllItem = UIBarButtonItem(title: self.presentationData.strings.Notification_Exceptions_DeleteAll, style: .plain, target: self, action: #selector(self.removeAllPressed))
         self.editItem = UIBarButtonItem(title: "___done", style: .done, target: self, action: #selector(self.editPressed))

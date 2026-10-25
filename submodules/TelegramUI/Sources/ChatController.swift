@@ -762,7 +762,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         
         super.init(context: context, navigationBarPresentationData: navigationBarPresentationData)
         
-        self._hasGlassStyle = false
+        self._hasGlassStyle = true
         
         self.automaticallyControlPresentationContextLayout = false
         self.blocksBackgroundWhenInOverlay = true

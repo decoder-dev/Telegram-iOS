@@ -38,7 +38,7 @@ public class InviteContactsController: ViewController, MFMessageComposeViewContr
         
         super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false))
         
-        self._hasGlassStyle = false
+        self._hasGlassStyle = true
         self.navigationPresentation = .modal
         
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style

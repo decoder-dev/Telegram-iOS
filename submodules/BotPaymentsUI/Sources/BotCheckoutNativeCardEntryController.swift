@@ -57,7 +57,7 @@ final class BotCheckoutNativeCardEntryController: ViewController {
         
         super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData))
         
-        self._hasGlassStyle = false
+        self._hasGlassStyle = true
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
         
         self.doneItem = UIBarButtonItem(title: "___done", style: .done, target: self, action: #selector(self.donePressed))

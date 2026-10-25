@@ -52,7 +52,7 @@ public final class ChatRecentActionsController: TelegramBaseController {
         
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: false, hideBadge: false, glassStyle: .default))
 
-        self._hasGlassStyle = false
+        self._hasGlassStyle = true
         
         self.automaticallyControlPresentationContextLayout = false
         
