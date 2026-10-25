@@ -16,6 +16,8 @@ import EdgeEffect
 import ComponentDisplayAdapters
 
 final class ChatListContainerItemNode: ASDisplayNode {
+    private let forkLiveToken = ForkLiveToken(kind: "chat list container item")
+
     private var compactLayoutObserver: NSObjectProtocol?
     private final class TopPanelItem {
         let view = ComponentView<Empty>()

@@ -94,6 +94,8 @@ private final class ContextControllerContentSourceImpl: ContextControllerContent
 }
 
 public class ChatListControllerImpl: TelegramBaseController, ChatListController {
+    private let forkLiveToken = ForkLiveToken(kind: "chat list controller")
+
     private var bananaSnowView: BananaSnowView?
     
     /// Snow over the whole list, header included. Installed on the first layout, on top of what exists by then;

@@ -1221,6 +1221,8 @@ public enum ChatListNodeEmptyState: Equatable {
 }
 
 public final class ChatListNode: ListViewImpl {
+    private let forkLiveToken = ForkLiveToken(kind: "chat list node")
+
     public enum OpenStoriesSubject {
         case peer(EnginePeer.Id)
         case archive
