@@ -7284,6 +7284,29 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
             self?.didAppear = true
         }
         
+        // Long-press on Back lists the chats navigated through (the glass bar's `backButtonContextAction`).
+        var chatNavigationStack: [ChatNavigationStackItem] = []
+        if !self.isSettings, let summary = self.customNavigationDataSummary as? ChatControllerNavigationDataSummary {
+            chatNavigationStack = summary.peerNavigationItems.filter({ $0 != ChatNavigationStackItem(peerId: self.peerId, threadId: self.chatLocation.threadId) })
+        }
+        if !chatNavigationStack.isEmpty {
+            self.navigationBar?.backButtonContextAction = { [weak self] sourceView, gesture in
+                guard let self, let navigationController = self.navigationController as? NavigationController else {
+                    gesture.cancel()
+                    return
+                }
+                PeerInfoScreenImpl.displayChatNavigationMenu(
+                    context: self.context,
+                    chatNavigationStack: chatNavigationStack,
+                    nextFolderId: nil,
+                    parentController: self,
+                    backButtonView: sourceView,
+                    navigationController: navigationController,
+                    gesture: gesture
+                )
+            }
+        }
+        
         self.controllerNode.refreshHasPersonalChannelsIfNeeded()
         self.controllerNode.initialExpandPanes = false
         
