@@ -125,6 +125,8 @@ private final class BananaTabBarPreviewItemNode: ListViewItemNode, ItemListItemN
                 search: TabBarComponent.Search(isActive: false, activate: {}, deactivate: {}),
                 selectedId: AnyHashable(ObjectIdentifier(self.tabs[2])),
                 outerInsets: .zero,
+                axis: .horizontal,
+                isCompact: false,
                 layout: item.layout
             )),
             environment: {},
