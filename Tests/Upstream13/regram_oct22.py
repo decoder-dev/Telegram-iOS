@@ -90,7 +90,7 @@ class ChatBehaviours(unittest.TestCase):
         self.assertIn('updatedScrollPosition == nil', block)
         self.assertIn('offset <= 0.9', block)
         self.assertIn('case .Reload, .HoleReload:', block)
-        self.assertLess(marker, source.index('let rawTransition = preparedChatHistoryViewTransition(from: previous, to: processedView, reason: reason, reverse: reverse'))
+        self.assertLess(marker, source.index('var rawTransition = preparedChatHistoryViewTransition(from: previous, to: processedView, reason: reason, reverse: reverse'))
 
 
 if __name__ == '__main__':

@@ -69,7 +69,7 @@ class RecentChats(unittest.TestCase):
     def test_back_button_long_press_uses_the_navigation_menu(self):
         chat = read('submodules/TelegramUI/Sources/ChatController.swift')
         self.assertIn('ForkRecentChats.record(', chat)
-        self.assertIn('if (!chatNavigationStack.isEmpty || recentChatsEnabled)', chat)
+        self.assertIn('if !chatNavigationStack.isEmpty || recentChatsEnabled {', chat)
         self.assertIn('clearRecents: clearRecents,', chat)
         info = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoScreen.swift')
         self.assertIn('clearRecents: (() -> Void)? = nil, nextFolderId: Int32?', info)

@@ -171,7 +171,8 @@ private final class EmbeddedBroadcastUploadImpl: BroadcastUploadImpl {
                             audioIsActiveByDefault: true,
                             isStream: false,
                             sharedAudioDevice: nil,
-                            encryptionContext: nil
+                            encryptionContext: nil,
+                            proxyServer: nil
                         )
                         self.callContext = callContext
                         self.joinPayloadDisposable = (callContext.joinPayload

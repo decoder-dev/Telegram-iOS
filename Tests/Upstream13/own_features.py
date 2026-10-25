@@ -83,9 +83,10 @@ print("Actual clipboard reader: empty/invalid rich fallback and representation p
         self.assertIn('self.pushViewController(settings, animated: true)', body)
         self.assertLess(body.index('self.pushViewController(settings'), body.index('rootTabController.selectedIndex'))
         header = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoScreen.swift')
-        self.assertIn('if self.controller?.previousItem != nil {', header)
-        component = read('submodules/TelegramUI/Components/ChatListHeaderComponent/Sources/NavigationButtonComponent.swift')
-        self.assertIn('self.accessibilityLabel = title', component)
+        # Official 13.1 builds the sets in peerInfoNavigationButtonSets and owns the back button; Settings opened from
+        # a previous screen keeps the back route by dropping the QR button from the left sets.
+        self.assertIn('if self.isSettings && self.controller?.previousItem != nil {', header)
+        self.assertIn('navigationSets.normal.left.removeAll(where: { $0 == .qrCode })', header)
 
     @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; document-picker delegate executes in macOS CI')
     def test_actual_picker_completes_selection_once(self):
@@ -442,14 +443,17 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertIn('pauseMusicOnRecording: self.context.sharedContext.currentMediaInputSettings.with({ $0.pauseMusicOnVoiceRecording })', source)
 
     def test_schema_230_coverage(self):
-        api = '\n'.join(p.read_text(encoding='utf-8') for p in (ROOT / 'submodules/TelegramApi/Sources').glob('Api*.swift'))
-        ids = {int(v) & 0xffffffff for v in re.findall(r'appendInt32\((-?\d+)\)', api)}
+        # Since 13.1 the Api types are generated from submodules/TelegramApi/swift_scheme.tl (layer 233 and newer), so the
+        # hand-written Api*.swift files are gone. Every constructor of our layer-230 schema must still exist by name;
+        # ids may differ for constructors that later layers changed.
+        generated = read('submodules/TelegramApi/swift_scheme.tl')
+        names = set(re.findall(r'^([\w.]+)#[0-9a-f]+', generated, re.M))
         schema = read('build-system/SwiftTL/api-230.tl')
         self.assertIn('// LAYER 230', schema)
         for line in schema.splitlines():
             match = re.match(r'([\w.]+)#([0-9a-f]+)\b', line)
             if match and '{X:Type}' not in line and match[1] not in {'true', 'error', 'null', 'vector'}:
-                self.assertIn(int(match[2], 16), ids, match[1])
+                self.assertIn(match[1], names, match[1])
 
     def test_reactions_footer_hides_paid_reactions(self):
         source = read('submodules/TelegramUI/Components/Chat/ChatMessageReactionsFooterContentNode/Sources/ChatMessageReactionsFooterContentNode.swift')
@@ -485,10 +489,10 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         settings = read('submodules/TelegramUIPreferences/Sources/ExperimentalUISettings.swift')
         self.assertIn('return self.useModernVideoMessagePipeline ?? false', settings)
         screen = read('submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/VideoMessageCameraScreen.swift')
-        self.assertIn('immediateExperimentalUISettings.resolvedUseModernVideoMessagePipeline', screen)
+        self.assertIn('let useModernVideoMessagePipeline = experimentalSettings.resolvedUseModernVideoMessagePipeline', screen)
         self.assertNotIn('ios_killswitch_disable_neo_round_camera_v2', screen)
         debug = read('submodules/DebugSettingsUI/Sources/DebugController.swift')
-        self.assertIn('.useModernVideoMessagePipeline(experimentalSettings.resolvedUseModernVideoMessagePipeline)', debug)
+        self.assertIn('experimentalSettings.resolvedUseModernVideoMessagePipeline && experimentalSettings.videoMessageCameraMode != .legacy', debug)
         legacy = read('submodules/Camera/CameraLegacy/Sources/CameraDevice.swift')
         self.assertIn('AVCaptureDevice.default(.builtInTripleCamera', legacy)
         self.assertIn('virtualDeviceSwitchOverVideoZoomFactors', legacy)

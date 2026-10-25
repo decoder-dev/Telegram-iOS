@@ -316,6 +316,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
@@ -397,7 +398,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                                         strongSelf.bottomStripeNode.removeFromSupernode()
                                     }
                                     
-                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: max(0.0, params.width - leftInset - higCardInset), height: separatorHeight)))
+                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: max(0.0, params.width - leftInset - params.rightInset - separatorRightInset - higCardInset), height: separatorHeight)))
                                 case .blocks:
                                     if strongSelf.backgroundNode.supernode == nil {
                                         strongSelf.insertSubnode(strongSelf.backgroundNode, at: 0)
@@ -424,7 +425,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                                     
                                     strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: params.width, height: contentSize.height + min(insets.top, separatorHeight) + min(insets.bottom, separatorHeight)))
                                     strongSelf.topStripeNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: nodeLayout.size.width, height: separatorHeight))
-                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height - separatorHeight), size: CGSize(width: nodeLayout.size.width - bottomStripeInset, height: separatorHeight)))
+                                    transition.updateFrameAdditive(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height - separatorHeight), size: CGSize(width: nodeLayout.size.width - bottomStripeInset - params.rightInset - separatorRightInset, height: separatorHeight)))
                             }
                             
                             let avatarFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset - avatarDiameter - 12.0, y: floor((contentSize.height - avatarDiameter) / 2.0)), size: CGSize(width: avatarDiameter, height: avatarDiameter))
@@ -456,7 +457,11 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                             strongSelf.backgroundNode.layer.maskedCorners = maskedCorners
                             strongSelf.backgroundNode.clipsToBounds = higCardRadius > 0.0
                             strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: 0.0), size: CGSize(width: nodeLayout.contentSize.width - higCardInset * 2.0, height: nodeLayout.contentSize.height))
-                            strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: higCardInset, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width - higCardInset * 2.0, height: nodeLayout.size.height + topHighlightInset))
+                            // Plain style: the highlight spans the full-width separator's extent (ChatListItem's rule), out of the
+                            // side safe areas and ending where the separators end when there is a right inset (iPhone Duo's strip).
+                            let highlightLeftInset: CGFloat = item.style == .plain ? params.leftInset : 0.0
+                            let highlightRightInset: CGFloat = item.style == .plain && !params.rightInset.isZero ? params.rightInset + separatorRightInset : 0.0
+                            strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: highlightLeftInset + higCardInset, y: -nodeLayout.insets.top - topHighlightInset), size: CGSize(width: nodeLayout.size.width - highlightLeftInset - highlightRightInset - higCardInset * 2.0, height: nodeLayout.size.height + topHighlightInset))
                             strongSelf.highlightedBackgroundNode.cornerRadius = higCardRadius
                             strongSelf.highlightedBackgroundNode.layer.maskedCorners = maskedCorners
                             

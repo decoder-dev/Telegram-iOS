@@ -64,7 +64,6 @@ final class PeerInfoScreenMemberItem: PeerInfoScreenItem {
 }
 
 private final class PeerInfoScreenMemberItemNode: PeerInfoScreenItemNode {
-    private let selectionNode: PeerInfoScreenSelectableBackgroundNode
     private let maskNode: ASImageNode
     private let bottomSeparatorNode: ASDisplayNode
     private let activateArea: AccessibilityAreaNode
@@ -73,10 +72,6 @@ private final class PeerInfoScreenMemberItemNode: PeerInfoScreenItemNode {
     private var itemNode: ItemListPeerItemNode?
     
     override init() {
-        var bringToFrontForHighlightImpl: (() -> Void)?
-        self.selectionNode = PeerInfoScreenSelectableBackgroundNode(bringToFrontForHighlight: { bringToFrontForHighlightImpl?() })
-        self.selectionNode.isUserInteractionEnabled = false
-        
         self.maskNode = ASImageNode()
         self.maskNode.isUserInteractionEnabled = false
         
@@ -87,12 +82,7 @@ private final class PeerInfoScreenMemberItemNode: PeerInfoScreenItemNode {
         
         super.init()
         
-        bringToFrontForHighlightImpl = { [weak self] in
-            self?.bringToFrontForHighlight?()
-        }
-        
         self.addSubnode(self.bottomSeparatorNode)
-        self.addSubnode(self.selectionNode)
         self.addSubnode(self.activateArea)
     }
     
@@ -100,7 +90,11 @@ private final class PeerInfoScreenMemberItemNode: PeerInfoScreenItemNode {
         super.didLoad()
         
         let recognizer = TapLongTapOrDoubleTapGestureRecognizer(target: self, action: #selector(self.tapLongTapOrDoubleTapGesture(_:)))
-        recognizer.tapActionAtPoint = { point in
+        recognizer.tapActionAtPoint = { [weak self] _ in
+            // The embedded row owns taps that dismiss or activate its actions.
+            if self?.itemNode?.isRevealOptionsActive == true {
+                return .fail
+            }
             return .keepWithSingleTap
         }
         recognizer.highlight = { [weak self] point in
@@ -118,7 +112,7 @@ private final class PeerInfoScreenMemberItemNode: PeerInfoScreenItemNode {
             if let (gesture, _) = recognizer.lastRecognizedGestureAndLocation {
                 switch gesture {
                 case .tap:
-                    if let item = self.item {
+                    if self.itemNode?.isRevealOptionsActive != true, let item = self.item {
                         item.action?(.open)
                     }
                 default:
@@ -136,12 +130,6 @@ private final class PeerInfoScreenMemberItemNode: PeerInfoScreenItemNode {
         }
         
         self.item = item
-        
-        self.selectionNode.pressed = item.action.flatMap { action in
-            return {
-                action(.open)
-            }
-        }
         
         let sideInset: CGFloat = 16.0 + safeInsets.left
         
@@ -325,9 +313,6 @@ private final class PeerInfoScreenMemberItemNode: PeerInfoScreenItemNode {
             self.addSubnode(self.maskNode)
         }
         
-        let highlightNodeOffset: CGFloat = topItem == nil ? 0.0 : UIScreenPixel
-        self.selectionNode.update(size: CGSize(width: width, height: height + highlightNodeOffset), theme: presentationData.theme, transition: transition)
-        transition.updateFrame(node: self.selectionNode, frame: CGRect(origin: CGPoint(x: 0.0, y: -highlightNodeOffset), size: CGSize(width: width, height: height + highlightNodeOffset)))
         self.activateArea.frame = CGRect(origin: .zero, size: CGSize(width: width, height: height))
         
         var separatorInset: CGFloat = sideInset
@@ -352,21 +337,22 @@ private final class PeerInfoScreenMemberItemNode: PeerInfoScreenItemNode {
     }
     
     private func updateTouchesAtPoint(_ point: CGPoint?) {
-        guard let item = self.item else {
+        guard let item = self.item, let itemNode = self.itemNode else {
             return
         }
-        var highlight = point != nil
+        var highlight = point != nil && !itemNode.isRevealOptionsActive
         if case .account = item.member {
         } else if item.context.accountPeerId == item.member.id {
             highlight = false
         }
-        if let point, let itemNode = self.itemNode, let value = itemNode.view.hitTest(self.view.convert(point, to: itemNode.view), with: nil), value is UIControl {
+        if let point, let value = itemNode.view.hitTest(self.view.convert(point, to: itemNode.view), with: nil), value is UIControl {
             highlight = false
         }
         if highlight {
-            self.selectionNode.updateIsHighlighted(true)
-        } else {
-            self.selectionNode.updateIsHighlighted(false)
+            self.bringToFrontForHighlight?()
         }
+        // Keep touch and swipe highlighting on the same background so a swipe
+        // can continue the displayed opacity instead of replacing another node.
+        itemNode.setHighlighted(highlight, at: point.map { itemNode.view.convert($0, from: self.view) } ?? .zero, animated: !highlight)
     }
 }

@@ -166,6 +166,11 @@ public struct Namespaces {
         public static let cachedExistingWaltBalance: Int8 = 57
         public static let notificationRequestMessageIds: Int8 = 58
         public static let cachedWalletUserAddresses: Int8 = 59
+        /// The News feed's caches, told apart by the first byte of the key (FeedCache.swift).
+        /// TelegramCore's ids must stay below 64, where applicationSpecificItemCacheCollectionId starts.
+        public static let feed: Int8 = 60
+        public static let shareThemeBackdrops: Int8 = 61
+        public static let cachedUniqueStarGifts: Int8 = 62
         // BananaSpyStorage collections (local records that are never sent anywhere).
         public static let bananaDisappearedGifts: Int8 = 100
         public static let bananaPresence: Int8 = 101
@@ -653,6 +658,7 @@ private enum SharedDataKeyValues: Int32 {
     case chatThemes = 10
     case deviceContacts = 11
     case networkEngineSettings = 12
+    case networkEngineState = 13
 }
 
 public struct SharedDataKeys {
@@ -719,6 +725,12 @@ public struct SharedDataKeys {
     public static let networkEngineSettings: ValueBoxKey = {
         let key = ValueBoxKey(length: 4)
         key.setInt32(0, value: SharedDataKeyValues.networkEngineSettings.rawValue)
+        return key
+    }()
+    
+    public static let networkEngineState: ValueBoxKey = {
+        let key = ValueBoxKey(length: 4)
+        key.setInt32(0, value: SharedDataKeyValues.networkEngineState.rawValue)
         return key
     }()
 }

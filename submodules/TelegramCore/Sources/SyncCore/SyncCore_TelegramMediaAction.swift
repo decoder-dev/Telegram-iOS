@@ -339,6 +339,7 @@ public enum TelegramMediaActionType: PostboxCoding, Equatable {
     case communityChanged(communityId: PeerId?)
     case joinedViaCommunity(communityId: PeerId)
     case walletTonConnectRequest(flags: Int32, sessionId: Int64, expires: Int32, topic: String?, traceId: String?, dappName: String?)
+    case noPaidMessagesTokenUsed
     
     public init(decoder: PostboxDecoder) {
         let rawValue: Int32 = decoder.decodeInt32ForKey("_rawValue", orElse: 0)
@@ -537,6 +538,8 @@ public enum TelegramMediaActionType: PostboxCoding, Equatable {
                 comment: decoder.decodeOptionalStringForKey("comment"),
                 commentEncrypted: decoder.decodeBoolForKey("commentEncrypted", orElse: false)
             )
+        case 69:
+            self = .noPaidMessagesTokenUsed
         default:
             self = .unknown
         }
@@ -546,6 +549,8 @@ public enum TelegramMediaActionType: PostboxCoding, Equatable {
         switch self {
         case .unknown:
             break
+        case .noPaidMessagesTokenUsed:
+            encoder.encodeInt32(69, forKey: "_rawValue")
         case let .groupCreated(title):
             encoder.encodeInt32(1, forKey: "_rawValue")
             encoder.encodeString(title, forKey: "title")

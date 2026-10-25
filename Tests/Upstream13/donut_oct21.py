@@ -132,8 +132,8 @@ class ProfileHeaderEmptyName(unittest.TestCase):
     def test_status_and_rating_are_laid_out_even_without_a_name(self):
         source = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoHeaderNode.swift')
         self.assertNotIn('if !titleSize.width.isZero && !titleSize.height.isZero {', source)
-        self.assertIn('let titleScale = titleFrame.height.isZero ? neutralTitleScale :', source)
-        self.assertIn('let subtitleScale = subtitleFrame.height.isZero ? neutralSubtitleScale :', source)
+        # Official 13.1 derives both scales from the collapse fractions, so there is no division by a zero height left.
+        self.assertIn('titleScale = (1.0 - titleCollapseFraction) * 1.0 + titleCollapseFraction * titleMinScale', source)
 
 
 if __name__ == '__main__':

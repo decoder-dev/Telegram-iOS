@@ -21,6 +21,8 @@ import AlertComponent
 import AlertCheckComponent
 import WalletContext
 import CpuProfiler
+import CrashReporting
+import ContextUI
 
 @objc private final class DebugControllerMailComposeDelegate: NSObject, MFMailComposeViewControllerDelegate {
     public func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
@@ -36,6 +38,7 @@ private final class DebugControllerArguments {
     let pushController: (ViewController) -> Void
     let getRootController: () -> UIViewController?
     let getNavigationController: () -> NavigationController?
+    var openLogs: () -> Void = {}
     var isTestingPasscodeMigration = false
     
     init(sharedContext: SharedAccountContext, context: AccountContext?, mailComposeDelegate: DebugControllerMailComposeDelegate, presentController: @escaping (ViewController, ViewControllerPresentationArguments?) -> Void, pushController: @escaping (ViewController) -> Void, getRootController: @escaping () -> UIViewController?, getNavigationController: @escaping () -> NavigationController?) {
@@ -110,13 +113,232 @@ private func presentPasscodeMigrationTest(arguments: DebugControllerArguments) {
     arguments.presentController(controller, nil)
 }
 
+private extension ExperimentalUISettings.VideoMessageCameraMode {
+    var debugTitle: String {
+        switch self {
+        case .legacy:
+            return "Legacy"
+        case .vga:
+            return "VGA (640×480)"
+        case .hdBilinear:
+            return "HD · Bilinear"
+        case .hdLanczos:
+            return "HD · Lanczos"
+        }
+    }
+}
+
+private enum DebugControllerItemTag: ItemListItemTag {
+    case sendLogs
+
+    func isEqual(to other: ItemListItemTag) -> Bool {
+        return (other as? DebugControllerItemTag) == self
+    }
+}
+
+private final class DebugLogsContextReferenceContentSource: ContextReferenceContentSource {
+    private let sourceView: UIView
+
+    init(sourceView: UIView) {
+        self.sourceView = sourceView
+    }
+
+    func transitionInfo() -> ContextControllerReferenceViewInfo? {
+        return ContextControllerReferenceViewInfo(referenceView: self.sourceView, contentAreaInScreenSpace: mainWindowScreenBounds, insets: UIEdgeInsets(top: -4.0, left: 0.0, bottom: -4.0, right: 0.0))
+    }
+}
+
+private enum DebugLogDestination {
+    case telegram
+    case email
+}
+
+private enum DebugLogAction {
+    case sendLogs
+    case sendOneLog
+    case sendShareLogs
+    case sendGroupCallLogs
+    case sendNotificationLogs
+    case sendCriticalLogs
+    case sendAllLogs
+    case sendStorageStats
+
+    var title: String {
+        switch self {
+        case .sendLogs: return "Logs"
+        case .sendOneLog: return "Latest Logs"
+        case .sendShareLogs: return "Share Logs"
+        case .sendGroupCallLogs: return "Group Call Logs"
+        case .sendNotificationLogs: return "Notification Logs"
+        case .sendCriticalLogs: return "Critical Logs"
+        case .sendAllLogs: return "All Logs"
+        case .sendStorageStats: return "Storage Stats"
+        }
+    }
+
+    var textLayout: ContextMenuActionItemTextLayout {
+        switch self {
+        case .sendLogs, .sendShareLogs, .sendGroupCallLogs, .sendNotificationLogs:
+            return .secondLineWithValue("Up to 40 MB")
+        case .sendOneLog:
+            return .secondLineWithValue("Up to 4 MB")
+        case .sendCriticalLogs, .sendAllLogs, .sendStorageStats:
+            return .singleLine
+        }
+    }
+
+    /// Fork: sends through `ForkLogExport` (off the main thread, with a progress screen) rather than reading the files inline.
+    private func deliver(logs: [(String, String)], compressed: Bool, fileName: String, mailFileName: String? = nil, mailLogs: [(String, String)]? = nil, arguments: DebugControllerArguments, destination: DebugLogDestination) {
+        if destination == .telegram, let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
+            let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
+            controller.peerSelected = { [weak controller] peer, _ in
+                let peerId = peer.id
+
+                if let strongController = controller {
+                    strongController.dismiss()
+
+                    ForkLogExport.sendLogs(logs, compressed: compressed, fileName: fileName, to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
+                }
+            }
+            arguments.pushController(controller)
+        }
+        if destination == .email {
+            ForkLogExport.composeMail(mailLogs ?? logs, fileName: mailFileName ?? fileName, delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
+                arguments.getRootController()?.present(composeController, animated: true, completion: nil)
+            })
+        }
+    }
+
+    func perform(arguments: DebugControllerArguments, destination: DebugLogDestination) {
+        switch self {
+        case .sendLogs:
+            let _ = (Logger.shared.collectLogs()
+            |> deliverOnMainQueue).start(next: { logs in
+                self.deliver(logs: logs, compressed: true, fileName: "Log-iOS-Full.txt.zip", arguments: arguments, destination: destination)
+            })
+        case .sendOneLog:
+            let _ = (Logger.shared.collectLogs()
+            |> deliverOnMainQueue).start(next: { logs in
+                var latestLogs: [(String, String)] = []
+                if logs.count < 2 {
+                    latestLogs = logs
+                } else {
+                    for i in (logs.count - 2) ..< logs.count {
+                        latestLogs.append(logs[i])
+                    }
+                }
+                self.deliver(logs: latestLogs, compressed: false, fileName: "Log-iOS-Short.txt", mailFileName: "Log-iOS-Full.txt.zip", mailLogs: logs, arguments: arguments, destination: destination)
+            })
+        case .sendShareLogs:
+            let _ = (Logger.shared.collectLogs(prefix: "/logs/share-logs")
+            |> deliverOnMainQueue).start(next: { logs in
+                self.deliver(logs: logs, compressed: true, fileName: "Log-iOS-Share.txt.zip", arguments: arguments, destination: destination)
+            })
+        case .sendGroupCallLogs:
+            let _ = (Logger.shared.collectLogs(basePath: arguments.context!.account.basePath + "/group-calls")
+            |> deliverOnMainQueue).start(next: { logs in
+                self.deliver(logs: logs, compressed: true, fileName: "Log-iOS-GroupCalls.txt.zip", arguments: arguments, destination: destination)
+            })
+        case .sendNotificationLogs:
+            let logsPath = arguments.sharedContext.basePath + "/logs/notification-logs"
+            let _ = (Logger(rootPath: logsPath, basePath: logsPath).collectLogs()
+            |> deliverOnMainQueue).start(next: { logs in
+                self.deliver(logs: logs, compressed: true, fileName: "Log-iOS-Notifications.txt.zip", arguments: arguments, destination: destination)
+            })
+        case .sendCriticalLogs:
+            let _ = (Logger.shared.collectShortLogFiles()
+            |> deliverOnMainQueue).start(next: { logs in
+                self.deliver(logs: logs, compressed: true, fileName: "Log-iOS-Critical.txt.zip", arguments: arguments, destination: destination)
+            })
+        case .sendAllLogs:
+            let logTypes: [String] = [
+                "app-logs",
+                "broadcast-logs",
+                "siri-logs",
+                "widget-logs",
+                "notificationcontent-logs",
+                "notification-logs"
+            ]
+
+            var logByType: [Signal<(type: String, logs: [(String, String)]), NoError>] = []
+            for type in logTypes {
+                let logsPath = arguments.sharedContext.basePath + "/logs/\(type)"
+                logByType.append(Logger(rootPath: logsPath, basePath: logsPath).collectLogs()
+                |> map { result -> (type: String, logs: [(String, String)]) in
+                    return (type, result)
+                })
+            }
+
+            let allLogs = combineLatest(logByType)
+
+            let _ = (allLogs
+            |> deliverOnMainQueue).start(next: { allLogs in
+                if destination == .telegram, let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
+                    let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
+                    controller.peerSelected = { [weak controller] peer, _ in
+                        let peerId = peer.id
+
+                        if let strongController = controller {
+                            strongController.dismiss()
+
+                            ForkLogExport.sendLogGroups(allLogs, fileName: "Log-iOS-All.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
+                        }
+                    }
+                    arguments.pushController(controller)
+                }
+            })
+        case .sendStorageStats:
+            guard let context = arguments.context, context.sharedContext.applicationBindings.isMainApp else {
+                return
+            }
+
+            let allStats: Signal<Data, NoError> = Signal { subscriber in
+                DispatchQueue.global().async {
+                    let log = collectRawStorageUsageReport(containerPath: context.sharedContext.applicationBindings.containerPath)
+                    subscriber.putNext(log.data(using: .utf8) ?? Data())
+                }
+
+                return EmptyDisposable
+            }
+
+            let _ = (allStats
+            |> deliverOnMainQueue).start(next: { allStatsData in
+
+                if destination == .telegram, let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
+                    let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
+                    controller.peerSelected = { [weak controller] peer, _ in
+                        let peerId = peer.id
+
+                        if let strongController = controller {
+                            strongController.dismiss()
+
+                            let id = Int64.random(in: Int64.min ... Int64.max)
+                            let fileResource = LocalFileMediaResource(fileId: id, size: Int64(allStatsData.count), isSecretRelated: false)
+                            context.engine.resources.storeResourceData(id: EngineMediaResource.Id(fileResource.id), data: allStatsData)
+
+                            let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/zip", size: Int64(allStatsData.count), attributes: [.FileName(fileName: "StorageReport.txt")], alternativeRepresentations: [])
+                            let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
+
+                            let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
+                        }
+                    }
+                    arguments.pushController(controller)
+                }
+
+            })
+        }
+    }
+}
+
 private enum DebugControllerSection: Int32 {
-    case sticker
+    case appInfo
     case logs
-    case logging
-    case web
+    case accounts
+    case resetApp
+    case sticker
     case experiments
     case translation
+    case web
     case videoExperiments2
     case info
     case profiling
@@ -124,18 +346,16 @@ private enum DebugControllerSection: Int32 {
 
 private enum DebugControllerEntry: ItemListNodeEntry {
     case testStickerImport(PresentationTheme)
+    case logsHeader(PresentationTheme)
+    case logsInfo(PresentationTheme)
+    case resetAppHeader(PresentationTheme)
+    case experimentsHeader(PresentationTheme)
     case sendLogs(PresentationTheme)
-    case sendOneLog(PresentationTheme)
-    case sendShareLogs
-    case sendGroupCallLogs
-    case sendStorageStats
-    case sendNotificationLogs(PresentationTheme)
-    case sendCriticalLogs(PresentationTheme)
-    case sendAllLogs
     case accounts(PresentationTheme)
     case logToFile(PresentationTheme, Bool)
     case logToConsole(PresentationTheme, Bool)
     case redactSensitiveData(PresentationTheme, Bool)
+    case crashReports
     case keepChatNavigationStack(PresentationTheme, Bool)
     case skipReadHistory(PresentationTheme, Bool)
     case alwaysDisplayTyping(Bool)
@@ -165,11 +385,15 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     case fakeGlass(Bool)
     case forceClearGlass(Bool)
     case debugRipple(Bool)
-    case debugRichText(Bool)
+    case inputDecTextBackend(Bool)
+    case inputDecEngineEditor(Bool)
     case coreListChatBackend(Bool)
+    case springSendAnimation(Bool)
+    case fakeWalletTransfers(Bool)
     case forceRLottieBackend(Bool)
     case respectSystemMicrophone(Bool)
     case useModernVideoMessagePipeline(Bool)
+    case videoMessageCameraMode(ExperimentalUISettings.VideoMessageCameraMode)
     case browserExperiment(Bool)
     case allForumsHaveTabs(Bool)
     case enableReactionOverrides(Bool)
@@ -197,191 +421,231 @@ private enum DebugControllerEntry: ItemListNodeEntry {
     case versionInfo(PresentationTheme)
     case collectCpuProfile
     case sendProfileLogs
-    
+
     var section: ItemListSectionId {
         switch self {
         case .testStickerImport:
             return DebugControllerSection.sticker.rawValue
-        case .sendLogs, .sendOneLog, .sendShareLogs, .sendGroupCallLogs, .sendStorageStats, .sendNotificationLogs, .sendCriticalLogs, .sendAllLogs:
+        case .logsHeader, .logsInfo, .sendLogs:
             return DebugControllerSection.logs.rawValue
         case .accounts:
+            return DebugControllerSection.accounts.rawValue
+        case .crashReports:
             return DebugControllerSection.logs.rawValue
         case .logToFile, .logToConsole, .redactSensitiveData:
-            return DebugControllerSection.logging.rawValue
+            return DebugControllerSection.logs.rawValue
+        case .resetAppHeader, .resetDatabase, .resetDatabaseAndCache, .clearTips, .resetNotifications, .fillLocalSavedMessageCache, .resetHoles, .resetTagHoles, .reindexUnread, .resetCacheIndex, .reindexCache, .optimizeDatabase, .restorePurchases:
+            return DebugControllerSection.resetApp.rawValue
         case .webViewInspection, .resetWebViewCache:
             return DebugControllerSection.web.rawValue
-        case .keepChatNavigationStack, .skipReadHistory, .alwaysDisplayTyping, .debugRatingLayout, .crashOnSlowQueries, .crashOnMemoryPressure:
+        case .experimentsHeader, .keepChatNavigationStack, .skipReadHistory, .alwaysDisplayTyping, .debugRatingLayout, .crashOnSlowQueries, .crashOnMemoryPressure:
             return DebugControllerSection.experiments.rawValue
-        case .clearTips, .resetNotifications, .crash, .fillLocalSavedMessageCache, .resetDatabase, .resetDatabaseAndCache, .resetHoles, .resetTagHoles, .reindexUnread, .resetCacheIndex, .reindexCache, .resetBiometricsData, .optimizeDatabase, .photoPreview, .knockoutWallpaper, .compressedEmojiCache, .storiesJpegExperiment, .checkSerializedData, .enableQuickReactionSwitch, .experimentalCompatibility, .enableDebugDataDisplay, .fakeGlass, .forceClearGlass, .debugRipple, .debugRichText, .coreListChatBackend, .forceRLottieBackend, .respectSystemMicrophone, .useModernVideoMessagePipeline, .browserExperiment, .allForumsHaveTabs, .enableReactionOverrides, .restorePurchases, .disableReloginTokens, .liveStreamV2, .experimentalCallMute, .groupCallReferenceEngine, .playerV2, .devRequests, .enableUpdates, .pwa, .enableLocalTranslation, .testPasscodeMigration:
+        case .crash, .resetBiometricsData, .photoPreview, .knockoutWallpaper, .compressedEmojiCache, .storiesJpegExperiment, .checkSerializedData, .enableQuickReactionSwitch, .experimentalCompatibility, .enableDebugDataDisplay, .fakeGlass, .forceClearGlass, .debugRipple, .inputDecEngineEditor, .coreListChatBackend, .forceRLottieBackend, .respectSystemMicrophone, .useModernVideoMessagePipeline, .videoMessageCameraMode, .browserExperiment, .allForumsHaveTabs, .enableReactionOverrides, .disableReloginTokens, .liveStreamV2, .experimentalCallMute, .groupCallReferenceEngine, .playerV2, .devRequests, .enableUpdates, .pwa, .enableLocalTranslation, .testPasscodeMigration:
+            return DebugControllerSection.experiments.rawValue
+        case .inputDecTextBackend, .springSendAnimation, .fakeWalletTransfers:
             return DebugControllerSection.experiments.rawValue
         case .logTranslationRecognition, .resetTranslationStates:
             return DebugControllerSection.translation.rawValue
         case .disableVideoAspectScaling, .enableNetworkExperiments, .rustMTProtoEngine, .networkEngineInfo:
             return DebugControllerSection.videoExperiments2.rawValue
-        case .hostInfo, .versionInfo:
+        case .versionInfo:
+            return DebugControllerSection.appInfo.rawValue
+        case .hostInfo:
             return DebugControllerSection.info.rawValue
         case .collectCpuProfile, .sendProfileLogs:
             return DebugControllerSection.profiling.rawValue
         }
     }
-    
+
     var stableId: Int {
         switch self {
         case .testStickerImport:
             return 0
+        case .logsHeader:
+            return -2
+        case .logsInfo:
+            return 13
+        case .resetAppHeader:
+            return 14
+        case .experimentsHeader:
+            return 17
         case .sendLogs:
             return 1
-        case .sendOneLog:
-            return 2
-        case .sendShareLogs:
-            return 3
-        case .sendGroupCallLogs:
-            return 4
-        case .sendNotificationLogs:
-            return 5
-        case .sendCriticalLogs:
-            return 6
-        case .sendAllLogs:
-            return 7
-        case .sendStorageStats:
-            return 8
         case .accounts:
-            return 9
+            return -3
         case .logToFile:
             return 10
         case .logToConsole:
             return 11
         case .redactSensitiveData:
             return 12
+        case .crashReports:
+            return 2
         case .webViewInspection:
-            return 13
+            return 70
         case .resetWebViewCache:
-            return 14
+            return 71
         case .keepChatNavigationStack:
-            return 15
-        case .skipReadHistory:
-            return 16
-        case .alwaysDisplayTyping:
-            return 17
-        case .debugRatingLayout:
             return 18
-        case .coreListChatBackend:
+        case .skipReadHistory:
             return 19
-        case .forceRLottieBackend:
+        case .alwaysDisplayTyping:
             return 20
-        case .respectSystemMicrophone:
+        case .debugRatingLayout:
             return 21
-        case .useModernVideoMessagePipeline:
+        case .coreListChatBackend:
             return 22
-        case .crashOnSlowQueries:
+        case .forceRLottieBackend:
             return 23
-        case .crashOnMemoryPressure:
+        case .respectSystemMicrophone:
             return 24
-        case .clearTips:
+        case .useModernVideoMessagePipeline:
             return 25
-        case .resetNotifications:
+        case .videoMessageCameraMode:
             return 26
-        case .crash:
+        case .crashOnSlowQueries:
             return 27
-        case .testPasscodeMigration:
+        case .crashOnMemoryPressure:
             return 28
-        case .fillLocalSavedMessageCache:
+        case .clearTips:
             return 29
-        case .resetDatabase:
+        case .resetNotifications:
             return 30
-        case .resetDatabaseAndCache:
+        case .crash:
             return 31
-        case .resetHoles:
+        case .testPasscodeMigration:
             return 32
-        case .resetTagHoles:
+        case .fillLocalSavedMessageCache:
             return 33
-        case .reindexUnread:
+        case .resetDatabase:
             return 34
-        case .resetCacheIndex:
+        case .resetDatabaseAndCache:
             return 35
-        case .reindexCache:
+        case .resetHoles:
             return 36
-        case .resetBiometricsData:
+        case .resetTagHoles:
             return 37
-        case .optimizeDatabase:
+        case .reindexUnread:
             return 38
-        case .photoPreview:
+        case .resetCacheIndex:
             return 39
-        case .knockoutWallpaper:
+        case .reindexCache:
             return 40
-        case .experimentalCompatibility:
+        case .resetBiometricsData:
             return 41
-        case .enableDebugDataDisplay:
+        case .optimizeDatabase:
             return 42
-        case .fakeGlass:
+        case .photoPreview:
             return 43
-        case .forceClearGlass:
+        case .knockoutWallpaper:
             return 44
-        case .debugRipple:
+        case .experimentalCompatibility:
             return 45
-        case .debugRichText:
+        case .enableDebugDataDisplay:
             return 46
-        case .browserExperiment:
+        case .fakeGlass:
             return 47
-        case .allForumsHaveTabs:
+        case .forceClearGlass:
             return 48
-        case .enableReactionOverrides:
+        case .debugRipple:
             return 49
-        case .restorePurchases:
+        case .inputDecEngineEditor:
             return 50
-        case .logTranslationRecognition:
-            return 64
-        case .resetTranslationStates:
-            return 65
-        case .compressedEmojiCache:
+        case .browserExperiment:
             return 51
-        case .storiesJpegExperiment:
+        case .allForumsHaveTabs:
             return 52
-        case .disableReloginTokens:
+        case .enableReactionOverrides:
             return 53
-        case .checkSerializedData:
+        case .restorePurchases:
             return 54
-        case .enableQuickReactionSwitch:
+        case .logTranslationRecognition:
+            return 68
+        case .resetTranslationStates:
+            return 69
+        case .compressedEmojiCache:
             return 55
-        case .liveStreamV2:
+        case .storiesJpegExperiment:
             return 56
-        case .experimentalCallMute:
+        case .disableReloginTokens:
             return 57
-        case .groupCallReferenceEngine:
+        case .checkSerializedData:
             return 58
-        case .playerV2:
+        case .enableQuickReactionSwitch:
             return 59
-        case .devRequests:
+        case .liveStreamV2:
             return 60
-        case .pwa:
+        case .experimentalCallMute:
             return 61
-        case .enableLocalTranslation:
+        case .groupCallReferenceEngine:
             return 62
-        case .enableUpdates:
+        case .playerV2:
             return 63
+        case .devRequests:
+            return 64
+        case .pwa:
+            return 65
+        case .enableLocalTranslation:
+            return 66
+        case .enableUpdates:
+            return 67
+        case .inputDecTextBackend:
+            // After `enableUpdates`, where it is appended. ItemList asserts its entries are in
+            // strictly increasing order (`<`: section, then `sortIndex`, which is the stableId here;
+            // ItemListControllerNode.swift), so an id must match the position the entry is appended
+            // at, or the list traps at runtime inside its own state closure.
+            return 72
+        case .springSendAnimation:
+            // Appended right after `inputDecTextBackend`; see the ordering note above.
+            return 73
+        case .fakeWalletTransfers:
+            // Appended right after `springSendAnimation`; see the ordering note above.
+            return 74
         case .disableVideoAspectScaling:
-            return 101
-        case .enableNetworkExperiments:
-            return 103
-        case .rustMTProtoEngine:
             return 104
-        case .networkEngineInfo:
-            return 105
-        case .hostInfo:
+        case .enableNetworkExperiments:
             return 106
-        case .versionInfo:
+        case .rustMTProtoEngine:
             return 107
-        case .collectCpuProfile:
+        case .networkEngineInfo:
             return 108
-        case .sendProfileLogs:
+        case .hostInfo:
             return 109
+        case .versionInfo:
+            return -4
+        case .collectCpuProfile:
+            return 111
+        case .sendProfileLogs:
+            return 112
         }
     }
-    
-    static func <(lhs: DebugControllerEntry, rhs: DebugControllerEntry) -> Bool {
-        return lhs.stableId < rhs.stableId
+
+    private var sortIndex: Int {
+        switch self {
+        case .resetAppHeader: return 0
+        case .clearTips: return 1
+        case .resetDatabase: return 2
+        case .resetDatabaseAndCache: return 3
+        case .resetNotifications: return 4
+        case .fillLocalSavedMessageCache: return 5
+        case .resetHoles: return 6
+        case .resetTagHoles: return 7
+        case .reindexUnread: return 8
+        case .resetCacheIndex: return 9
+        case .reindexCache: return 10
+        case .optimizeDatabase: return 11
+        case .restorePurchases: return 12
+        default: return self.stableId
+        }
     }
-    
+
+    static func <(lhs: DebugControllerEntry, rhs: DebugControllerEntry) -> Bool {
+        if lhs.section != rhs.section {
+            return lhs.section < rhs.section
+        }
+        return lhs.sortIndex < rhs.sortIndex
+    }
+
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! DebugControllerArguments
         switch self {
@@ -400,402 +664,18 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     context.sharedContext.openResolvedUrl(.importStickers, context: context, urlContext: .generic, navigationController: arguments.getNavigationController(), forceExternal: false, forceUpdate: false, openPeer: { _, _ in }, sendFile: nil, sendSticker: nil, sendEmoji: nil, requestMessageActionUrlAuth: nil, joinVoiceChat: nil, present: { c, a in arguments.presentController(c, a as? ViewControllerPresentationArguments) }, dismissInput: {}, contentContext: nil, progress: nil, completion: nil)
                 }
             })
+        case .logsHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: "LOGS", sectionId: self.section)
+        case .logsInfo:
+            return ItemListTextItem(presentationData: presentationData, text: .plain("When enabled, your message text and other sensitive information are excluded from logs."), sectionId: self.section)
+        case .resetAppHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: "RESET APP", sectionId: self.section)
+        case .experimentsHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: "EXPERIMENTAL SETTINGS", sectionId: self.section)
         case .sendLogs:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.sendLogs40, label: "", sectionId: self.section, style: .blocks, action: {
-                let _ = (Logger.shared.collectLogs()
-                |> deliverOnMainQueue).start(next: { logs in
-                    let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
-                    let actionSheet = ActionSheetController(presentationData: presentationData)
-
-                    var items: [ActionSheetButtonItem] = []
-
-                    if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaTelegram, color: .accent, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-
-                            let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
-                            controller.peerSelected = { [weak controller] peer, _ in
-                                let peerId = peer.id
-
-                                if let strongController = controller {
-                                    strongController.dismiss()
-
-                                    ForkLogExport.sendLogs(logs, compressed: true, fileName: "Log-iOS-Full.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
-                                }
-                            }
-                            arguments.pushController(controller)
-                        }))
-                    }
-                    items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
-                        actionSheet?.dismissAnimated()
-
-                        ForkLogExport.composeMail(logs, fileName: "Log-iOS-Full.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
-                            arguments.getRootController()?.present(composeController, animated: true, completion: nil)
-                        })
-                    }))
-
-                    actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
-                        ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-                        })
-                    ])])
-                    arguments.presentController(actionSheet, nil)
-                })
-            })
-        case .sendOneLog:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.sendLatestLogs4, label: "", sectionId: self.section, style: .blocks, action: {
-                let _ = (Logger.shared.collectLogs()
-                    |> deliverOnMainQueue).start(next: { logs in
-                        let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
-                        let actionSheet = ActionSheetController(presentationData: presentationData)
-                        
-                        var items: [ActionSheetButtonItem] = []
-                        
-                        if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                            items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaTelegram, color: .accent, action: { [weak actionSheet] in
-                                actionSheet?.dismissAnimated()
-                                
-                                let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
-                                controller.peerSelected = { [weak controller] peer, _ in
-                                    let peerId = peer.id
-                                    
-                                    if let strongController = controller {
-                                        strongController.dismiss()
-                                        
-                                        var latestLogs: [(String, String)] = []
-                                        if logs.count < 2 {
-                                            latestLogs = logs
-                                        } else {
-                                            for i in (logs.count - 2) ..< logs.count {
-                                                latestLogs.append(logs[i])
-                                            }
-                                        }
-
-                                        ForkLogExport.sendLogs(latestLogs, compressed: false, fileName: "Log-iOS-Short.txt", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
-                                    }
-                                }
-                                arguments.pushController(controller)
-                            }))
-                        }
-                        
-                        items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-                            
-                            ForkLogExport.composeMail(logs, fileName: "Log-iOS-Full.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
-                                arguments.getRootController()?.present(composeController, animated: true, completion: nil)
-                            })
-                        }))
-                        
-                        actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
-                            ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
-                                actionSheet?.dismissAnimated()
-                            })
-                            ])
-                            ])
-                        arguments.presentController(actionSheet, nil)
-                    })
-            })
-        case .sendShareLogs:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.sendShareLogs40, label: "", sectionId: self.section, style: .blocks, action: {
-                let _ = (Logger.shared.collectLogs(prefix: "/logs/share-logs")
-                |> deliverOnMainQueue).start(next: { logs in
-                    let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
-                    let actionSheet = ActionSheetController(presentationData: presentationData)
-
-                    var items: [ActionSheetButtonItem] = []
-
-                    if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaTelegram, color: .accent, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-
-                            let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
-                            controller.peerSelected = { [weak controller] peer, _ in
-                                let peerId = peer.id
-
-                                if let strongController = controller {
-                                    strongController.dismiss()
-
-                                    ForkLogExport.sendLogs(logs, compressed: true, fileName: "Log-iOS-Share.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
-                                }
-                            }
-                            arguments.pushController(controller)
-                        }))
-                    }
-                    items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
-                        actionSheet?.dismissAnimated()
-
-                        ForkLogExport.composeMail(logs, fileName: "Log-iOS-Share.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
-                            arguments.getRootController()?.present(composeController, animated: true, completion: nil)
-                        })
-                    }))
-
-                    actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
-                        ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-                        })
-                    ])])
-                    arguments.presentController(actionSheet, nil)
-                })
-            })
-        case .sendGroupCallLogs:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.sendGroupCallLogs40, label: "", sectionId: self.section, style: .blocks, action: {
-                let _ = (Logger.shared.collectLogs(basePath: arguments.context!.account.basePath + "/group-calls")
-                |> deliverOnMainQueue).start(next: { logs in
-                    let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
-                    let actionSheet = ActionSheetController(presentationData: presentationData)
-
-                    var items: [ActionSheetButtonItem] = []
-
-                    if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaTelegram, color: .accent, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-
-                            let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
-                            controller.peerSelected = { [weak controller] peer, _ in
-                                let peerId = peer.id
-
-                                if let strongController = controller {
-                                    strongController.dismiss()
-
-                                    ForkLogExport.sendLogs(logs, compressed: true, fileName: "Log-iOS-GroupCalls.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
-                                }
-                            }
-                            arguments.pushController(controller)
-                        }))
-                    }
-                    items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
-                        actionSheet?.dismissAnimated()
-
-                        ForkLogExport.composeMail(logs, fileName: "Log-iOS-GroupCalls.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
-                            arguments.getRootController()?.present(composeController, animated: true, completion: nil)
-                        })
-                    }))
-
-                    actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
-                        ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-                        })
-                    ])])
-                    arguments.presentController(actionSheet, nil)
-                })
-            })
-        case .sendNotificationLogs:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.sendNotificationLogs40, label: "", sectionId: self.section, style: .blocks, action: {
-                let logsPath = arguments.sharedContext.basePath + "/logs/notification-logs"
-                let _ = (Logger(rootPath: logsPath, basePath: logsPath).collectLogs()
-                    |> deliverOnMainQueue).start(next: { logs in
-                    let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
-                    let actionSheet = ActionSheetController(presentationData: presentationData)
-
-                    var items: [ActionSheetButtonItem] = []
-
-                    if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaTelegram, color: .accent, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-
-                            let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
-                            controller.peerSelected = { [weak controller] peer, _ in
-                                let peerId = peer.id
-
-                                if let strongController = controller {
-                                    strongController.dismiss()
-
-                                    ForkLogExport.sendLogs(logs, compressed: true, fileName: "Log-iOS-Notifications.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
-                                }
-                            }
-                            arguments.pushController(controller)
-                        }))
-                    }
-                    items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
-                        actionSheet?.dismissAnimated()
-
-                        ForkLogExport.composeMail(logs, fileName: "Log-iOS-Notifications.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
-                            arguments.getRootController()?.present(composeController, animated: true, completion: nil)
-                        })
-                    }))
-
-                    actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
-                        ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-                        })
-                    ])])
-                    arguments.presentController(actionSheet, nil)
-                })
-            })
-        case .sendCriticalLogs:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.sendCriticalLogs, label: "", sectionId: self.section, style: .blocks, action: {
-                let _ = (Logger.shared.collectShortLogFiles()
-                    |> deliverOnMainQueue).start(next: { logs in
-                        let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
-                        let actionSheet = ActionSheetController(presentationData: presentationData)
-                        
-                        var items: [ActionSheetButtonItem] = []
-                        
-                        if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                            items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaTelegram, color: .accent, action: { [weak actionSheet] in
-                                actionSheet?.dismissAnimated()
-                                
-                                let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
-                                controller.peerSelected = { [weak controller] peer, _ in
-                                    let peerId = peer.id
-                                    
-                                    if let strongController = controller {
-                                        strongController.dismiss()
-                                        
-                                        // One archive rather than one message per file: the
-                                        // critical log keeps enough files that sending them
-                                        // individually buries the chat.
-                                        ForkLogExport.sendLogs(logs, compressed: true, fileName: "Log-iOS-Critical.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
-                                    }
-                                }
-                                arguments.pushController(controller)
-                            }))
-                        }
-                        
-                        items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaEmail, color: .accent, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-
-                            ForkLogExport.composeMail(logs, fileName: "Log-iOS-Critical.txt.zip", delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
-                                arguments.getRootController()?.present(composeController, animated: true, completion: nil)
-                            })
-                        }))
-                        items.append(ActionSheetButtonItem(title: DebugLocalizedString.saveArchive, color: .accent, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-
-                            ForkLogExport.saveArchive(logs, fileName: "Log-iOS-Critical.zip", sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, completion: { tempZip in
-                                guard let rootController = arguments.getRootController() else {
-                                    EngineTempBox.shared.dispose(tempZip)
-                                    return
-                                }
-                                let activityController = UIActivityViewController(activityItems: [URL(fileURLWithPath: tempZip.path)], applicationActivities: nil)
-                                activityController.completionWithItemsHandler = { _, _, _, _ in
-                                    EngineTempBox.shared.dispose(tempZip)
-                                }
-                                if let popoverPresentationController = activityController.popoverPresentationController {
-                                    popoverPresentationController.sourceView = rootController.view
-                                    popoverPresentationController.sourceRect = CGRect(origin: CGPoint(x: rootController.view.bounds.width / 2.0, y: rootController.view.bounds.height - 1.0), size: CGSize(width: 1.0, height: 1.0))
-                                }
-                                rootController.present(activityController, animated: true, completion: nil)
-                            })
-                        }))
-                        actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
-                            ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
-                                actionSheet?.dismissAnimated()
-                            })
-                            ])])
-                        arguments.presentController(actionSheet, nil)
-                    })
-            })
-        case .sendAllLogs:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.sendAllLogs, label: "", sectionId: self.section, style: .blocks, action: {
-                let logTypes: [String] = [
-                    "app-logs",
-                    "broadcast-logs",
-                    "siri-logs",
-                    "widget-logs",
-                    "notificationcontent-logs",
-                    "notification-logs"
-                ]
-                
-                var logByType: [Signal<(type: String, logs: [(String, String)]), NoError>] = []
-                for type in logTypes {
-                    let logsPath = arguments.sharedContext.basePath + "/logs/\(type)"
-                    logByType.append(Logger(rootPath: logsPath, basePath: logsPath).collectLogs()
-                    |> map { result -> (type: String, logs: [(String, String)]) in
-                        return (type, result)
-                    })
-                }
-                
-                let allLogs = combineLatest(logByType)
-                
-                let _ = (allLogs
-                |> deliverOnMainQueue).start(next: { allLogs in
-                    let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
-                    let actionSheet = ActionSheetController(presentationData: presentationData)
-
-                    var items: [ActionSheetButtonItem] = []
-
-                    if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaTelegram, color: .accent, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-
-                            let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
-                            controller.peerSelected = { [weak controller] peer, _ in
-                                let peerId = peer.id
-
-                                if let strongController = controller {
-                                    strongController.dismiss()
-
-                                    ForkLogExport.sendLogGroups(allLogs, fileName: "Log-iOS-All.txt.zip", to: peerId, context: context, presentProgress: { arguments.presentController($0, nil) })
-                                }
-                            }
-                            arguments.pushController(controller)
-                        }))
-                    }
-
-                    actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
-                        ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-                        })
-                    ])])
-                    arguments.presentController(actionSheet, nil)
-                })
-            })
-        case .sendStorageStats:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.sendStorageStats, label: "", sectionId: self.section, style: .blocks, action: {
-                guard let context = arguments.context, context.sharedContext.applicationBindings.isMainApp else {
-                    return
-                }
-                
-                let allStats: Signal<Data, NoError> = Signal { subscriber in
-                    DispatchQueue.global().async {
-                        let log = collectRawStorageUsageReport(containerPath: context.sharedContext.applicationBindings.containerPath)
-                        subscriber.putNext(log.data(using: .utf8) ?? Data())
-                    }
-                    
-                    return EmptyDisposable
-                }
-                
-                let _ = (allStats
-                |> deliverOnMainQueue).start(next: { allStatsData in
-                    let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
-                    let actionSheet = ActionSheetController(presentationData: presentationData)
-
-                    var items: [ActionSheetButtonItem] = []
-
-                    if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: DebugLocalizedString.viaTelegram, color: .accent, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-
-                            let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
-                            controller.peerSelected = { [weak controller] peer, _ in
-                                let peerId = peer.id
-
-                                if let strongController = controller {
-                                    strongController.dismiss()
-
-                                    let id = Int64.random(in: Int64.min ... Int64.max)
-                                    let fileResource = LocalFileMediaResource(fileId: id, size: Int64(allStatsData.count), isSecretRelated: false)
-                                    context.engine.resources.storeResourceData(id: EngineMediaResource.Id(fileResource.id), data: allStatsData)
-
-                                    let file = TelegramMediaFile(fileId: EngineMedia.Id(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: fileResource, previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/zip", size: Int64(allStatsData.count), attributes: [.FileName(fileName: "StorageReport.txt")], alternativeRepresentations: [])
-                                    let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
-
-                                    let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).start()
-                                }
-                            }
-                            arguments.pushController(controller)
-                        }))
-                    }
-
-                    actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
-                        ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
-                            actionSheet?.dismissAnimated()
-                        })
-                    ])])
-                    arguments.presentController(actionSheet, nil)
-                })
-            })
+            return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: "Send Logs", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                arguments.openLogs()
+            }, tag: DebugControllerItemTag.sendLogs)
         case .accounts:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.accounts, label: "", sectionId: self.section, style: .blocks, action: {
                 guard let context = arguments.context else {
@@ -814,6 +694,10 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                 let _ = updateLoggingSettings(accountManager: arguments.sharedContext.accountManager, {
                     $0.withUpdatedLogToConsole(value)
                 }).start()
+            })
+        case .crashReports:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: "Crash Logs", label: "", sectionId: self.section, style: .blocks, action: {
+                arguments.pushController(crashReportsController(sharedContext: arguments.sharedContext, context: arguments.context))
             })
         case let .redactSensitiveData(_, value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.removeSensitiveData, value: value, sectionId: self.section, style: .blocks, updated: { value in
@@ -1018,7 +902,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     return
                 }
                 
-                context.account.postbox.mediaBox.storageBox.reset()
+                context.engine.resources.resetStorageIndex()
             })
         case .reindexCache:
             return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.reindexCache, kind: .destructive, alignment: .natural, sectionId: self.section, style: .blocks, action: {
@@ -1175,12 +1059,22 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     })
                 }).start()
             })
-        case let .debugRichText(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.forceTextFieldV2, value: value, sectionId: self.section, style: .blocks, updated: { value in
+        case let .inputDecEngineEditor(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: "Input V3", value: value, sectionId: self.section, style: .blocks, updated: { value in
                 let _ = arguments.sharedContext.accountManager.transaction ({ transaction in
                     transaction.updateSharedData(ApplicationSpecificSharedDataKeys.experimentalUISettings, { settings in
                         var settings = settings?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
-                        settings.forceNewTextInput = value
+                        settings.useInputDecEngine = value
+                        return EnginePreferencesEntry(settings)
+                    })
+                }).start()
+            })
+        case let .inputDecTextBackend(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: "Text Field v2: InputDec backend", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                let _ = arguments.sharedContext.accountManager.transaction ({ transaction in
+                    transaction.updateSharedData(ApplicationSpecificSharedDataKeys.experimentalUISettings, { settings in
+                        var settings = settings?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
+                        settings.inputDecTextBackend = value
                         return EnginePreferencesEntry(settings)
                     })
                 }).start()
@@ -1191,6 +1085,26 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     transaction.updateSharedData(ApplicationSpecificSharedDataKeys.experimentalUISettings, { settings in
                         var settings = settings?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
                         settings.coreListChatBackend = value
+                        return EnginePreferencesEntry(settings)
+                    })
+                }).start()
+            })
+        case let .springSendAnimation(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: "Chat: spring send animation", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                let _ = arguments.sharedContext.accountManager.transaction ({ transaction in
+                    transaction.updateSharedData(ApplicationSpecificSharedDataKeys.experimentalUISettings, { settings in
+                        var settings = settings?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
+                        settings.springSendAnimation = value
+                        return EnginePreferencesEntry(settings)
+                    })
+                }).start()
+            })
+        case let .fakeWalletTransfers(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: "Wallet: fake transfers", value: value, sectionId: self.section, style: .blocks, updated: { value in
+                let _ = arguments.sharedContext.accountManager.transaction ({ transaction in
+                    transaction.updateSharedData(ApplicationSpecificSharedDataKeys.experimentalUISettings, { settings in
+                        var settings = settings?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
+                        settings.fakeWalletTransfers = value
                         return EnginePreferencesEntry(settings)
                     })
                 }).start()
@@ -1221,9 +1135,40 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     transaction.updateSharedData(ApplicationSpecificSharedDataKeys.experimentalUISettings, { settings in
                         var settings = settings?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
                         settings.useModernVideoMessagePipeline = value
+                        if value && settings.videoMessageCameraMode == .legacy {
+                            settings.videoMessageCameraMode = .hdBilinear
+                        }
                         return EnginePreferencesEntry(settings)
                     })
                 }).start()
+            })
+        case let .videoMessageCameraMode(value):
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: "Video Message Camera", label: value.debugTitle, sectionId: self.section, style: .blocks, action: {
+                let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
+                let actionSheet = ActionSheetController(presentationData: presentationData)
+                var items: [ActionSheetItem] = [
+                    ActionSheetTextItem(title: "Reopen the camera to apply. VGA and HD use the Modern Video Message Pipeline and record 480×480 at 30 FPS.")
+                ]
+                for mode in ExperimentalUISettings.VideoMessageCameraMode.allCases {
+                    items.append(ActionSheetButtonItem(title: mode.debugTitle, color: .accent, action: { [weak actionSheet] in
+                        actionSheet?.dismissAnimated()
+                        let _ = updateExperimentalUISettingsInteractively(accountManager: arguments.sharedContext.accountManager, { settings in
+                            var settings = settings
+                            settings.useModernVideoMessagePipeline = mode != .legacy
+                            settings.videoMessageCameraMode = mode
+                            return settings
+                        }).start()
+                    }))
+                }
+                actionSheet.setItemGroups([
+                    ActionSheetItemGroup(items: items),
+                    ActionSheetItemGroup(items: [
+                        ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
+                            actionSheet?.dismissAnimated()
+                        })
+                    ])
+                ])
+                arguments.presentController(actionSheet, nil)
             })
         case let .browserExperiment(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: DebugLocalizedString.inlineUI, value: value, sectionId: self.section, style: .blocks, updated: { value in
@@ -1440,7 +1385,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             let bundleId = bundle.bundleIdentifier ?? ""
             let bundleVersion = bundle.infoDictionary?["CFBundleShortVersionString"] ?? ""
             let bundleBuild = bundle.infoDictionary?[kCFBundleVersionKey as String] ?? ""
-            return ItemListTextItem(presentationData: presentationData, text: .plain("\(bundleId)\n\(bundleVersion) (\(bundleBuild))"), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain("Telegram for iOS \(bundleVersion) (\(bundleBuild))\n\(bundleId)"), sectionId: self.section, textAlignment: .center)
         case .collectCpuProfile:
             return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: "Collect CPU Profile (10s)", kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
                 let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
@@ -1563,31 +1508,49 @@ private enum DebugControllerEntry: ItemListNodeEntry {
 }
 
 private func debugControllerEntries(context: AccountContext?, sharedContext: SharedAccountContext, presentationData: PresentationData, loggingSettings: LoggingSettings, mediaInputSettings: MediaInputSettings, experimentalSettings: ExperimentalUISettings, networkSettings: NetworkSettings?, networkEngineSettings: NetworkEngineSettings, hasLegacyAppData: Bool, useBetaFeatures: Bool) -> [DebugControllerEntry] {
-    var entries: [DebugControllerEntry] = []
+    var entries: [DebugControllerEntry] = [.versionInfo(presentationData.theme)]
 
     let isMainApp = sharedContext.applicationBindings.isMainApp
     
-//    entries.append(.testStickerImport(presentationData.theme))
+    entries.append(.logsHeader(presentationData.theme))
     entries.append(.sendLogs(presentationData.theme))
-    //entries.append(.sendOneLog(presentationData.theme))
-    entries.append(.sendShareLogs)
-    entries.append(.sendGroupCallLogs)
-    entries.append(.sendNotificationLogs(presentationData.theme))
-    entries.append(.sendCriticalLogs(presentationData.theme))
-    entries.append(.sendAllLogs)
-    entries.append(.sendStorageStats)
     if isMainApp {
-        entries.append(.accounts(presentationData.theme))
+        entries.append(.crashReports)
     }
-    
+
     entries.append(.logToFile(presentationData.theme, loggingSettings.logToFile))
     entries.append(.logToConsole(presentationData.theme, loggingSettings.logToConsole))
     entries.append(.redactSensitiveData(presentationData.theme, loggingSettings.redactSensitiveData))
+    entries.append(.logsInfo(presentationData.theme))
 
     if isMainApp {
-        entries.append(.webViewInspection(experimentalSettings.allowWebViewInspection))
-        entries.append(.resetWebViewCache(presentationData.theme))
-        
+        entries.append(.accounts(presentationData.theme))
+    }
+
+    entries.append(.resetAppHeader(presentationData.theme))
+    if isMainApp {
+        entries.append(.clearTips(presentationData.theme))
+    }
+    entries.append(.resetDatabase(presentationData.theme))
+    entries.append(.resetDatabaseAndCache(presentationData.theme))
+    if isMainApp {
+        entries.append(.resetNotifications)
+    }
+    entries.append(.fillLocalSavedMessageCache)
+    entries.append(.resetHoles(presentationData.theme))
+    entries.append(.resetTagHoles)
+    if isMainApp {
+        entries.append(.reindexUnread(presentationData.theme))
+        entries.append(.resetCacheIndex)
+        entries.append(.reindexCache)
+    }
+    entries.append(.optimizeDatabase(presentationData.theme))
+    if isMainApp {
+        entries.append(.restorePurchases(presentationData.theme))
+    }
+
+    entries.append(.experimentsHeader(presentationData.theme))
+    if isMainApp {
         entries.append(.keepChatNavigationStack(presentationData.theme, experimentalSettings.keepChatNavigationStack))
         #if DEBUG
         entries.append(.skipReadHistory(presentationData.theme, experimentalSettings.skipReadHistory))
@@ -1598,30 +1561,17 @@ private func debugControllerEntries(context: AccountContext?, sharedContext: Sha
     entries.append(.coreListChatBackend(experimentalSettings.coreListChatBackend))
     entries.append(.forceRLottieBackend(experimentalSettings.forceRLottieBackend))
     entries.append(.respectSystemMicrophone(experimentalSettings.respectSystemMicrophone))
-    entries.append(.useModernVideoMessagePipeline(experimentalSettings.resolvedUseModernVideoMessagePipeline))
+    let useModernVideoMessagePipeline = experimentalSettings.resolvedUseModernVideoMessagePipeline && experimentalSettings.videoMessageCameraMode != .legacy
+    entries.append(.useModernVideoMessagePipeline(useModernVideoMessagePipeline))
+    entries.append(.videoMessageCameraMode(useModernVideoMessagePipeline ? experimentalSettings.videoMessageCameraMode : .legacy))
     entries.append(.crashOnSlowQueries(presentationData.theme, experimentalSettings.crashOnLongQueries))
     entries.append(.crashOnMemoryPressure(presentationData.theme, experimentalSettings.crashOnMemoryPressure))
-    if isMainApp {
-        entries.append(.clearTips(presentationData.theme))
-        entries.append(.resetNotifications)
-    }
     entries.append(.crash(presentationData.theme))
     #if DEBUG
     if isMainApp {
         entries.append(.testPasscodeMigration)
     }
     #endif
-    entries.append(.fillLocalSavedMessageCache)
-    entries.append(.resetDatabase(presentationData.theme))
-    entries.append(.resetDatabaseAndCache(presentationData.theme))
-    entries.append(.resetHoles(presentationData.theme))
-    entries.append(.resetTagHoles)
-    if isMainApp {
-        entries.append(.reindexUnread(presentationData.theme))
-        entries.append(.resetCacheIndex)
-        entries.append(.reindexCache)
-    }
-    entries.append(.optimizeDatabase(presentationData.theme))
     if isMainApp {
         entries.append(.knockoutWallpaper(presentationData.theme, experimentalSettings.knockoutWallpaper))
         entries.append(.experimentalCompatibility(experimentalSettings.experimentalCompatibility))
@@ -1629,7 +1579,7 @@ private func debugControllerEntries(context: AccountContext?, sharedContext: Sha
         entries.append(.fakeGlass(experimentalSettings.fakeGlass))
         entries.append(.forceClearGlass(experimentalSettings.forceClearGlass))
         entries.append(.debugRipple(experimentalSettings.debugRipple))
-        entries.append(.debugRichText(experimentalSettings.forceNewTextInput))
+        entries.append(.inputDecEngineEditor(experimentalSettings.useInputDecEngine))
         // Shown unconditionally. This screen is reached from a Settings row now, and reaching it
         // at all is the opt-in; hiding half of its rows behind the build type only means the
         // fork's App Store-configured build - is_appstore_build is true, so appBuildType resolves
@@ -1642,7 +1592,6 @@ private func debugControllerEntries(context: AccountContext?, sharedContext: Sha
         entries.append(.browserExperiment(experimentalSettings.browserExperiment))
         entries.append(.allForumsHaveTabs(experimentalSettings.allForumsHaveTabs))
         entries.append(.enableReactionOverrides(experimentalSettings.enableReactionOverrides))
-        entries.append(.restorePurchases(presentationData.theme))
         
         entries.append(.compressedEmojiCache(experimentalSettings.compressedEmojiCache))
         entries.append(.storiesJpegExperiment(experimentalSettings.storiesJpegExperiment))
@@ -1671,12 +1620,26 @@ private func debugControllerEntries(context: AccountContext?, sharedContext: Sha
         }
         entries.append(.enableLocalTranslation(experimentalSettings.enableLocalTranslation))
         entries.append(.enableUpdates(experimentalSettings.enableUpdates))
+        #if DEBUG
+        entries.append(.inputDecTextBackend(experimentalSettings.inputDecTextBackend))
+        #else
+        if sharedContext.applicationBindings.appBuildType == .internal {
+            entries.append(.inputDecTextBackend(experimentalSettings.inputDecTextBackend))
+        }
+        #endif
+        entries.append(.springSendAnimation(experimentalSettings.springSendAnimation))
+        if let data = context?.currentAppConfiguration.with({ $0 }).data, let isDev = data["dev"] as? Double, isDev == 1.0 {
+            entries.append(.fakeWalletTransfers(experimentalSettings.fakeWalletTransfers))
+        }
         
         entries.append(.logTranslationRecognition(experimentalSettings.logLanguageRecognition))
         entries.append(.resetTranslationStates)
     }
 
     if isMainApp {
+        entries.append(.webViewInspection(experimentalSettings.allowWebViewInspection))
+        entries.append(.resetWebViewCache(presentationData.theme))
+
         entries.append(.disableVideoAspectScaling(experimentalSettings.disableVideoAspectScaling))
         entries.append(.enableNetworkExperiments(networkSettings?.useExperimentalDownload ?? true))
         entries.append(.rustMTProtoEngine(networkEngineSettings.engine == .rust))
@@ -1691,7 +1654,6 @@ private func debugControllerEntries(context: AccountContext?, sharedContext: Sha
     if let backupHostOverride = networkSettings?.backupHostOverride {
         entries.append(.hostInfo(presentationData.theme, "\(DebugLocalizedString.hostPrefix) \(backupHostOverride)"))
     }
-    entries.append(.versionInfo(presentationData.theme))
     
     entries.append(.collectCpuProfile)
     entries.append(.sendProfileLogs)
@@ -1773,6 +1735,55 @@ public func debugController(sharedContext: SharedAccountContext, context: Accoun
     
     
     let controller = ItemListController(sharedContext: sharedContext, state: signal)
+    arguments.openLogs = { [weak controller, weak arguments] in
+        guard let controller, let arguments,
+              let sourceNode = controller.itemNode(forTag: DebugControllerItemTag.sendLogs) as? ItemListActionItemNode else {
+            return
+        }
+        var options: [DebugLogAction] = [.sendLogs, .sendShareLogs]
+        if arguments.context != nil {
+            options.append(.sendGroupCallLogs)
+        }
+        options.append(contentsOf: [.sendNotificationLogs, .sendCriticalLogs, .sendAllLogs, .sendStorageStats])
+        let items: [ContextMenuItem] = options.map { option in
+            return .action(ContextMenuActionItem(text: option.title, textLayout: option.textLayout, icon: { _ in nil }, action: { menu, _ in
+                var subItems: [ContextMenuItem] = [
+                    .action(ContextMenuActionItem(text: sharedContext.currentPresentationData.with { $0 }.strings.Common_Back, icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Back"), color: theme.contextMenu.primaryColor)
+                    }, iconPosition: .left, action: { menu, _ in
+                        menu?.popItems()
+                    })),
+                    .separator
+                ]
+                if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
+                    subItems.append(.action(ContextMenuActionItem(text: "Via Telegram", icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Telegram"), color: theme.contextMenu.primaryColor)
+                    }, action: { menu, _ in
+                        menu?.dismiss(completion: {
+                            option.perform(arguments: arguments, destination: .telegram)
+                        })
+                    })))
+                }
+                if option != .sendAllLogs && option != .sendStorageStats {
+                    subItems.append(.action(ContextMenuActionItem(text: "Via Email", icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Item List/Icons/Email"), color: theme.contextMenu.primaryColor)
+                    }, action: { menu, _ in
+                        menu?.dismiss(completion: {
+                            option.perform(arguments: arguments, destination: .email)
+                        })
+                    })))
+                }
+                menu?.pushItems(items: .single(ContextController.Items(content: .list(subItems))))
+            }))
+        }
+        let menu = makeContextController(
+            presentationData: sharedContext.currentPresentationData.with { $0 },
+            source: .reference(DebugLogsContextReferenceContentSource(sourceView: sourceNode.view)),
+            items: .single(ContextController.Items(content: .list(items))),
+            gesture: nil
+        )
+        controller.presentInGlobalOverlay(menu, with: nil)
+    }
     presentControllerImpl = { [weak controller] c, a in
         controller?.present(c, in: .window(.root), with: a)
     }

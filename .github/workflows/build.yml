@@ -37,12 +37,16 @@ on:
         type: boolean
         default: false
       toolchain:
-        description: Build toolchain. xcode27 uses the Xcode 27 / iOS 27 SDK preview runner (separate cache); xcode26 is the proven default.
+        description: Build toolchain. xcode27 uses the Xcode 27 / iOS 27 SDK preview runner (separate cache); xcode27 is the default since the 13.1.1 merge (Swift 6.4); xcode26 is kept as a fallback.
         type: choice
         options:
           - xcode26
           - xcode27
-        default: xcode26
+        default: xcode27
+      skip_regression:
+        description: Start the build at once instead of waiting for the regression tests (they still run in a normal release)
+        type: boolean
+        default: false
 
 concurrency:
   group: telegram-ios-ipa-${{ github.ref }}
@@ -54,6 +58,7 @@ permissions:
 jobs:
   regression:
     name: Regression tests
+    if: ${{ !inputs.skip_regression }}
     runs-on: macos-26
     timeout-minutes: 30
     permissions:
@@ -138,6 +143,8 @@ jobs:
 
   build:
     needs: regression
+    # `skip_regression` leaves the regression job skipped; a skipped need would skip this job too.
+    if: ${{ !cancelled() && (needs.regression.result == 'success' || needs.regression.result == 'skipped') }}
     # Default stays on macos-26 / the Xcode version in versions.json: the first Xcode 27 preview IPA crashed on device.
     # Dispatch with toolchain=xcode27 to build against the Xcode 27 / iOS 27 SDK runner instead.
     name: Build IPA (${{ inputs.toolchain == 'xcode27' && 'xcode-27' || 'macos-26' }})
@@ -294,34 +301,21 @@ jobs:
             /Users/runner/Library/Android || true
           df -h /
 
-      - name: Cache Bazel (warm incremental compiles)
-        if: ${{ inputs.toolchain != 'xcode27' }}
-        uses: actions/cache@v4
+      # Restore here, save in the last step with `always()`: actions/cache's own post step is skipped
+      # when the build fails, so a failed run used to throw its compiled layers away. The key carries
+      # the run id because a cache entry is immutable: with a fixed key the first save wins forever and
+      # every later run restores that stale one.
+      - name: Restore Bazel cache (warm incremental compiles)
+        id: bazel-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ env.BAZEL_CACHE_DIR }}
             ${{ env.BAZEL_REPO_CACHE }}
-          # release_arm64 cache; versions.json bump isolates from Xcode 27 caches.
-          key: bazel-warm-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
+          key: bazel-warm-${{ inputs.toolchain == 'xcode27' && 'xcode27-' || '' }}release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}
           restore-keys: |
-            bazel-warm-release_arm64-
-            bazel-warm-ci_arm64-
-            bazel-pm-macOS-ci_arm64-
-            bazel-turbo-macOS-ci_arm64-
-            bazel-pm-
-            bazel-turbo-
-            bazel-
-
-      - name: Cache Bazel (Xcode 27, isolated from Xcode 26 caches)
-        if: ${{ inputs.toolchain == 'xcode27' }}
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.BAZEL_CACHE_DIR }}
-            ${{ env.BAZEL_REPO_CACHE }}
-          key: bazel-warm-xcode27-release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}
-          restore-keys: |
-            bazel-warm-xcode27-release_arm64-
+            bazel-warm-${{ inputs.toolchain == 'xcode27' && 'xcode27-' || '' }}release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-
+            bazel-warm-${{ inputs.toolchain == 'xcode27' && 'xcode27-' || '' }}release_arm64-
 
       - name: Write sideload configuration
         env:
@@ -399,6 +393,15 @@ jobs:
             --continueOnError \
             --outputBuildArtifactsPath=build/artifacts \
             2>&1 | tee release-build.log
+
+      - name: Save Bazel cache
+        if: ${{ !cancelled() && steps.bazel-cache.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.BAZEL_CACHE_DIR }}
+            ${{ env.BAZEL_REPO_CACHE }}
+          key: bazel-warm-${{ inputs.toolchain == 'xcode27' && 'xcode27-' || '' }}release_arm64-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}
 
       - name: Report compiler errors
         if: failure()

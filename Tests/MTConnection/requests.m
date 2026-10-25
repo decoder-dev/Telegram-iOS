@@ -18,10 +18,15 @@ static double MTAbsoluteSystemTime(void) { return NSProcessInfo.processInfo.syst
 @property (nonatomic, strong) ErrorContext *errorContext;
 @property (nonatomic, strong) id requestContext;
 @property (nonatomic) BOOL needsTimeoutTimer;
+- (bool)scanNeedsTimeoutTimer;
+- (ErrorContext *)scanErrorContext;
 @end
 @implementation MTRequest
 @synthesize internalId = _internalId;
 - (id)internalId { idReads++; return _internalId; }
+// Official 13.1 reads these two through direct scan accessors instead of the properties.
+- (bool)scanNeedsTimeoutTimer { return _needsTimeoutTimer; }
+- (ErrorContext *)scanErrorContext { return _errorContext; }
 @end
 @interface MTProto : NSObject
 @property (nonatomic) NSUInteger transactions;

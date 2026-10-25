@@ -1,6 +1,6 @@
 import Foundation
 import Postbox
-import TelegramApi
+internal import TelegramApi
 
 public func bananaUsesPersonalNotificationSettings(peerId: PeerId, personal: Bool, removePings: Bool) -> Bool {
     if removePings, peerId.namespace == Namespaces.Peer.CloudGroup || peerId.namespace == Namespaces.Peer.CloudChannel {

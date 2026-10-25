@@ -43,9 +43,9 @@ public final class ChannelMembersSearchControllerImpl: ViewController, ChannelMe
             self.presentationData = self.presentationData.withUpdated(theme: forceTheme)
         }
         
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, hideSeparator: true, style: .legacy))
+        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData))
         
-        self._hasGlassStyle = false
+        self._hasGlassStyle = true
         self.navigationPresentation = .modal
         
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
