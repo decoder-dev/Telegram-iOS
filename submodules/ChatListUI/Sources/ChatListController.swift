@@ -405,9 +405,10 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         }
                     )
                     
+                    // Not accent: a tinted button takes a glass pill of its own (`navigationBarRightSections`), and the
+                    // fork keeps the Chats buttons in one capsule.
                     self.primaryContext?.rightButton = NavigationBarComponent.Button(id: "compose",
                         content: .icon(imageName: "Chat List/ComposeIcon"),
-                        tint: .accent,
                         action: { [weak self] _ in
                             self?.composePressed()
                         }
@@ -7481,9 +7482,9 @@ private final class ChatListLocationContext {
                         }
                     )
                 } else {
+                    // Not accent, see the other "compose" button: one capsule for the right buttons.
                     self.rightButton = NavigationBarComponent.Button(id: "compose",
                         content: .icon(imageName: "Chat List/ComposeIcon"),
-                        tint: .accent,
                         action: { [weak self] _ in
                             self?.parentController?.composePressed()
                         }
