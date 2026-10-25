@@ -151,6 +151,8 @@ private final class DebugLogsContextReferenceContentSource: ContextReferenceCont
 private enum DebugLogDestination {
     case telegram
     case email
+    /// Fork: the files zipped as they are (`ForkLogExport.saveArchive`), handed to the share sheet.
+    case saveArchive
 }
 
 private enum DebugLogAction {
@@ -201,6 +203,24 @@ private enum DebugLogAction {
                 }
             }
             arguments.pushController(controller)
+        }
+        if destination == .saveArchive {
+            let archiveName = (mailFileName ?? fileName).replacingOccurrences(of: ".txt.zip", with: ".zip").replacingOccurrences(of: ".txt", with: ".zip")
+            ForkLogExport.saveArchive(mailLogs ?? logs, fileName: archiveName, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, completion: { tempZip in
+                guard let rootController = arguments.getRootController() else {
+                    EngineTempBox.shared.dispose(tempZip)
+                    return
+                }
+                let activityController = UIActivityViewController(activityItems: [URL(fileURLWithPath: tempZip.path)], applicationActivities: nil)
+                activityController.completionWithItemsHandler = { _, _, _, _ in
+                    EngineTempBox.shared.dispose(tempZip)
+                }
+                if let popoverPresentationController = activityController.popoverPresentationController {
+                    popoverPresentationController.sourceView = rootController.view
+                    popoverPresentationController.sourceRect = CGRect(origin: CGPoint(x: rootController.view.bounds.width / 2.0, y: rootController.view.bounds.height - 1.0), size: CGSize(width: 1.0, height: 1.0))
+                }
+                rootController.present(activityController, animated: true, completion: nil)
+            })
         }
         if destination == .email {
             ForkLogExport.composeMail(mailLogs ?? logs, fileName: mailFileName ?? fileName, delegate: arguments.mailComposeDelegate, sharedContext: arguments.sharedContext, presentProgress: { arguments.presentController($0, nil) }, present: { composeController in
@@ -1770,6 +1790,13 @@ public func debugController(sharedContext: SharedAccountContext, context: Accoun
                     }, action: { menu, _ in
                         menu?.dismiss(completion: {
                             option.perform(arguments: arguments, destination: .email)
+                        })
+                    })))
+                    subItems.append(.action(ContextMenuActionItem(text: DebugLocalizedString.saveArchive, icon: { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Item List/Icons/Email"), color: theme.contextMenu.primaryColor)
+                    }, action: { menu, _ in
+                        menu?.dismiss(completion: {
+                            option.perform(arguments: arguments, destination: .saveArchive)
                         })
                     })))
                 }
