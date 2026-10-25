@@ -359,6 +359,19 @@ extension RichTextEngineEditorView {
         set { composerHostState.onHardwareReturn = newValue }
     }
 
+    /// Stored for the host (the "Send with Return" setting). The engine's text view does not ask for it yet, so
+    /// an on-screen Return inserts a paragraph break here whatever the host answers.
+    public var onSoftwareReturn: (() -> Bool)? {
+        get { composerHostState.onSoftwareReturn }
+        set { composerHostState.onSoftwareReturn = newValue }
+    }
+
+    /// Stored for the host; the engine's keyboard keeps its own return key.
+    public var composerReturnKeyType: UIReturnKeyType {
+        get { composerHostState.composerReturnKeyType }
+        set { composerHostState.composerReturnKeyType = newValue }
+    }
+
     /// Fired after the ENGINE takes the responder role — see `+Responder.swift`, where the wrapper
     /// deliberately never calls `super.becomeFirstResponder()`.
     public var onBecameFirstResponder: (() -> Void)? {
@@ -451,6 +464,8 @@ public struct ComposerHostState {
     /// composer sets it `false` explicitly.
     public var tapBelowAddsTrailingParagraph = true
     public var onHardwareReturn: ((UIKeyModifierFlags) -> Bool)?
+    public var onSoftwareReturn: (() -> Bool)?
+    public var composerReturnKeyType: UIReturnKeyType = .default
     public var onBecameFirstResponder: (() -> Void)?
     public var onResignedFirstResponder: (() -> Void)?
     public var theme: RichTextEditorTheme = .default

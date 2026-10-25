@@ -85,6 +85,10 @@ public protocol RichTextEditor: UIView {
     var canvasBackgroundColor: UIColor? { get set }
     var tapBelowAddsTrailingParagraph: Bool { get set }
     var onHardwareReturn: ((UIKeyModifierFlags) -> Bool)? { get set }
+    /// On-screen Return: false when the host sent the message ("Send with Return"), true to insert a paragraph break.
+    var onSoftwareReturn: (() -> Bool)? { get set }
+    /// The return-key appearance the host wants on the keyboard.
+    var composerReturnKeyType: UIReturnKeyType { get set }
     var onBecameFirstResponder: (() -> Void)? { get set }
     var onResignedFirstResponder: (() -> Void)? { get set }
 
