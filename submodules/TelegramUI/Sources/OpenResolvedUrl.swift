@@ -672,6 +672,19 @@ func openResolvedUrlImpl(
             })
             dismissInput()
         case let .share(url, text, to):
+            // Extras "Confirm share links" (on by default): show the message a link wants to open before it opens.
+            let shareKey = ForkShareLinkGuard.key(url: url, text: text, to: to)
+            if context.sharedContext.immediateForkExtrasSettings.confirmShareLinks, !ForkShareLinkGuard.consumeApproval(shareKey) {
+                let russian = ForkPresentationLanguage.prefersRussianStrings
+                present(textAlertController(context: context, updatedPresentationData: updatedPresentationData, title: russian ? "Открыть сообщение из ссылки?" : "Open the message from this link?", text: ForkShareLinkGuard.message(url: url, text: text, to: to, russian: russian), actions: [
+                    TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                    TextAlertAction(type: .defaultAction, title: russian ? "Открыть" : "Open", action: {
+                        ForkShareLinkGuard.approve(shareKey)
+                        openResolvedUrlImpl(resolvedUrl, context: context, urlContext: urlContext, navigationController: navigationController, forceExternal: forceExternal, forceUpdate: forceUpdate, openPeer: openPeer, sendFile: sendFile, sendSticker: sendSticker, sendEmoji: sendEmoji, requestMessageActionUrlAuth: requestMessageActionUrlAuth, joinVoiceChat: joinVoiceChat, present: present, dismissInput: dismissInput, contentContext: contentContext, progress: progress, completion: completion)
+                    })
+                ]), nil)
+                return
+            }
             let continueWithPeer: (EnginePeer.Id, Int64?) -> Void = { [navigationController] peerId, threadId in
                 let textInputState: ChatTextInputState?
                 if let text = text, !text.isEmpty {

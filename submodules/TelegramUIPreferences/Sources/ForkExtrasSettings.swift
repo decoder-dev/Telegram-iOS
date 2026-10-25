@@ -155,6 +155,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var confirmReactionsInUnjoinedChats: Bool
     /// Donutgram: ask before a link that opens inside Telegram (t.me, tg:) is followed from a message, a bio or another app. Off by default.
     public var confirmTelegramLinks: Bool
+    /// Ask before a `tg://msg_url`, `tg://msg` or `t.me/share` link opens its prefilled message (on by default: such links are
+    /// how a worm spreads itself through a user's contacts).
+    public var confirmShareLinks: Bool
     /// Donutgram: ask before a tap on a previewed chat (long press in the list) opens it. Off by default.
     public var confirmChatPreviewEntry: Bool
     public var disableGiftStarsRedirect: Bool
@@ -566,6 +569,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideServiceMessages = false
         self.confirmReactionsInUnjoinedChats = false
         self.confirmTelegramLinks = false
+        self.confirmShareLinks = true
         self.confirmChatPreviewEntry = false
         self.disableGiftStarsRedirect = false
         self.visualLabels = [:]
@@ -746,6 +750,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideServiceMessages = try container.decodeIfPresent(Bool.self, forKey: "hideServiceMessages") ?? false
         self.confirmReactionsInUnjoinedChats = try container.decodeIfPresent(Bool.self, forKey: "confirmReactionsInUnjoinedChats") ?? false
         self.confirmTelegramLinks = try container.decodeIfPresent(Bool.self, forKey: "confirmTelegramLinks") ?? false
+        self.confirmShareLinks = try container.decodeIfPresent(Bool.self, forKey: "confirmShareLinks") ?? true
         self.confirmChatPreviewEntry = try container.decodeIfPresent(Bool.self, forKey: "confirmChatPreviewEntry") ?? false
         self.disableGiftStarsRedirect = try container.decodeIfPresent(Bool.self, forKey: "disableGiftStarsRedirect") ?? false
         self.visualLabels = (try container.decodeIfPresent([Int64: Int32].self, forKey: "visualLabels") ?? [:]).filter { (1...4).contains($0.value) }
@@ -929,6 +934,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hideServiceMessages, forKey: "hideServiceMessages")
         try container.encode(self.confirmReactionsInUnjoinedChats, forKey: "confirmReactionsInUnjoinedChats")
         try container.encode(self.confirmTelegramLinks, forKey: "confirmTelegramLinks")
+        try container.encode(self.confirmShareLinks, forKey: "confirmShareLinks")
         try container.encode(self.confirmChatPreviewEntry, forKey: "confirmChatPreviewEntry")
         try container.encode(self.disableGiftStarsRedirect, forKey: "disableGiftStarsRedirect")
         try container.encode(self.visualLabels, forKey: "visualLabels")
