@@ -603,8 +603,6 @@ private enum DebugControllerEntry: ItemListNodeEntry {
             return 74
         case .disableVideoAspectScaling:
             return 104
-        case .enableNetworkFramework:
-            return 105
         case .enableNetworkExperiments:
             return 106
         case .rustMTProtoEngine:

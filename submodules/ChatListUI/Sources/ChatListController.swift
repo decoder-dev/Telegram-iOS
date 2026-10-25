@@ -6957,10 +6957,16 @@ private final class HeaderContextReferenceContentSource: ContextReferenceContent
     }
 }
 
+/// The settings gear shown in the header while the tab bar is hidden. One instance, so that the button and its
+/// overflow info stay equal between updates.
+private let chatListHeaderSettingsImage: UIImage = UIImage(systemName: "gearshape", withConfiguration: UIImage.SymbolConfiguration(pointSize: 20.0, weight: .regular))?.withRenderingMode(.alwaysTemplate) ?? UIImage()
+
 /// iPhone Duo: titles, menu icons and overflow priorities of the chat list's header buttons in the
-/// side column (spec 2026-10-06): compose stays longest, then proxy (it shows status), then story.
+/// side column (spec 2026-10-06): compose stays longest, then proxy (it shows status), then story. The title
+/// also labels the button for VoiceOver, so the settings gear (shown while the tab bar is hidden) needs its entry too.
 private func chatListHeaderOverflowInfo(strings: PresentationStrings) -> [AnyHashable: NavigationBarComponent.OverflowInfo] {
     return [
+        "settings": NavigationBarComponent.OverflowInfo(title: strings.Settings_Title, iconName: nil, priority: 0, image: chatListHeaderSettingsImage),
         "compose": NavigationBarComponent.OverflowInfo(title: strings.Compose_NewMessage, iconName: "Chat List/ComposeIcon", priority: 3),
         "proxy": NavigationBarComponent.OverflowInfo(title: strings.SocksProxySetup_Title, iconName: "Chat List/ProxyShieldIcon", priority: 2),
         "story": NavigationBarComponent.OverflowInfo(title: strings.StoryFeed_AddStory, iconName: "Chat List/AddStoryIcon", priority: 1),
@@ -7391,9 +7397,8 @@ private final class ChatListLocationContext {
     ) {
         self.settingsButton = nil
         if case .chatList(.root) = self.location, tabBarHidden, !stateAndFilterId.state.editing, !isReorderingTabs {
-            let settingsImage = UIImage(systemName: "gearshape", withConfiguration: UIImage.SymbolConfiguration(pointSize: 20.0, weight: .regular))?.withRenderingMode(.alwaysTemplate) ?? UIImage()
             self.settingsButton = NavigationBarComponent.Button(id: "settings",
-                content: .image(settingsImage),
+                content: .image(chatListHeaderSettingsImage),
                 action: { [weak self] _ in
                     guard let self, let root = self.context.sharedContext.mainWindow?.viewController as? TelegramRootControllerInterface else { return }
                     root.openSettings(edit: false)
