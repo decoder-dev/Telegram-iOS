@@ -281,8 +281,9 @@ public final class WindowHostView {
     /// Multi-display devices only: the fold while the system reports it active, in `eventView`
     /// coordinates. Nil before iOS 27.1.
     fileprivate var activeDivision: CGRect? {
-        // `reservedRegions` exists only in the iOS 27.1 SDK (Swift 6.4); older toolchains build without it.
-        #if compiler(>=6.4)
+        // `reservedRegions` exists only in the iOS 27.1 SDK, which the compiler version does not tell
+        // apart from 27.0 (Swift 6.4 ships with both), so the build defines IOS_SDK_27_1 when it has it.
+        #if IOS_SDK_27_1
         if #available(iOS 27.1, *) {
             return self.eventView.reservedRegions(kind: .division).first(where: \.isActive)?.frame
         }
