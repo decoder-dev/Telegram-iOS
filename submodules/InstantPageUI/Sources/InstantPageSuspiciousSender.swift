@@ -145,5 +145,8 @@ private func suspiciousSenderText(_ text: RichText) -> RichText {
         return suspiciousSenderText(child)
     case let .textButton(button):
         return button.isLink ? suspiciousSenderText(button.text) : .empty
+    case let .button(child, _, _):
+        // The fork's own inline button wrapper: keep its label, drop the button.
+        return suspiciousSenderText(child)
     }
 }
