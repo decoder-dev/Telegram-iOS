@@ -37,12 +37,12 @@ on:
         type: boolean
         default: false
       toolchain:
-        description: Build toolchain. xcode27 uses the Xcode 27 / iOS 27 SDK preview runner (separate cache); xcode26 is the proven default.
+        description: Build toolchain. xcode27 uses the Xcode 27 / iOS 27 SDK preview runner (separate cache); xcode27 is the default since the 13.1.1 merge (Swift 6.4); xcode26 is kept as a fallback.
         type: choice
         options:
           - xcode26
           - xcode27
-        default: xcode26
+        default: xcode27
       skip_regression:
         description: Start the build at once instead of waiting for the regression tests (they still run in a normal release)
         type: boolean
