@@ -194,6 +194,12 @@ swift_library(
     ], allow_empty = False),
     copts = [
         "-warnings-as-errors",
+        # Swift 6.3 (Xcode 26) -O crashes in the CopyPropagation ownership verifier on
+        # `RichTextEngineEditorView.replaceTable(with:parkingAt:)` ("Found outside of lifetime use").
+        # Upstream builds this module with Swift 6.4. Skipping the pass costs a little optimization
+        # and works around the compiler bug; drop the flag once the toolchain is Xcode 27.
+        "-Xllvm",
+        "-sil-disable-pass=copy-propagation",
     ],
     deps = [
         ":RichTextEditorCore",
