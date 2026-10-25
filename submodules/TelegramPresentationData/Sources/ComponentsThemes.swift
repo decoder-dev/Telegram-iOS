@@ -50,7 +50,10 @@ public extension NavigationBarTheme {
         let theme = rootControllerTheme.rootController.navigationBar
         let buttonColor = rootControllerTheme.chat.inputPanel.panelControlColor
         let badgeTextColor: UIColor = rootControllerTheme.overallDarkAppearance ? .black : rootControllerTheme.list.itemCheckColors.foregroundColor
-        self.init(overallDarkAppearance: rootControllerTheme.overallDarkAppearance, buttonColor: buttonColor, disabledButtonColor: buttonColor.withMultipliedAlpha(0.5), primaryTextColor: theme.primaryTextColor, badgeBackgroundColor: hideBadge ? .clear : buttonColor, badgeTextColor: hideBadge ? .clear : badgeTextColor, edgeEffectColor: edgeEffectColor ?? rootControllerTheme.list.plainBackgroundColor, accentButtonColor: rootControllerTheme.list.itemCheckColors.fillColor, accentDisabledButtonColor: rootControllerTheme.chat.inputPanel.panelControlDisabledColor, accentForegroundColor: rootControllerTheme.list.itemCheckColors.foregroundColor, glassStyle: glassStyle)
+        // The bar's capsules (Edit, the right-hand buttons) take a soft wash of the BananaGram themes' accent, so they
+        // follow the selected theme; the other themes keep the system's clear glass.
+        let glassTintColor: UIColor? = rootControllerTheme.name.string.hasPrefix("BananaGram") ? buttonColor.withAlphaComponent(rootControllerTheme.overallDarkAppearance ? 0.20 : 0.16) : nil
+        self.init(overallDarkAppearance: rootControllerTheme.overallDarkAppearance, buttonColor: buttonColor, disabledButtonColor: buttonColor.withMultipliedAlpha(0.5), primaryTextColor: theme.primaryTextColor, badgeBackgroundColor: hideBadge ? .clear : buttonColor, badgeTextColor: hideBadge ? .clear : badgeTextColor, edgeEffectColor: edgeEffectColor ?? rootControllerTheme.list.plainBackgroundColor, accentButtonColor: rootControllerTheme.list.itemCheckColors.fillColor, accentDisabledButtonColor: rootControllerTheme.chat.inputPanel.panelControlDisabledColor, accentForegroundColor: rootControllerTheme.list.itemCheckColors.foregroundColor, glassStyle: glassStyle, glassTintColor: glassTintColor)
     }
 }
 
