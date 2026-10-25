@@ -295,7 +295,7 @@ private final class PeerInfoMembersContextImpl {
         // AyuGram Message Filters: Hide Blocked Users also hides them from the member list.
         let hideBlocked = ForkExtrasHotFlags.hideBlockedMessages
         let accountPeerId = self.context.account.peerId
-        let blockedPeerIds: Set<PeerId> = hideBlocked ? ForkBlockedPeersFilter.snapshot(accountPeerId: accountPeerId).peerIds : []
+        let blockedPeerIds: Set<EnginePeer.Id> = hideBlocked ? ForkBlockedPeersFilter.snapshot(accountPeerId: accountPeerId).peerIds : []
         let removingMemberIds = self.removingMemberIds
         let visibleMembers: [PeerInfoMember]
         if removingMemberIds.isEmpty && blockedPeerIds.isEmpty {
