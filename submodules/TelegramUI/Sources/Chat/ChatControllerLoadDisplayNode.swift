@@ -5120,7 +5120,7 @@ extension ChatControllerImpl {
                 if let activitySpace = activitySpace, let peerId = peerId {
                     self.peerInputActivitiesDisposable?.dispose()
                     self.peerInputActivitiesDisposable = (self.context.account.peerInputActivities(peerId: activitySpace)
-                    |> map { activities -> [(PeerId, PeerInputActivity)] in
+                    |> map { activities -> [(EnginePeer.Id, PeerInputActivity)] in
                         return activities.filter { !TelegramShadowBan.isPeerHidden($0.0, inChat: activitySpace.peerId) }
                     }
                     |> mapToSignal { activities -> Signal<[(EnginePeer, PeerInputActivity)], NoError> in
