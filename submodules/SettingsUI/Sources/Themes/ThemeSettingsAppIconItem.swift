@@ -10,9 +10,8 @@ import PresentationDataUtils
 import AppBundle
 import TelegramUIPreferences
 
-func bananaAppIconColumnCount(availableWidth: CGFloat) -> Int {
-    // 74-point item, 8-point minimum gap and 8-point outer margins. iPad may fit a fifth column.
-    let maxColumns = UIDevice.current.userInterfaceIdiom == .pad ? 5 : 4
+func bananaAppIconColumnCount(availableWidth: CGFloat, maxColumns: Int = 4) -> Int {
+    // 74-point item, 8-point minimum gap and 8-point outer margins. The caller allows a fifth column on iPad.
     return max(1, min(maxColumns, Int(max(0.0, availableWidth - 8.0) / 82.0)))
 }
 
@@ -268,7 +267,7 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
             let separatorHeight = UIScreenPixel
             
             let nodeSize = CGSize(width: 74.0, height: 102.0)
-            let columns = bananaAppIconColumnCount(availableWidth: params.width - params.leftInset - params.rightInset)
+            let columns = bananaAppIconColumnCount(availableWidth: params.width - params.leftInset - params.rightInset, maxColumns: UIDevice.current.userInterfaceIdiom == .pad ? 5 : 4)
             let height: CGFloat = nodeSize.height * ceil(CGFloat(item.icons.count) / CGFloat(columns)) + 12.0
             
             contentSize = CGSize(width: params.width, height: height)
