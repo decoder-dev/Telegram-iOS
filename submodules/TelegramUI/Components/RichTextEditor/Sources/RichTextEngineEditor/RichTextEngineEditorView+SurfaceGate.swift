@@ -23,6 +23,13 @@ extension RichTextEngineEditorView {
             // keystrokes and pass untouched — the gate decides a keystroke, and an edit issued by a
             // rule has already been decided and carries its plan.
             guard !self.isDecidingAtGate, !self.isSettling, !self.isIssuingHostEdit else { return text }
+            // An on-screen Return is the host's to decide first ("Send with Return"): when it handles the key
+            // it sends the message, and no paragraph break is typed. Asked BEFORE the gate takes its state, so
+            // the host's own edits (sending clears the field) are ordinary host edits, and not a keystroke
+            // decided here; nothing was edited yet, so a veto leaves nothing to settle.
+            if text == "\n", !self.composerHostState.isPerformingHardwareReturn, let onSoftwareReturn = self.composerHostState.onSoftwareReturn, !onSoftwareReturn() {
+                return nil
+            }
             self.rolesBeforeEdit = self.currentRoles
             self.undoStepRegistrationCountAtGateEntry = self.undoStepRegistrationCount
             self.isDecidingAtGate = true

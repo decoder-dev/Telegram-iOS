@@ -146,6 +146,9 @@ extension RichTextEngineEditorView {
             return
         }
         if onHardwareReturn?(sender.modifierFlags) ?? true {
+            // Decided by the host just now: the gate must not ask it again as an on-screen Return.
+            composerHostState.isPerformingHardwareReturn = true
+            defer { composerHostState.isPerformingHardwareReturn = false }
             engine.insertText("\n")
         }
     }

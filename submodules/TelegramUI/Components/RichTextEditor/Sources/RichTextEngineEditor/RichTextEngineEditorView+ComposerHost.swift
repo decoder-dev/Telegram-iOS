@@ -359,8 +359,9 @@ extension RichTextEngineEditorView {
         set { composerHostState.onHardwareReturn = newValue }
     }
 
-    /// Stored for the host (the "Send with Return" setting). The engine's text view does not ask for it yet, so
-    /// an on-screen Return inserts a paragraph break here whatever the host answers.
+    /// The host's answer to an on-screen Return (the "Send with Return" setting): false means it handled the key
+    /// (sent the message) and no paragraph break is inserted. The surface gate asks it for a lone "\n"
+    /// (`installTextInputGate`), as the legacy canvas does for the "\n" it is about to insert.
     public var onSoftwareReturn: (() -> Bool)? {
         get { composerHostState.onSoftwareReturn }
         set { composerHostState.onSoftwareReturn = newValue }
@@ -465,6 +466,9 @@ public struct ComposerHostState {
     public var tapBelowAddsTrailingParagraph = true
     public var onHardwareReturn: ((UIKeyModifierFlags) -> Bool)?
     public var onSoftwareReturn: (() -> Bool)?
+    /// True while a hardware Return, which the host already decided, is typed as "\n": the surface gate must not ask
+    /// the host a second time (`onSoftwareReturn`).
+    var isPerformingHardwareReturn = false
     public var composerReturnKeyType: UIReturnKeyType = .default
     public var onBecameFirstResponder: (() -> Void)?
     public var onResignedFirstResponder: (() -> Void)?
