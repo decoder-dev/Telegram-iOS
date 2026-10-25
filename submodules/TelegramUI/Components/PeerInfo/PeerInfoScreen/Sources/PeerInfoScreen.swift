@@ -6589,6 +6589,8 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         return self.displayNode as! PeerInfoScreenNode
     }
     
+    /// Started when the screen is created; logged when its content is ready (`ForkOpenTiming`).
+    private let forkOpenTiming = ForkOpenTiming(kind: "profile")
     private let _readyProxy = Promise<Bool>()
     private let _readyInternal = Promise<Bool>()
     private var readyInternalDisposable: Disposable?
@@ -6982,6 +6984,7 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
             if self.controllerNode.initialExpandPanes {
                 self.controllerNode.expandTabs(animated: false)
             }
+            self.forkOpenTiming.log("content ready")
             self._readyProxy.set(.single(true))
         })
         

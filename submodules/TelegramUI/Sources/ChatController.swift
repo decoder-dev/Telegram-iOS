@@ -661,6 +661,9 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     var globalControlPanelsContextState: GlobalControlPanelsContext.State?
     var globalControlPanelsContextStateDisposable: Disposable?
     
+    /// Started when the controller is created; logged when the chat's content is ready (`ForkOpenTiming`).
+    private let forkOpenTiming = ForkOpenTiming(kind: "chat")
+    
     public init(
         context: AccountContext,
         chatLocation: ChatLocation,
@@ -771,6 +774,13 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
         
         self.ready.set(.never())
+        
+        let forkOpenTiming = self.forkOpenTiming
+        let _ = (self.ready.get()
+        |> filter { $0 }
+        |> take(1)).startStandalone(next: { _ in
+            forkOpenTiming.log("content ready")
+        })
         
         self.chatBackgroundNode.contentStatsUpdated = { [weak self] in
             guard let self else {
