@@ -2,7 +2,7 @@
 import Foundation
 import Postbox
 import SwiftSignalKit
-import TelegramApi
+internal import TelegramApi
 
 public enum ForkTelegramStatisticsSettings {
     /// Mirrored to UserDefaults like the other Ghost flags: the real setting arrives through an asynchronous read, and
