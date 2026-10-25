@@ -50,7 +50,9 @@ public final class ChatRecentActionsController: TelegramBaseController {
         
         self.titleView = ChatNavigationBarTitleView(frame: CGRect())
         
-        super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: false, hideBadge: false, glassStyle: .default))
+        // This screen draws the real chat wallpaper, so it follows ChatController: the wallpaper runs edge to edge
+        // (a clear edge effect behind the glass bar).
+        super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, glassStyle: .default))
 
         self._hasGlassStyle = true
         

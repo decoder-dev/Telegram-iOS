@@ -4709,7 +4709,9 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                         var visibleMessages: [String] = []
                         strongSelf.forEachVisibleMessageItemNode { itemNode in
                             if let item = itemNode.item {
-                                visibleMessages.append("\(Int(itemNode.frame.minY)):\(item.message.index)")
+                                // Through the backend: `itemNode.frame` is list-space only on ListViewImpl.
+                                let minY = strongSelf.listView.itemNodeFrame(itemNode)?.minY ?? 0.0
+                                visibleMessages.append("\(Int(minY)):\(item.message.index)")
                             }
                         }
                         return visibleMessages.joined(separator: ",")
