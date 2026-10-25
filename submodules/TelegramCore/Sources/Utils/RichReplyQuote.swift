@@ -61,7 +61,7 @@ extension RichText {
             return (text, { .textMentionName(text: $0, peerId: peerId) })
         case let .textSpoiler(text):
             return (text, { .textSpoiler(text: $0) })
-        case .empty, .plain, .concat, .image, .formula, .textCustomEmoji, .textDate, .textButton:
+        case .empty, .plain, .concat, .image, .formula, .textCustomEmoji, .textDate, .textButton, .button:
             return nil
         }
     }
@@ -70,7 +70,7 @@ extension RichText {
     /// cannot be cut, and an inline image has no text to cut.
     var isRichQuoteAtom: Bool {
         switch self {
-        case .image, .formula, .textCustomEmoji, .textDate, .textButton:
+        case .image, .formula, .textCustomEmoji, .textDate, .textButton, .button:
             return true
         default:
             return false
