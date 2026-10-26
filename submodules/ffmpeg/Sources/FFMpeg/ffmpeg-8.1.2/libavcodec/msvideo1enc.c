@@ -84,7 +84,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     dst= buf= pkt->data;
 
     if(!c->prev)
-        c->prev = av_malloc(avctx->width * 3 * (avctx->height + 3));
+        c->prev = av_malloc((size_t)(avctx->width) * 3 * (avctx->height + 3));
     if (!c->prev)
         return AVERROR(ENOMEM);
     prevptr = c->prev + avctx->width * 3 * (FFALIGN(avctx->height, 4) - 1);

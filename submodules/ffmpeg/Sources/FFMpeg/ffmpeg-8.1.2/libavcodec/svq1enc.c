@@ -516,7 +516,7 @@ static av_cold int svq1_encode_end(AVCodecContext *avctx)
 
     if (avctx->frame_num)
         av_log(avctx, AV_LOG_DEBUG, "RD: %f\n",
-               s->rd_total / (double)(avctx->width * avctx->height *
+               s->rd_total / (double)((long)(avctx->width) * avctx->height *
                                       avctx->frame_num));
 
     av_freep(&s->m.me.scratchpad);
@@ -607,9 +607,9 @@ static av_cold int svq1_encode_init(AVCodecContext *avctx)
     s->m.me.temp           =
     s->m.me.scratchpad     = av_mallocz((avctx->width + 64) *
                                         2 * 16 * 2 * sizeof(uint8_t));
-    s->mb_type             = av_mallocz((s->y_block_width + 1) *
+    s->mb_type             = av_mallocz((unsigned long)((s->y_block_width + 1)) *
                                         s->y_block_height * sizeof(int16_t));
-    s->dummy               = av_mallocz((s->y_block_width + 1) *
+    s->dummy               = av_mallocz((unsigned long)((s->y_block_width + 1)) *
                                         s->y_block_height * sizeof(int32_t));
     s->m.new_pic       = av_frame_alloc();
 

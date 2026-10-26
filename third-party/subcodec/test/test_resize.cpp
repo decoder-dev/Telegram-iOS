@@ -158,7 +158,7 @@ static int decode_stream(const uint8_t* data, size_t size,
 
             out_frames[decoded].width = w;
             out_frames[decoded].height = h;
-            out_frames[decoded].y.resize(w * h);
+            out_frames[decoded].y.resize((size_t)(w) * h);
             out_frames[decoded].cb.resize(w / 2 * h / 2);
             out_frames[decoded].cr.resize(w / 2 * h / 2);
 

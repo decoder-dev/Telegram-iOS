@@ -263,7 +263,7 @@ av_cold int ff_vc2enc_init_transforms(VC2TransformContext *s, int p_stride,
     s->vc2_subband_dwt[VC2_TRANSFORM_HAAR_S] = vc2_subband_dwt_haar_shift;
 
     /* Pad by the slice size, only matters for non-Haar wavelets */
-    s->buffer = av_calloc((p_stride + slice_w)*(p_height + slice_h), sizeof(dwtcoef));
+    s->buffer = av_calloc((size_t)((p_stride + slice_w))*(p_height + slice_h), sizeof(dwtcoef));
     if (!s->buffer)
         return 1;
 

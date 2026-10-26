@@ -1976,7 +1976,7 @@ int ff_dca_core_filter_fixed(DCACoreDecoder *s, int x96_synth)
 
     // Reallocate PCM output buffer
     av_fast_malloc(&s->output_buffer, &s->output_size,
-                   nsamples * av_popcount(s->ch_mask) * sizeof(int32_t));
+                   (unsigned long)(nsamples) * av_popcount(s->ch_mask) * sizeof(int32_t));
     if (!s->output_buffer)
         return AVERROR(ENOMEM);
 
@@ -2184,7 +2184,7 @@ static int filter_frame_float(DCACoreDecoder *s, AVFrame *frame)
     nchannels = av_popcount(s->ch_mask) - avctx->ch_layout.nb_channels;
     if (nchannels > 0) {
         av_fast_malloc(&s->output_buffer, &s->output_size,
-                       nsamples * nchannels * sizeof(float));
+                       (unsigned long)(nsamples) * nchannels * sizeof(float));
         if (!s->output_buffer)
             return AVERROR(ENOMEM);
 

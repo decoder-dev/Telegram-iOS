@@ -590,7 +590,7 @@ static int binkb_read_bundle(BinkContext *c, GetBitContext *gb, int bundle_num)
     int i, len;
 
     CHECK_READ_VAL(gb, b, len);
-    if (b->data_end - b->cur_dec < len * (1 + (bits > 8)))
+    if (b->data_end - b->cur_dec < (long)(len) * (1 + (bits > 8)))
         return AVERROR_INVALIDDATA;
     if (bits <= 8) {
         if (!issigned) {

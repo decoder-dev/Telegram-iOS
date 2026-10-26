@@ -128,7 +128,7 @@ static void waves_synth(Atrac3pWaveSynthParams *synth_param,
 
     for (wn = 0; wn < waves_info->num_wavs; wn++, wave_param++) {
         /* amplitude dequantization */
-        amp = amp_sf_tab[wave_param->amp_sf] *
+        amp = (double)(amp_sf_tab[wave_param->amp_sf]) *
               (!synth_param->amplitude_mode
                ? (wave_param->amp_index + 1) / 15.13f
                : 1.0f);

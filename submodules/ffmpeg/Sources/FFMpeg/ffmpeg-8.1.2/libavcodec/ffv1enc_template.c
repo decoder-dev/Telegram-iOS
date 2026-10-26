@@ -192,7 +192,7 @@ static int RENAME(encode_rgb_frame)(FFV1Context *f, FFV1SliceContext *sc,
     for (int p = 0; p < MAX_PLANES; ++p)
         sample[p][2] = RENAME(sc->sample_buffer);
 
-    memset(RENAME(sc->sample_buffer), 0, ring_size * MAX_PLANES *
+    memset(RENAME(sc->sample_buffer), 0, (unsigned long)(ring_size) * MAX_PLANES *
            (w + 6) * sizeof(*RENAME(sc->sample_buffer)));
 
     for (y = 0; y < h; y++) {

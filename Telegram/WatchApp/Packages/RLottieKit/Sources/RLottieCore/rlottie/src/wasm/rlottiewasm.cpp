@@ -51,7 +51,7 @@ private:
         mWidth = width;
         mHeight = height;
 
-        mBuffer = std::make_unique<uint8_t[]>(mWidth * mHeight * 4);
+        mBuffer = std::make_unique<uint8_t[]>((size_t)(mWidth) * mHeight * 4);
     }
 
     explicit RlottieWasm(const char *data)

@@ -1937,7 +1937,7 @@ int ff_mpv_encode_picture(AVCodecContext *avctx, AVPacket *pkt,
         if (s->mb_info) {
             s->mb_info_ptr = av_packet_new_side_data(pkt,
                                  AV_PKT_DATA_H263_MB_INFO,
-                                 s->c.mb_width*s->c.mb_height*12);
+                                 (size_t)(s->c.mb_width)*s->c.mb_height*12);
             if (!s->mb_info_ptr)
                 return AVERROR(ENOMEM);
             s->prev_mb_info = s->last_mb_info = s->mb_info_size = 0;
@@ -2304,9 +2304,9 @@ static av_always_inline void encode_mb_internal(MPVEncContext *const s,
     ptr_y  = s->new_pic->data[0] +
              (mb_y * 16 * wrap_y)              + mb_x * 16;
     ptr_cb = s->new_pic->data[1] +
-             (mb_y * mb_block_height * wrap_c) + mb_x * mb_block_width;
+             ((long)(mb_y) * mb_block_height * wrap_c) + mb_x * mb_block_width;
     ptr_cr = s->new_pic->data[2] +
-             (mb_y * mb_block_height * wrap_c) + mb_x * mb_block_width;
+             ((long)(mb_y) * mb_block_height * wrap_c) + mb_x * mb_block_width;
 
     if ((mb_x * 16 + 16 > s->c.width || mb_y * 16 + 16 > s->c.height) &&
         s->c.codec_id != AV_CODEC_ID_AMV) {

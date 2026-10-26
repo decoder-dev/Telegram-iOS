@@ -284,7 +284,7 @@ static int hap_decode(AVCodecContext *avctx, AVFrame *frame,
         if (ret < 0)
             return ret;
 
-        if (ctx->tex_size != (avctx->coded_width  / TEXTURE_BLOCK_W)
+        if (ctx->tex_size != (unsigned long)((avctx->coded_width  / TEXTURE_BLOCK_W))
             *(avctx->coded_height / TEXTURE_BLOCK_H)
             *ctx->dec[t].tex_ratio) {
             av_log(avctx, AV_LOG_ERROR, "uncompressed size mismatches\n");

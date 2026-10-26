@@ -107,7 +107,7 @@ static av_cold int tdsc_init(AVCodecContext *avctx)
     }
 
     /* This value should be large enough for a RAW-only frame plus headers */
-    ctx->deflatelen = avctx->width * avctx->height * (3 + 1);
+    ctx->deflatelen = (uLongf)(avctx->width) * avctx->height * (3 + 1);
     ret = av_reallocp(&ctx->deflatebuffer, ctx->deflatelen);
     if (ret < 0)
         return ret;
@@ -222,7 +222,7 @@ static int tdsc_load_cursor(AVCodecContext *avctx)
         ctx->cursor_hot_y = FFMIN(ctx->cursor_hot_y, ctx->cursor_h - 1);
     }
 
-    ret = av_reallocp(&ctx->cursor, ctx->cursor_stride * ctx->cursor_h);
+    ret = av_reallocp(&ctx->cursor, (size_t)(ctx->cursor_stride) * ctx->cursor_h);
     if (ret < 0) {
         av_log(avctx, AV_LOG_ERROR, "Cannot allocate cursor buffer.\n");
         return ret;

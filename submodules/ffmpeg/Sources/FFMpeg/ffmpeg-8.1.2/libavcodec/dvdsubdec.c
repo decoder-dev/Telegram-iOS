@@ -378,7 +378,7 @@ static int decode_dvd_subtitles(void *logctx, DVDSubContext *ctx,
                 if (!sub_header->rects[0])
                     goto fail;
                 sub_header->num_rects = 1;
-                bitmap = sub_header->rects[0]->data[0] = av_malloc(w * h);
+                bitmap = sub_header->rects[0]->data[0] = av_malloc((size_t)(w) * h);
                 if (!bitmap)
                     goto fail;
                 if (decode_rle(bitmap, w * 2, w, (h + 1) / 2, ctx->used_color,
@@ -481,7 +481,7 @@ static int find_smallest_bounding_rectangle(DVDSubContext *ctx, AVSubtitle *s)
         x2--;
     w = x2 - x1 + 1;
     h = y2 - y1 + 1;
-    bitmap = av_malloc(w * h);
+    bitmap = av_malloc((size_t)(w) * h);
     if (!bitmap)
         return 1;
     for(y = 0; y < h; y++) {

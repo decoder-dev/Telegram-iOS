@@ -402,7 +402,7 @@ static int gif_image_write_image(AVCodecContext *avctx,
 
     if (shrunk_palette_count) {
         if (!s->shrunk_buf) {
-            s->shrunk_buf = av_malloc(avctx->height * linesize);
+            s->shrunk_buf = av_malloc((size_t)(avctx->height) * linesize);
             if (!s->shrunk_buf) {
                 av_log(avctx, AV_LOG_ERROR, "Could not allocated remapped frame buffer.\n");
                 return AVERROR(ENOMEM);

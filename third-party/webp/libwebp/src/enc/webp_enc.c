@@ -150,10 +150,10 @@ static VP8Encoder* InitVP8Encoder(const WebPConfig* const config,
   const int mb_h = (picture->height + 15) >> 4;
   const int preds_w = 4 * mb_w + 1;
   const int preds_h = 4 * mb_h + 1;
-  const size_t preds_size = preds_w * preds_h * sizeof(*enc->preds_);
+  const size_t preds_size = (unsigned long)(preds_w) * preds_h * sizeof(*enc->preds_);
   const int top_stride = mb_w * 16;
   const size_t nz_size = (mb_w + 1) * sizeof(*enc->nz_) + WEBP_ALIGN_CST;
-  const size_t info_size = mb_w * mb_h * sizeof(*enc->mb_info_);
+  const size_t info_size = (unsigned long)(mb_w) * mb_h * sizeof(*enc->mb_info_);
   const size_t samples_size =
       2 * top_stride * sizeof(*enc->y_top_)  // top-luma/u/v
       + WEBP_ALIGN_CST;                      // align all

@@ -150,7 +150,7 @@ static int sunrast_decode_frame(AVCodecContext *avctx, AVFrame *p,
         ptr = ptr2 = av_malloc_array((w + 15), h);
         if (!ptr)
             return AVERROR(ENOMEM);
-        stride = (w + 15 >> 3) * depth;
+        stride = (ptrdiff_t)((w + 15 >> 3)) * depth;
     } else {
         ptr    = p->data[0];
         stride = p->linesize[0];

@@ -256,8 +256,8 @@ static av_cold int decode_init(AVCodecContext *avctx)
     c->avctx       = avctx;
     avctx->pix_fmt = AV_PIX_FMT_PAL8;
 
-    c->frame      = av_mallocz(avctx->width * avctx->height);
-    c->prev_frame = av_mallocz(avctx->width * avctx->height);
+    c->frame      = av_mallocz((size_t)(avctx->width) * avctx->height);
+    c->prev_frame = av_mallocz((size_t)(avctx->width) * avctx->height);
 
     if (!c->frame || !c->prev_frame)
         return AVERROR(ENOMEM);

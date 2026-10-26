@@ -146,7 +146,7 @@ static int laf_read_header(AVFormatContext *ctx)
         (int64_t)bpp * st_count * (int64_t)sample_rate == 0
     )
         return AVERROR_INVALIDDATA;
-    s->data = av_calloc(st_count * sample_rate, bpp);
+    s->data = av_calloc((size_t)(st_count) * sample_rate, bpp);
     if (!s->data)
         return AVERROR(ENOMEM);
 

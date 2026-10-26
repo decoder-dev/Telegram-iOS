@@ -134,7 +134,7 @@ static int vk_ffv1_start_frame(AVCodecContext          *avctx,
         err = ff_vk_get_pooled_buffer(&ctx->s, &fv->slice_state_pool,
                                       &fp->slice_state,
                                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                      NULL, f->slice_count*fp->slice_state_size,
+                                      NULL, (size_t)(f->slice_count)*fp->slice_state_size,
                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         if (err < 0)
             return err;

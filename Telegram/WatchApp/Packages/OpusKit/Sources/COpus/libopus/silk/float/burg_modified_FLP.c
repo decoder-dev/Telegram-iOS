@@ -80,8 +80,8 @@ silk_float silk_burg_modified_FLP(          /* O    returns residual energy     
             tmp1 = x_ptr[ n ];
             tmp2 = x_ptr[ subfr_length - n - 1 ];
             for( k = 0; k < n; k++ ) {
-                C_first_row[ k ] -= x_ptr[ n ] * x_ptr[ n - k - 1 ];
-                C_last_row[ k ]  -= x_ptr[ subfr_length - n - 1 ] * x_ptr[ subfr_length - n + k ];
+                C_first_row[ k ] -= (double)(x_ptr[ n ]) * x_ptr[ n - k - 1 ];
+                C_last_row[ k ]  -= (double)(x_ptr[ subfr_length - n - 1 ]) * x_ptr[ subfr_length - n + k ];
                 Atmp = Af[ k ];
                 tmp1 += x_ptr[ n - k - 1 ] * Atmp;
                 tmp2 += x_ptr[ subfr_length - n + k ] * Atmp;

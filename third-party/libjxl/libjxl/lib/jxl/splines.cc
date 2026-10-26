@@ -126,7 +126,7 @@ void ComputeSegments(const Spline::Point& center, const float intensity,
   // Distance beyond which max_color*intensity*exp(-d^2 / (2 * sigma^2)) drops
   // below 10^-kDistanceExp.
   const float maximum_distance =
-      std::sqrt(-2 * sigma * sigma *
+      std::sqrt((double)(-2) * sigma * sigma *
                 (std::log(0.1) * kDistanceExp - std::log(max_color)));
   SplineSegment segment;
   segment.center_y = center.y;

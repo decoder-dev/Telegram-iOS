@@ -1101,7 +1101,7 @@ int ff_dnxhd_get_hr_frame_size(int cid, int w, int h)
     if (!entry)
         return -1;
 
-    result = ((h + 15) / 16) * ((w + 15) / 16) * (int64_t)entry->packet_scale.num / entry->packet_scale.den;
+    result = (long)(((h + 15) / 16)) * ((w + 15) / 16) * (int64_t)entry->packet_scale.num / entry->packet_scale.den;
     result = (result + 2048) / 4096 * 4096;
 
     return FFMAX(result, 8192);

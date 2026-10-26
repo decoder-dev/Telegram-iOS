@@ -142,7 +142,7 @@ static int read_low_coeffs(AVCodecContext *avctx, int16_t *dst, int size,
                 escape = ((1 << nbits) - 1) * cnt1;
             } else {
                 skip_bits(bc, nbits);
-                escape = value + ((1 << nbits) - 1) * cnt1 - 1;
+                escape = value + (long)(((1 << nbits) - 1)) * cnt1 - 1;
             }
         } else {
             escape = get_bits(bc, 16);
@@ -170,7 +170,7 @@ static int read_low_coeffs(AVCodecContext *avctx, int16_t *dst, int size,
             value = show_bits(bc, nbits);
             if (value > 1) {
                 skip_bits(bc, nbits);
-                rlen = value + escape * cnt1 - 1;
+                rlen = value + (long)(escape) * cnt1 - 1;
             } else {
                 skip_bits(bc, nbits - 1);
                 rlen = escape * cnt1;

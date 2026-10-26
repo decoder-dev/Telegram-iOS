@@ -156,7 +156,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     else // assume sgi_rle_encode() produces at most 2x size of input
         length += tablesize * 2 + depth * height * (2 * width + 1);
 
-    if ((ret = ff_alloc_packet(avctx, pkt, bytes_per_channel * length)) < 0)
+    if ((ret = ff_alloc_packet(avctx, pkt, (int64_t)(bytes_per_channel) * length)) < 0)
         return ret;
 
     bytestream2_init_writer(&pbc, pkt->data, pkt->size);
@@ -197,7 +197,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
         bytestream2_skip_p(&pbc, tablesize);
 
         /* Make an intermediate consecutive buffer. */
-        if (!(encode_buf = av_malloc(width * bytes_per_channel)))
+        if (!(encode_buf = av_malloc((size_t)(width) * bytes_per_channel)))
             return AVERROR(ENOMEM);
 
         for (z = 0; z < depth; z++) {

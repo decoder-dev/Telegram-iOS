@@ -659,7 +659,7 @@ void LowMemoryRenderPipeline::RenderRect(size_t thread_id,
       // If necessary, get the output buffers.
       if (mode == RenderPipelineChannelMode::kInOut) {
         for (size_t iy = 0; iy < (1u << shifty); iy++) {
-          output_rows[c][iy] = rows.GetBuffer(i, y * (1 << shifty) + iy, c);
+          output_rows[c][iy] = rows.GetBuffer(i, (unsigned long)(y) * (1 << shifty) + iy, c);
         }
       }
     }

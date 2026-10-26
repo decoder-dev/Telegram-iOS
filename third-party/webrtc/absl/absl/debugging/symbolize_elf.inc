@@ -595,7 +595,7 @@ bool ForEachSection(int fd,
 
   ElfW(Shdr) shstrtab;
   off_t shstrtab_offset = static_cast<off_t>(elf_header.e_shoff) +
-                          elf_header.e_shentsize * elf_header.e_shstrndx;
+                          (long)(elf_header.e_shentsize) * elf_header.e_shstrndx;
   if (!file.ReadFromOffsetExact(&shstrtab, sizeof(shstrtab), shstrtab_offset)) {
     return false;
   }
@@ -603,7 +603,7 @@ bool ForEachSection(int fd,
   for (int i = 0; i < elf_header.e_shnum; ++i) {
     ElfW(Shdr) out;
     off_t section_header_offset =
-        static_cast<off_t>(elf_header.e_shoff) + elf_header.e_shentsize * i;
+        static_cast<off_t>(elf_header.e_shoff) + (long)(elf_header.e_shentsize) * i;
     if (!file.ReadFromOffsetExact(&out, sizeof(out), section_header_offset)) {
       return false;
     }
@@ -654,14 +654,14 @@ bool GetSectionHeaderByName(int fd, const char *name, size_t name_len,
 
   ElfW(Shdr) shstrtab;
   off_t shstrtab_offset = static_cast<off_t>(elf_header.e_shoff) +
-                          elf_header.e_shentsize * elf_header.e_shstrndx;
+                          (long)(elf_header.e_shentsize) * elf_header.e_shstrndx;
   if (!file.ReadFromOffsetExact(&shstrtab, sizeof(shstrtab), shstrtab_offset)) {
     return false;
   }
 
   for (int i = 0; i < elf_header.e_shnum; ++i) {
     off_t section_header_offset =
-        static_cast<off_t>(elf_header.e_shoff) + elf_header.e_shentsize * i;
+        static_cast<off_t>(elf_header.e_shoff) + (long)(elf_header.e_shentsize) * i;
     if (!file.ReadFromOffsetExact(out, sizeof(*out), section_header_offset)) {
       return false;
     }

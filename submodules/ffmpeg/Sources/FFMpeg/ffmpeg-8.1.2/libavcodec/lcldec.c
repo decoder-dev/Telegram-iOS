@@ -304,7 +304,7 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *frame,
         case IMGTYPE_YUV111:
         case IMGTYPE_RGB24:
             for (row = 0; row < height; row++) {
-                pixel_ptr = row * width * 3;
+                pixel_ptr = (ptrdiff_t)(row) * width * 3;
                 yq = encoded[pixel_ptr++];
                 unsigned uqvq = AV_RL16(encoded+pixel_ptr);
                 pixel_ptr += 2;
@@ -350,7 +350,7 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *frame,
             break;
         case IMGTYPE_YUV211:
             for (row = 0; row < height; row++) {
-                pixel_ptr = row * width * 2;
+                pixel_ptr = (ptrdiff_t)(row) * width * 2;
                 yq = uq = vq =0;
                 for (col = 0; col < width/2; col++) {
                     encoded[pixel_ptr] = yq -= encoded[pixel_ptr];
@@ -363,7 +363,7 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *frame,
             break;
         case IMGTYPE_YUV420:
             for (row = 0; row < height/2; row++) {
-                pixel_ptr = row * width * 3;
+                pixel_ptr = (ptrdiff_t)(row) * width * 3;
                 yq = y1q = uq = vq =0;
                 for (col = 0; col < width/2; col++) {
                     encoded[pixel_ptr] = yq -= encoded[pixel_ptr];
@@ -424,7 +424,7 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *frame,
     case IMGTYPE_RGB24:
         linesize = len < FFALIGN(3 * width, 4) * height ? 3 * width : FFALIGN(3 * width, 4);
         for (row = height - 1; row >= 0; row--) {
-            pixel_ptr = row * frame->linesize[0];
+            pixel_ptr = (ptrdiff_t)(row) * frame->linesize[0];
             memcpy(outptr + pixel_ptr, encoded, 3 * width);
             encoded += linesize;
         }

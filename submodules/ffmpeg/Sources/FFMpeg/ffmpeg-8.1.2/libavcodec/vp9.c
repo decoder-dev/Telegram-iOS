@@ -279,7 +279,7 @@ static int update_size(AVCodecContext *avctx, int w, int h)
     s->rows      = (h + 7) >> 3;
     lflvl_len    = avctx->active_thread_type == FF_THREAD_SLICE ? s->sb_rows : 1;
 
-#define assign(var, type, n) var = (type) p; p += s->sb_cols * (n) * sizeof(*var)
+#define assign(var, type, n) var = (type) p; p += (size_t)s->sb_cols * (n) * sizeof(*var)
     av_freep(&s->intra_pred_data[0]);
     // FIXME we slightly over-allocate here for subsampled chroma, but a little
     // bit of padding shouldn't affect performance...
@@ -337,7 +337,7 @@ static int update_block_buffers(AVCodecContext *avctx)
     if (s->s.frames[CUR_FRAME].uses_2pass) {
         int sbs = s->sb_cols * s->sb_rows;
 
-        td->b_base = av_malloc_array(s->cols * s->rows, sizeof(VP9Block));
+        td->b_base = av_malloc_array((size_t)(s->cols) * s->rows, sizeof(VP9Block));
         td->block_base = av_mallocz(((64 * 64 + 2 * chroma_blocks) * bytesperpixel * sizeof(int16_t) +
                                     16 * 16 + 2 * chroma_eobs) * sbs);
         if (!td->b_base || !td->block_base)
@@ -349,7 +349,7 @@ static int update_block_buffers(AVCodecContext *avctx)
         td->uveob_base[1] = td->uveob_base[0] + chroma_eobs * sbs;
 
         if (avctx->export_side_data & AV_CODEC_EXPORT_DATA_VIDEO_ENC_PARAMS) {
-            td->block_structure = av_malloc_array(s->cols * s->rows, sizeof(*td->block_structure));
+            td->block_structure = av_malloc_array((size_t)(s->cols) * s->rows, sizeof(*td->block_structure));
             if (!td->block_structure)
                 return AVERROR(ENOMEM);
         }
@@ -370,7 +370,7 @@ static int update_block_buffers(AVCodecContext *avctx)
             s->td[i].uveob_base[1] = s->td[i].uveob_base[0] + chroma_eobs;
 
             if (avctx->export_side_data & AV_CODEC_EXPORT_DATA_VIDEO_ENC_PARAMS) {
-                s->td[i].block_structure = av_malloc_array(s->cols * s->rows, sizeof(*td->block_structure));
+                s->td[i].block_structure = av_malloc_array((size_t)(s->cols) * s->rows, sizeof(*td->block_structure));
                 if (!s->td[i].block_structure)
                     return AVERROR(ENOMEM);
             }

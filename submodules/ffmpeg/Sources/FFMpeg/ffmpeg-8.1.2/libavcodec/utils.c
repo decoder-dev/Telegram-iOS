@@ -735,7 +735,7 @@ static int get_audio_frame_duration(enum AVCodecID id, int sr, int ch, int ba,
                 case AV_CODEC_ID_ADPCM_IMA_XBOX:
                     if (bps != 4)
                         return 0;
-                    tmp = blocks * ((ba - 4 * ch) / (bps * ch) * 8);
+                    tmp = (int64_t)(blocks) * ((int64_t)((ba - 4 * ch) / (bps * ch)) * 8);
                     break;
                 case AV_CODEC_ID_ADPCM_IMA_WAV:
                     if (bps < 2 || bps > 5)

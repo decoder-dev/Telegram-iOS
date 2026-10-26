@@ -777,7 +777,7 @@ imdct:
         ATRAC9ChannelData *c = &b->channel[i];
         const int dst_idx = s->block_config->plane_map[block_idx][i];
         const int wsize = 1 << s->frame_log2;
-        const ptrdiff_t offset = wsize*frame_idx*sizeof(float);
+        const ptrdiff_t offset = (unsigned long)(wsize)*frame_idx*sizeof(float);
         float *dst = (float *)(frame->extended_data[dst_idx] + offset);
 
         s->tx_fn(s->tx, s->temp, c->coeffs, sizeof(float));

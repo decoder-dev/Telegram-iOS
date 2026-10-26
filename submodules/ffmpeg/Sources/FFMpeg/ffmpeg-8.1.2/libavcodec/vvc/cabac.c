@@ -2480,11 +2480,11 @@ static int hls_residual_coding(VVCLocalContext *lc, TransformBlock *tb)
     if ((rc.last_sub_block > 0 || rc.last_scan_pos > 0 ) && !c_idx)
         lc->parse.mts_dc_only = 0;
 
-    memset(tb->coeffs, 0, tb->tb_width * tb->tb_height * sizeof(*tb->coeffs));
-    memset(rc.abs_level, 0, tb->tb_width * tb->tb_height * sizeof(rc.abs_level[0]));
+    memset(tb->coeffs, 0, (unsigned long)(tb->tb_width) * tb->tb_height * sizeof(*tb->coeffs));
+    memset(rc.abs_level, 0, (unsigned long)(tb->tb_width) * tb->tb_height * sizeof(rc.abs_level[0]));
     memset(rc.sb_coded_flag, 0, rc.nb_sbs);
-    memset(rc.abs_level_pass1, 0, tb->tb_width * tb->tb_height * sizeof(rc.abs_level_pass1[0]));
-    memset(rc.sig_coeff_flag, 0, tb->tb_width * tb->tb_height * sizeof(rc.sig_coeff_flag[0]));
+    memset(rc.abs_level_pass1, 0, (unsigned long)(tb->tb_width) * tb->tb_height * sizeof(rc.abs_level_pass1[0]));
+    memset(rc.sig_coeff_flag, 0, (unsigned long)(tb->tb_width) * tb->tb_height * sizeof(rc.sig_coeff_flag[0]));
 
     for (int i = rc.last_sub_block; i >= 0; i--) {
         int ret = residual_coding_subblock(lc, &rc, i);

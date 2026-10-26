@@ -1,6 +1,8 @@
 import importlib.util
 import json
 import pathlib
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -232,6 +234,32 @@ class IMEKeyboardContractTests(unittest.TestCase):
             with self.subTest(malformed=malformed):
                 with self.assertRaises(MODULE.ContractError):
                     MODULE.parse_defaults_array(malformed)
+
+    def test_defaults_inventory_parser_handles_escapes_and_rejects_long_invalid_strings(self):
+        identifier = 'en_US@sw="QWERTY";hw=Custom\\Keyboard'
+        self.assertEqual(
+            MODULE.parse_defaults_array('(\n    ' + json.dumps(identifier) + ',\n)'),
+            [identifier],
+        )
+        # Overlapping backslash alternatives used to make a missing closing
+        # quote take exponential time. Keep the potentially hanging input in a
+        # child process so a regression fails within a bounded time.
+        code = '''
+import runpy, sys
+module = runpy.run_path(sys.argv[1])
+payload = '(\\n    "' + '\\\\' * 100000 + '\\n)'
+try:
+    module['parse_defaults_array'](payload)
+except module['ContractError']:
+    pass
+else:
+    raise AssertionError('malformed string was accepted')
+'''
+        completed = subprocess.run(
+            [sys.executable, '-c', code, str(ROOT / 'Scripts' / 'ime_keyboard_contract.py')],
+            capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
 
     def test_execution_is_injected_and_preserves_command_log(self):
         contract = MODULE.load_contract(CONTRACT_PATH)

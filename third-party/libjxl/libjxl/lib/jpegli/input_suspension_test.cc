@@ -168,7 +168,7 @@ void ReadOutputImage(const DecompressParams& dparams, j_decompress_ptr cinfo,
       if (max_output_lines == 0) max_output_lines = cinfo->output_height;
       size_t lines_left = cinfo->output_height - cinfo->output_scanline;
       max_lines = std::min<size_t>(max_output_lines, lines_left);
-      size_t stride = cinfo->output_width * cinfo->num_components;
+      size_t stride = (size_t)(cinfo->output_width) * cinfo->num_components;
       std::vector<JSAMPROW> scanlines(max_lines);
       for (size_t i = 0; i < max_lines; ++i) {
         size_t yidx = cinfo->output_scanline + i;

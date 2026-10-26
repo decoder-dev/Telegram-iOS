@@ -661,7 +661,7 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *picture,
 
     if (s->avctx->export_side_data & AV_CODEC_EXPORT_DATA_MVS) {
         size_t size;
-        res = av_size_mult(s->b_width * s->b_height, sizeof(AVMotionVector) << (s->block_max_depth*2), &size);
+        res = av_size_mult((size_t)(s->b_width) * s->b_height, sizeof(AVMotionVector) << (s->block_max_depth*2), &size);
         if (res)
             return res;
         av_fast_malloc(&s->avmv, &s->avmv_size, size);

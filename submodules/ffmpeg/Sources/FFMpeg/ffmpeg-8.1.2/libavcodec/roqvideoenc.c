@@ -1015,7 +1015,7 @@ static av_cold int roq_encode_init(AVCodecContext *avctx)
     /* 4x4 codebook needs 6 * 4 * 4 / 4 * width * height / 16 * sizeof(int);
      * and so does the points buffer. */
     enc->closest_cb   =
-        av_malloc_array(roq->width * roq->height, 3 * sizeof(int));
+        av_malloc_array((size_t)(roq->width) * roq->height, 3 * sizeof(int));
 
     if (!enc->this_motion4 || !enc->last_motion4 ||
         !enc->this_motion8 || !enc->last_motion8 || !enc->closest_cb)

@@ -1923,7 +1923,7 @@ PatchTableBuilder::LegacyGregoryHelper::FinalizeVertexValence(
 
     Level const & lastLevel = _refiner.getLevel(_refiner.GetMaxLevel());
 
-    int * vTableEntry = &vTable[lastLevelOffset * vWidth];
+    int * vTableEntry = &vTable[(size_t)(lastLevelOffset) * vWidth];
 
     for (int vIndex = 0; vIndex < lastLevel.getNumVertices(); ++vIndex) {
         //  Gather the one-ring around the vertex and set its resulting size

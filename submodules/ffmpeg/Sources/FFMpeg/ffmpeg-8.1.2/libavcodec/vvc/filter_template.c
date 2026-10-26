@@ -684,7 +684,7 @@ static void FUNC(vvc_loop_filter_chroma)(uint8_t *_pix, const ptrdiff_t  _xstrid
         const int tc = _tc[i] << (BIT_DEPTH - 10);
 #endif
         if (tc) {
-            pixel *pix         = (pixel *)_pix + i * size * ystride;
+            pixel *pix         = (pixel *)_pix + (long)(i) * size * ystride;
             const uint8_t no_p = _no_p[i];
             const uint8_t no_q = _no_q[i];
 

@@ -284,7 +284,7 @@ static int extract_header(AVCodecContext *const avctx,
             return AVERROR(ENOMEM);
 
         ham_count = 8 * (1 << s->ham);
-        s->ham_palbuf = av_malloc(extra_space * (ham_count << !!(s->masking == MASK_HAS_MASK)) * sizeof (uint32_t) + AV_INPUT_BUFFER_PADDING_SIZE);
+        s->ham_palbuf = av_malloc((unsigned long)(extra_space) * (ham_count << !!(s->masking == MASK_HAS_MASK)) * sizeof (uint32_t) + AV_INPUT_BUFFER_PADDING_SIZE);
         if (!s->ham_palbuf)
             return AVERROR(ENOMEM);
 
@@ -381,8 +381,8 @@ static av_cold int decode_init(AVCodecContext *avctx)
         s->video_size = FFALIGN(avctx->width, 2) * avctx->height * s->bpp;
         if (!s->video_size)
             return AVERROR_INVALIDDATA;
-        s->video[0] = av_calloc(FFALIGN(avctx->width, 2) * avctx->height, s->bpp);
-        s->video[1] = av_calloc(FFALIGN(avctx->width, 2) * avctx->height, s->bpp);
+        s->video[0] = av_calloc((size_t)(FFALIGN(avctx->width, 2)) * avctx->height, s->bpp);
+        s->video[1] = av_calloc((size_t)(FFALIGN(avctx->width, 2)) * avctx->height, s->bpp);
         s->pal = av_calloc(256, sizeof(*s->pal));
         if (!s->video[0] || !s->video[1] || !s->pal)
             return AVERROR(ENOMEM);

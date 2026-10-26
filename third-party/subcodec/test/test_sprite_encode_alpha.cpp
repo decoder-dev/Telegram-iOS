@@ -15,8 +15,8 @@ static int test_alpha_encode() {
     int half_chroma = padded / 2;
 
     std::vector<uint8_t> y(padded * padded);
-    std::vector<uint8_t> cb(half_chroma * half_chroma, 128);
-    std::vector<uint8_t> cr(half_chroma * half_chroma, 128);
+    std::vector<uint8_t> cb((size_t)(half_chroma) * half_chroma, 128);
+    std::vector<uint8_t> cr((size_t)(half_chroma) * half_chroma, 128);
     for (int r = 0; r < padded; r++)
         for (int c = 0; c < padded; c++)
             y[r * padded + c] = static_cast<uint8_t>((r + c) % 256);

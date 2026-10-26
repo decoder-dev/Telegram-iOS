@@ -363,12 +363,12 @@ static av_cold int vc1_decode_init_alloc_tables(VC1Context *v)
     int mb_height = FFALIGN(s->mb_height, 2);
 
     /* Allocate mb bitplanes */
-    v->mv_type_mb_plane = av_malloc (s->mb_stride * mb_height);
-    v->direct_mb_plane  = av_malloc (s->mb_stride * mb_height);
-    v->forward_mb_plane = av_malloc (s->mb_stride * mb_height);
-    v->fieldtx_plane    = av_mallocz(s->mb_stride * mb_height);
-    v->acpred_plane     = av_malloc (s->mb_stride * mb_height);
-    v->over_flags_plane = av_malloc (s->mb_stride * mb_height);
+    v->mv_type_mb_plane = av_malloc ((size_t)(s->mb_stride) * mb_height);
+    v->direct_mb_plane  = av_malloc ((size_t)(s->mb_stride) * mb_height);
+    v->forward_mb_plane = av_malloc ((size_t)(s->mb_stride) * mb_height);
+    v->fieldtx_plane    = av_mallocz((size_t)(s->mb_stride) * mb_height);
+    v->acpred_plane     = av_malloc ((size_t)(s->mb_stride) * mb_height);
+    v->over_flags_plane = av_malloc ((size_t)(s->mb_stride) * mb_height);
     if (!v->mv_type_mb_plane || !v->direct_mb_plane || !v->forward_mb_plane ||
         !v->fieldtx_plane || !v->acpred_plane || !v->over_flags_plane)
         return AVERROR(ENOMEM);
@@ -399,7 +399,7 @@ static av_cold int vc1_decode_init_alloc_tables(VC1Context *v)
     v->mb_type = v->mb_type_base + s->b8_stride + 1;
 
     /* allocate memory to store block level MV info */
-    v->blk_mv_type_base = av_mallocz(     s->b8_stride * (mb_height * 2 + 1));
+    v->blk_mv_type_base = av_mallocz(     (size_t)(s->b8_stride) * (mb_height * 2 + 1));
     if (!v->blk_mv_type_base)
         return AVERROR(ENOMEM);
     v->blk_mv_type      = v->blk_mv_type_base + s->b8_stride + 1;

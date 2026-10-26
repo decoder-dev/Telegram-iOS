@@ -401,7 +401,7 @@ static av_cold int ffat_create_decoder(AVCodecContext *avctx,
 
     ffat_update_ctx(avctx);
 
-    if(!(at->decoded_data = av_malloc(av_get_bytes_per_sample(avctx->sample_fmt)
+    if(!(at->decoded_data = av_malloc((size_t)(av_get_bytes_per_sample(avctx->sample_fmt))
                                       * avctx->frame_size * avctx->ch_layout.nb_channels)))
         return AVERROR(ENOMEM);
 

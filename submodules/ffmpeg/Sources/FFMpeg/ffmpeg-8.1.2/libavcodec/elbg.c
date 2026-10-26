@@ -411,7 +411,7 @@ static void do_elbg(ELBGContext *restrict elbg, int *points, int numpoints,
 
         memset(size_part,      0, elbg->num_cb * sizeof(*size_part));
 
-        memset(elbg->codebook, 0, elbg->num_cb * elbg->dim * sizeof(*elbg->codebook));
+        memset(elbg->codebook, 0, (unsigned long)(elbg->num_cb) * elbg->dim * sizeof(*elbg->codebook));
 
         for (i=0; i < numpoints; i++) {
             size_part[elbg->nearest_cb[i]]++;

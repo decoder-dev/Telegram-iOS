@@ -235,12 +235,12 @@ int ReadPNM(const uint8_t* const data, size_t data_size,
   tmp_rgb = rgb;
   for (j = 0; j < info.height; ++j) {
     const uint8_t* in = data + offset;
-    offset += info.bytes_per_px * info.width;
+    offset += (unsigned long)(info.bytes_per_px) * info.width;
     assert(offset <= data_size);
     if (info.max_value == 255 && info.depth >= 3) {
       // RGB or RGBA
       if (info.depth == 3 || keep_alpha) {
-        memcpy(tmp_rgb, in, info.depth * info.width * sizeof(*in));
+        memcpy(tmp_rgb, in, (unsigned long)(info.depth) * info.width * sizeof(*in));
       } else {
         assert(info.depth == 4 && !keep_alpha);
         for (i = 0; i < info.width; ++i) {

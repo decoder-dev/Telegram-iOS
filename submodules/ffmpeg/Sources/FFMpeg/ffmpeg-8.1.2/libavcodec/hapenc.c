@@ -280,8 +280,8 @@ static av_cold int hap_init(AVCodecContext *avctx)
 
     /* Texture compression ratio is constant, so can we computer
      * beforehand the final size of the uncompressed buffer. */
-    ctx->tex_size   = avctx->width  / TEXTURE_BLOCK_W *
-                      avctx->height / TEXTURE_BLOCK_H * ctx->enc.tex_ratio;
+    ctx->tex_size   = (size_t)(avctx->width  / TEXTURE_BLOCK_W *
+                      avctx->height / TEXTURE_BLOCK_H) * ctx->enc.tex_ratio;
 
     switch (ctx->opt_compressor) {
     case HAP_COMP_NONE:

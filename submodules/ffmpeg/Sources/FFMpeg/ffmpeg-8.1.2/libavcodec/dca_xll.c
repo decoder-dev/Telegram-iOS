@@ -747,7 +747,7 @@ static int chs_assemble_freq_bands(DCAXllDecoder *s, DCAXllChSet *c)
 
     // Reallocate frequency band assembly buffer
     av_fast_malloc(&c->sample_buffer[2], &c->sample_size[2],
-                   2 * nsamples * c->nchannels * sizeof(int32_t));
+                   (unsigned long)(2) * nsamples * c->nchannels * sizeof(int32_t));
     if (!c->sample_buffer[2])
         return AVERROR(ENOMEM);
 

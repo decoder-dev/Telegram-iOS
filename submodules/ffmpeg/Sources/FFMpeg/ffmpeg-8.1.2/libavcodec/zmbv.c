@@ -138,7 +138,7 @@ static int zmbv_decode_xor_8(ZmbvContext *c)
             }
 
             if (d) { /* apply XOR'ed difference */
-                if (c->decomp_len - (src - c->decomp_buf) < bw2 * bh2)
+                if (c->decomp_len - (src - c->decomp_buf) < (long)(bw2) * bh2)
                     return AVERROR_INVALIDDATA;
                 out = output + x;
                 for (j = 0; j < bh2; j++) {
@@ -214,7 +214,7 @@ static int zmbv_decode_xor_16(ZmbvContext *c)
             }
 
             if (d) { /* apply XOR'ed difference */
-                if (c->decomp_len - (src - c->decomp_buf) < bw2 * bh2 * 2)
+                if (c->decomp_len - (src - c->decomp_buf) < (long)(bw2) * bh2 * 2)
                     return AVERROR_INVALIDDATA;
                 out = output + x;
                 for (j = 0; j < bh2; j++){
@@ -380,7 +380,7 @@ static int zmbv_decode_xor_32(ZmbvContext *c)
             }
 
             if (d) { /* apply XOR'ed difference */
-                if (c->decomp_len - (src - c->decomp_buf) < bw2 * bh2 * 4)
+                if (c->decomp_len - (src - c->decomp_buf) < (long)(bw2) * bh2 * 4)
                     return AVERROR_INVALIDDATA;
                 out = output + x;
                 for (j = 0; j < bh2; j++){
@@ -509,8 +509,8 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *frame,
         }
 
         if (c->alloc_bpp < c->bpp) {
-            c->cur  = av_realloc_f(c->cur, avctx->width * avctx->height,  (c->bpp / 8));
-            c->prev = av_realloc_f(c->prev, avctx->width * avctx->height,  (c->bpp / 8));
+            c->cur  = av_realloc_f(c->cur, (size_t)(avctx->width) * avctx->height,  (c->bpp / 8));
+            c->prev = av_realloc_f(c->prev, (size_t)(avctx->width) * avctx->height,  (c->bpp / 8));
             c->alloc_bpp = c->bpp;
         }
         c->bx = (c->width + c->bw - 1) / c->bw;

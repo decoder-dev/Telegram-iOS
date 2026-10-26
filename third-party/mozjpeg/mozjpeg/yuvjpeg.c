@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
 
   /* Check that the file size matches 4:2:0 yuv. */
   if (yuv_size !=
-   (size_t)luma_width*luma_height + 2*chroma_width*chroma_height) {
+   (size_t)luma_width*luma_height + (unsigned long)(2)*chroma_width*chroma_height) {
     fclose(yuv_fd);
     fprintf(stderr, "Unexpected input format!\n");
     return 1;

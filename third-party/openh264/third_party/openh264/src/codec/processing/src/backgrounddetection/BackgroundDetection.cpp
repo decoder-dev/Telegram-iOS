@@ -109,7 +109,7 @@ EResult CBackgroundDetection::Set (int32_t iType, void* pParam) {
 inline SBackgroundOU* CBackgroundDetection::AllocateOUArrayMemory (int32_t iWidth, int32_t iHeight) {
   int32_t       iMaxOUWidth     = (BGD_OU_SIZE - 1 + iWidth) >> LOG2_BGD_OU_SIZE;
   int32_t       iMaxOUHeight    = (BGD_OU_SIZE - 1 + iHeight) >> LOG2_BGD_OU_SIZE;
-  return (SBackgroundOU*)WelsMalloc (iMaxOUWidth * iMaxOUHeight * sizeof (SBackgroundOU));
+  return (SBackgroundOU*)WelsMalloc ((unsigned long)(iMaxOUWidth) * iMaxOUHeight * sizeof (SBackgroundOU));
 }
 
 void CBackgroundDetection::GetOUParameters (SVAACalcResult* sVaaCalcInfo, int32_t iMbIndex, int32_t iMbWidth,

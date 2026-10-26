@@ -121,7 +121,7 @@ av_unused static int pcm_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
     n           = frame->nb_samples * avctx->ch_layout.nb_channels;
     samples     = (const short *)frame->data[0];
 
-    if ((ret = ff_get_encode_buffer(avctx, avpkt, n * sample_size, 0)) < 0)
+    if ((ret = ff_get_encode_buffer(avctx, avpkt, (int64_t)(n) * sample_size, 0)) < 0)
         return ret;
     dst = avpkt->data;
 

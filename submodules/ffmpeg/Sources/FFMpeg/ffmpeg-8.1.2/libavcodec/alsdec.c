@@ -1926,7 +1926,7 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *frame,
             }
 
             ctx->crc = av_crc(ctx->crc_table, ctx->crc, crc_source,
-                              ctx->cur_frame_length * channels *
+                              (size_t)(ctx->cur_frame_length) * channels *
                               av_get_bytes_per_sample(avctx->sample_fmt));
         }
 
@@ -2063,9 +2063,9 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
     ctx->quant_cof        = av_malloc_array(num_buffers, sizeof(*ctx->quant_cof));
     ctx->lpc_cof          = av_malloc_array(num_buffers, sizeof(*ctx->lpc_cof));
-    ctx->quant_cof_buffer = av_malloc_array(num_buffers * sconf->max_order,
+    ctx->quant_cof_buffer = av_malloc_array((size_t)(num_buffers) * sconf->max_order,
                                             sizeof(*ctx->quant_cof_buffer));
-    ctx->lpc_cof_buffer   = av_malloc_array(num_buffers * sconf->max_order,
+    ctx->lpc_cof_buffer   = av_malloc_array((size_t)(num_buffers) * sconf->max_order,
                                             sizeof(*ctx->lpc_cof_buffer));
     ctx->lpc_cof_reversed_buffer = av_malloc_array(sconf->max_order,
                                                    sizeof(*ctx->lpc_cof_buffer));
@@ -2106,7 +2106,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
     // allocate and assign channel data buffer for mcc mode
     if (sconf->mc_coding) {
-        ctx->chan_data_buffer  = av_calloc(num_buffers * num_buffers,
+        ctx->chan_data_buffer  = av_calloc((size_t)(num_buffers) * num_buffers,
                                            sizeof(*ctx->chan_data_buffer));
         ctx->chan_data         = av_calloc(num_buffers, sizeof(*ctx->chan_data));
         ctx->reverted_channels = av_malloc_array(num_buffers,
@@ -2160,7 +2160,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
     // allocate previous raw sample buffer
     ctx->prev_raw_samples = av_malloc_array(sconf->max_order, sizeof(*ctx->prev_raw_samples));
-    ctx->raw_buffer       = av_calloc(channels * channel_size, sizeof(*ctx->raw_buffer));
+    ctx->raw_buffer       = av_calloc((size_t)(channels) * channel_size, sizeof(*ctx->raw_buffer));
     ctx->raw_samples      = av_malloc_array(channels, sizeof(*ctx->raw_samples));
     if (!ctx->prev_raw_samples || !ctx->raw_buffer|| !ctx->raw_samples) {
         av_log(avctx, AV_LOG_ERROR, "Allocating buffer memory failed.\n");
@@ -2175,7 +2175,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
     // allocate crc buffer
     if (HAVE_BIGENDIAN != sconf->msb_first && sconf->crc_enabled &&
         (avctx->err_recognition & (AV_EF_CRCCHECK|AV_EF_CAREFUL))) {
-        ctx->crc_buffer = av_malloc_array(ctx->cur_frame_length *
+        ctx->crc_buffer = av_malloc_array((size_t)(ctx->cur_frame_length) *
                                           channels *
                                           av_get_bytes_per_sample(avctx->sample_fmt),
                                           sizeof(*ctx->crc_buffer));

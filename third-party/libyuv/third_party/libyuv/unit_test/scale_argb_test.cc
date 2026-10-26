@@ -165,7 +165,7 @@ static int ARGBClipTestFilter(int src_width,
 
   const int b = 128;
   int64_t src_argb_plane_size =
-      (Abs(src_width) + b * 2) * (Abs(src_height) + b * 2) * 4;
+      (int64_t)((Abs(src_width) + b * 2)) * (Abs(src_height) + b * 2) * 4;
   int src_stride_argb = (b * 2 + Abs(src_width)) * 4;
 
   align_buffer_page_end(src_argb, src_argb_plane_size);
@@ -175,7 +175,7 @@ static int ARGBClipTestFilter(int src_width,
   }
   memset(src_argb, 1, src_argb_plane_size);
 
-  int64_t dst_argb_plane_size = (dst_width + b * 2) * (dst_height + b * 2) * 4;
+  int64_t dst_argb_plane_size = (int64_t)((dst_width + b * 2)) * (dst_height + b * 2) * 4;
   int dst_stride_argb = (b * 2 + dst_width) * 4;
 
   int i, j;
@@ -434,9 +434,9 @@ static int YUVToARGBTestFilter(int src_width,
                                int dst_height,
                                FilterMode f,
                                int benchmark_iterations) {
-  int64_t src_y_plane_size = Abs(src_width) * Abs(src_height);
+  int64_t src_y_plane_size = (int64_t)(Abs(src_width)) * Abs(src_height);
   int64_t src_uv_plane_size =
-      ((Abs(src_width) + 1) / 2) * ((Abs(src_height) + 1) / 2);
+      (int64_t)(((Abs(src_width) + 1) / 2)) * ((Abs(src_height) + 1) / 2);
   int src_stride_y = Abs(src_width);
   int src_stride_uv = (Abs(src_width) + 1) / 2;
 

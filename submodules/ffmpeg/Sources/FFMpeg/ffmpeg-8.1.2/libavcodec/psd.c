@@ -325,7 +325,7 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *picture,
         return ret;
 
     s->pixel_size = s->channel_depth >> 3;/* in byte */
-    s->line_size = s->width * s->pixel_size;
+    s->line_size = (uint64_t)(s->width) * s->pixel_size;
 
     switch (s->color_mode) {
     case PSD_BITMAP:

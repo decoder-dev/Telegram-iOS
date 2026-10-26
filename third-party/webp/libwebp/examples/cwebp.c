@@ -132,7 +132,7 @@ static void AllocExtraInfo(WebPPicture* const pic) {
   const int mb_w = (pic->width + 15) / 16;
   const int mb_h = (pic->height + 15) / 16;
   pic->extra_info =
-      (uint8_t*)WebPMalloc(mb_w * mb_h * sizeof(*pic->extra_info));
+      (uint8_t*)WebPMalloc((unsigned long)(mb_w) * mb_h * sizeof(*pic->extra_info));
 }
 
 static void PrintByteCount(const int bytes[4], int total_size,

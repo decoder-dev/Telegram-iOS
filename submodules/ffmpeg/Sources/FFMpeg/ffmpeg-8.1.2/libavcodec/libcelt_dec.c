@@ -120,7 +120,7 @@ static int libcelt_dec_decode(AVCodecContext *c, AVFrame *frame,
     if (celt->discard) {
         frame->nb_samples -= celt->discard;
         memmove(pcm, pcm + celt->discard * c->ch_layout.nb_channels,
-                frame->nb_samples * c->ch_layout.nb_channels * sizeof(int16_t));
+                (unsigned long)(frame->nb_samples) * c->ch_layout.nb_channels * sizeof(int16_t));
         celt->discard = 0;
     }
     *got_frame_ptr = 1;

@@ -951,8 +951,8 @@ static int mpeg_decode_postinit(AVCodecContext *avctx)
             // MPEG-2 fps
             av_reduce(&s->avctx->framerate.num,
                       &s->avctx->framerate.den,
-                      ff_mpeg12_frame_rate_tab[s1->frame_rate_index].num * s1->frame_rate_ext.num,
-                      ff_mpeg12_frame_rate_tab[s1->frame_rate_index].den * s1->frame_rate_ext.den,
+                      (int64_t)(ff_mpeg12_frame_rate_tab[s1->frame_rate_index].num) * s1->frame_rate_ext.num,
+                      (int64_t)(ff_mpeg12_frame_rate_tab[s1->frame_rate_index].den) * s1->frame_rate_ext.den,
                       1 << 30);
 
             switch (s->chroma_format) {

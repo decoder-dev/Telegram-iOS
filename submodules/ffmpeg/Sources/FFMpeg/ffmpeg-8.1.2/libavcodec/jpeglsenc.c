@@ -435,9 +435,9 @@ static av_cold int encode_jpegls_init(AVCodecContext *avctx)
         ctx->comps = 3;
     size = FF_INPUT_BUFFER_MIN_SIZE;
     /* INT_MAX due to PutBit-API. */
-    if (avctx->width * (unsigned)avctx->height > (INT_MAX - size) / 4 / ctx->comps)
+    if ((unsigned long)(avctx->width) * (unsigned)avctx->height > (INT_MAX - size) / 4 / ctx->comps)
         return AVERROR(ERANGE);
-    size += 4 * ctx->comps * avctx->width * avctx->height;
+    size += (unsigned long)(4) * ctx->comps * avctx->width * avctx->height;
     ctx->size = size;
     ctx->buf = av_malloc(size + AV_INPUT_BUFFER_PADDING_SIZE);
     if (!ctx->buf)

@@ -75,7 +75,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     int ret;
     uint8_t *dst;
 
-    ret = ff_get_encode_buffer(avctx, pkt, avctx->height * stride, 0);
+    ret = ff_get_encode_buffer(avctx, pkt, (int64_t)(avctx->height) * stride, 0);
     if (ret < 0) {
         av_log(avctx, AV_LOG_ERROR, "Error getting output packet.\n");
         return ret;

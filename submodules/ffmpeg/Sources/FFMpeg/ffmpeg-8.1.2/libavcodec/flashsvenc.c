@@ -177,7 +177,7 @@ static int encode_bitstream(FlashSVContext *s, const AVFrame *p, uint8_t *buf,
             if (res || *I_frame) {
                 unsigned long zsize = 3 * block_width * block_height + 12;
                 ret = compress2(ptr + 2, &zsize, s->tmpblock,
-                                3 * cur_blk_width * cur_blk_height,
+                                (uLong)(3) * cur_blk_width * cur_blk_height,
                                 s->compression_level);
 
                 if (ret != Z_OK)

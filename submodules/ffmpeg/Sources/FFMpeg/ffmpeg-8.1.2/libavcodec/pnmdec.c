@@ -134,7 +134,7 @@ static int pnm_decode_frame(AVCodecContext *avctx, AVFrame *p,
     do_read:
         ptr      = p->data[0];
         linesize = p->linesize[0];
-        if (n * avctx->height > s->bytestream_end - s->bytestream)
+        if ((long)(n) * avctx->height > s->bytestream_end - s->bytestream)
             return AVERROR_INVALIDDATA;
         if(s->type < 4 || (is_mono && s->type==7)){
             for (i=0; i<avctx->height; i++) {
@@ -307,7 +307,7 @@ static int pnm_decode_frame(AVCodecContext *avctx, AVFrame *p,
                 }
             }
         } else {
-            if (avctx->width * avctx->height * 6 > s->bytestream_end - s->bytestream)
+            if ((long)(avctx->width) * avctx->height * 6 > s->bytestream_end - s->bytestream)
                 return AVERROR_INVALIDDATA;
             scale = 1.f / s->scale;
             if (s->endian) {
@@ -358,7 +358,7 @@ static int pnm_decode_frame(AVCodecContext *avctx, AVFrame *p,
         break;
     case AV_PIX_FMT_GRAYF32:
         if (!s->half) {
-            if (avctx->width * avctx->height * 4 > s->bytestream_end - s->bytestream)
+            if ((long)(avctx->width) * avctx->height * 4 > s->bytestream_end - s->bytestream)
                 return AVERROR_INVALIDDATA;
             scale = 1.f / s->scale;
             if (s->endian) {
@@ -381,7 +381,7 @@ static int pnm_decode_frame(AVCodecContext *avctx, AVFrame *p,
                 }
             }
         } else {
-            if (avctx->width * avctx->height * 2 > s->bytestream_end - s->bytestream)
+            if ((long)(avctx->width) * avctx->height * 2 > s->bytestream_end - s->bytestream)
                 return AVERROR_INVALIDDATA;
             scale = 1.f / s->scale;
             if (s->endian) {

@@ -970,7 +970,7 @@ static int epic_jb_decode_tile(G2MContext *c, int tile_x, int tile_y,
             tr = (tr_r << R_shift) | (tr_g << G_shift) | (tr_b << B_shift);
 
             memset(c->kempf_flags, 0,
-                   (aheight >> 3) * bstride * sizeof(*c->kempf_flags));
+                   (unsigned long)((aheight >> 3)) * bstride * sizeof(*c->kempf_flags));
             for (j = 0; j < tile_height; j += 8) {
                 for (i = 0; i < tile_width; i += 8) {
                     c->kempf_flags[(i >> 3) + (j >> 3) * bstride] = 0;
@@ -1055,7 +1055,7 @@ static int kempf_decode_tile(G2MContext *c, int tile_x, int tile_y,
     int hdr, zsize, npal, tidx = -1, ret;
     const uint8_t *src_end = src + src_size;
     uint8_t pal[768], transp[3];
-    uLongf dlen = (c->tile_width + 1) * c->tile_height;
+    uLongf dlen = (uLongf)((c->tile_width + 1)) * c->tile_height;
     int sub_type;
     int nblocks, cblocks, bstride;
     int bits, bitbuf, coded;
@@ -1164,7 +1164,7 @@ static int g2m_init_buffers(G2MContext *c)
     c->framebuf_stride = FFALIGN(c->width + 15, 16) * 3;
     aligned_height = c->height + 15;
 
-    av_fast_mallocz(&c->framebuf, &c->framebuf_allocated, c->framebuf_stride * aligned_height);
+    av_fast_mallocz(&c->framebuf, &c->framebuf_allocated, (size_t)(c->framebuf_stride) * aligned_height);
     if (!c->framebuf)
         return AVERROR(ENOMEM);
 
@@ -1181,11 +1181,11 @@ static int g2m_init_buffers(G2MContext *c)
         av_freep(&c->kempf_flags);
         av_freep(&c->epic_buf_base);
         c->epic_buf    = NULL;
-        c->synth_tile  = av_mallocz(c->tile_stride      * aligned_height);
-        c->jpeg_tile   = av_mallocz(c->tile_stride      * aligned_height);
+        c->synth_tile  = av_mallocz((size_t)(c->tile_stride)      * aligned_height);
+        c->jpeg_tile   = av_mallocz((size_t)(c->tile_stride)      * aligned_height);
         c->kempf_buf   = av_mallocz((c->tile_width + 1) * aligned_height +
                                     AV_INPUT_BUFFER_PADDING_SIZE);
-        c->kempf_flags = av_mallocz(c->tile_width       * aligned_height);
+        c->kempf_flags = av_mallocz((size_t)(c->tile_width)       * aligned_height);
         if (!c->synth_tile || !c->jpeg_tile ||
             !c->kempf_buf || !c->kempf_flags)
             return AVERROR(ENOMEM);
@@ -1243,7 +1243,7 @@ static int g2m_load_cursor(AVCodecContext *avctx, G2MContext *c,
         return AVERROR_PATCHWELCOME;
     }
 
-    if ((err = av_reallocp(&c->cursor, cursor_stride * cursor_h)) < 0) {
+    if ((err = av_reallocp(&c->cursor, (size_t)(cursor_stride) * cursor_h)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "Cannot allocate cursor buffer\n");
         return err;
     }

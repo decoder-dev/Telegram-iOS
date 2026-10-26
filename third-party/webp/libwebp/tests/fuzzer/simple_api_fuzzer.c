@@ -45,7 +45,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* const data, size_t size) {
     buf = WebPDecodeYUV(data, size, &w, &h, &u, &v, &stride, &uv_stride);
   } else if (value < 0xe8) {
     const int stride = (value < 0xbe ? 4 : 3) * w;
-    size_t buf_size = stride * h;
+    size_t buf_size = (size_t)(stride) * h;
     if (value % 0x10 == 0) buf_size--;
     uint8_t* const ext_buf = (uint8_t*)malloc(buf_size);
     if (value < 0x94) {
@@ -63,7 +63,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* const data, size_t size) {
     }
     free(ext_buf);
   } else {
-    size_t luma_size = w * h;
+    size_t luma_size = (size_t)(w) * h;
     const int uv_stride = (w + 1) / 2;
     size_t u_size = uv_stride * (h + 1) / 2;
     size_t v_size = uv_stride * (h + 1) / 2;

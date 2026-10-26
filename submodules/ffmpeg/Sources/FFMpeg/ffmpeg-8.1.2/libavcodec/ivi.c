@@ -331,7 +331,7 @@ av_cold int ff_ivi_init_planes(AVCodecContext *avctx, IVIPlaneDesc *planes, cons
         align_fac       = p ? 8 : 16;
         width_aligned   = FFALIGN(b_width , align_fac);
         height_aligned  = FFALIGN(b_height, align_fac);
-        buf_size        = width_aligned * height_aligned * sizeof(int16_t);
+        buf_size        = (unsigned long)(width_aligned) * height_aligned * sizeof(int16_t);
 
         for (b = 0; b < planes[p].num_bands; b++) {
             band = &planes[p].bands[b]; /* select appropriate plane/band */

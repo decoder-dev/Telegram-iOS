@@ -219,7 +219,7 @@ static int decode_stream(const uint8_t* data, size_t size,
 
             out_frames[decoded].width = w;
             out_frames[decoded].height = h;
-            out_frames[decoded].y.resize(w * h);
+            out_frames[decoded].y.resize((size_t)(w) * h);
             out_frames[decoded].cb.resize(w / 2 * h / 2);
             out_frames[decoded].cr.resize(w / 2 * h / 2);
 
@@ -273,7 +273,7 @@ static int decode_sprite_ref(sprite_result_t* sprite, decoded_frame_t* out_frame
 
         out_frames[i].width = half_w;
         out_frames[i].height = h;
-        out_frames[i].y.resize(half_w * h);
+        out_frames[i].y.resize((size_t)(half_w) * h);
         out_frames[i].cb.resize(half_w / 2 * h / 2);
         out_frames[i].cr.resize(half_w / 2 * h / 2);
 
