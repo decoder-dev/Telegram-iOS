@@ -9,13 +9,17 @@ FFMPEG = ROOT / "submodules/ffmpeg/Sources/FFMpeg/ffmpeg-8.1.2"
 class FFmpegCodeQLScope(unittest.TestCase):
     def test_workflow_uses_the_scope_file(self):
         workflow = (ROOT / ".github/workflows/codeql.yml").read_text(encoding="utf-8")
-        self.assertIn("config-file: ./.github/codeql/codeql-config.yml", workflow)
+        self.assertIn("config-file: ${{ matrix.language == 'ruby' && './.github/codeql/codeql-ruby.yml' || './.github/codeql/codeql-config.yml' }}", workflow)
 
-    def test_no_language_without_first_party_sources(self):
-        # The only Ruby file is FFmpeg's tools/loudnorm.rb, which the scope file ignores; CodeQL fails a language
-        # whose sources are all filtered out.
+    def test_ruby_sources_keep_a_dedicated_unfiltered_scope(self):
+        # Codec-only exclusions also match the committed loudnorm Ruby tool.
+        # Ruby therefore needs its own scope instead of losing security coverage.
         workflow = (ROOT / ".github/workflows/codeql.yml").read_text(encoding="utf-8")
-        self.assertNotIn("language: ruby", workflow)
+        self.assertIn("language: ruby", workflow)
+        ruby = (ROOT / ".github/codeql/codeql-ruby.yml").read_text(encoding="utf-8")
+        self.assertIn("uses: security-extended", ruby)
+        self.assertNotIn("paths-ignore:", ruby)
+        self.assertNotIn("query-filters:", ruby)
 
     def test_ignored_paths_are_not_built_into_the_app(self):
         config = (ROOT / ".github/codeql/codeql-config.yml").read_text(encoding="utf-8")
