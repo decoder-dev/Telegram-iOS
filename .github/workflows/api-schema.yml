@@ -15,8 +15,9 @@ jobs:
       - uses: actions/checkout@v5
       - name: Generate layer 230
         run: |
-          swift run --package-path build-system/SwiftTL SwiftTL build-system/SwiftTL/api-230.tl generated-api
+          swift run --package-path build-system/SwiftTL SwiftTL build-system/SwiftTL/api-230.tl generated-api --objc-output=generated-api/objc
           test -s generated-api/Api0.swift
+          test -n "$(find generated-api/objc -type f -size +0c -print -quit)"
       - uses: actions/upload-artifact@v4
         with:
           name: generated-api-230

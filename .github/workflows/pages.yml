@@ -17,7 +17,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  configuration:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      enabled: ${{ steps.pages.outputs.enabled }}
+    steps:
+      - id: pages
+        name: Check existing Pages configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, subprocess
+          response = subprocess.run(
+              ["gh", "api", f"repos/{os.environ['GITHUB_REPOSITORY']}/pages"],
+              capture_output=True, text=True,
+          )
+          if response.returncode:
+              if "(HTTP 404)" not in response.stderr:
+                  raise SystemExit(response.stderr)
+              enabled = False
+          else:
+              enabled = json.loads(response.stdout).get("build_type") == "workflow"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"enabled={str(enabled).lower()}\n")
+          if not enabled:
+              print("::notice::Pages is not configured for Actions; deployment skipped.")
+          PYTHON
   deploy:
+    needs: configuration
+    if: needs.configuration.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
