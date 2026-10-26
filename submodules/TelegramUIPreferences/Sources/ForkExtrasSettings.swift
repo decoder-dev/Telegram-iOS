@@ -114,6 +114,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideTabBar: Bool
     /// Append seconds to message timestamps in chat.
     public var showMessageSeconds: Bool
+    /// Remove known tracking parameters from ordinary outgoing text links. Opt-in.
+    public var stripTrackingParameters: Bool
     /// Use a wider bubble fill factor (channel / group posts).
     public var wideChannelPosts: Bool
     /// Sticker display size as a percent of the default 184pt (50...150).
@@ -346,6 +348,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
             rememberLastFolder: false,
             hideTabBar: false,
             showMessageSeconds: false,
+            stripTrackingParameters: false,
             wideChannelPosts: false,
             stickerSizePercent: 100,
             doubleTapToEdit: false,
@@ -428,6 +431,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         rememberLastFolder: Bool = false,
         hideTabBar: Bool = false,
         showMessageSeconds: Bool = false,
+        stripTrackingParameters: Bool = false,
         wideChannelPosts: Bool = false,
         stickerSizePercent: Int32 = 100,
         doubleTapToEdit: Bool = false,
@@ -547,6 +551,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.rememberLastFolder = rememberLastFolder
         self.hideTabBar = hideTabBar
         self.showMessageSeconds = showMessageSeconds
+        self.stripTrackingParameters = stripTrackingParameters
         self.wideChannelPosts = wideChannelPosts
         self.stickerSizePercent = min(150, max(50, stickerSizePercent))
         self.doubleTapToEdit = doubleTapToEdit
@@ -730,6 +735,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.rememberLastFolder = try container.decodeIfPresent(Bool.self, forKey: "rememberLastFolder") ?? false
         self.hideTabBar = try container.decodeIfPresent(Bool.self, forKey: "hideTabBar") ?? false
         self.showMessageSeconds = try container.decodeIfPresent(Bool.self, forKey: "showMessageSeconds") ?? false
+        self.stripTrackingParameters = try container.decodeIfPresent(Bool.self, forKey: "stripTrackingParameters") ?? false
         self.wideChannelPosts = try container.decodeIfPresent(Bool.self, forKey: "wideChannelPosts") ?? false
         self.stickerSizePercent = min(150, max(50, try container.decodeIfPresent(Int32.self, forKey: "stickerSizePercent") ?? 100))
         self.doubleTapToEdit = try container.decodeIfPresent(Bool.self, forKey: "doubleTapToEdit") ?? false
@@ -914,6 +920,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.rememberLastFolder, forKey: "rememberLastFolder")
         try container.encode(self.hideTabBar, forKey: "hideTabBar")
         try container.encode(self.showMessageSeconds, forKey: "showMessageSeconds")
+        try container.encode(self.stripTrackingParameters, forKey: "stripTrackingParameters")
         try container.encode(self.wideChannelPosts, forKey: "wideChannelPosts")
         try container.encode(self.stickerSizePercent, forKey: "stickerSizePercent")
         try container.encode(self.doubleTapAction == 6, forKey: "doubleTapToEdit")

@@ -104,7 +104,7 @@ class ThemeTests(unittest.TestCase):
         source = (ROOT/'submodules/SettingsUI/Sources/ForkExtrasController.swift').read_text(encoding='utf-8')
         categories=source.split('private static let regroupedCategories:',1)[1].split('private static let interfaceGroups:',1)[0]
         blocks=re.findall(r'\(\.\w+,\s*(\[.*?\])\s*\)',categories,re.S)
-        self.assertEqual(len(blocks),7,'Every regrouped category, including the island menu and the ghost activity rows, must be checked')
+        self.assertEqual(len(blocks),8,'Every regrouped category, including privacy link cleanup, must be checked')
         groups=[group for block in blocks for group in ast.literal_eval(block)]
         self.assertIn('regroupedCategories.flatMap { $0.groups }',source)
         ids=[value for group in groups for value in group]

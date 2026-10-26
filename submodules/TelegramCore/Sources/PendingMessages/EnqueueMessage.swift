@@ -1187,6 +1187,9 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
         for (index, id) in zip(allowedIndices, ids) { result[index] = id }
         return result
     }
+    // Capture the user's original send intent before Ghost Mode adds its short scheduling delay.
+    let endsSuspiciousPeerState = peerId.namespace == Namespaces.Peer.CloudUser
+        && messages.contains(where: { !$0.1.attributes.contains(where: { $0 is OutgoingScheduleInfoMessageAttribute }) })
     // Covers multi-peer forwards and sends outside ChatController too. Existing
     // dates and quick replies remain untouched; secret chats cannot schedule.
     let scheduleTime = Int32(account.network.context.globalTime()) + 12
@@ -1222,8 +1225,8 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
     
     // Sending to a user whose chat still shows the report/block panel ends its suspicious state
     // (`CachedUserData.isSuspiciousPeer`): only the report and block flags go, so an Add Contact
-    // offer stays. A scheduled message reaches no one yet and changes nothing.
-    if peerId.namespace == Namespaces.Peer.CloudUser, messages.contains(where: { !$0.1.attributes.contains(where: { $0 is OutgoingScheduleInfoMessageAttribute }) }) {
+    // offer stays. A user-scheduled message changes nothing; Ghost's short automatic delay still counts as a reply.
+    if endsSuspiciousPeerState {
         transaction.updatePeerCachedData(peerIds: Set([peerId]), update: { _, current in
             guard let current = current as? CachedUserData, current.isSuspiciousPeer, var peerStatusSettings = current.peerStatusSettings else {
                 return current

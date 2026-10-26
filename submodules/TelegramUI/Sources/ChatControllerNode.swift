@@ -5182,7 +5182,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             
             var messages: [EnqueueMessage] = []
             
-            let effectiveInputText: NSAttributedString
+            var effectiveInputText: NSAttributedString
             let composeContent = effectivePresentationInterfaceState.interfaceState.composeInputState.content
             let isNewMessage = effectivePresentationInterfaceState.interfaceState.editMessage == nil
             let requiresPremiumRichContent = isNewMessage
@@ -5247,6 +5247,10 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                 content: composeContent,
                 isNewMessage: effectivePresentationInterfaceState.interfaceState.editMessage == nil,
                 sendWithoutFormatting: sendWithoutFormatting) == .rich
+
+            if isNewMessage && !sendAsRichMessage && self.context.sharedContext.immediateForkExtrasSettings.stripTrackingParameters {
+                effectiveInputText = forkTextWithoutTrackingLinks(effectiveInputText)
+            }
             
             var inlineStickers: [MediaId: Media] = [:]
             var firstLockedPremiumEmoji: TelegramMediaFile?

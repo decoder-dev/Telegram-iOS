@@ -886,7 +886,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1603, 1500, 1501, 1541, 57],
             [1604, 140, 141]
         ]),
-        (.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]])
+        (.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]]),
+        (.privacy, [[2030, 2031]])
     ]
 
     private static let interfaceGroups: [[Int32]] = regroupedCategories.flatMap { $0.groups }
@@ -1909,6 +1910,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
     case .privacy:
         entries = [
             .appearanceToggle(1530, russian ? "Отправлять статистику в Telegram" : "Send statistics to Telegram", settings.sendTelegramStatistics, \.sendTelegramStatistics),
+            .appearanceToggle(2030, russian ? "Убирать отслеживание из ссылок" : "Remove tracking from sent links", settings.stripTrackingParameters, \.stripTrackingParameters),
+            .designFooter(2031, russian ? "Очищать ссылки в текстовых сообщениях. Код и подписанные ссылки сохраняются без изменений." : "Clean links in text messages. Code and signed links remain unchanged."),
             .streamerMode(settings.streamerMode),
             .streamerModeFooter,
             .instantPasscode(settings.instantPasscodeLock),
