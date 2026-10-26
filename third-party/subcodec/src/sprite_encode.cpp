@@ -5,6 +5,7 @@
 #include "codec_app_def.h"
 #include "codec_def.h"
 
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
@@ -257,8 +258,9 @@ std::expected<EncodeResult, Error> SpriteEncoder::encode(
     int cwm = impl_->canvas_width_mbs;
 
     // Split into color (left half) and alpha (right half)
-    std::vector<MacroblockData> color((size_t)hwm * hhm);
-    std::vector<MacroblockData> alpha_mbs((size_t)hwm * hhm);
+    const std::size_t macroblock_count = static_cast<std::size_t>(hwm) * static_cast<std::size_t>(hhm);
+    std::vector<MacroblockData> color(macroblock_count);
+    std::vector<MacroblockData> alpha_mbs(macroblock_count);
 
     for (int mb_y = 0; mb_y < hhm; mb_y++) {
         for (int mb_x = 0; mb_x < hwm; mb_x++) {
