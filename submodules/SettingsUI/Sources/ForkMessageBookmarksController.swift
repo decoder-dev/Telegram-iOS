@@ -45,14 +45,14 @@ private enum ForkMessageBookmarksEntry: ItemListNodeEntry {
         let arguments = arguments as! ForkMessageBookmarksArguments
         switch self {
         case let .filter(title, label):
-            return ItemListDisclosureItem(presentationData: presentationData, title: title, label: label, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: title, label: label, sectionId: self.section, style: .blocks, action: {
                 arguments.chooseFilter()
             })
         case let .empty(text):
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .bookmark(_, bookmark):
             let tags = bookmark.tags.map { "#\($0)" }.joined(separator: " ")
-            return ItemListDisclosureItem(presentationData: presentationData, title: bookmark.chatTitle, label: tags, additionalDetailLabel: bookmark.snippet, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: bookmark.chatTitle, label: tags, additionalDetailLabel: bookmark.snippet, sectionId: self.section, style: .blocks, action: {
                 arguments.openBookmark(bookmark)
             })
         }
