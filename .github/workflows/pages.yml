@@ -3,7 +3,7 @@ name: Site
 # Publishes site/ to GitHub Pages. One-time setup: Settings -> Pages -> Source: GitHub Actions.
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths: ['site/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 

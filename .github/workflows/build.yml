@@ -7,7 +7,7 @@
 #   • Publish the Make.py IPA (embedded.mobileprovision + _CodeSignature intact).
 #   • Final device install still requires Sideloadly/AltStore re-sign — see docs/SIDELOAD.md.
 #
-# Triggers (on-demand only — not every master push):
+# Triggers (on-demand only — not every main push):
 #   • Actions → Build sideload IPA → Run workflow
 #   • or push a version tag: git tag vX.Y.Z && git push --tags
 #

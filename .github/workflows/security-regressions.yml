@@ -1,7 +1,7 @@
 name: Security regression tests
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
     paths:
       - 'Tests/CodeScanning/**'
       - 'third-party/**'
@@ -12,7 +12,7 @@ on:
       - 'submodules/TelegramUI/Components/RichTextEditor/Host/Engine/Scripts/tests/test_ime_keyboard_contract.py'
       - '.github/workflows/security-regressions.yml'
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'Tests/CodeScanning/**'
       - 'third-party/**'
