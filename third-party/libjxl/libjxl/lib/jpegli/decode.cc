@@ -109,7 +109,7 @@ void InitProgressMonitor(j_decompress_ptr cinfo, bool coef_only) {
   int nc = cinfo->num_components;
   int estimated_num_scans =
       cinfo->progressive_mode ? 2 + 3 * nc : (m->is_multiscan_ ? nc : 1);
-  cinfo->progress->pass_limit = cinfo->total_iMCU_rows * estimated_num_scans;
+  cinfo->progress->pass_limit = (long)(cinfo->total_iMCU_rows) * estimated_num_scans;
   cinfo->progress->pass_counter = 0;
   if (coef_only) {
     cinfo->progress->total_passes = 1;
@@ -139,7 +139,7 @@ void ProgressMonitorInputPass(j_decompress_ptr cinfo) {
        cinfo->input_iMCU_row);
   if (cinfo->progress->pass_counter > cinfo->progress->pass_limit) {
     cinfo->progress->pass_limit =
-        cinfo->input_scan_number * cinfo->total_iMCU_rows;
+        (long)(cinfo->input_scan_number) * cinfo->total_iMCU_rows;
   }
   (*cinfo->progress->progress_monitor)(reinterpret_cast<j_common_ptr>(cinfo));
 }
@@ -261,7 +261,7 @@ void PrepareForScan(j_decompress_ptr cinfo) {
     size_t mcu_size = 0;
     for (int i = 0; i < cinfo->comps_in_scan; ++i) {
       jpeg_component_info* comp = cinfo->cur_comp_info[i];
-      mcu_size += comp->h_samp_factor * comp->v_samp_factor;
+      mcu_size += (unsigned long)(comp->h_samp_factor) * comp->v_samp_factor;
     }
     if (mcu_size > D_MAX_BLOCKS_IN_MCU) {
       JPEGLI_ERROR("MCU size too big");
@@ -401,7 +401,7 @@ bool IsInputReady(j_decompress_ptr cinfo) {
 bool ReadOutputPass(j_decompress_ptr cinfo) {
   jpeg_decomp_master* m = cinfo->master;
   if (!m->pixels_) {
-    size_t stride = cinfo->out_color_components * cinfo->output_width;
+    size_t stride = (size_t)(cinfo->out_color_components) * cinfo->output_width;
     size_t num_samples = cinfo->output_height * stride;
     m->pixels_ = Allocate<uint8_t>(cinfo, num_samples, JPOOL_IMAGE);
     m->scanlines_ =
@@ -486,7 +486,7 @@ void AllocateCoefficientBuffer(j_decompress_ptr cinfo) {
 
 void AllocateOutputBuffers(j_decompress_ptr cinfo) {
   jpeg_decomp_master* m = cinfo->master;
-  size_t iMCU_width = cinfo->max_h_samp_factor * m->min_scaled_dct_size;
+  size_t iMCU_width = (size_t)(cinfo->max_h_samp_factor) * m->min_scaled_dct_size;
   size_t output_stride = m->iMCU_cols_ * iMCU_width;
   m->need_context_rows_ = false;
   for (int c = 0; c < cinfo->num_components; ++c) {
@@ -496,7 +496,7 @@ void AllocateOutputBuffers(j_decompress_ptr cinfo) {
   }
   for (int c = 0; c < cinfo->num_components; ++c) {
     const auto& comp = cinfo->comp_info[c];
-    size_t cheight = comp.v_samp_factor * m->scaled_dct_size[c];
+    size_t cheight = (size_t)(comp.v_samp_factor) * m->scaled_dct_size[c];
     int downsampled_width = output_stride / m->h_factor[c];
     m->raw_height_[c] = cinfo->total_iMCU_rows * cheight;
     if (m->need_context_rows_) {
@@ -898,7 +898,7 @@ void jpegli_crop_scanline(j_decompress_ptr cinfo, JDIMENSION* xoffset,
   }
   // TODO(szabadka) Skip the IDCT for skipped over blocks.
   size_t xend = *xoffset + *width;
-  size_t iMCU_width = m->min_scaled_dct_size * cinfo->max_h_samp_factor;
+  size_t iMCU_width = (size_t)(m->min_scaled_dct_size) * cinfo->max_h_samp_factor;
   *xoffset = (*xoffset / iMCU_width) * iMCU_width;
   *width = xend - *xoffset;
   cinfo->master->xoffset_ = *xoffset;

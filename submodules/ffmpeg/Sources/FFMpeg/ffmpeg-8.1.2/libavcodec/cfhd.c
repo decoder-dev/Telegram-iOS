@@ -740,7 +740,7 @@ static int cfhd_decode(AVCodecContext *avctx, AVFrame *pic,
             }
 
             if (lowpass_height > lowpass_a_height || lowpass_width > lowpass_a_width ||
-                lowpass_width * lowpass_height * sizeof(int16_t) > bytestream2_get_bytes_left(&gb)) {
+                (unsigned long)(lowpass_width) * lowpass_height * sizeof(int16_t) > bytestream2_get_bytes_left(&gb)) {
                 av_log(avctx, AV_LOG_ERROR, "Too many lowpass coefficients\n");
                 ret = AVERROR(EINVAL);
                 goto end;

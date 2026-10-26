@@ -269,8 +269,8 @@ static av_cold int dxv_init(AVCodecContext *avctx)
         return AVERROR_INVALIDDATA;
     }
     ctx->enc.raw_ratio = 16;
-    ctx->tex_size = DXV_ALIGN(avctx->width) / TEXTURE_BLOCK_W *
-                    DXV_ALIGN(avctx->height) / TEXTURE_BLOCK_H *
+    ctx->tex_size = (int64_t)(DXV_ALIGN(avctx->width) / TEXTURE_BLOCK_W *
+                    DXV_ALIGN(avctx->height) / TEXTURE_BLOCK_H) *
                     ctx->enc.tex_ratio;
     ctx->enc.slice_count = av_clip(avctx->thread_count, 1, DXV_ALIGN(avctx->height) / TEXTURE_BLOCK_H);
 

@@ -50,7 +50,7 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     const uint8_t *srcr_line, *srcg_line, *srcb_line;
     uint8_t *dst;
 
-    ret = ff_get_encode_buffer(avctx, pkt, 4 * aligned_width * avctx->height, 0);
+    ret = ff_get_encode_buffer(avctx, pkt, (int64_t)(4) * aligned_width * avctx->height, 0);
     if (ret < 0)
         return ret;
 

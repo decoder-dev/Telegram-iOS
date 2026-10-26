@@ -167,7 +167,7 @@ void ComputeSumOfSquares(const ImageBundle& ib1, const ImageBundle& ib2,
         }
       }
       for (size_t j = 0; j < 3; j++) {
-        sum_of_squares[j] += yuvdiff[j] * yuvdiff[j];
+        sum_of_squares[j] += (double)(yuvdiff[j]) * yuvdiff[j];
       }
     }
   }

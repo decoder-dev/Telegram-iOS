@@ -2259,7 +2259,7 @@ static int vtenc_cm_to_avpacket(
         out_buf_size = header_size +
                        in_buf_size +
                        sei_nalu_size +
-                       nalu_count * ((int)sizeof(start_code) - (int)length_code_size);
+                       (unsigned long)(nalu_count) * ((int)sizeof(start_code) - (int)length_code_size);
 
         status = ff_get_encode_buffer(avctx, pkt, out_buf_size, 0);
         if (status < 0)

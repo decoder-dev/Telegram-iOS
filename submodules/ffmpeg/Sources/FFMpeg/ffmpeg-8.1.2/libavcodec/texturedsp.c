@@ -434,7 +434,7 @@ static inline void rgtc_block_internal(uint8_t *dst, ptrdiff_t stride,
             int c = color_tab[i];
 
             if (mono){
-                dst [x * pix_size + y * stride + offset] = (uint8_t)c;
+                dst [(long)(x) * pix_size + y * stride + offset] = (uint8_t)c;
             }
             else{
                 uint32_t pixel = RGBA(c, c, c, 255U);

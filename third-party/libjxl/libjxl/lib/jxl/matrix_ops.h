@@ -26,7 +26,7 @@ void Mul3x3Matrix(const T* a, const T* b, T* c) {
     for (size_t y = 0; y < 3; y++) {
       double e = 0;
       for (size_t z = 0; z < 3; z++) {
-        e += a[y * 3 + z] * temp[z];
+        e += (double)(a[y * 3 + z]) * temp[z];
       }
       c[y * 3 + x] = e;
     }
@@ -39,7 +39,7 @@ void Mul3x3Vector(const T* a, const T* b, T* c) {
   for (size_t y = 0; y < 3; y++) {
     double e = 0;
     for (size_t x = 0; x < 3; x++) {
-      e += a[y * 3 + x] * b[x];
+      e += (double)(a[y * 3 + x]) * b[x];
     }
     c[y] = e;
   }

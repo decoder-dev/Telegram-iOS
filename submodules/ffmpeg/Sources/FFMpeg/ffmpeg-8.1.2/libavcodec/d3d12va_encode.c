@@ -204,7 +204,7 @@ static int d3d12va_encode_setup_roi(AVCodecContext *avctx,
     if (is_av1) {
         pic->qp_map = av_calloc(block_width * block_height, sizeof(int16_t));
     } else {
-        pic->qp_map = av_calloc(block_width * block_height, sizeof(int8_t));
+        pic->qp_map = av_calloc((size_t)(block_width) * block_height, sizeof(int8_t));
     }
     if (!pic->qp_map)
         return AVERROR(ENOMEM);

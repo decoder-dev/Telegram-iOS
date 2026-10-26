@@ -111,7 +111,7 @@ static int pcm_bluray_parse_header(AVCodecContext *avctx,
         return AVERROR_INVALIDDATA;
     }
 
-    avctx->bit_rate = FFALIGN(avctx->ch_layout.nb_channels, 2) * avctx->sample_rate *
+    avctx->bit_rate = (int64_t)(FFALIGN(avctx->ch_layout.nb_channels, 2)) * avctx->sample_rate *
                       avctx->bits_per_coded_sample;
 
     if (avctx->debug & FF_DEBUG_PICT_INFO)

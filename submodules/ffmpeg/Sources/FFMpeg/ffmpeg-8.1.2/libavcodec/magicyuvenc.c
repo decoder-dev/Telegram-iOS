@@ -209,14 +209,14 @@ static av_cold int magy_encode_init(AVCodecContext *avctx)
     s->slice_height = FFALIGN((avctx->height + s->nb_slices - 1) / s->nb_slices, 1 << s->vshift[1]);
     s->nb_slices = (avctx->height + s->slice_height - 1) / s->slice_height;
     s->nb_slices = FFMIN(256U / s->planes, s->nb_slices);
-    s->slices = av_calloc(s->nb_slices * s->planes, sizeof(*s->slices));
+    s->slices = av_calloc((size_t)(s->nb_slices) * s->planes, sizeof(*s->slices));
     if (!s->slices)
         return AVERROR(ENOMEM);
 
     if (s->correlate) {
         size_t max_align = av_cpu_max_align();
         size_t aligned_width = FFALIGN(avctx->width, max_align);
-        s->decorrelate_buf[0] = av_calloc(2U * (s->nb_slices * s->slice_height),
+        s->decorrelate_buf[0] = av_calloc((size_t)(2U) * ((size_t)(s->nb_slices) * s->slice_height),
                                           aligned_width);
         if (!s->decorrelate_buf[0])
             return AVERROR(ENOMEM);
@@ -562,9 +562,9 @@ static int magy_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
             for (size_t k = 0; k < FF_ARRAY_ELEMS(sl->counts); ++k)
                 size += sl->counts[k] * s->he[j][k].len;
             size = AV_CEIL_RSHIFT(size, 3);
-            sl->encode_raw = size >= sl->width * sl->height;
+            sl->encode_raw = size >= (long)(sl->width) * sl->height;
             if (sl->encode_raw)
-                size = sl->width * sl->height;
+                size = (int64_t)(sl->width) * sl->height;
             sl->size = FFALIGN(size + 2, 4);
             sl->pos  = pkt_size;
             pkt_size += sl->size;

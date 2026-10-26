@@ -136,7 +136,7 @@ static int roq_dpcm_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 
     if (in && context->input_frames < 8) {
         memcpy(&context->frame_buffer[context->buffered_samples * channels],
-               in, avctx->frame_size * channels * sizeof(*in));
+               in, (unsigned long)(avctx->frame_size) * channels * sizeof(*in));
         context->buffered_samples += avctx->frame_size;
         if (context->input_frames == 0)
             context->first_pts = frame->pts;

@@ -100,7 +100,7 @@ float ComputePSNR(j_compress_ptr cinfo, int sampling) {
     ComputeInverseWeights(qmc, iqmc);
     for (JDIMENSION by = 0; by < comp->height_in_blocks; by += sampling) {
       JBLOCKARRAY ba = GetBlockRow(cinfo, c, by);
-      const float* qf = m->quant_field.Row(by * v_factor);
+      const float* qf = m->quant_field.Row((ssize_t)(by) * v_factor);
       for (JDIMENSION bx = 0; bx < comp->width_in_blocks; bx += sampling) {
         error += BlockError(&ba[0][bx][0], qmc, iqmc, qf[bx * h_factor],
                             zero_bias_offset, zero_bias_mul);
@@ -123,7 +123,7 @@ void ReQuantizeCoeffs(j_compress_ptr cinfo) {
     const float* zero_bias_mul = m->zero_bias_mul[c];
     for (JDIMENSION by = 0; by < comp->height_in_blocks; ++by) {
       JBLOCKARRAY ba = GetBlockRow(cinfo, c, by);
-      const float* qf = m->quant_field.Row(by * v_factor);
+      const float* qf = m->quant_field.Row((ssize_t)(by) * v_factor);
       for (JDIMENSION bx = 0; bx < comp->width_in_blocks; ++bx) {
         ReQuantizeBlock(&ba[0][bx][0], qmc, qf[bx * h_factor], zero_bias_offset,
                         zero_bias_mul);

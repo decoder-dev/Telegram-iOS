@@ -146,7 +146,7 @@ static void init_blocks(FlashSV2Context * s, Block * blocks,
 {
     int row, col;
     Block *b;
-    memset(blocks, 0, s->cols * s->rows * sizeof(*blocks));
+    memset(blocks, 0, (unsigned long)(s->cols) * s->rows * sizeof(*blocks));
     for (col = 0; col < s->cols; col++) {
         for (row = 0; row < s->rows; row++) {
             b = blocks + (col + row * s->cols);
@@ -185,19 +185,19 @@ static int update_block_dimensions(FlashSV2Context *s, int block_width, int bloc
     s->block_height = block_height;
     s->rows = (s->image_height + s->block_height - 1) / s->block_height;
     s->cols = (s->image_width  + s->block_width  - 1) / s->block_width;
-    if (s->rows * s->cols > s->blocks_size / sizeof(Block)) {
+    if ((unsigned long)(s->rows) * s->cols > s->blocks_size / sizeof(Block)) {
         s->frame_blocks = av_realloc_array(s->frame_blocks, s->rows, s->cols * sizeof(Block));
         s->key_blocks = av_realloc_array(s->key_blocks, s->cols, s->rows * sizeof(Block));
         if (!s->frame_blocks || !s->key_blocks) {
             av_log(s->avctx, AV_LOG_ERROR, "Memory allocation failed.\n");
             return AVERROR(ENOMEM);
         }
-        s->blocks_size = s->rows * s->cols * sizeof(Block);
+        s->blocks_size = (unsigned long)(s->rows) * s->cols * sizeof(Block);
     }
     init_blocks(s, s->frame_blocks, s->encbuffer, s->databuffer);
     init_blocks(s, s->key_blocks, s->keybuffer, 0);
 
-    av_fast_malloc(&s->blockbuffer, &s->blockbuffer_size, block_width * block_height * 6);
+    av_fast_malloc(&s->blockbuffer, &s->blockbuffer_size, (size_t)(block_width) * block_height * 6);
     if (!s->blockbuffer) {
         av_log(s->avctx, AV_LOG_ERROR, "Could not allocate block buffer.\n");
         return AVERROR(ENOMEM);

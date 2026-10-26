@@ -65,7 +65,7 @@ static void get_slice_data(ProresContext *ctx, const uint16_t *src,
 
     for (i = 0; i < mbs_per_slice; i++, src += mb_width) {
         if (x >= w) {
-            memset(blocks, 0, 64 * (mbs_per_slice - i) * blocks_per_mb
+            memset(blocks, 0, (unsigned long)(64) * (mbs_per_slice - i) * blocks_per_mb
                               * sizeof(*blocks));
             return;
         }
@@ -363,7 +363,7 @@ static int encode_slice(AVCodecContext *avctx, const AVFrame *pic,
             pwidth      = avctx->width >> 1;
         }
 
-        linesize = pic->linesize[i] * ctx->pictures_per_frame;
+        linesize = (ptrdiff_t)(pic->linesize[i]) * ctx->pictures_per_frame;
         src = (const uint16_t*)(pic->data[i] + yp * linesize +
                                 line_add * pic->linesize[i]) + xp;
 

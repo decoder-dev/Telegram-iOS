@@ -219,11 +219,11 @@ static int ljpeg_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
 
     if(    avctx->pix_fmt == AV_PIX_FMT_BGR0
         || avctx->pix_fmt == AV_PIX_FMT_BGR24)
-        max_pkt_size += width * height * 3 * 4;
+        max_pkt_size += (unsigned long)(width) * height * 3 * 4;
     else if(avctx->pix_fmt == AV_PIX_FMT_BGRA)
-        max_pkt_size += width * height * 4 * 4;
+        max_pkt_size += (unsigned long)(width) * height * 4 * 4;
     else {
-        max_pkt_size += mb_width * mb_height * 3 * 4
+        max_pkt_size += (unsigned long)(mb_width) * mb_height * 3 * 4
                         * s->hsample[0] * s->vsample[0];
     }
 

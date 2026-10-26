@@ -58,7 +58,7 @@ void testdiv(void)
 #ifdef FIXED_POINT
       prod = (1./32768./65526.)*val*i;
 #else
-      prod = val*i;
+      prod = (double)(val)*i;
 #endif
       if (fabs(prod-1) > .00025)
       {

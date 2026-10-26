@@ -2089,7 +2089,7 @@ again:
                 for (i = 0; i < 3; i++) {
                     cam2xyz[c][i] = 0.;
                     for (j = 0; j < 3; j++)
-                        cam2xyz[c][i] += s->camera_calibration[c][j] * s->color_matrix[j][i] * s->as_shot_white[i];
+                        cam2xyz[c][i] += (double)(s->camera_calibration[c][j]) * s->color_matrix[j][i] * s->as_shot_white[i];
                 }
             }
 
@@ -2201,7 +2201,7 @@ again:
             s->avctx->pix_fmt == AV_PIX_FMT_RGBA) {
             stride = stride * 5 / 4;
             five_planes =
-            dst = av_malloc(stride * s->height);
+            dst = av_malloc((size_t)(stride) * s->height);
             if (!dst)
                 return AVERROR(ENOMEM);
         }

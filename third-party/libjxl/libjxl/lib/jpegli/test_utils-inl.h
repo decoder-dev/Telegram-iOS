@@ -416,7 +416,7 @@ void CopyCoefficients(j_decompress_ptr cinfo, jvirt_barray_ptr* coef_arrays,
   j_common_ptr comptr = reinterpret_cast<j_common_ptr>(cinfo);
   for (int c = 0; c < cinfo->num_components; ++c) {
     jpeg_component_info* comp = &cinfo->comp_info[c];
-    std::vector<JCOEF> coeffs(comp->width_in_blocks * comp->height_in_blocks *
+    std::vector<JCOEF> coeffs((size_t)(comp->width_in_blocks) * comp->height_in_blocks *
                               DCTSIZE2);
     for (size_t by = 0; by < comp->height_in_blocks; ++by) {
       JBLOCKARRAY ba = (*cinfo->mem->access_virt_barray)(comptr, coef_arrays[c],

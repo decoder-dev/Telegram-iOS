@@ -195,7 +195,7 @@ static int cmv_decode_frame(AVCodecContext *avctx, AVFrame *frame,
         return ret;
 
     buf += EA_PREAMBLE_SIZE;
-    if (!(buf[0]&1) && buf_end - buf < s->width * s->height * (int64_t)(100 - s->avctx->discard_damaged_percentage) / 100)
+    if (!(buf[0]&1) && buf_end - buf < (long)(s->width) * s->height * (int64_t)(100 - s->avctx->discard_damaged_percentage) / 100)
         return AVERROR_INVALIDDATA;
 
     if ((ret = ff_get_buffer(avctx, frame, AV_GET_BUFFER_FLAG_REF)) < 0)

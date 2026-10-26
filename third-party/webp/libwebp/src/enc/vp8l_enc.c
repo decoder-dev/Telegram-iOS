@@ -1884,7 +1884,7 @@ int VP8LEncodeImage(const WebPConfig* const config,
   if (picture->extra_info != NULL) {
     const int mb_w = (width + 15) >> 4;
     const int mb_h = (height + 15) >> 4;
-    memset(picture->extra_info, 0, mb_w * mb_h * sizeof(*picture->extra_info));
+    memset(picture->extra_info, 0, (unsigned long)(mb_w) * mb_h * sizeof(*picture->extra_info));
   }
 
  Error:

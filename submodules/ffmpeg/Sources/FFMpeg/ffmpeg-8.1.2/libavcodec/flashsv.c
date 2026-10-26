@@ -354,11 +354,11 @@ static int flashsv_decode_frame(AVCodecContext *avctx, AVFrame *rframe,
             return err;
         s->keyframedata = avpkt->data;
         if (s->blocks)
-            memset(s->blocks, 0, (v_blocks + !!v_part) * (h_blocks + !!h_part) *
+            memset(s->blocks, 0, (unsigned long)((v_blocks + !!v_part)) * (h_blocks + !!h_part) *
                                  sizeof(s->blocks[0]));
     }
     if(s->ver == 2 && !s->blocks)
-        s->blocks = av_mallocz((v_blocks + !!v_part) * (h_blocks + !!h_part) *
+        s->blocks = av_mallocz((unsigned long)((v_blocks + !!v_part)) * (h_blocks + !!h_part) *
                                sizeof(s->blocks[0]));
 
     ff_dlog(avctx, "image: %dx%d block: %dx%d num: %dx%d part: %dx%d\n",
@@ -480,7 +480,7 @@ static int flashsv_decode_frame(AVCodecContext *avctx, AVFrame *rframe,
     }
     if (s->is_keyframe && s->ver == 2) {
         if (!s->keyframe) {
-            s->keyframe = av_malloc(s->frame->linesize[0] * avctx->height);
+            s->keyframe = av_malloc((size_t)(s->frame->linesize[0]) * avctx->height);
             if (!s->keyframe) {
                 av_log(avctx, AV_LOG_ERROR, "Cannot allocate image data\n");
                 return AVERROR(ENOMEM);

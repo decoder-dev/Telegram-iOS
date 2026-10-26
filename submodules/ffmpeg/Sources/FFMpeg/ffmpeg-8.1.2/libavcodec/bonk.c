@@ -116,8 +116,8 @@ static av_cold int bonk_init(AVCodecContext *avctx)
     if (!s->input_samples)
         return AVERROR(ENOMEM);
 
-    s->samples[0] = av_calloc(s->samples_per_packet * s->down_sampling, sizeof(*s->samples[0]));
-    s->samples[1] = av_calloc(s->samples_per_packet * s->down_sampling, sizeof(*s->samples[0]));
+    s->samples[0] = av_calloc((size_t)(s->samples_per_packet) * s->down_sampling, sizeof(*s->samples[0]));
+    s->samples[1] = av_calloc((size_t)(s->samples_per_packet) * s->down_sampling, sizeof(*s->samples[0]));
     if (!s->samples[0] || !s->samples[1])
         return AVERROR(ENOMEM);
 

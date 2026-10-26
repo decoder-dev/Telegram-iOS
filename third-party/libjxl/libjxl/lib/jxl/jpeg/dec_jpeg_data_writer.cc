@@ -808,7 +808,7 @@ SerializationStatus JXL_NOINLINE DoEncodeScan(const JPEGData& jpg,
         int n_blocks_y = is_interleaved ? c.v_samp_factor : 1;
         int n_blocks_x = is_interleaved ? c.h_samp_factor : 1;
         // compressed size per block cannot be more than 512 bytes per component
-        Reserve(bw, 512 * n_blocks_y * n_blocks_x);
+        Reserve(bw, (size_t)(512) * n_blocks_y * n_blocks_x);
         for (int iy = 0; iy < n_blocks_y; ++iy) {
           for (int ix = 0; ix < n_blocks_x; ++ix) {
             int block_y = ss.mcu_y * n_blocks_y + iy;

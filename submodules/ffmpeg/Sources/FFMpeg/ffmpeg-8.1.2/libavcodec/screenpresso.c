@@ -80,7 +80,7 @@ static av_cold int screenpresso_init(AVCodecContext *avctx)
         return AVERROR(ENOMEM);
 
     /* Allocate maximum size possible, a full RGBA frame */
-    ctx->inflated_size = avctx->width * avctx->height * 4;
+    ctx->inflated_size = (uLongf)(avctx->width) * avctx->height * 4;
     ctx->inflated_buf  = av_malloc(ctx->inflated_size);
     if (!ctx->inflated_buf)
         return AVERROR(ENOMEM);

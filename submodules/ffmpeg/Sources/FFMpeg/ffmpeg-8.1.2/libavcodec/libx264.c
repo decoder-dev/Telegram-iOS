@@ -360,7 +360,7 @@ static int setup_mb_info(AVCodecContext *ctx, x264_picture_t *pic,
     mbinfo_rects = (const AVVideoRect *)av_video_hint_rects(info);
     nb_rects = info->nb_rects;
 
-    mbinfo = av_calloc(mb_width * mb_height, sizeof(*mbinfo));
+    mbinfo = av_calloc((size_t)(mb_width) * mb_height, sizeof(*mbinfo));
     if (!mbinfo)
         return AVERROR(ENOMEM);
 
@@ -425,7 +425,7 @@ static int setup_roi(AVCodecContext *ctx, x264_picture_t *pic,
     }
     nb_rois = size / roi_size;
 
-    qoffsets = av_calloc(mbx * mby, sizeof(*qoffsets));
+    qoffsets = av_calloc((size_t)(mbx) * mby, sizeof(*qoffsets));
     if (!qoffsets)
         return AVERROR(ENOMEM);
 

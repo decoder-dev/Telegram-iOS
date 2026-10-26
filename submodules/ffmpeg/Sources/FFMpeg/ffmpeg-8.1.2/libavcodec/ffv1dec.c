@@ -327,7 +327,7 @@ static int decode_remap(FFV1Context *f, FFV1SliceContext *sc)
             unsigned run0 = lu ? 0   : run;
             unsigned run1 = lu ? run : 1;
 
-            i += run0 * current_mul;
+            i += (long)(run0) * current_mul;
 
             while (run1--) {
                 if (current_mul > 1) {
@@ -695,7 +695,7 @@ static int decode_header(AVCodecContext *avctx, RangeCoder *c,
 
         for (i = 0; w > (1<<ff_log2_run[i]); i++)
             w -= ff_log2_run[i];
-        if (buf_size < (avctx->height + i + 6) / 8 * s)
+        if (buf_size < (unsigned long)((avctx->height + i + 6) / 8) * s)
             return AVERROR_INVALIDDATA;
     }
 

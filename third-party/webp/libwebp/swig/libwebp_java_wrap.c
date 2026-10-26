@@ -913,7 +913,7 @@ static size_t ReturnedBufferSize(
 
   for (p = size_map; p->function; ++p) {
     if (!strcmp(function, p->function)) {
-      size = *width * *height * p->size_multiplier;
+      size = (size_t)(*width) * *height * p->size_multiplier;
       break;
     }
   }

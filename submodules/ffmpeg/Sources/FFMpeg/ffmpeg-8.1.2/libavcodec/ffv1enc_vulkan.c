@@ -223,7 +223,7 @@ static int vulkan_encode_ffv1_submit_frame(AVCodecContext *avctx,
         RET(ff_vk_get_pooled_buffer(&fv->s, &fv->slice_data_pool,
                                     &slice_data_ref,
                                     VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                    NULL, slice_state_size*f->slice_count,
+                                    NULL, (size_t)(slice_state_size)*f->slice_count,
                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
         /* Only save it if we're going to use it again */
@@ -604,7 +604,7 @@ static int get_packet(AVCodecContext *avctx, FFVkExecContext *exec,
     ff_vk_exec_wait(&fv->s, exec);
 
     /* Invalidate slice/output data if needed */
-    uint32_t rb_off = fd->idx*f->max_slice_count*sizeof(uint32_t);
+    uint32_t rb_off = (unsigned long)(fd->idx)*f->max_slice_count*sizeof(uint32_t);
     if (!(fv->results_buf.flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
         VkMappedMemoryRange invalidate_data = {
             .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
@@ -1236,7 +1236,7 @@ static av_cold int vulkan_encode_ffv1_init(AVCodecContext *avctx)
 
     /* Buffers */
     RET(ff_vk_create_buf(&fv->s, &fv->results_buf,
-                         fv->async_depth*f->max_slice_count*sizeof(uint32_t),
+                         (unsigned long)(fv->async_depth)*f->max_slice_count*sizeof(uint32_t),
                          NULL, NULL,
                          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |

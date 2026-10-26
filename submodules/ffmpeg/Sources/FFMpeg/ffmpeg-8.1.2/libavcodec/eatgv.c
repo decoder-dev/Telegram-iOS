@@ -314,7 +314,7 @@ static int tgv_decode_frame(AVCodecContext *avctx, AVFrame *frame,
         frame->pict_type = AV_PICTURE_TYPE_I;
 
         if (!s->frame_buffer &&
-            !(s->frame_buffer = av_mallocz(s->width * s->height)))
+            !(s->frame_buffer = av_mallocz((size_t)(s->width) * s->height)))
             return AVERROR(ENOMEM);
 
         if (unpack(buf, buf_end, s->frame_buffer, s->avctx->width, s->avctx->height) < 0) {

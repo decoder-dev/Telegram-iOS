@@ -601,7 +601,7 @@ static int opus_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
     /* Remove samples from queue and skip if needed */
     ff_af_queue_remove(&s->afq, s->packet.frames*frame_size, &avpkt->pts, &avpkt->duration);
 
-    discard_padding = s->packet.frames*frame_size - ff_samples_from_time_base(avctx, avpkt->duration);
+    discard_padding = (long)(s->packet.frames)*frame_size - ff_samples_from_time_base(avctx, avpkt->duration);
     if (discard_padding > 0) {
         uint8_t *side = av_packet_new_side_data(avpkt, AV_PKT_DATA_SKIP_SAMPLES, 10);
         if (!side)

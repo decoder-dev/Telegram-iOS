@@ -114,7 +114,7 @@ TEST_P(StreamingTestParam, TestStreaming) {
     cinfo.optimize_coding = FALSE;
     jpegli_start_compress(&cinfo, TRUE);
 
-    size_t stride = cinfo.image_width * cinfo.input_components;
+    size_t stride = (size_t)(cinfo.image_width) * cinfo.input_components;
     size_t iMCU_height = 8 * cinfo.max_v_samp_factor;
     std::vector<uint8_t> row_bytes(iMCU_height * stride);
     size_t yin = 0;

@@ -411,7 +411,7 @@ static av_cold int libopus_encode_init(AVCodecContext *avctx)
     }
     avctx->extradata_size = header_size;
 
-    opus->samples = av_calloc(frame_size, channels *
+    opus->samples = av_calloc(frame_size, (size_t)(channels) *
                                av_get_bytes_per_sample(avctx->sample_fmt));
     if (!opus->samples) {
         av_log(avctx, AV_LOG_ERROR, "Failed to allocate samples buffer.\n");
@@ -445,8 +445,8 @@ static void libopus_copy_samples_with_channel_map(
     int sample, channel;
     for (sample = 0; sample < nb_samples; ++sample) {
         for (channel = 0; channel < nb_channels; ++channel) {
-            const size_t src_pos = bytes_per_sample * (nb_channels * sample + channel);
-            const size_t dst_pos = bytes_per_sample * (nb_channels * sample + channel_map[channel]);
+            const size_t src_pos = (size_t)(bytes_per_sample) * (nb_channels * sample + channel);
+            const size_t dst_pos = (size_t)(bytes_per_sample) * (nb_channels * sample + channel_map[channel]);
 
             memcpy(&dst[dst_pos], &src[src_pos], bytes_per_sample);
         }

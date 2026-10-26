@@ -31,7 +31,7 @@ static int yuv4_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     const uint8_t *y, *u, *v;
     int ret;
 
-    ret = ff_get_encode_buffer(avctx, pkt, 6 * ((avctx->width  + 1) / 2)
+    ret = ff_get_encode_buffer(avctx, pkt, (int64_t)(6) * ((avctx->width  + 1) / 2)
                                              * ((avctx->height + 1) / 2), 0);
     if (ret < 0)
         return ret;

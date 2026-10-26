@@ -971,7 +971,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
     w += 8;
     h += 8;
-    l->Y_base = av_calloc(w * h, 2 * sizeof(*l->Y_base));
+    l->Y_base = av_calloc((size_t)(w) * h, 2 * sizeof(*l->Y_base));
     if (!l->Y_base)
         return AVERROR(ENOMEM);
     l->y_stride = w;
@@ -979,7 +979,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
     l->Y2 = l->Y1 + w * h;
     w = (w + 1) >> 1;
     h = (h + 1) >> 1;
-    l->UV_base = av_calloc(w * h, 4 * sizeof(*l->UV_base));
+    l->UV_base = av_calloc((size_t)(w) * h, 4 * sizeof(*l->UV_base));
     if (!l->UV_base)
         return AVERROR(ENOMEM);
     l->uv_stride = w;

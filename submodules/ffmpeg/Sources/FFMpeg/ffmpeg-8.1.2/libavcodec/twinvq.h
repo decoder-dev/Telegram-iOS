@@ -200,7 +200,7 @@ static inline void twinvq_memset_float(float *buf, float val, int size)
 static inline float twinvq_mulawinv(float y, float clip, float mu)
 {
     y = av_clipf(y / clip, -1, 1);
-    return clip * FFSIGN(y) * (exp(log(1 + mu) * fabs(y)) - 1) / mu;
+    return (double)(clip) * FFSIGN(y) * (exp(log(1 + mu) * fabs(y)) - 1) / mu;
 }
 
 int ff_twinvq_decode_frame(AVCodecContext *avctx, AVFrame *frame,

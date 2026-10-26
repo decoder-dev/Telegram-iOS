@@ -1510,81 +1510,81 @@ int32_t InitialDqLayersContext (PWelsDecoderContext pCtx, const int32_t kiMaxWid
     pCtx->pDqLayersList[i] = pDq; //to keep consistence with in UninitialDqLayersContext()
     memset (pDq, 0, sizeof (SDqLayer));
 
-    pCtx->sMb.pMbType[i] = (uint32_t*)pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (uint32_t),
+    pCtx->sMb.pMbType[i] = (uint32_t*)pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (uint32_t),
                            "pCtx->sMb.pMbType[]");
-    pCtx->sMb.pMv[i][LIST_0] = (int16_t (*)[16][2])pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pMv[i][LIST_0] = (int16_t (*)[16][2])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                                  int16_t) * MV_A * MB_BLOCK4x4_NUM, "pCtx->sMb.pMv[][]");
-    pCtx->sMb.pMv[i][LIST_1] = (int16_t (*)[16][2])pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pMv[i][LIST_1] = (int16_t (*)[16][2])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                                  int16_t) * MV_A * MB_BLOCK4x4_NUM, "pCtx->sMb.pMv[][]");
 
-    pCtx->sMb.pRefIndex[i][LIST_0] = (int8_t (*)[MB_BLOCK4x4_NUM])pMa->WelsMallocz (pCtx->sMb.iMbWidth *
+    pCtx->sMb.pRefIndex[i][LIST_0] = (int8_t (*)[MB_BLOCK4x4_NUM])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) *
                                      pCtx->sMb.iMbHeight *
                                      sizeof (
                                        int8_t) * MB_BLOCK4x4_NUM, "pCtx->sMb.pRefIndex[][]");
-    pCtx->sMb.pRefIndex[i][LIST_1] = (int8_t (*)[MB_BLOCK4x4_NUM])pMa->WelsMallocz (pCtx->sMb.iMbWidth *
+    pCtx->sMb.pRefIndex[i][LIST_1] = (int8_t (*)[MB_BLOCK4x4_NUM])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) *
                                      pCtx->sMb.iMbHeight *
                                      sizeof (
                                        int8_t) * MB_BLOCK4x4_NUM, "pCtx->sMb.pRefIndex[][]");
-    pCtx->sMb.pDirect[i] = (int8_t (*)[MB_BLOCK4x4_NUM])pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight *
+    pCtx->sMb.pDirect[i] = (int8_t (*)[MB_BLOCK4x4_NUM])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight *
                            sizeof (
                              int8_t) * MB_BLOCK4x4_NUM, "pCtx->sMb.pDirect[]");
-    pCtx->sMb.pLumaQp[i] = (int8_t*)pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (int8_t),
+    pCtx->sMb.pLumaQp[i] = (int8_t*)pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (int8_t),
                            "pCtx->sMb.pLumaQp[]");
-    pCtx->sMb.pNoSubMbPartSizeLessThan8x8Flag[i] = (bool*)pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight *
+    pCtx->sMb.pNoSubMbPartSizeLessThan8x8Flag[i] = (bool*)pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight *
         sizeof (
           bool),
         "pCtx->sMb.pNoSubMbPartSizeLessThan8x8Flag[]");
-    pCtx->sMb.pTransformSize8x8Flag[i] = (bool*)pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pTransformSize8x8Flag[i] = (bool*)pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                                            bool),
                                          "pCtx->sMb.pTransformSize8x8Flag[]");
-    pCtx->sMb.pChromaQp[i] = (int8_t (*)[2])pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pChromaQp[i] = (int8_t (*)[2])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                                int8_t) * 2,
                              "pCtx->sMb.pChromaQp[]");
-    pCtx->sMb.pMvd[i][LIST_0] = (int16_t (*)[16][2])pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pMvd[i][LIST_0] = (int16_t (*)[16][2])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                                   int16_t) * MV_A * MB_BLOCK4x4_NUM, "pCtx->sMb.pMvd[][]");
-    pCtx->sMb.pMvd[i][LIST_1] = (int16_t (*)[16][2])pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pMvd[i][LIST_1] = (int16_t (*)[16][2])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                                   int16_t) * MV_A * MB_BLOCK4x4_NUM, "pCtx->sMb.pMvd[][]");
-    pCtx->sMb.pCbfDc[i] = (uint16_t*)pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (uint16_t),
+    pCtx->sMb.pCbfDc[i] = (uint16_t*)pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (uint16_t),
                           "pCtx->sMb.pCbfDc[]");
-    pCtx->sMb.pNzc[i] = (int8_t (*)[24])pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pNzc[i] = (int8_t (*)[24])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                           int8_t) * 24,
                         "pCtx->sMb.pNzc[]");
-    pCtx->sMb.pNzcRs[i] = (int8_t (*)[24])pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pNzcRs[i] = (int8_t (*)[24])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                             int8_t) * 24,
                           "pCtx->sMb.pNzcRs[]");
-    pCtx->sMb.pScaledTCoeff[i] = (int16_t (*)[MB_COEFF_LIST_SIZE])pMa->WelsMallocz (pCtx->sMb.iMbWidth *
+    pCtx->sMb.pScaledTCoeff[i] = (int16_t (*)[MB_COEFF_LIST_SIZE])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) *
                                  pCtx->sMb.iMbHeight *
                                  sizeof (int16_t) * MB_COEFF_LIST_SIZE, "pCtx->sMb.pScaledTCoeff[]");
-    pCtx->sMb.pIntraPredMode[i] = (int8_t (*)[8])pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pIntraPredMode[i] = (int8_t (*)[8])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                                     int8_t) * 8,
                                   "pCtx->sMb.pIntraPredMode[]");
-    pCtx->sMb.pIntra4x4FinalMode[i] = (int8_t (*)[MB_BLOCK4x4_NUM])pMa->WelsMallocz (pCtx->sMb.iMbWidth *
+    pCtx->sMb.pIntra4x4FinalMode[i] = (int8_t (*)[MB_BLOCK4x4_NUM])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) *
                                       pCtx->sMb.iMbHeight *
                                       sizeof (int8_t) * MB_BLOCK4x4_NUM, "pCtx->sMb.pIntra4x4FinalMode[]");
-    pCtx->sMb.pIntraNxNAvailFlag[i] = (uint8_t (*))pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pIntraNxNAvailFlag[i] = (uint8_t (*))pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                                         int8_t),
                                       "pCtx->sMb.pIntraNxNAvailFlag");
-    pCtx->sMb.pChromaPredMode[i] = (int8_t*)pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (int8_t),
+    pCtx->sMb.pChromaPredMode[i] = (int8_t*)pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (int8_t),
                                    "pCtx->sMb.pChromaPredMode[]");
-    pCtx->sMb.pCbp[i] = (int8_t*)pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (int8_t),
+    pCtx->sMb.pCbp[i] = (int8_t*)pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (int8_t),
                         "pCtx->sMb.pCbp[]");
-    pCtx->sMb.pSubMbType[i] = (uint32_t (*)[MB_PARTITION_SIZE])pMa->WelsMallocz (pCtx->sMb.iMbWidth *
+    pCtx->sMb.pSubMbType[i] = (uint32_t (*)[MB_PARTITION_SIZE])pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) *
                               pCtx->sMb.iMbHeight *
                               sizeof (
                                 uint32_t) * MB_PARTITION_SIZE, "pCtx->sMb.pSubMbType[]");
-    pCtx->sMb.pSliceIdc[i] = (int32_t*) pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (int32_t),
+    pCtx->sMb.pSliceIdc[i] = (int32_t*) pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (int32_t),
                              "pCtx->sMb.pSliceIdc[]"); // using int32_t for slice_idc, 4/21/2010
-    pCtx->sMb.pResidualPredFlag[i] = (int8_t*) pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pResidualPredFlag[i] = (int8_t*) pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                                        int8_t),
                                      "pCtx->sMb.pResidualPredFlag[]");
-    pCtx->sMb.pInterPredictionDoneFlag[i] = (int8_t*) pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight *
+    pCtx->sMb.pInterPredictionDoneFlag[i] = (int8_t*) pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight *
                                             sizeof (
                                                 int8_t), "pCtx->sMb.pInterPredictionDoneFlag[]");
 
-    pCtx->sMb.pMbCorrectlyDecodedFlag[i] = (bool*) pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pMbCorrectlyDecodedFlag[i] = (bool*) pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
         bool),
                                            "pCtx->sMb.pMbCorrectlyDecodedFlag[]");
-    pCtx->sMb.pMbRefConcealedFlag[i] = (bool*) pMa->WelsMallocz (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (
+    pCtx->sMb.pMbRefConcealedFlag[i] = (bool*) pMa->WelsMallocz ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (
                                          bool),
                                        "pCtx->pMbRefConcealedFlag[]");
 
@@ -1620,7 +1620,7 @@ int32_t InitialDqLayersContext (PWelsDecoderContext pCtx, const int32_t kiMaxWid
                            )
                           )
 
-    memset (pCtx->sMb.pSliceIdc[i], 0xff, (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (int32_t)));
+    memset (pCtx->sMb.pSliceIdc[i], 0xff, ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (int32_t)));
 
     ++ i;
   } while (i < LAYER_NUM_EXCHANGEABLE);
@@ -2591,9 +2591,9 @@ int32_t DecodeCurrentAccessUnit (PWelsDecoderContext pCtx, uint8_t** ppDst, SBuf
 
     if (pCtx->iTotalNumMbRec == 0) { //Picture start to decode
       for (int32_t i = 0; i < LAYER_NUM_EXCHANGEABLE; ++ i)
-        memset (pCtx->sMb.pSliceIdc[i], 0xff, (pCtx->sMb.iMbWidth * pCtx->sMb.iMbHeight * sizeof (int32_t)));
-      memset (pCtx->pCurDqLayer->pMbCorrectlyDecodedFlag, 0, pCtx->pSps->iMbWidth * pCtx->pSps->iMbHeight * sizeof (bool));
-      memset (pCtx->pCurDqLayer->pMbRefConcealedFlag, 0, pCtx->pSps->iMbWidth * pCtx->pSps->iMbHeight * sizeof (bool));
+        memset (pCtx->sMb.pSliceIdc[i], 0xff, ((unsigned long)(pCtx->sMb.iMbWidth) * pCtx->sMb.iMbHeight * sizeof (int32_t)));
+      memset (pCtx->pCurDqLayer->pMbCorrectlyDecodedFlag, 0, (unsigned long)(pCtx->pSps->iMbWidth) * pCtx->pSps->iMbHeight * sizeof (bool));
+      memset (pCtx->pCurDqLayer->pMbRefConcealedFlag, 0, (unsigned long)(pCtx->pSps->iMbWidth) * pCtx->pSps->iMbHeight * sizeof (bool));
       memset (pCtx->pDec->pRefPic[LIST_0], 0, sizeof (PPicture) * MAX_DPB_COUNT);
       memset (pCtx->pDec->pRefPic[LIST_1], 0, sizeof (PPicture) * MAX_DPB_COUNT);
       pCtx->pDec->iMbNum = pCtx->pSps->iMbWidth * pCtx->pSps->iMbHeight;

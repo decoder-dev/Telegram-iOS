@@ -172,7 +172,7 @@ static std::string extract_mbs(const std::string& input_path, int sprite_size, i
 
     AVPacket* pkt = av_packet_alloc();
     AVFrame* raw = av_frame_alloc();
-    std::vector<uint8_t> alpha(sprite_size * sprite_size, 255);
+    std::vector<uint8_t> alpha((size_t)(sprite_size) * sprite_size, 255);
     int frame_count = 0;
 
     auto try_receive = [&]() {
@@ -306,8 +306,8 @@ int main(int argc, char* argv[]) {
             int h_px = mux.height_mbs() * 16;
             int cw = w_px / 2, ch = h_px / 2;
             std::vector<uint8_t> dec_y(w_px * h_px, 0);
-            std::vector<uint8_t> dec_cb(cw * ch, 128);
-            std::vector<uint8_t> dec_cr(cw * ch, 128);
+            std::vector<uint8_t> dec_cb((size_t)(cw) * ch, 128);
+            std::vector<uint8_t> dec_cr((size_t)(cw) * ch, 128);
 
             /* Timed resize */
             os_signpost_id_t rid = os_signpost_id_generate(log);

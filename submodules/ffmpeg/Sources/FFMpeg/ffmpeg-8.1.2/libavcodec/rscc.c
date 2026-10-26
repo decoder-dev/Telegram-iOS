@@ -127,7 +127,7 @@ static av_cold int rscc_init(AVCodecContext *avctx)
     }
 
     /* Store the value to check for keyframes */
-    ctx->inflated_size = avctx->width * avctx->height * ctx->component_size;
+    ctx->inflated_size = (uLongf)(avctx->width) * avctx->height * ctx->component_size;
 
     /* Allocate maximum size possible, a full frame */
     ctx->inflated_buf = av_malloc(ctx->inflated_size);

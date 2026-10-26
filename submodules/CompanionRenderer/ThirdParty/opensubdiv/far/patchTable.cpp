@@ -136,7 +136,7 @@ void
 PatchTable::allocateVaryingVertices(
         PatchDescriptor desc, int numPatches) {
     _varyingDesc = desc;
-    _varyingVerts.resize(numPatches*desc.GetNumControlVertices());
+    _varyingVerts.resize((size_t)(numPatches)*desc.GetNumControlVertices());
 }
 
 inline PatchTable::FVarPatchChannel &
@@ -164,7 +164,7 @@ PatchTable::allocateFVarPatchChannelValues(
     c.stride = std::max(regDesc.GetNumControlVertices(),
                         irregDesc.GetNumControlVertices());
 
-    c.patchValues.resize(numPatches * c.stride);
+    c.patchValues.resize((size_t)(numPatches) * c.stride);
     c.patchParam.resize(numPatches);
 }
 void
@@ -495,7 +495,7 @@ PatchTable::getPatchFVarValues(int patch, int channel) const {
     int ncvsThisPatch = c.patchParam[patch].IsRegular()
                       ? c.regDesc.GetNumControlVertices()
                       : c.irregDesc.GetNumControlVertices();
-    return ConstIndexArray(&c.patchValues[patch * c.stride], ncvsThisPatch);
+    return ConstIndexArray(&c.patchValues[(size_t)(patch) * c.stride], ncvsThisPatch);
 }
 ConstIndexArray
 PatchTable::GetPatchFVarValues(PatchHandle const & handle, int channel) const {

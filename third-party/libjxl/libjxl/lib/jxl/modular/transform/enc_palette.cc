@@ -133,7 +133,7 @@ struct PaletteIterationData {
                                                delta_frequency.first[2]};
       float delta_distance =
           sqrt(palette_internal::ColorDistance({0, 0, 0}, current_delta)) + 1;
-      delta_frequency.second *= delta_distance * delta_distance_multiplier;
+      delta_frequency.second *= (double)(delta_distance) * delta_distance_multiplier;
     }
 
     // Sort by weighted frequency.

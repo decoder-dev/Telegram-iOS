@@ -179,7 +179,7 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *p,
     }
 
     if (!(compr & TGA_RLE)) {
-        img_size = w * ((bpp + 1) >> 3);
+        img_size = (size_t)(w) * ((bpp + 1) >> 3);
         if (bytestream2_get_bytes_left(&s->gb) < img_size * h) {
             av_log(avctx, AV_LOG_ERROR,
                     "Not enough data available for image\n");

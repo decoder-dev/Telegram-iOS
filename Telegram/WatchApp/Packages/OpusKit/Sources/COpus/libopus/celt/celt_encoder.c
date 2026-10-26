@@ -138,7 +138,7 @@ OPUS_CUSTOM_NOSTATIC int opus_custom_encoder_get_size(const CELTMode *mode, int 
    int size = sizeof(struct CELTEncoder)
          + (channels*mode->overlap-1)*sizeof(celt_sig)    /* celt_sig in_mem[channels*mode->overlap]; */
          + channels*COMBFILTER_MAXPERIOD*sizeof(celt_sig) /* celt_sig prefilter_mem[channels*COMBFILTER_MAXPERIOD]; */
-         + 4*channels*mode->nbEBands*sizeof(opus_val16);  /* opus_val16 oldBandE[channels*mode->nbEBands]; */
+         + (unsigned long)(4)*channels*mode->nbEBands*sizeof(opus_val16);  /* opus_val16 oldBandE[channels*mode->nbEBands]; */
                                                           /* opus_val16 oldLogE[channels*mode->nbEBands]; */
                                                           /* opus_val16 oldLogE2[channels*mode->nbEBands]; */
                                                           /* opus_val16 energyError[channels*mode->nbEBands]; */

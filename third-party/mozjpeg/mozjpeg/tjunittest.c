@@ -437,7 +437,7 @@ static void _decompTest(tjhandle handle, unsigned char *jpegBuf,
   if (_hdrw != w || _hdrh != h || _hdrsubsamp != subsamp)
     THROW("Incorrect JPEG header");
 
-  dstSize = scaledWidth * scaledHeight * tjPixelSize[pf];
+  dstSize = (unsigned long)(scaledWidth) * scaledHeight * tjPixelSize[pf];
   if ((dstBuf = (unsigned char *)malloc(dstSize)) == NULL)
     THROW("Memory allocation failure");
   memset(dstBuf, 0, dstSize);

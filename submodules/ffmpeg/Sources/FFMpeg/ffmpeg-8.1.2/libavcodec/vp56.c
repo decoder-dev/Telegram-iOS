@@ -573,7 +573,7 @@ static int vp56_size_changed(VP56Context *s)
     s->have_undamaged_frame = 0;
 
     for (i=0; i<4; i++)
-        s->stride[i] = s->flip * s->frames[VP56_FRAME_CURRENT]->linesize[i];
+        s->stride[i] = (ptrdiff_t)(s->flip) * s->frames[VP56_FRAME_CURRENT]->linesize[i];
 
     s->mb_width  = (avctx->coded_width +15) / 16;
     s->mb_height = (avctx->coded_height+15) / 16;
@@ -586,7 +586,7 @@ static int vp56_size_changed(VP56Context *s)
 
     av_reallocp_array(&s->above_blocks, 4*s->mb_width+6,
                       sizeof(*s->above_blocks));
-    av_reallocp_array(&s->macroblocks, s->mb_width*s->mb_height,
+    av_reallocp_array(&s->macroblocks, (size_t)(s->mb_width)*s->mb_height,
                       sizeof(*s->macroblocks));
     av_free(s->edge_emu_buffer_alloc);
     s->edge_emu_buffer_alloc = av_malloc(16*stride*2);

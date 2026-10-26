@@ -170,7 +170,7 @@ void ff_print_debug_info2(AVCodecContext *avctx, AVFrame *pict,
 
         /* size is width * height * 2 * 4 where 2 is for directions and 4 is
          * for the maximum number of MB (4 MB in case of IS_8x8) */
-        AVMotionVector *mvs = av_malloc_array(mb_width * mb_height, 2 * 4 * sizeof(AVMotionVector));
+        AVMotionVector *mvs = av_malloc_array((size_t)(mb_width) * mb_height, 2 * 4 * sizeof(AVMotionVector));
         if (!mvs)
             return;
 

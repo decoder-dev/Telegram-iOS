@@ -335,7 +335,7 @@ static av_cold int dnxhd_init_qmat(DNXHDEncContext *ctx, int lbias, int cbias)
 
 static av_cold int dnxhd_init_rc(DNXHDEncContext *ctx)
 {
-    if (!FF_ALLOCZ_TYPED_ARRAY(ctx->mb_rc, (ctx->m.c.avctx->qmax + 1) * ctx->m.c.mb_num))
+    if (!FF_ALLOCZ_TYPED_ARRAY(ctx->mb_rc, (size_t)((ctx->m.c.avctx->qmax + 1)) * ctx->m.c.mb_num))
         return AVERROR(ENOMEM);
 
     if (ctx->m.c.avctx->mb_decision != FF_MB_DECISION_RD) {

@@ -296,7 +296,7 @@ static int decode_move(AVCodecContext *avctx,
                 b2 -= s->frame2->linesize[0];
             }
         } else if (type == 0) {
-            av_fast_padded_malloc(&s->mv_scratch, &s->mv_scratch_size, w * h * s->bpp);
+            av_fast_padded_malloc(&s->mv_scratch, &s->mv_scratch_size, (size_t)(w) * h * s->bpp);
             uint8_t *buffer = s->mv_scratch;
             if (!buffer)
                 return AVERROR(ENOMEM);

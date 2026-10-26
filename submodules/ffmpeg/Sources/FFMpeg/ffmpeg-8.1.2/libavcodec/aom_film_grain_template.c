@@ -501,7 +501,7 @@ FUNC(apply_grain_row)(AVFrame *out, const AVFrame *in,
 
     if (data->num_y_points) {
         const int bh = FFMIN(out->height - row * FG_BLOCK_SIZE, FG_BLOCK_SIZE);
-        const ptrdiff_t off = row * FG_BLOCK_SIZE * out->linesize[0];
+        const ptrdiff_t off = (ptrdiff_t)(row) * FG_BLOCK_SIZE * out->linesize[0];
         FUNC(fgy_32x32xn_c)((pixel *) ((char *) out->data[0] + off), luma_src,
                             out->linesize[0], params, out->width, scaling[0],
                             grain_lut[0], bh, row HBD_CALL);

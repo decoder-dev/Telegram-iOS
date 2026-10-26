@@ -135,7 +135,7 @@ int opus_projection_decoder_init(OpusProjectionDecoder *st, opus_int32 Fs,
 
   /* Verify supplied matrix size. */
   nb_input_streams = streams + coupled_streams;
-  expected_matrix_size = nb_input_streams * channels * sizeof(opus_int16);
+  expected_matrix_size = (unsigned long)(nb_input_streams) * channels * sizeof(opus_int16);
   if (expected_matrix_size != demixing_matrix_size)
   {
     RESTORE_STACK;

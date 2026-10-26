@@ -182,7 +182,7 @@ static av_cold int dovi_configure_ext(DOVIContext *s, enum AVCodecID codec_id,
         }
     }
 
-    pps = width * height;
+    pps = (uint64_t)(width) * height;
     if (framerate.num) {
         pps = pps * framerate.num / framerate.den;
     } else {

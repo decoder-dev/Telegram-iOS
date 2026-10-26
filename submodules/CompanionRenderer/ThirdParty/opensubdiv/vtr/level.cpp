@@ -1480,7 +1480,7 @@ namespace {
             _countsAndOffsets[2*i]   = 0;
             _countsAndOffsets[2*i+1] = i * _memberCountPerComp;
         }
-        _regIndices.resize(_compCount * _memberCountPerComp);
+        _regIndices.resize((size_t)(_compCount) * _memberCountPerComp);
     }
 
     inline IndexArray
@@ -1523,7 +1523,7 @@ namespace {
         _countsAndOffsets.push_back(_compCount * _memberCountPerComp);
 
         ++ _compCount;
-        _regIndices.resize(_compCount * _memberCountPerComp);
+        _regIndices.resize((size_t)(_compCount) * _memberCountPerComp);
     }
     int
     DynamicRelation::compressMemberIndices() {
@@ -1572,7 +1572,7 @@ namespace {
                 Index *srcMembers = 0;
                 
                 if (count <= _memberCountPerComp) {
-                     srcMembers = &_regIndices[i * _memberCountPerComp];
+                     srcMembers = &_regIndices[(size_t)(i) * _memberCountPerComp];
                 } else {
                      srcMembers = &_irregIndices[i][0];
                      memberMax = std::max(memberMax, count);

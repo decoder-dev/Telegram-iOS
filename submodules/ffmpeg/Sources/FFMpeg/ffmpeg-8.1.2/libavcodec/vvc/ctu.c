@@ -394,7 +394,7 @@ static int hls_transform_unit(VVCLocalContext *lc, int x0, int y0,int tu_width, 
                 return ret;
             set_tb_tab(fc->tab.tu_coded_flag[tb->c_idx], tu->coded_flag[tb->c_idx], fc, tb);
         } else if (cu->act_enabled_flag) {
-            memset(tb->coeffs, 0, tb->tb_width * tb->tb_height * sizeof(*tb->coeffs));
+            memset(tb->coeffs, 0, (unsigned long)(tb->tb_width) * tb->tb_height * sizeof(*tb->coeffs));
         }
         if (tb->c_idx != CR)
             set_tb_size(fc, tb);
