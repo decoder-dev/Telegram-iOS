@@ -43,6 +43,10 @@ on:
       - 'submodules/ItemListUI/Sources/Items/ItemListMultilineInputItem.swift'
       - 'Tests/NetworkPolicies/**'
       - 'Tests/NetworkRecovery/**'
+      - 'Tests/ForkRefinements/**'
+      - 'submodules/TelegramUI/Sources/ForkTrackingURL.swift'
+      - 'submodules/TelegramUI/Sources/ForkTrackingLinks.swift'
+      - 'submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift'
       - '.github/workflows/client-regression.yml'
 permissions:
   contents: read
@@ -69,6 +73,8 @@ jobs:
           python3 Tests/Upstream13/proxy_switching.py
           python3 Tests/Upstream13/web_codecs.py
           python3 Tests/Upstream13/siri_objc_names.py
+      - name: Safe tracking-link cleanup
+        run: python3 Tests/ForkRefinements/run.py
       - run: swift test --package-path submodules/TelegramVLESS
         if: ${{ !cancelled() }}
       - run: python3 Tests/ManagedProxy/run.py

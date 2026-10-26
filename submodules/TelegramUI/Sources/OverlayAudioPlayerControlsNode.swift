@@ -1094,7 +1094,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         let previousRate = self.currentRate
         let previousValue = self.currentRate?.doubleValue ?? 1.0
         let sliderValuePromise = ValuePromise<Double?>(nil)
-        let sliderItem: ContextMenuItem = .custom(SliderContextItem(minValue: 0.2, maxValue: 2.5, value: previousValue, valueChanged: { [weak self] newValue, finished in
+        let sliderItem: ContextMenuItem = .custom(SliderContextItem(minValue: 0.2, maxValue: 4.0, value: previousValue, valueChanged: { [weak self] newValue, finished in
             let newValue = normalizeValue(newValue)
             self?.control?(.setBaseRate(AudioPlaybackRate(newValue)))
             sliderValuePromise.set(newValue)

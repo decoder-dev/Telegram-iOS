@@ -1909,6 +1909,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
     case .privacy:
         entries = [
             .appearanceToggle(1530, russian ? "Отправлять статистику в Telegram" : "Send statistics to Telegram", settings.sendTelegramStatistics, \.sendTelegramStatistics),
+            .appearanceToggle(2030, russian ? "Убирать отслеживание из ссылок" : "Remove tracking from sent links", settings.stripTrackingParameters, \.stripTrackingParameters),
+            .designFooter(2031, russian ? "Очищать ссылки в текстовых сообщениях. Код и подписанные ссылки сохраняются без изменений." : "Clean links in text messages. Code and signed links remain unchanged."),
             .streamerMode(settings.streamerMode),
             .streamerModeFooter,
             .instantPasscode(settings.instantPasscodeLock),
