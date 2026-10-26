@@ -22,6 +22,17 @@ func storeFeedMessages(transaction: Transaction, accountPeerId: PeerId, messages
         }
         if transaction.getMessage(id) != nil {
             transaction.updateMessage(id, update: { previousMessage in
+                // A feed refresh can contain an edit without an EditMessage update. Keep its prior text too.
+                if previousMessage.text != storeMessage.text {
+                    let previousText = previousMessage.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let nextText = storeMessage.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !previousText.isEmpty, previousText != nextText {
+                        MessageSavingBridge.snapshotMessage(message: previousMessage, accountPeerId: accountPeerId, kind: .edited)
+                    }
+                } else if let previousRichText = previousMessage.richText,
+                          previousRichText.instantPage.fullPlainText != (storeMessage.attributes.first(where: { $0 is RichTextMessageAttribute }) as? RichTextMessageAttribute)?.instantPage.fullPlainText {
+                    MessageSavingBridge.snapshotMessage(message: previousMessage, accountPeerId: accountPeerId, kind: .edited)
+                }
                 return .update(mergedServerMessageUpdate(previous: previousMessage, updated: storeMessage))
             })
         } else {

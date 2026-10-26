@@ -328,6 +328,12 @@ private final class AddedFeedContextImpl {
         let applyLocally = account.postbox.transaction { transaction -> Void in
             applyFeedReadState(transaction: transaction, filterId: filterId, maxPosition: position)
         }
+        // The feed endpoint also marks its channels read: Ghost receipts must stay local.
+        if ForkGhostModeSettings.shouldSuppressMessageReads {
+            self.readRequestDisposables.add(applyLocally.start())
+            self.persist()
+            return
+        }
 #if TELEGRAM_NEWS_FEED_API
         self.readRequestDisposables.add((applyLocally
         |> mapToSignal { _ -> Signal<Api.Updates?, NoError> in

@@ -43,6 +43,8 @@ on:
       - 'submodules/ItemListUI/Sources/Items/ItemListMultilineInputItem.swift'
       - 'Tests/NetworkPolicies/**'
       - 'Tests/NetworkRecovery/**'
+      - 'submodules/TelegramCore/Sources/TelegramEngine/Feed/**'
+      - 'submodules/TelegramCore/Sources/PendingMessages/EnqueueMessage.swift'
       - 'Tests/ForkRefinements/**'
       - 'submodules/TelegramUI/Sources/ForkTrackingURL.swift'
       - 'submodules/TelegramUI/Sources/ForkTrackingLinks.swift'
