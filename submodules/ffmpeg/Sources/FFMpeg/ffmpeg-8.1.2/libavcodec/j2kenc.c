@@ -641,7 +641,7 @@ static void encode_cblk(Jpeg2000EncoderContext *s, Jpeg2000T1Context *t1, Jpeg20
     int pass_t = 2, passno, x, y, max=0, nmsedec, bpno;
     int64_t wmsedec = 0;
 
-    memset(t1->flags, 0, t1->stride * (height + 2) * sizeof(*t1->flags));
+    memset(t1->flags, 0, (unsigned long)(t1->stride) * (height + 2) * sizeof(*t1->flags));
 
     for (y = 0; y < height; y++){
         for (x = 0; x < width; x++){

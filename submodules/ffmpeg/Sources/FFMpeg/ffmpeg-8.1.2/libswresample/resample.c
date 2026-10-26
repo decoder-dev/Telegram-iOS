@@ -242,7 +242,7 @@ static ResampleContext *resample_init(ResampleContext *c, int out_rate, int in_r
         c->factor        = factor;
         c->filter_length = filter_length;
         c->filter_alloc  = FFALIGN(c->filter_length, 8);
-        c->filter_bank   = av_calloc(c->filter_alloc, (phase_count+1)*c->felem_size);
+        c->filter_bank   = av_calloc(c->filter_alloc, (size_t)((phase_count+1))*c->felem_size);
         c->filter_type   = filter_type;
         c->kaiser_beta   = kaiser_beta;
         c->phase_count_compensation = phase_count_compensation;
@@ -289,7 +289,7 @@ static int rebuild_filter_bank_with_compensation(ResampleContext *c)
 
     av_assert0(!c->frac && !c->dst_incr_mod);
 
-    new_filter_bank = av_calloc(c->filter_alloc, (phase_count + 1) * c->felem_size);
+    new_filter_bank = av_calloc(c->filter_alloc, (size_t)((phase_count + 1)) * c->felem_size);
     if (!new_filter_bank)
         return AVERROR(ENOMEM);
 

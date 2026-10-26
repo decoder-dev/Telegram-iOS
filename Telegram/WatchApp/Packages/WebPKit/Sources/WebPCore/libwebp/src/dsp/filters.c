@@ -49,7 +49,7 @@ static WEBP_INLINE void DoHorizontalFilter_C(const uint8_t* in,
                                              int row, int num_rows,
                                              int inverse, uint8_t* out) {
   const uint8_t* preds;
-  const size_t start_offset = row * stride;
+  const size_t start_offset = (size_t)(row) * stride;
   const int last_row = row + num_rows;
   DCHECK(in, out);
   in += start_offset;
@@ -86,7 +86,7 @@ static WEBP_INLINE void DoVerticalFilter_C(const uint8_t* in,
                                            int row, int num_rows,
                                            int inverse, uint8_t* out) {
   const uint8_t* preds;
-  const size_t start_offset = row * stride;
+  const size_t start_offset = (size_t)(row) * stride;
   const int last_row = row + num_rows;
   DCHECK(in, out);
   in += start_offset;
@@ -131,7 +131,7 @@ static WEBP_INLINE void DoGradientFilter_C(const uint8_t* in,
                                            int row, int num_rows,
                                            int inverse, uint8_t* out) {
   const uint8_t* preds;
-  const size_t start_offset = row * stride;
+  const size_t start_offset = (size_t)(row) * stride;
   const int last_row = row + num_rows;
   DCHECK(in, out);
   in += start_offset;

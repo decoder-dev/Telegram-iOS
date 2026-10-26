@@ -567,12 +567,12 @@ static int mpeg4_decode_sprite_trajectory(Mpeg4DecContext *ctx, GetBitContext *g
         sprite_offset[1][0]    = (((int64_t)-r * sprite_ref[0][0] + virtual_ref[0][0]) *
                                   ((int64_t)-2 *    vop_ref[0][0] + 1) +
                                   ((int64_t) r * sprite_ref[0][1] - virtual_ref[0][1]) *
-                                  ((int64_t)-2 *    vop_ref[0][1] + 1) + 2 * w2 * r *
+                                  ((int64_t)-2 *    vop_ref[0][1] + 1) + (long)(2) * w2 * r *
                                    (int64_t)     sprite_ref[0][0] - 16 * w2 + (1 << (alpha + rho + 1)));
         sprite_offset[1][1]    = (((int64_t)-r * sprite_ref[0][1] + virtual_ref[0][1]) *
                                   ((int64_t)-2 *    vop_ref[0][0] + 1) +
                                   ((int64_t)-r * sprite_ref[0][0] + virtual_ref[0][0]) *
-                                  ((int64_t)-2 *    vop_ref[0][1] + 1) + 2 * w2 * r *
+                                  ((int64_t)-2 *    vop_ref[0][1] + 1) + (long)(2) * w2 * r *
                                   (int64_t)      sprite_ref[0][1] - 16 * w2 + (1 << (alpha + rho + 1)));
         sprite_delta[0][0] = (-r * sprite_ref[0][0] + virtual_ref[0][0]);
         sprite_delta[0][1] = (+r * sprite_ref[0][1] - virtual_ref[0][1]);
@@ -596,11 +596,11 @@ static int mpeg4_decode_sprite_trajectory(Mpeg4DecContext *ctx, GetBitContext *g
                                  ((int64_t)1 << (alpha + beta + rho - min_ab - 1));
         sprite_offset[1][0]    = ((int64_t)-r * sprite_ref[0][0] + virtual_ref[0][0]) * h3 * (-2 * vop_ref[0][0] + 1) +
                                  ((int64_t)-r * sprite_ref[0][0] + virtual_ref[1][0]) * w3 * (-2 * vop_ref[0][1] + 1) +
-                                  (int64_t)2 * w2 * h3 * r * sprite_ref[0][0] - 16 * w2 * h3 +
+                                  (int64_t)2 * w2 * h3 * r * sprite_ref[0][0] - (long)(16) * w2 * h3 +
                                  ((int64_t)1 << (alpha + beta + rho - min_ab + 1));
         sprite_offset[1][1]    = ((int64_t)-r * sprite_ref[0][1] + virtual_ref[0][1]) * h3 * (-2 * vop_ref[0][0] + 1) +
                                  ((int64_t)-r * sprite_ref[0][1] + virtual_ref[1][1]) * w3 * (-2 * vop_ref[0][1] + 1) +
-                                  (int64_t)2 * w2 * h3 * r * sprite_ref[0][1] - 16 * w2 * h3 +
+                                  (int64_t)2 * w2 * h3 * r * sprite_ref[0][1] - (long)(16) * w2 * h3 +
                                  ((int64_t)1 << (alpha + beta + rho - min_ab + 1));
         sprite_delta[0][0] = (-r * (int64_t)sprite_ref[0][0] + virtual_ref[0][0]) * h3;
         sprite_delta[0][1] = (-r * (int64_t)sprite_ref[0][0] + virtual_ref[1][0]) * w3;

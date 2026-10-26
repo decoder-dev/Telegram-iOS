@@ -47,7 +47,7 @@ opus_int32 mapping_matrix_get_size(int rows, int cols)
    */
   if (rows > 255 || cols > 255)
       return 0;
-  size = rows * (opus_int32)cols * sizeof(opus_int16);
+  size = (unsigned long)(rows) * (opus_int32)cols * sizeof(opus_int16);
   if (size > 65004)
     return 0;
 

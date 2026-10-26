@@ -868,13 +868,13 @@ static void generate_noise(G723_1_ChannelContext *p)
         if (shift < 0) {
            for (j = 0; j < SUBFRAME_LEN * 2; j++) {
                t      = vector_ptr[j] * (1 << -shift);
-               sum   += t * t;
+               sum   += (long)(t) * t;
                tmp[j] = t;
            }
         } else {
            for (j = 0; j < SUBFRAME_LEN * 2; j++) {
                t      = vector_ptr[j] >> shift;
-               sum   += t * t;
+               sum   += (long)(t) * t;
                tmp[j] = t;
            }
         }

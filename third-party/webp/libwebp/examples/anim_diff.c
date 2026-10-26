@@ -35,7 +35,7 @@ static int AdditionWillOverflow(int a, int b) {
 static int FramesAreEqual(const uint8_t* const rgba1,
                           const uint8_t* const rgba2, int width, int height) {
   const int stride = width * 4;  // Always true for 'DecodedFrame.rgba'.
-  return !memcmp(rgba1, rgba2, stride * height);
+  return !memcmp(rgba1, rgba2, (size_t)(stride) * height);
 }
 
 static WEBP_INLINE int PixelsAreSimilar(uint32_t src, uint32_t dst,

@@ -439,12 +439,12 @@ static void init_sizes(SANMVideoContext *ctx, int width, int height)
 {
     ctx->width   = width;
     ctx->height  = height;
-    ctx->npixels = width * height;
+    ctx->npixels = (long)(width) * height;
 
     ctx->aligned_width  = FFALIGN(width, 8);
     ctx->aligned_height = FFALIGN(height, 8);
 
-    ctx->buf_size = ctx->aligned_width * ctx->aligned_height * sizeof(ctx->frm0[0]);
+    ctx->buf_size = (unsigned long)(ctx->aligned_width) * ctx->aligned_height * sizeof(ctx->frm0[0]);
     ctx->pitch    = width;
 }
 

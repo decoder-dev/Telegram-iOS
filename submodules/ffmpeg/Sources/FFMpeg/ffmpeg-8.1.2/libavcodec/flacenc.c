@@ -572,10 +572,10 @@ static uint64_t subframe_count_exact(FlacEncodeContext *s, FlacSubframe *sub,
     if (sub->type == FLAC_SUBFRAME_CONSTANT) {
         count += sub->obits;
     } else if (sub->type == FLAC_SUBFRAME_VERBATIM) {
-        count += s->frame.blocksize * sub->obits;
+        count += (unsigned long)(s->frame.blocksize) * sub->obits;
     } else {
         /* warm-up samples */
-        count += pred_order * sub->obits;
+        count += (unsigned long)(pred_order) * sub->obits;
 
         /* LPC coefficients */
         if (sub->type == FLAC_SUBFRAME_LPC)

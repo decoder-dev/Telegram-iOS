@@ -318,7 +318,7 @@ static int get_siz(Jpeg2000DecoderContext *s)
         return AVERROR(EINVAL);
     }
 
-    s->tile = av_calloc(s->numXtiles * s->numYtiles, sizeof(*s->tile));
+    s->tile = av_calloc((size_t)(s->numXtiles) * s->numYtiles, sizeof(*s->tile));
     if (!s->tile) {
         s->numXtiles = s->numYtiles = 0;
         return AVERROR(ENOMEM);
@@ -2030,13 +2030,13 @@ static int decode_cblk(const Jpeg2000DecoderContext *s, Jpeg2000CodingStyle *cod
     av_assert0(width <= 1024U && height <= 1024U);
     av_assert0(width*height <= 4096);
 
-    memset(t1->data, 0, t1->stride * height * sizeof(*t1->data));
+    memset(t1->data, 0, (unsigned long)(t1->stride) * height * sizeof(*t1->data));
 
     /* If code-block contains no compressed data: nothing to do. */
     if (!cblk->length)
         return 0;
 
-    memset(t1->flags, 0, t1->stride * (height + 2) * sizeof(*t1->flags));
+    memset(t1->flags, 0, (unsigned long)(t1->stride) * (height + 2) * sizeof(*t1->flags));
 
     cblk->data[cblk->length] = 0xff;
     cblk->data[cblk->length+1] = 0xff;

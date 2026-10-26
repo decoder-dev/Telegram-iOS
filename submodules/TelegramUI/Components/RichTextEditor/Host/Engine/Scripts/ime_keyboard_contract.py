@@ -231,7 +231,7 @@ def parse_defaults_array(output):
     if len(lines) < 2 or lines[0].strip() != "(" or lines[-1].strip() != ")":
         raise ContractError("defaults output is not an array")
     result = []
-    item_pattern = re.compile(r'^\s*"((?:\\.|[^"])*)",?\s*$')
+    item_pattern = re.compile(r'^\s*"((?:\\.|[^"\\])*)",?\s*$')
     for line in lines[1:-1]:
         match = item_pattern.match(line)
         if match is None:

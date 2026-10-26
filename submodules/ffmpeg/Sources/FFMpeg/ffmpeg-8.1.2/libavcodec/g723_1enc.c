@@ -613,7 +613,7 @@ static void harmonic_filter(HFParam *hf, const int16_t *src, int16_t *dest)
     int i;
 
     for (i = 0; i < SUBFRAME_LEN; i++) {
-        int64_t temp = hf->gain * src[i - hf->index] * 2;
+        int64_t temp = (int64_t)(hf->gain) * src[i - hf->index] * 2;
         dest[i] = av_clipl_int32(src[i] * (1 << 16) - temp + (1 << 15)) >> 16;
     }
 }
@@ -622,7 +622,7 @@ static void harmonic_noise_sub(HFParam *hf, const int16_t *src, int16_t *dest)
 {
     int i;
     for (i = 0; i < SUBFRAME_LEN; i++) {
-        int64_t temp = hf->gain * src[i - hf->index] * 2;
+        int64_t temp = (int64_t)(hf->gain) * src[i - hf->index] * 2;
         dest[i] = av_clipl_int32((dest[i] - src[i]) * (1 << 16) + temp +
                                  (1 << 15)) >> 16;
     }
@@ -769,7 +769,7 @@ static void acb_search(G723_1_ChannelContext *p, int16_t *residual,
         for (j = 0, k = 0; j < tbl_size; j++, k += 20) {
             temp = 0;
             for (l = 0; l < 20; l++)
-                temp += ccr_buf[20 * i + l] * cb_tbl[k + l];
+                temp += (long)(ccr_buf[20 * i + l]) * cb_tbl[k + l];
             temp = av_clipl_int32(temp);
 
             if (temp > max) {

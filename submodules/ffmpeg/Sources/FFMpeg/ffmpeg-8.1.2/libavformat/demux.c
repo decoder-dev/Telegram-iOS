@@ -1333,7 +1333,7 @@ fail:
 
 static int64_t ts_to_samples(AVStream *st, int64_t ts)
 {
-    return av_rescale(ts, st->time_base.num * st->codecpar->sample_rate, st->time_base.den);
+    return av_rescale(ts, (int64_t)(st->time_base.num) * st->codecpar->sample_rate, st->time_base.den);
 }
 
 static int codec_close(FFStream *sti)

@@ -112,7 +112,7 @@ void silk_CNG(
             }
         }
         /* Update CNG excitation buffer with excitation from this subframe */
-        silk_memmove( &psCNG->CNG_exc_buf_Q14[ psDec->subfr_length ], psCNG->CNG_exc_buf_Q14, ( psDec->nb_subfr - 1 ) * psDec->subfr_length * sizeof( opus_int32 ) );
+        silk_memmove( &psCNG->CNG_exc_buf_Q14[ psDec->subfr_length ], psCNG->CNG_exc_buf_Q14, (unsigned long)(( psDec->nb_subfr - 1 )) * psDec->subfr_length * sizeof( opus_int32 ) );
         silk_memcpy(   psCNG->CNG_exc_buf_Q14, &psDec->exc_Q14[ subfr * psDec->subfr_length ], psDec->subfr_length * sizeof( opus_int32 ) );
 
         /* Smooth gains */

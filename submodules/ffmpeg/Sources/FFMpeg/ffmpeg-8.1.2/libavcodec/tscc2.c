@@ -342,7 +342,7 @@ static av_cold int tscc2_decode_init(AVCodecContext *avctx)
 
     c->mb_width     = FFALIGN(avctx->width,  16) >> 4;
     c->mb_height    = FFALIGN(avctx->height,  8) >> 3;
-    c->slice_quants = av_malloc(c->mb_width * c->mb_height);
+    c->slice_quants = av_malloc((size_t)(c->mb_width) * c->mb_height);
     if (!c->slice_quants) {
         av_log(avctx, AV_LOG_ERROR, "Cannot allocate slice information\n");
         return AVERROR(ENOMEM);

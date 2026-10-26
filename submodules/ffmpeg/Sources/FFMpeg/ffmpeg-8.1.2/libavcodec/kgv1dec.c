@@ -74,8 +74,8 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *frame,
     }
 
     if (!c->frame_buffer) {
-        c->frame_buffer      = av_mallocz(avctx->width * avctx->height * 2);
-        c->last_frame_buffer = av_mallocz(avctx->width * avctx->height * 2);
+        c->frame_buffer      = av_mallocz((size_t)(avctx->width) * avctx->height * 2);
+        c->last_frame_buffer = av_mallocz((size_t)(avctx->width) * avctx->height * 2);
         if (!c->frame_buffer || !c->last_frame_buffer) {
             decode_flush(avctx);
             return AVERROR(ENOMEM);

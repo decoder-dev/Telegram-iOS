@@ -131,9 +131,9 @@ static inline void put_blocks(HQXContext *ctx, int plane,
     uint8_t *p = ctx->pic->data[plane] + x * 2;
 
     ctx->hqxdsp.idct_put((uint16_t *)(p + y * lsize),
-                         lsize * fields, block0, quant);
+                         (ptrdiff_t)(lsize) * fields, block0, quant);
     ctx->hqxdsp.idct_put((uint16_t *)(p + (y + (ilace ? 1 : 8)) * lsize),
-                         lsize * fields, block1, quant);
+                         (ptrdiff_t)(lsize) * fields, block1, quant);
 }
 
 static inline void hqx_get_ac(GetBitContext *gb, const HQXAC *ac,

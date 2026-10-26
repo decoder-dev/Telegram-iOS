@@ -184,7 +184,7 @@ static int TestPlaneFilter_16(int src_width,
   }
 
   int i;
-  int64_t src_y_plane_size = (Abs(src_width)) * (Abs(src_height));
+  int64_t src_y_plane_size = (int64_t)((Abs(src_width))) * (Abs(src_height));
   int src_stride_y = Abs(src_width);
   int dst_y_plane_size = dst_width * dst_height;
   int dst_stride_y = dst_width;

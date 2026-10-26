@@ -299,7 +299,7 @@ av_cold int ff_mpv_init_context_frame(MpegEncContext *s)
         // When encoding, each slice (and therefore each thread)
         // gets its own ac_val and dc_val buffers in order to avoid
         // races.
-        size_t allslice_yc_size = yc_size * (s->encoding ? nb_slices : 1);
+        size_t allslice_yc_size = (size_t)(yc_size) * (s->encoding ? nb_slices : 1);
         if (s->out_format == FMT_H263) {
             /* ac values */
             if (!FF_ALLOCZ_TYPED_ARRAY(s->ac_val_base, allslice_yc_size))
@@ -315,7 +315,7 @@ av_cold int ff_mpv_init_context_frame(MpegEncContext *s)
         // y_size and therefore yc_size is always odd; allocate one element
         // more for each encoder slice in order to be able to align each slice's
         // dc_val to four in order to use aligned stores when cleaning dc_val.
-        allslice_yc_size += s->encoding * nb_slices;
+        allslice_yc_size += (unsigned long)(s->encoding) * nb_slices;
         if (!FF_ALLOC_TYPED_ARRAY(s->dc_val_base, allslice_yc_size))
             return AVERROR(ENOMEM);
         s->dc_val = s->dc_val_base + s->b8_stride + 1;

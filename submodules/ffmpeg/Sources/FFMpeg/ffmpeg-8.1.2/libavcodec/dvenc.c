@@ -548,7 +548,7 @@ static av_always_inline int dv_init_enc_block(EncBlockInfo* bi, const uint8_t *d
 
     if (data) {
         if (DV_PROFILE_IS_HD(s->sys)) {
-            s->get_pixels(blk, data, linesize * (1 << bi->dct_mode));
+            s->get_pixels(blk, data, (ptrdiff_t)(linesize) * (1 << bi->dct_mode));
             s->fdct[0](blk);
         } else {
             bi->dct_mode = dv_guess_dct_mode(s, data, linesize);
@@ -911,7 +911,7 @@ static int dv_encode_video_segment(AVCodecContext *avctx, void *arg)
         if ((s->sys->pix_fmt == AV_PIX_FMT_YUV420P)                      ||
             (s->sys->pix_fmt == AV_PIX_FMT_YUV411P && mb_x >= (704 / 8)) ||
             (s->sys->height >= 720 && mb_y != 134)) {
-            y_stride = s->frame->linesize[0] * (1 << (3*!enc_blk->dct_mode));
+            y_stride = (ptrdiff_t)(s->frame->linesize[0]) * (1 << (3*!enc_blk->dct_mode));
         } else {
             y_stride = 16;
         }

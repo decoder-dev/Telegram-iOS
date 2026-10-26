@@ -464,7 +464,7 @@ void GenerateCoeffs(const CompressParams& jparams, TestImage* img) {
   for (size_t c = 0; c < img->components; ++c) {
     int xsize_blocks = jparams.comp_width(*img, c) / DCTSIZE;
     int ysize_blocks = jparams.comp_height(*img, c) / DCTSIZE;
-    std::vector<JCOEF> plane(ysize_blocks * xsize_blocks * DCTSIZE2);
+    std::vector<JCOEF> plane((size_t)(ysize_blocks) * xsize_blocks * DCTSIZE2);
     for (int by = 0; by < ysize_blocks; ++by) {
       for (int bx = 0; bx < xsize_blocks; ++bx) {
         JCOEF* block = &plane[(by * xsize_blocks + bx) * DCTSIZE2];
@@ -644,7 +644,7 @@ void EncodeWithJpegli(const TestImage& input, const CompressParams& jparams,
       }
     }
   } else {
-    size_t stride = cinfo->image_width * cinfo->input_components *
+    size_t stride = (size_t)(cinfo->image_width) * cinfo->input_components *
                     jpegli_bytes_per_sample(input.data_type);
     std::vector<uint8_t> row_bytes(stride);
     for (size_t y = 0; y < cinfo->image_height; ++y) {

@@ -96,7 +96,7 @@ static void emulated_half(const VVCLocalContext *lc, uint8_t *dst, const ptrdiff
     const VVCFrameContext *fc = lc->fc;
     int pic_width, pic_height;
 
-    src += y_off * src_stride + x_off * (1 << ps);
+    src += y_off * src_stride + (long)(x_off) * (1 << ps);
 
     clip_to_subpic(&x_off, &y_off, &pic_width, &pic_height, subpic, half_sb, dmvr_clip);
 

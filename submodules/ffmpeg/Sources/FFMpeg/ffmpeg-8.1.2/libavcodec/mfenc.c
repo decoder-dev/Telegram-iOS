@@ -313,7 +313,7 @@ static int mf_a_avframe_to_sample(AVCodecContext *avctx, const AVFrame *frame, I
     size_t bps;
     IMFSample *sample;
 
-    bps = av_get_bytes_per_sample(avctx->sample_fmt) * avctx->ch_layout.nb_channels;
+    bps = (size_t)(av_get_bytes_per_sample(avctx->sample_fmt)) * avctx->ch_layout.nb_channels;
     len = frame->nb_samples * bps;
 
     sample = ff_create_memory_sample(&c->functions, frame->data[0], len,

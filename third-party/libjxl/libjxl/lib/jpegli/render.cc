@@ -647,7 +647,7 @@ void ProcessRawOutput(j_decompress_ptr cinfo, JSAMPIMAGE data) {
     size_t comp_width = compinfo.width_in_blocks * DCTSIZE;
     size_t comp_height = compinfo.height_in_blocks * DCTSIZE;
     size_t comp_nrows = compinfo.v_samp_factor * DCTSIZE;
-    size_t y0 = cinfo->output_iMCU_row * compinfo.v_samp_factor * DCTSIZE;
+    size_t y0 = (size_t)(cinfo->output_iMCU_row) * compinfo.v_samp_factor * DCTSIZE;
     size_t y1 = std::min(y0 + comp_nrows, comp_height);
     for (size_t y = y0; y < y1; ++y) {
       float* rows[1] = {m->raw_output_[c].Row(y)};
@@ -670,8 +670,8 @@ void ProcessOutput(j_decompress_ptr cinfo, size_t* num_output_rows,
   const int hfactor = cinfo->max_h_samp_factor;
   const size_t context = m->need_context_rows_ ? 1 : 0;
   const size_t imcu_row = cinfo->output_iMCU_row;
-  const size_t imcu_height = vfactor * m->min_scaled_dct_size;
-  const size_t imcu_width = hfactor * m->min_scaled_dct_size;
+  const size_t imcu_height = (size_t)(vfactor) * m->min_scaled_dct_size;
+  const size_t imcu_width = (size_t)(hfactor) * m->min_scaled_dct_size;
   const size_t output_width = m->iMCU_cols_ * imcu_width;
   if (imcu_row == cinfo->total_iMCU_rows ||
       (imcu_row > context &&

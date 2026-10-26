@@ -77,7 +77,7 @@ static int fits_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
         return AVERROR(EINVAL);
     }
 
-    data_size = (bitpix >> 3) * avctx->height * avctx->width * naxis3;
+    data_size = (uint64_t)((bitpix >> 3)) * avctx->height * avctx->width * naxis3;
     padded_data_size = ((data_size + 2879) / 2880 ) * 2880;
 
     if ((ret = ff_get_encode_buffer(avctx, pkt, padded_data_size, 0)) < 0)

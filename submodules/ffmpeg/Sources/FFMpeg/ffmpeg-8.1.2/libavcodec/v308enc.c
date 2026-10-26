@@ -48,7 +48,7 @@ static int v308_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     const uint8_t *y, *u, *v;
     int i, j, ret;
 
-    ret = ff_get_encode_buffer(avctx, pkt, avctx->width * avctx->height * 3, 0);
+    ret = ff_get_encode_buffer(avctx, pkt, (int64_t)(avctx->width) * avctx->height * 3, 0);
     if (ret < 0)
         return ret;
     dst = pkt->data;

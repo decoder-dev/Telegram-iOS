@@ -198,7 +198,7 @@ static int flic_decode_frame_1BPP(AVCodecContext *avctx,
 
     direction = s->frame->linesize[0] > 0;
     pixels = s->frame->data[0];
-    pixel_limit = s->avctx->height * s->frame->linesize[0];
+    pixel_limit = (ptrdiff_t)(s->avctx->height) * s->frame->linesize[0];
     if (buf_size < 16 || buf_size > INT_MAX - AV_INPUT_BUFFER_PADDING_SIZE)
         return AVERROR_INVALIDDATA;
     frame_size = bytestream2_get_le32(&g2);
@@ -282,7 +282,7 @@ static int flic_decode_frame_1BPP(AVCodecContext *avctx,
             if (starting_line >= s->avctx->height)
                 return AVERROR_INVALIDDATA;
             y_ptr = 0;
-            y_ptr += starting_line * s->frame->linesize[0];
+            y_ptr += (long)(starting_line) * s->frame->linesize[0];
 
             compressed_lines = bytestream2_get_le16(&g2);
             while (compressed_lines > 0) {
@@ -398,7 +398,7 @@ static int flic_decode_frame_8BPP(AVCodecContext *avctx,
 
     direction = s->frame->linesize[0] > 0;
     pixels = s->frame->data[0];
-    pixel_limit = s->avctx->height * s->frame->linesize[0];
+    pixel_limit = (ptrdiff_t)(s->avctx->height) * s->frame->linesize[0];
     if (buf_size < 16 || buf_size > INT_MAX - (3 * 256 + AV_INPUT_BUFFER_PADDING_SIZE))
         return AVERROR_INVALIDDATA;
     frame_size = bytestream2_get_le32(&g2);
@@ -488,7 +488,7 @@ static int flic_decode_frame_8BPP(AVCodecContext *avctx,
                     line_packets = -line_packets;
                     if (line_packets > s->avctx->height)
                         return AVERROR_INVALIDDATA;
-                    y_ptr += line_packets * s->frame->linesize[0];
+                    y_ptr += (long)(line_packets) * s->frame->linesize[0];
                 } else if ((line_packets & 0xC000) == 0x4000) {
                     av_log(avctx, AV_LOG_ERROR, "Undefined opcode (%x) in DELTA_FLI\n", line_packets);
                 } else if ((line_packets & 0xC000) == 0x8000) {
@@ -539,7 +539,7 @@ static int flic_decode_frame_8BPP(AVCodecContext *avctx,
             if (starting_line >= s->avctx->height)
                 return AVERROR_INVALIDDATA;
             y_ptr = 0;
-            y_ptr += starting_line * s->frame->linesize[0];
+            y_ptr += (long)(starting_line) * s->frame->linesize[0];
 
             compressed_lines = bytestream2_get_le16(&g2);
             while (compressed_lines > 0) {
@@ -731,7 +731,7 @@ static int flic_decode_frame_15_16BPP(AVCodecContext *avctx,
 
     direction = s->frame->linesize[0] > 0;
     pixels = s->frame->data[0];
-    pixel_limit = s->avctx->height * s->frame->linesize[0];
+    pixel_limit = (ptrdiff_t)(s->avctx->height) * s->frame->linesize[0];
 
     frame_size = bytestream2_get_le32(&g2);
     bytestream2_skip(&g2, 2);  /* skip the magic number */
@@ -784,7 +784,7 @@ static int flic_decode_frame_15_16BPP(AVCodecContext *avctx,
                     line_packets = -line_packets;
                     if (line_packets > s->avctx->height)
                         return AVERROR_INVALIDDATA;
-                    y_ptr += line_packets * s->frame->linesize[0];
+                    y_ptr += (long)(line_packets) * s->frame->linesize[0];
                 } else {
                     compressed_lines--;
                     pixel_ptr = y_ptr;
@@ -1031,7 +1031,7 @@ static int flic_decode_frame_24BPP(AVCodecContext *avctx,
 
     direction = s->frame->linesize[0] > 0;
     pixels = s->frame->data[0];
-    pixel_limit = s->avctx->height * s->frame->linesize[0];
+    pixel_limit = (ptrdiff_t)(s->avctx->height) * s->frame->linesize[0];
 
     frame_size = bytestream2_get_le32(&g2);
     bytestream2_skip(&g2, 2);  /* skip the magic number */
@@ -1084,7 +1084,7 @@ static int flic_decode_frame_24BPP(AVCodecContext *avctx,
                     line_packets = -line_packets;
                     if (line_packets > s->avctx->height)
                         return AVERROR_INVALIDDATA;
-                    y_ptr += line_packets * s->frame->linesize[0];
+                    y_ptr += (long)(line_packets) * s->frame->linesize[0];
                 } else {
                     compressed_lines--;
                     pixel_ptr = y_ptr;

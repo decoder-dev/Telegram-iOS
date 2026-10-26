@@ -89,7 +89,7 @@ static int output_video_frame(AVFrame *frame)
 
 static int output_audio_frame(AVFrame *frame)
 {
-    size_t unpadded_linesize = frame->nb_samples * av_get_bytes_per_sample(frame->format);
+    size_t unpadded_linesize = (size_t)(frame->nb_samples) * av_get_bytes_per_sample(frame->format);
     printf("audio_frame n:%d nb_samples:%d pts:%s\n",
            audio_frame_count++, frame->nb_samples,
            av_ts2timestr(frame->pts, &audio_dec_ctx->time_base));

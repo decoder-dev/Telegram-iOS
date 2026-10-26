@@ -169,7 +169,7 @@ int ff_snow_alloc_blocks(SnowContext *s){
     s->b_height= h;
 
     av_free(s->block);
-    s->block = av_calloc(w * h,  sizeof(*s->block) << (s->block_max_depth*2));
+    s->block = av_calloc((size_t)(w) * h,  sizeof(*s->block) << (s->block_max_depth*2));
     if (!s->block)
         return AVERROR(ENOMEM);
 

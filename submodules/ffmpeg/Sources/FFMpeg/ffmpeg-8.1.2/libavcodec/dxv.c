@@ -978,8 +978,8 @@ static int dxv_decode(AVCodecContext *avctx, AVFrame *frame,
         return AVERROR_INVALIDDATA;
     }
 
-    ctx->tex_size = avctx->coded_width  / (texdsp_ctx.raw_ratio / (avctx->pix_fmt == AV_PIX_FMT_RGBA ? 4 : 1)) *
-                    avctx->coded_height / TEXTURE_BLOCK_H *
+    ctx->tex_size = (size_t)(avctx->coded_width  / (texdsp_ctx.raw_ratio / (avctx->pix_fmt == AV_PIX_FMT_RGBA ? 4 : 1)) *
+                    avctx->coded_height / TEXTURE_BLOCK_H) *
                     texdsp_ctx.tex_ratio;
     unsigned old_size = ctx->tex_data_size;
     void *ptr = av_fast_realloc(ctx->tex_data, &ctx->tex_data_size, ctx->tex_size + AV_INPUT_BUFFER_PADDING_SIZE);
@@ -993,8 +993,8 @@ static int dxv_decode(AVCodecContext *avctx, AVFrame *frame,
     if (avctx->pix_fmt != AV_PIX_FMT_RGBA) {
         int i;
 
-        ctx->ctex_size = avctx->coded_width  / 2 / ctexdsp_ctx.raw_ratio *
-                         avctx->coded_height / 2 / TEXTURE_BLOCK_H *
+        ctx->ctex_size = (int64_t)(avctx->coded_width  / 2 / ctexdsp_ctx.raw_ratio *
+                         avctx->coded_height / 2 / TEXTURE_BLOCK_H) *
                          ctexdsp_ctx.tex_ratio;
 
         ctx->op_size[0] = avctx->coded_width * avctx->coded_height / 16;

@@ -145,7 +145,7 @@ void ProcessiMCURow(j_compress_ptr cinfo) {
   const float* imcu_start[kMaxComponents];
   for (int c = 0; c < cinfo->num_components; ++c) {
     jpeg_component_info* comp = &cinfo->comp_info[c];
-    imcu_start[c] = m->raw_data[c]->Row(mcu_y * comp->v_samp_factor * DCTSIZE);
+    imcu_start[c] = m->raw_data[c]->Row((ssize_t)(mcu_y) * comp->v_samp_factor * DCTSIZE);
   }
   const float* qf = nullptr;
   if (adaptive_quant) {

@@ -692,7 +692,7 @@ static int get_dc(SnowEncContext *enc, int mb_x, int mb_y, int plane_index)
 
     b->type|= BLOCK_INTRA;
     b->color[plane_index]= 0;
-    memset(dst, 0, obmc_stride*obmc_stride*sizeof(IDWTELEM));
+    memset(dst, 0, (unsigned long)(obmc_stride)*obmc_stride*sizeof(IDWTELEM));
 
     for(i=0; i<4; i++){
         int mb_x2= mb_x + (i &1) - 1;

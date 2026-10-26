@@ -334,12 +334,12 @@ static int sga_decode_frame(AVCodecContext *avctx, AVFrame *frame,
         return ret;
 
     av_fast_padded_malloc(&s->tileindex_data, &s->tileindex_size,
-                          avctx->width * avctx->height);
+                          (size_t)(avctx->width) * avctx->height);
     if (!s->tileindex_data)
         return AVERROR(ENOMEM);
 
     av_fast_padded_malloc(&s->palmapindex_data, &s->palmapindex_size,
-                          s->tiles_w * s->tiles_h);
+                          (size_t)(s->tiles_w) * s->tiles_h);
     if (!s->palmapindex_data)
         return AVERROR(ENOMEM);
 

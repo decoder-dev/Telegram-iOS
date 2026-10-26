@@ -125,8 +125,8 @@ int main(int argc, char *argv[])
       opus_custom_encoder_ctl(enc,OPUS_SET_COMPLEXITY(complexity));
    }
 
-   in = (opus_int16*)malloc(frame_size*channels*sizeof(opus_int16));
-   out = (opus_int16*)malloc(frame_size*channels*sizeof(opus_int16));
+   in = (opus_int16*)malloc((unsigned long)(frame_size)*channels*sizeof(opus_int16));
+   out = (opus_int16*)malloc((unsigned long)(frame_size)*channels*sizeof(opus_int16));
 
    while (!feof(fin))
    {

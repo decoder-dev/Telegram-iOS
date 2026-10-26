@@ -107,7 +107,7 @@ static int vp8_alloc_frame(VP8Context *s, VP8Frame *f, int ref)
                                            ref ? AV_GET_BUFFER_FLAG_REF : 0);
     if (ret < 0)
         return ret;
-    f->seg_map = av_refstruct_allocz(s->mb_width * s->mb_height);
+    f->seg_map = av_refstruct_allocz((size_t)(s->mb_width) * s->mb_height);
     if (!f->seg_map) {
         ret = AVERROR(ENOMEM);
         goto fail;
@@ -227,7 +227,7 @@ int update_dimensions(VP8Context *s, int width, int height, int is_vp7)
                                                sizeof(*s->macroblocks));
         s->intra4x4_pred_mode_top = av_mallocz(s->mb_width * 4);
     } else // Sliced threading
-        s->macroblocks_base = av_mallocz((s->mb_width + 2) * (s->mb_height + 2) *
+        s->macroblocks_base = av_mallocz((unsigned long)((s->mb_width + 2)) * (s->mb_height + 2) *
                                          sizeof(*s->macroblocks));
     s->top_nnz     = av_mallocz(s->mb_width * sizeof(*s->top_nnz));
     s->top_border  = av_mallocz((s->mb_width + 1) * sizeof(*s->top_border));

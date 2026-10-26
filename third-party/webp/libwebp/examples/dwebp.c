@@ -133,10 +133,10 @@ static uint8_t* AllocateExternalBuffer(WebPDecoderConfig* config,
                      format == RGB_565) ? 2
                   : 4;
     uint32_t stride = bpp * w + 7;   // <- just for exercising
-    external_buffer = (uint8_t*)WebPMalloc(stride * h);
+    external_buffer = (uint8_t*)WebPMalloc((size_t)(stride) * h);
     if (external_buffer == NULL) return NULL;
     output_buffer->u.RGBA.stride = stride;
-    output_buffer->u.RGBA.size = stride * h;
+    output_buffer->u.RGBA.size = (size_t)(stride) * h;
     output_buffer->u.RGBA.rgba = external_buffer;
   } else {    // YUV and YUVA
     const int has_alpha = WebPIsAlphaMode(output_buffer->colorspace);
@@ -151,12 +151,12 @@ static uint8_t* AllocateExternalBuffer(WebPDecoderConfig* config,
     tmp = external_buffer;
     output_buffer->u.YUVA.y = tmp;
     output_buffer->u.YUVA.y_stride = stride;
-    output_buffer->u.YUVA.y_size = stride * h;
+    output_buffer->u.YUVA.y_size = (size_t)(stride) * h;
     tmp += output_buffer->u.YUVA.y_size;
     if (has_alpha) {
       output_buffer->u.YUVA.a = tmp;
       output_buffer->u.YUVA.a_stride = stride;
-      output_buffer->u.YUVA.a_size = stride * h;
+      output_buffer->u.YUVA.a_size = (size_t)(stride) * h;
       tmp += output_buffer->u.YUVA.a_size;
     } else {
       output_buffer->u.YUVA.a = NULL;

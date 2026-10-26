@@ -23,7 +23,7 @@ void ReadOutputImage(j_decompress_ptr cinfo, TestImage* output) {
   output->xsize = cinfo->output_width;
   output->components = cinfo->num_components;
   output->AllocatePixels();
-  size_t stride = cinfo->output_width * cinfo->num_components;
+  size_t stride = (size_t)(cinfo->output_width) * cinfo->num_components;
   while (cinfo->output_scanline < cinfo->output_height) {
     JSAMPROW scanline = &output->pixels[cinfo->output_scanline * stride];
     jpegli_read_scanlines(cinfo, &scanline, 1);

@@ -165,7 +165,7 @@ static int SSIMScaleChannel(uint8_t* src1, int stride1,
                             int x_stride, int w, int h, int do_scaling) {
   int x, y;
   int max = 0;
-  uint8_t* const plane1 = (uint8_t*)malloc(2 * w * h * sizeof(*plane1));
+  uint8_t* const plane1 = (uint8_t*)malloc((unsigned long)(2) * w * h * sizeof(*plane1));
   uint8_t* const plane2 = plane1 + w * h;
   if (plane1 == NULL) return -1;
 

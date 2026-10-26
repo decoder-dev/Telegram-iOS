@@ -403,7 +403,7 @@ static int aribcaption_trans_bitmap_subtitle(ARIBCaptionContext *ctx)
 
         rect->w = image->width * ctx->bitmap_plane_width / ctx->frame_width;
         rect->h = image->height * ctx->bitmap_plane_height / ctx->frame_height;
-        rect->data[0] = av_mallocz(rect->w * rect->h);
+        rect->data[0] = av_mallocz((size_t)(rect->w) * rect->h);
         if (!rect->data[0]) {
             ret = AVERROR(ENOMEM);
             goto fail;

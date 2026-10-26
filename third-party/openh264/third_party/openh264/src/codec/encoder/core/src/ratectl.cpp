@@ -220,7 +220,7 @@ void RcUpdateBitrateFps (sWelsEncCtx* pEncCtx) {
   const int32_t kiHighestTid = pDLayerParamInternal->iHighestTemporalId;
   const int32_t input_iBitsPerFrame = WELS_DIV_ROUND (pDLayerParam->iSpatialBitrate,
                                       pDLayerParamInternal->fOutputFrameRate);
-  const int64_t kiGopBits = input_iBitsPerFrame * kiGopSize;
+  const int64_t kiGopBits = (int64_t)(input_iBitsPerFrame) * kiGopSize;
   int32_t i;
 
   pWelsSvcRc->iBitRate   = pDLayerParam->iSpatialBitrate;

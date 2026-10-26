@@ -96,7 +96,7 @@ static int pcm_dvd_parse_header(AVCodecContext *avctx, const uint8_t *header)
     av_channel_layout_uninit(&avctx->ch_layout);
     av_channel_layout_default(&avctx->ch_layout, channels);
     /* calculate the bitrate */
-    avctx->bit_rate = channels *
+    avctx->bit_rate = (int64_t)(channels) *
                       avctx->sample_rate *
                       avctx->bits_per_coded_sample;
 

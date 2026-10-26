@@ -1336,7 +1336,7 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
     if (!s->intra4x4_pred_mode)
         return AVERROR(ENOMEM);
 
-    s->mb2br_xy = av_mallocz(s->mb_stride * (s->mb_height + 1) *
+    s->mb2br_xy = av_mallocz((unsigned long)(s->mb_stride) * (s->mb_height + 1) *
                              sizeof(*s->mb2br_xy));
     if (!s->mb2br_xy)
         return AVERROR(ENOMEM);

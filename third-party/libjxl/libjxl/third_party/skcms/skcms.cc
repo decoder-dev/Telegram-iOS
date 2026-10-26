@@ -668,7 +668,7 @@ static bool init_tables(const uint8_t* table_base, uint64_t max_tables_len, uint
     uint32_t byte_len_all_input_tables  = out->input_channels * byte_len_per_input_table;
     uint32_t byte_len_all_output_tables = out->output_channels * byte_len_per_output_table;
 
-    uint64_t grid_size = out->output_channels * byte_width;
+    uint64_t grid_size = (uint64_t)out->output_channels * byte_width;
     for (uint32_t axis = 0; axis < out->input_channels; ++axis) {
         grid_size *= out->grid_points[axis];
     }

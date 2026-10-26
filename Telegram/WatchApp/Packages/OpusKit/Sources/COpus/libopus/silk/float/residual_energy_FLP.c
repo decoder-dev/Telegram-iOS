@@ -106,12 +106,12 @@ void silk_residual_energy_FLP(
 
     /* Filter input to create the LPC residual for each frame half, and measure subframe energies */
     silk_LPC_analysis_filter_FLP( LPC_res, a[ 0 ], x + 0 * shift, 2 * shift, LPC_order );
-    nrgs[ 0 ] = ( silk_float )( gains[ 0 ] * gains[ 0 ] * silk_energy_FLP( LPC_res_ptr + 0 * shift, subfr_length ) );
-    nrgs[ 1 ] = ( silk_float )( gains[ 1 ] * gains[ 1 ] * silk_energy_FLP( LPC_res_ptr + 1 * shift, subfr_length ) );
+    nrgs[ 0 ] = ( silk_float )( (double)(gains[ 0 ]) * gains[ 0 ] * silk_energy_FLP( LPC_res_ptr + 0 * shift, subfr_length ) );
+    nrgs[ 1 ] = ( silk_float )( (double)(gains[ 1 ]) * gains[ 1 ] * silk_energy_FLP( LPC_res_ptr + 1 * shift, subfr_length ) );
 
     if( nb_subfr == MAX_NB_SUBFR ) {
         silk_LPC_analysis_filter_FLP( LPC_res, a[ 1 ], x + 2 * shift, 2 * shift, LPC_order );
-        nrgs[ 2 ] = ( silk_float )( gains[ 2 ] * gains[ 2 ] * silk_energy_FLP( LPC_res_ptr + 0 * shift, subfr_length ) );
-        nrgs[ 3 ] = ( silk_float )( gains[ 3 ] * gains[ 3 ] * silk_energy_FLP( LPC_res_ptr + 1 * shift, subfr_length ) );
+        nrgs[ 2 ] = ( silk_float )( (double)(gains[ 2 ]) * gains[ 2 ] * silk_energy_FLP( LPC_res_ptr + 0 * shift, subfr_length ) );
+        nrgs[ 3 ] = ( silk_float )( (double)(gains[ 3 ]) * gains[ 3 ] * silk_energy_FLP( LPC_res_ptr + 1 * shift, subfr_length ) );
     }
 }

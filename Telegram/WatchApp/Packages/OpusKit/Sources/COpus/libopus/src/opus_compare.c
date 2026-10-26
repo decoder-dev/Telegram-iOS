@@ -95,7 +95,7 @@ static void band_energy(float *_out,float *_ps,const int *_bands,int _nbands,
   size_t xi;
   int    xj;
   int    ps_sz;
-  window=(float *)opus_malloc((3+_nchannels)*_window_sz*sizeof(*window));
+  window=(float *)opus_malloc((unsigned long)((3+_nchannels))*_window_sz*sizeof(*window));
   c=window+_window_sz;
   s=c+_window_sz;
   x=s+_window_sz;

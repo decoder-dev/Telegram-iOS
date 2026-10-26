@@ -86,7 +86,7 @@ static int vk_prores_start_frame(AVCodecContext          *avctx,
 
     pp->slice_offsets_sz = (pr->slice_count + 1) * sizeof(uint32_t);
     pp->qmat_sz          = sizeof(pr->qmat_luma) + sizeof(pr->qmat_chroma);
-    pp->mb_params_sz     = pr->mb_width * pr->mb_height * sizeof(uint8_t);
+    pp->mb_params_sz     = (unsigned long)(pr->mb_width) * pr->mb_height * sizeof(uint8_t);
 
     pp->slice_offsets_off = 0;
     pp->qmat_off          = FFALIGN(pp->slice_offsets_off + pp->slice_offsets_sz,

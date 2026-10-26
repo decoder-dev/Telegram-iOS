@@ -1014,8 +1014,8 @@ static av_cold int decode_init(AVCodecContext *avctx)
     if (ret < 0)
         return ret;
 
-    f->frame_buffer      = av_mallocz(avctx->width * avctx->height * 2);
-    f->last_frame_buffer = av_mallocz(avctx->width * avctx->height * 2);
+    f->frame_buffer      = av_mallocz((size_t)(avctx->width) * avctx->height * 2);
+    f->last_frame_buffer = av_mallocz((size_t)(avctx->width) * avctx->height * 2);
     if (!f->frame_buffer || !f->last_frame_buffer)
         return AVERROR(ENOMEM);
 

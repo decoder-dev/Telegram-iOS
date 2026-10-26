@@ -234,7 +234,7 @@ static int gif_read_image(GifState *s, AVFrame *frame)
             else
                 s->stored_bg_color = s->bg_color;
         } else if (s->gce_disposal == GCE_DISPOSAL_RESTORE) {
-            av_fast_malloc(&s->stored_img, &s->stored_img_size, FFABS(frame->linesize[0]) * frame->height);
+            av_fast_malloc(&s->stored_img, &s->stored_img_size, (size_t)(FFABS(frame->linesize[0])) * frame->height);
             if (!s->stored_img)
                 return AVERROR(ENOMEM);
 

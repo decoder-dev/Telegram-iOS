@@ -977,7 +977,7 @@ static av_cold int vc2_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
     /* Rate control */
     s->frame_max_bytes = (av_rescale(r_bitrate, s->avctx->time_base.num,
                                      s->avctx->time_base.den) >> 3) - header_size;
-    s->slice_max_bytes = slice_ceil = av_rescale(s->frame_max_bytes, 1, s->num_x*s->num_y);
+    s->slice_max_bytes = slice_ceil = av_rescale(s->frame_max_bytes, 1, (int64_t)(s->num_x)*s->num_y);
 
     /* Find an appropriate size scaler */
     while (sig_size > 255) {
@@ -1155,7 +1155,7 @@ static av_cold int vc2_encode_init(AVCodecContext *avctx)
                 b->width  = w;
                 b->height = h;
                 b->stride = p->coef_stride;
-                shift = (o > 1)*b->height*b->stride + (o & 1)*b->width;
+                shift = (long)((o > 1))*b->height*b->stride + (long)((o & 1))*b->width;
                 b->buf = p->coef_buf + shift;
             }
         }
@@ -1172,7 +1172,7 @@ static av_cold int vc2_encode_init(AVCodecContext *avctx)
     s->num_x = s->plane[0].dwt_width/s->slice_width;
     s->num_y = s->plane[0].dwt_height/s->slice_height;
 
-    s->slice_args = av_calloc(s->num_x*s->num_y, sizeof(SliceArgs));
+    s->slice_args = av_calloc((size_t)(s->num_x)*s->num_y, sizeof(SliceArgs));
     if (!s->slice_args)
         return AVERROR(ENOMEM);
 

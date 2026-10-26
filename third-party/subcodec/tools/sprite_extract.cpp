@@ -260,7 +260,7 @@ int main(int argc, char* argv[]) {
         int luma_w = yuv_frame->width;
         int luma_h = yuv_frame->height;
         if ((int)opaque_alpha.size() < luma_w * luma_h)
-            opaque_alpha.assign(luma_w * luma_h, 255);
+            opaque_alpha.assign((size_t)(luma_w) * luma_h, 255);
         auto result = ext.add_frame(
             yuv_frame->data[0], yuv_frame->linesize[0],
             yuv_frame->data[1], yuv_frame->linesize[1],

@@ -1479,7 +1479,7 @@ int32_t RequestMemoryVaaScreen (SVAAFrameInfo* pVaa,  CMemoryAlign* pMa,  const 
                                 const int32_t iCountMax8x8BNum) {
   SVAAFrameInfoExt* pVaaExt = static_cast<SVAAFrameInfoExt*> (pVaa);
 
-  pVaaExt->pVaaBlockStaticIdc[0] = (static_cast<uint8_t*> (pMa->WelsMallocz (iNumRef * iCountMax8x8BNum * sizeof (
+  pVaaExt->pVaaBlockStaticIdc[0] = (static_cast<uint8_t*> (pMa->WelsMallocz ((unsigned long)(iNumRef) * iCountMax8x8BNum * sizeof (
                                       uint8_t), "pVaa->pVaaBlockStaticIdc[0]")));
   if (NULL == pVaaExt->pVaaBlockStaticIdc[0]) {
     return 1;

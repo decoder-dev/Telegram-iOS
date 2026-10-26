@@ -257,8 +257,8 @@ std::expected<EncodeResult, Error> SpriteEncoder::encode(
     int cwm = impl_->canvas_width_mbs;
 
     // Split into color (left half) and alpha (right half)
-    std::vector<MacroblockData> color(hwm * hhm);
-    std::vector<MacroblockData> alpha_mbs(hwm * hhm);
+    std::vector<MacroblockData> color((size_t)hwm * hhm);
+    std::vector<MacroblockData> alpha_mbs((size_t)hwm * hhm);
 
     for (int mb_y = 0; mb_y < hhm; mb_y++) {
         for (int mb_x = 0; mb_x < hwm; mb_x++) {

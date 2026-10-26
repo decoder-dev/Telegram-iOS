@@ -458,7 +458,7 @@ int ff_vk_exec_pool_init(FFVulkanContext *s, AVVulkanDeviceQueueFamily *qf,
             pool->query_results = 0;
         }
 
-        pool->qd_size = (pool->query_results + pool->query_statuses)*(query_64bit ? 8 : 4);
+        pool->qd_size = (size_t)((pool->query_results + pool->query_statuses))*(query_64bit ? 8 : 4);
 
         /* Allocate space for the query data */
         pool->query_data = av_calloc(nb_contexts, pool->qd_size);

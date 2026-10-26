@@ -79,7 +79,7 @@ TEST_P(OutputSuspensionTestParam, PixelData) {
     cinfo.optimize_coding = FALSE;
     jpegli_start_compress(&cinfo, TRUE);
 
-    size_t stride = cinfo.image_width * cinfo.input_components;
+    size_t stride = (size_t)(cinfo.image_width) * cinfo.input_components;
     std::vector<uint8_t> row_bytes(config.lines_batch_size * stride);
     while (cinfo.next_scanline < cinfo.image_height) {
       size_t lines_left = cinfo.image_height - cinfo.next_scanline;

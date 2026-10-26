@@ -217,7 +217,7 @@ static av_always_inline void mc_dir_part(const H264Context *h, H264SliceContext 
     const int mx      = sl->mv_cache[list][scan8[n]][0] + src_x_offset * 8;
     int my            = sl->mv_cache[list][scan8[n]][1] + src_y_offset * 8;
     const int luma_xy = (mx & 3) + ((my & 3) << 2);
-    ptrdiff_t offset  = (mx >> 2) * (1 << pixel_shift) + (my >> 2) * sl->mb_linesize;
+    ptrdiff_t offset  = (long)((mx >> 2)) * (1 << pixel_shift) + (my >> 2) * sl->mb_linesize;
     uint8_t *src_y    = pic->data[0] + offset;
     uint8_t *src_cb, *src_cr;
     int extra_width  = 0;
@@ -492,7 +492,7 @@ static av_always_inline void prefetch_motion(const H264Context *h, H264SliceCont
         const int mx  = (sl->mv_cache[list][scan8[0]][0] >> 2) + 16 * sl->mb_x + 8;
         const int my  = (sl->mv_cache[list][scan8[0]][1] >> 2) + 16 * sl->mb_y;
         uint8_t **src = sl->ref_list[list][refn].data;
-        int off       =  mx * (1<< pixel_shift) +
+        int off       =  (long)(mx) * (1<< pixel_shift) +
                         (my + (sl->mb_x & 3) * 4) * sl->mb_linesize +
                         (64 << pixel_shift);
         h->vdsp.prefetch(src[0] + off, sl->linesize, 4);
@@ -500,7 +500,7 @@ static av_always_inline void prefetch_motion(const H264Context *h, H264SliceCont
             h->vdsp.prefetch(src[1] + off, sl->linesize, 4);
             h->vdsp.prefetch(src[2] + off, sl->linesize, 4);
         } else {
-            off= ((mx>>1)+64) * (1<<pixel_shift) + ((my>>1) + (sl->mb_x&7))*sl->uvlinesize;
+            off= (long)(((mx>>1)+64)) * (1<<pixel_shift) + ((my>>1) + (sl->mb_x&7))*sl->uvlinesize;
             h->vdsp.prefetch(src[1] + off, src[2] - src[1], 2);
         }
     }

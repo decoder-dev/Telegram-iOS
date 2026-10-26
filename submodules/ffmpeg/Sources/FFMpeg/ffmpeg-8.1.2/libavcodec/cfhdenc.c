@@ -283,9 +283,9 @@ static av_cold int cfhd_encode_init(AVCodecContext *avctx)
         h2 = h4 * 2;
 
         s->plane[i].dwt_buf =
-            av_calloc(h8 * 8 * w8 * 8, sizeof(*s->plane[i].dwt_buf));
+            av_calloc((size_t)(h8) * 8 * w8 * 8, sizeof(*s->plane[i].dwt_buf));
         s->plane[i].dwt_tmp =
-            av_calloc(h8 * 8 * w8 * 8, sizeof(*s->plane[i].dwt_tmp));
+            av_calloc((size_t)(h8) * 8 * w8 * 8, sizeof(*s->plane[i].dwt_tmp));
         if (!s->plane[i].dwt_buf || !s->plane[i].dwt_tmp)
             return AVERROR(ENOMEM);
 
@@ -370,7 +370,7 @@ static av_cold int cfhd_encode_init(AVCodecContext *avctx)
     if (s->planes != 4)
         return 0;
 
-    s->alpha = av_calloc(avctx->width * avctx->height, sizeof(*s->alpha));
+    s->alpha = av_calloc((size_t)(avctx->width) * avctx->height, sizeof(*s->alpha));
     if (!s->alpha)
         return AVERROR(ENOMEM);
 

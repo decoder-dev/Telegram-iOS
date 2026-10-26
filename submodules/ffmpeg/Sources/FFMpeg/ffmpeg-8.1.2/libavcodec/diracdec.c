@@ -306,7 +306,7 @@ static int alloc_sequence_buffers(DiracContext *s)
         w = FFALIGN(CALC_PADDING(w, MAX_DWT_LEVELS), 8); /* FIXME: Should this be 16 for SSE??? */
         h = top_padding + CALC_PADDING(h, MAX_DWT_LEVELS) + max_yblen/2;
 
-        s->plane[i].idwt.buf_base = av_calloc(w + max_xblen, h * (2 << s->pshift));
+        s->plane[i].idwt.buf_base = av_calloc(w + max_xblen, (size_t)(h) * (2 << s->pshift));
         s->plane[i].idwt.tmp      = av_malloc_array((w+16), 2 << s->pshift);
         s->plane[i].idwt.buf      = s->plane[i].idwt.buf_base + (top_padding*w)*(2 << s->pshift);
         if (!s->plane[i].idwt.buf_base || !s->plane[i].idwt.tmp)
@@ -941,7 +941,7 @@ static int decode_lowdelay(DiracContext *s)
     int slice_num = 0;
 
     if (s->slice_params_num_buf != (s->num_x * s->num_y)) {
-        s->slice_params_buf = av_realloc_f(s->slice_params_buf, s->num_x * s->num_y, sizeof(DiracSlice));
+        s->slice_params_buf = av_realloc_f(s->slice_params_buf, (size_t)(s->num_x) * s->num_y, sizeof(DiracSlice));
         if (!s->slice_params_buf) {
             av_log(s->avctx, AV_LOG_ERROR, "slice params buffer allocation failure\n");
             s->slice_params_num_buf = 0;

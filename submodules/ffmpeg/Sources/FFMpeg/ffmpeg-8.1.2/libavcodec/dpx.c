@@ -626,10 +626,10 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *p,
     // to detect it
     // Also handle special case with unpadded content
     dpx->need_align = FFALIGN(dpx->stride, 4);
-    if (dpx->need_align*avctx->height + (int64_t)offset > avpkt->size &&
+    if ((long)(dpx->need_align)*avctx->height + (int64_t)offset > avpkt->size &&
         (!dpx->unpadded_10bit || (avctx->width * avctx->height * dpx->components + 2) / 3 * 4 + (int64_t)offset > avpkt->size)) {
         // Alignment seems unappliable, try without
-        if (dpx->stride*avctx->height + (int64_t)offset > avpkt->size || dpx->unpadded_10bit) {
+        if ((long)(dpx->stride)*avctx->height + (int64_t)offset > avpkt->size || dpx->unpadded_10bit) {
             av_log(avctx, AV_LOG_ERROR, "Overread buffer. Invalid header?\n");
             return AVERROR_INVALIDDATA;
         } else {

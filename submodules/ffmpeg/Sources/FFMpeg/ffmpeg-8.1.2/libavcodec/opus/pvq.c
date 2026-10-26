@@ -304,7 +304,7 @@ static inline uint64_t celt_cwrsi(uint32_t N, uint32_t K, uint32_t i, int *y)
 
             i    -= p;
             val   = (k0 - K + s) ^ s;
-            norm += val * val;
+            norm += (unsigned long)(val) * val;
             *y++  = val;
         } else { /*Lots of dimensions case:*/
             /*Are there any pulses in this dimension at all?*/
@@ -326,7 +326,7 @@ static inline uint64_t celt_cwrsi(uint32_t N, uint32_t K, uint32_t i, int *y)
 
                 i    -= p;
                 val   = (k0 - K + s) ^ s;
-                norm += val * val;
+                norm += (unsigned long)(val) * val;
                 *y++  = val;
             }
         }
@@ -344,13 +344,13 @@ static inline uint64_t celt_cwrsi(uint32_t N, uint32_t K, uint32_t i, int *y)
         i -= 2 * K - 1;
 
     val   = (k0 - K + s) ^ s;
-    norm += val * val;
+    norm += (unsigned long)(val) * val;
     *y++  = val;
 
     /* N==1 */
     s     = -i;
     val   = (K + s) ^ s;
-    norm += val * val;
+    norm += (unsigned long)(val) * val;
     *y    = val;
 
     return norm;

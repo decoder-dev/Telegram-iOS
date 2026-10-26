@@ -61,8 +61,8 @@ static int test_alpha_extraction() {
     printf("test_alpha_extraction...\n");
 
     int ss = 64, stride = ss, chroma_ss = ss / 2;
-    std::vector<uint8_t> y(ss * ss), cb(chroma_ss * chroma_ss, 128),
-                         cr(chroma_ss * chroma_ss, 128), alpha(ss * ss, 255);
+    std::vector<uint8_t> y(ss * ss), cb((size_t)(chroma_ss) * chroma_ss, 128),
+                         cr((size_t)(chroma_ss) * chroma_ss, 128), alpha(ss * ss, 255);
 
     auto ext = SpriteExtractor::create({.sprite_size = ss, .qp = 26},
                                         "/tmp/test_alpha_extract.mbs");

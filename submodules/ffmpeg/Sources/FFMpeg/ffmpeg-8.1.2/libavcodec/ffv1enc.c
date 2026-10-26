@@ -283,7 +283,7 @@ static int encode_plane(FFV1Context *f, FFV1SliceContext *sc,
 
     sample[2] = sc->sample_buffer; // dummy to avoid UB pointer arithmetic
 
-    memset(sc->sample_buffer, 0, ring_size * (w + 6) * sizeof(*sc->sample_buffer));
+    memset(sc->sample_buffer, 0, (unsigned long)(ring_size) * (w + 6) * sizeof(*sc->sample_buffer));
 
     for (y = 0; y < h; y++) {
         for (i = 0; i < ring_size; i++)
@@ -577,7 +577,7 @@ int ff_ffv1_encode_determine_slices(AVCodecContext *avctx)
             int maxh = (avctx->height + s->num_v_slices - 1) / s->num_v_slices;
             if (s->num_h_slices > max_h_slices || s->num_v_slices > max_v_slices)
                 continue;
-            if (maxw * maxh * (int64_t)(s->bits_per_raw_sample+1) * plane_count > 8<<24)
+            if ((long)(maxw) * maxh * (int64_t)(s->bits_per_raw_sample+1) * plane_count > 8<<24)
                 continue;
             if (s->version < 4)
                 if (  ff_need_new_slices(avctx->width , s->num_h_slices, s->chroma_h_shift)
@@ -1032,7 +1032,7 @@ static av_cold int encode_init_internal(AVCodecContext *avctx)
                     sc->unit[p] = av_malloc_array(sc->slice_width, sc->slice_height * sizeof(**sc->unit));
                     if (!sc->unit[p])
                         return AVERROR(ENOMEM);
-                    sc->bitmap[p] = av_malloc_array(sc->slice_width * sc->slice_height, sizeof(*sc->bitmap[p]));
+                    sc->bitmap[p] = av_malloc_array((size_t)(sc->slice_width) * sc->slice_height, sizeof(*sc->bitmap[p]));
                     if (!sc->bitmap[p])
                         return AVERROR(ENOMEM);
                 } else {
@@ -1318,7 +1318,7 @@ static int encode_float32_remap_segment(FFV1SliceContext *sc,
             } else {
                 val = last_val + ((1LL<<32) - last_val + current_mul - 1) / current_mul * current_mul;
                 av_assert2(val >= (1LL<<32));
-                val += lu * current_mul; //ensure a run1 ends
+                val += (long)(lu) * current_mul; //ensure a run1 ends
             }
         } else
             val = sc->unit[p][i].val;
@@ -1517,7 +1517,7 @@ static int encode_float32_rgb_frame(FFV1Context *f, FFV1SliceContext *sc,
     for (int p = 0; p < MAX_PLANES; ++p)
         sample[p][2] = sc->sample_buffer32; // dummy to avoid UB pointer arithmetic
 
-    memset(RENAME(sc->sample_buffer), 0, ring_size * MAX_PLANES *
+    memset(RENAME(sc->sample_buffer), 0, (unsigned long)(ring_size) * MAX_PLANES *
            (w + 6) * sizeof(*RENAME(sc->sample_buffer)));
 
     for (y = 0; y < h; y++) {
@@ -1689,16 +1689,16 @@ size_t ff_ffv1_encode_buffer_size(AVCodecContext *avctx)
 
     int w = avctx->width  + f->num_h_slices;
     int h = avctx->height + f->num_v_slices;
-    size_t maxsize = w*h * (1 + f->transparency);
+    size_t maxsize = (size_t)(w)*h * (1 + f->transparency);
     if (f->chroma_planes)
-        maxsize += AV_CEIL_RSHIFT(w, f->chroma_h_shift) * AV_CEIL_RSHIFT(h, f->chroma_v_shift) * 2;
+        maxsize += (unsigned long)(AV_CEIL_RSHIFT(w, f->chroma_h_shift)) * AV_CEIL_RSHIFT(h, f->chroma_v_shift) * 2;
     maxsize += f->slice_count * 800; //for slice header
     if (f->version > 3) {
         maxsize *= f->bits_per_raw_sample + 1;
         if (f->remap_mode)
-            maxsize += f->slice_count * 70000 * (1 + 2*f->chroma_planes + f->transparency);
+            maxsize += (unsigned long)(f->slice_count) * 70000 * (1 + 2*f->chroma_planes + f->transparency);
     } else {
-        maxsize += f->slice_count * 2 * (avctx->width + avctx->height); //for bug with slices that code some pixels more than once
+        maxsize += (unsigned long)(f->slice_count) * 2 * (avctx->width + avctx->height); //for bug with slices that code some pixels more than once
         maxsize *= 8*(2*f->bits_per_raw_sample + 5);
     }
     maxsize >>= 3;

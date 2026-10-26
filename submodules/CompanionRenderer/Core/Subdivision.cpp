@@ -178,7 +178,7 @@ void applySubdivision(Primitive& p,const SubdivisionCage& cage) {
     auto surface=prepareSubdivision(p,cage);const auto& s=*surface;
     p.base.clear();p.indices.clear();p.weights.clear();p.joints.clear();p.influences=0;
     p.morphPositions.assign(s.morphCount,{});p.morphNormals.assign(s.morphCount,{});
-    size_t count=0;for(auto& q:s.patches)count+=(q.segments+1)*(q.segments+1);
+    size_t count=0;for(auto& q:s.patches)count+=(unsigned long)((q.segments+1))*(q.segments+1);
     check(count<=200000,"Subdivision mesh exceeds vertex budget");p.base.reserve(count);
     for(auto& q:s.patches) {
         uint32_t start=uint32_t(p.base.size()),n=q.segments;

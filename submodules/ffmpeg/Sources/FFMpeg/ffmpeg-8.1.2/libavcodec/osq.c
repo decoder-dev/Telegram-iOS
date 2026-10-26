@@ -121,7 +121,7 @@ static av_cold int osq_init(AVCodecContext *avctx)
     avctx->bits_per_raw_sample = avctx->extradata[2];
     s->nb_samples = AV_RL64(avctx->extradata + 16);
     s->frame_samples = AV_RL16(avctx->extradata + 8);
-    s->max_framesize = (s->frame_samples * 16 + 1024) * avctx->ch_layout.nb_channels;
+    s->max_framesize = (size_t)((s->frame_samples * 16 + 1024)) * avctx->ch_layout.nb_channels;
 
     s->bitstream = av_calloc(s->max_framesize + AV_INPUT_BUFFER_PADDING_SIZE, sizeof(*s->bitstream));
     if (!s->bitstream)
