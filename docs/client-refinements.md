@@ -3,6 +3,7 @@
 ## Included
 
 - Audio/video speed sliders expose the existing playback engine’s 4× rate.
+- The tracking-link switch and its explanation share one themed Privacy block in both languages.
 - An optional Privacy setting removes known tracking parameters from links in newly sent ordinary text messages, including hidden links. It starts disabled and existing saved settings remain compatible.
 - Cleanup retains original URL encoding, fragments, time parameters, unknown query parameters and attributed text. Code blocks, inline code, signed/authenticated URLs and rich-document messages are preserved. Editing existing messages is unaffected.
 

@@ -886,7 +886,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1603, 1500, 1501, 1541, 57],
             [1604, 140, 141]
         ]),
-        (.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]])
+        (.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]]),
+        (.privacy, [[2030, 2031]])
     ]
 
     private static let interfaceGroups: [[Int32]] = regroupedCategories.flatMap { $0.groups }

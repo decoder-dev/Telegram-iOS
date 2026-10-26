@@ -120,6 +120,21 @@ for russian in [false,true] {
   }
  }
 }
+for russian in [false, true] {
+ ForkPresentationLanguage.prefersRussianStrings = russian
+ for enabled in [false, true] {
+  var settings = ForkExtrasSettings.defaultSettings
+  settings.stripTrackingParameters = enabled
+  let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: false, showCallsTab: true, mediaInputSettings: MediaInputSettings(enableRaiseToSpeak: false, pauseMusicOnRecording: true), focus: .privacy)
+  let index = entries.firstIndex(where: { $0.stableId == 2030 })!
+  precondition(index + 1 < entries.count && entries[index + 1].stableId == 2031, "Tracking-link help must follow its switch")
+  precondition(entries[index].section == entries[index + 1].section, "A switch and its help must share the same themed block")
+  if case let .appearanceToggle(_, title, value, path) = entries[index] {
+   precondition(value == enabled && settings[keyPath: path] == enabled)
+   precondition(title == (russian ? "Убирать отслеживание из ссылок" : "Remove tracking from sent links"))
+  } else { preconditionFailure("Missing tracking-link switch") }
+ }
+}
 ForkPresentationLanguage.prefersRussianStrings=false
 for (accountId, value, label) in [(Int64(101), Int32(1), "SCAM"), (Int64(202), Int32(4), "BOT"), (Int64(303), Int32(0), "None")] {
  var settings=ForkExtrasSettings.defaultSettings
