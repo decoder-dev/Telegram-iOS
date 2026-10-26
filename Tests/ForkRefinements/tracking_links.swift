@@ -39,6 +39,13 @@ precondition(cleanedHidden.string == hidden.string)
 precondition((cleanedHidden.attribute(ChatTextInputAttributes.textUrl, at: 0, effectiveRange: nil) as? ChatTextInputTextUrlAttribute)?.url == "https://example.org/?id=1")
 precondition(cleanedHidden.attribute(marker, at: 0, effectiveRange: nil) as? String == "hidden-formatting")
 
+let visibleLabel = NSAttributedString(string: "https://label.example/?utm_source=part-of-label", attributes: [
+    ChatTextInputAttributes.textUrl: ChatTextInputTextUrlAttribute(url: "https://target.example/?id=1&utm_source=share")
+])
+let preservedLabel = forkTextWithoutTrackingLinks(visibleLabel)
+precondition(preservedLabel.string == visibleLabel.string, "Hidden-link label was changed")
+precondition((preservedLabel.attribute(ChatTextInputAttributes.textUrl, at: 0, effectiveRange: nil) as? ChatTextInputTextUrlAttribute)?.url == "https://target.example/?id=1")
+
 for attributes: [NSAttributedString.Key: Any] in [
     [ChatTextInputAttributes.monospace: true],
     [ChatTextInputAttributes.block: ChatTextInputTextQuoteAttribute(kind: .code(language: "text"), isCollapsed: false)]

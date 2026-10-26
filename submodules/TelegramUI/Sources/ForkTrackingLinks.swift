@@ -47,7 +47,15 @@ func forkTextWithoutTrackingLinks(_ text: NSAttributedString) -> NSAttributedStr
     let result = NSMutableAttributedString(string: "")
     var cursor = 0
     for match in matches {
-        guard let scheme = match.url?.scheme?.lowercased(), scheme == "http" || scheme == "https",
+        // A displayed URL can be the label of a different hidden link. Keep that label untouched.
+        var hasHiddenLink = false
+        source.enumerateAttribute(ChatTextInputAttributes.textUrl, in: match.range, options: []) { value, _, stop in
+            if value != nil {
+                hasHiddenLink = true
+                stop.pointee = true
+            }
+        }
+        guard !hasHiddenLink, let scheme = match.url?.scheme?.lowercased(), scheme == "http" || scheme == "https",
               !forkTrackingLinkIsCode(source, range: match.range),
               let projection = forkTrackingURLProjection(string.substring(with: match.range)) else {
             continue
