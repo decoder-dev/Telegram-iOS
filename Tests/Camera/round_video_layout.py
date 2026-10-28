@@ -51,8 +51,12 @@ recording = controller[controller.index('self.videoRecorderDisposable = (self.vi
 assert recording.index('strongSelf.chatDisplayNode.dismissInput()') < recording.index('strongSelf.updateChatPresentationInterfaceState(')
 
 screen = (root / 'submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/VideoMessageCameraScreen.swift').read_text()
-hit_test = screen[screen.index('override func hitTest('):screen.index('fileprivate func maybePresentTooltips()')]
+node_start = screen.index('public class VideoMessageCameraScreen:')
+hit_test = screen[screen.index('override func hitTest(', node_start):screen.index('fileprivate func maybePresentTooltips()')]
 assert hit_test.index('self.zoomControlsView.hitTest(') < hit_test.index('resultPreviewView.bounds.contains(')
 assert 'result === componentView' not in hit_test
 assert 'controller.inputPanelFrame' not in screen
+zoom_control = screen[screen.index('private final class RoundVideoZoomControl:'):screen.index('// Keep useful zoom reachable')]
+assert 'self.layer.contents = generateImage(' in zoom_control
+assert 'return result is UIButton ? result : self' in zoom_control
 print('Keyboard dismissal ordering and zoom touch routing passed')

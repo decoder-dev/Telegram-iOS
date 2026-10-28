@@ -272,6 +272,11 @@ private final class RoundVideoZoomControl: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
 
+        // iOS 26/27 can drop real touches to an entirely empty layer, even when
+        // hitTest returns it. Keep the pan target rendered without adding a tint.
+        self.layer.contents = generateImage(CGSize(width: 1.0, height: 1.0), rotatedContext: { size, context in
+            context.clear(CGRect(origin: .zero, size: size))
+        })?.cgImage
         self.clipView.clipsToBounds = true
         self.addSubview(self.backgroundView)
         self.addSubview(self.clipView)
@@ -281,6 +286,15 @@ private final class RoundVideoZoomControl: UIView {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        guard let result = super.hitTest(point, with: event) else {
+            return nil
+        }
+        // Preserve lens taps; the transparent clipping/preset containers must not
+        // become the touch target while the expanded dial is being dragged.
+        return result is UIButton ? result : self
     }
 
     @objc private func presetButtonPressed(_ sender: UIButton) {
