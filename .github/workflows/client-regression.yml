@@ -26,6 +26,9 @@ on:
       - 'Tests/ArchiveLock/**'
       - 'Tests/MessageSaving/**'
       - 'Tests/Camera/**'
+      - 'submodules/TelegramUI/Components/VideoMessageCameraScreen/**'
+      - 'submodules/TelegramUI/Sources/ChatController.swift'
+      - 'submodules/TelegramUI/Sources/Chat/ChatControllerMediaRecording.swift'
       - 'Tests/StreamingDrafts/**'
       - 'submodules/Postbox/Sources/Postbox.swift'
       - 'Tests/ApiLayer/**'
@@ -106,6 +109,8 @@ jobs:
       - run: python3 -m unittest discover -s Tests/Branding
         if: ${{ !cancelled() }}
       - run: python3 Tests/GhostMode/run.py
+        if: ${{ !cancelled() }}
+      - run: python3 Tests/Camera/round_video_layout.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/Camera/native_zoom.py
         if: ${{ !cancelled() }}

@@ -179,7 +179,7 @@ extension ChatControllerImpl {
                     updatedPresentationData: self.updatedPresentationData,
                     allowLiveUpload: allowLiveUpload,
                     viewOnceAvailable: viewOnceAvailable,
-                    inputPanelFrame: (currentInputPanelFrame, self.chatDisplayNode.inputNode != nil),
+                    inputPanelHeight: currentInputPanelFrame.height,
                     chatNode: self.chatDisplayNode.historyNode,
                     completion: { [weak self] message, silentPosting, scheduleTime, repeatPeriod in
                         guard let self, let videoController = self.videoRecorderValue else {

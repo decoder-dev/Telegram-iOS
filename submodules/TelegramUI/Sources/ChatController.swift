@@ -6746,6 +6746,12 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 if strongSelf.videoRecorderValue !== videoRecorder {
                     let previousVideoRecorderValue = strongSelf.videoRecorderValue
                     strongSelf.videoRecorderValue = videoRecorder
+
+                    // Dismiss before installing mediaRecordingState: dismissInput deliberately ignores
+                    // requests during recording. The system keyboard otherwise stays above the camera.
+                    if videoRecorder != nil {
+                        strongSelf.chatDisplayNode.dismissInput()
+                    }
                     
                     strongSelf.updateChatPresentationInterfaceState(animated: true, interactive: true, {
                         $0.updatedInputTextPanelState { panelState in

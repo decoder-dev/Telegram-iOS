@@ -1963,35 +1963,22 @@ public class VideoMessageCameraScreen: ViewController {
         override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
             let result = super.hitTest(point, with: event)
             
-            // The preview is claimed by its *bounding square*, while only the inscribed circle is
-            // visible - `previewContainerContentView` clips to a corner radius. The component host is a
-            // full-screen sibling above `previewContainerView`, and when the keyboard is up the container
-            // is only as tall as the input panel's top edge, so on a small screen the controls pinned to
-            // its bottom edge sit inside that square's bottom corners while remaining outside the circle.
-            // `super.hitTest` has already resolved which of the two the touch really landed on, so only
-            // fall back to the preview when it did not land on a control.
+            if let layout = self.validLayout, point.y > self.containerView.frame.maxY {
+                if !layout.metrics.isTablet || point.x >= layout.size.width * 0.33 {
+                    return nil
+                }
+            }
+
+            // The component host and the preview can both return non-control views over
+            // the zoom row. Route the visible dial before the preview's bounding square.
+            if !self.isComponentControl(result), let zoomResult = self.zoomControlsView.hitTest(self.view.convert(point, to: self.zoomControlsView), with: event) {
+                return zoomResult
+            }
+
             if let resultPreviewView = self.resultPreviewView, !self.isComponentControl(result) {
                 if resultPreviewView.bounds.contains(self.view.convert(point, to: resultPreviewView)) {
                     return resultPreviewView
                 }
-            }
-            
-            if let controller = self.controller, let layout = self.validLayout {
-                let insets = layout.insets(options: .input)
-                if point.y > layout.size.height - max(insets.bottom, layout.additionalInsets.bottom) - controller.inputPanelFrame.0.height {
-                    if layout.metrics.isTablet {
-                        if point.x < layout.size.width * 0.33 {
-                            return result
-                        }
-                    }
-                    return nil
-                }
-            }
-            
-            // The zoom row lies under the full-screen component root, a plain view that takes every touch its own
-            // buttons miss. Hand such touches to the row; the component's buttons still win where they overlap it.
-            if let componentView = self.componentHost.view, result === componentView, let zoomResult = self.zoomControlsView.hitTest(self.view.convert(point, to: self.zoomControlsView), with: event) {
-                return zoomResult
             }
 
             return result
@@ -2173,12 +2160,13 @@ public class VideoMessageCameraScreen: ViewController {
                 self.didAppear()
             }
 
-            var backgroundFrame = CGRect(origin: .zero, size: CGSize(width: layout.size.width, height: controller.inputPanelFrame.0.minY))
-            let actualBackgroundFrame = CGRect(origin: .zero, size: CGSize(width: layout.size.width, height: layout.size.height))
-            if backgroundFrame.maxY < layout.size.height - 100.0 && (layout.inputHeight ?? 0.0).isZero && !controller.inputPanelFrame.1 && layout.additionalInsets.bottom.isZero {
-                backgroundFrame = CGRect(origin: .zero, size: CGSize(width: layout.size.width, height: layout.size.height - layout.intrinsicInsets.bottom - controller.inputPanelFrame.0.height - 8.0))
-            }
-                        
+            // The keyboard can be dismissed while this controller is being presented.
+            // Use the current insets, never the panel's captured pre-dismissal origin.
+            let insets = layout.insets(options: .input)
+            let contentHeight = max(0.0, layout.size.height - max(insets.bottom, layout.additionalInsets.bottom) - controller.inputPanelHeight - 8.0)
+            let backgroundFrame = CGRect(origin: .zero, size: CGSize(width: layout.size.width, height: contentHeight))
+            let actualBackgroundFrame = CGRect(origin: .zero, size: layout.size)
+
             transition.setPosition(view: self.backgroundView, position: actualBackgroundFrame.center)
             transition.setBounds(view: self.backgroundView, bounds: CGRect(origin: .zero, size: actualBackgroundFrame.size))
             
@@ -2191,7 +2179,7 @@ public class VideoMessageCameraScreen: ViewController {
             let previewBandInsets: (left: CGFloat, right: CGFloat) = layout.safeInsets.left != layout.safeInsets.right ? (layout.safeInsets.left, layout.safeInsets.right) : (0.0, 0.0)
             let previewBandWidth = layout.size.width - previewBandInsets.left - previewBandInsets.right
             let previewSide = min(369.0, previewBandWidth - 24.0)
-            let previewFrame: CGRect
+            var previewFrame: CGRect
             if layout.metrics.isTablet {
                 // Use the scene this view actually lives in; `connectedScenes` is unordered and a
                 // tablet can have several window scenes.
@@ -2208,17 +2196,19 @@ public class VideoMessageCameraScreen: ViewController {
             } else {
                 previewFrame = CGRect(origin: CGPoint(x: previewBandInsets.left + floorToScreenPixels((previewBandWidth - previewSide) / 2.0), y: max(layout.statusBarHeight ?? 0.0 + 24.0, availableHeight * 0.4 - previewSide / 2.0)), size: CGSize(width: previewSide, height: previewSide))
             }
+            let cameraLayout = VideoMessageCameraLayout(
+                preferredPreviewFrame: previewFrame,
+                containerSize: backgroundFrame.size,
+                topInset: (layout.statusBarHeight ?? 0.0) + 24.0
+            )
+            previewFrame = cameraLayout.previewFrame
             if !self.animatingIn {
                 transition.setFrame(view: self.previewContainerView, frame: previewFrame)
                 transition.setFrame(view: self.previewContainerContentView, frame: CGRect(origin: CGPoint(), size: previewFrame.size))
             }
-            // The collapsed capsule, centered in the 56 pt control, keeps 18 pt under the circle; the dial grows into the
-            // whole control and shows its value inside, so nothing lies over the video.
-            let zoomY = floorToScreenPixels(min(previewFrame.maxY + 10.0, backgroundFrame.height - 67.0))
-            let zoomWidth = min(240.0, backgroundFrame.width - 72.0)
-            self.zoomControlsView.frame = CGRect(x: floorToScreenPixels((backgroundFrame.width - zoomWidth) / 2.0), y: zoomY, width: zoomWidth, height: 56.0)
+            transition.setFrame(view: self.zoomControlsView, frame: cameraLayout.zoomFrame)
             self.updateZoomControls()
-            transition.setCornerRadius(layer: self.previewContainerContentView.layer, cornerRadius: previewSide / 2.0)
+            transition.setCornerRadius(layer: self.previewContainerContentView.layer, cornerRadius: previewFrame.width / 2.0)
                         
             let previewBounds = CGRect(origin: .zero, size: previewFrame.size)
            
@@ -2340,7 +2330,7 @@ public class VideoMessageCameraScreen: ViewController {
 
     private let context: AccountContext
     private let updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?
-    private let inputPanelFrame: (CGRect, Bool)
+    private let inputPanelHeight: CGFloat
     fileprivate var allowLiveUpload: Bool
     fileprivate var viewOnceAvailable: Bool
     
@@ -2497,7 +2487,7 @@ public class VideoMessageCameraScreen: ViewController {
         updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)?,
         allowLiveUpload: Bool,
         viewOnceAvailable: Bool,
-        inputPanelFrame: (CGRect, Bool),
+        inputPanelHeight: CGFloat,
         chatNode: ASDisplayNode?,
         completion: @escaping (EnqueueMessage?, Bool?, Int32?, Int32?) -> Void
     ) {
@@ -2505,7 +2495,7 @@ public class VideoMessageCameraScreen: ViewController {
         self.updatedPresentationData = updatedPresentationData
         self.allowLiveUpload = allowLiveUpload
         self.viewOnceAvailable = viewOnceAvailable
-        self.inputPanelFrame = inputPanelFrame
+        self.inputPanelHeight = inputPanelHeight
         self.chatNode = chatNode
         self.completion = completion
         
