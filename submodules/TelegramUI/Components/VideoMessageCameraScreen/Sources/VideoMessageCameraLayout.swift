@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 struct VideoMessageCameraLayout {
     let previewFrame: CGRect

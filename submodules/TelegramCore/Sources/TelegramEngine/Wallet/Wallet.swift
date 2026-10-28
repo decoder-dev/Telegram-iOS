@@ -241,8 +241,51 @@ public enum WalletSendTransferError: Error, Equatable, Sendable {
     case generic
 }
 
-public enum WalletGetStateError: Error {
+public enum WalletGetStateError: Error, CustomNSError {
+    public enum Reason: String, Sendable {
+        case unsupported
+        case unauthorized
+        case rateLimited
+        case server
+        case other
+    }
+
     case generic
+    case requestFailed(code: Int32, reason: Reason)
+
+    init(rpcCode: Int32, rpcDescription: String) {
+        let reason: Reason
+        // Keep only a bounded category, never a server-provided description: wallet
+        // logs must not acquire addresses, recovery data or tokens from error text.
+        switch rpcDescription {
+        case "METHOD_INVALID", "METHOD_NOT_AVAILABLE", "API_LAYER_INVALID":
+            reason = .unsupported
+        default:
+            switch rpcCode {
+            case 401: reason = .unauthorized
+            case 420: reason = .rateLimited
+            case 500 ... 599: reason = .server
+            default: reason = .other
+            }
+        }
+        self = .requestFailed(code: rpcCode, reason: reason)
+    }
+
+    public static var errorDomain: String { return "TelegramCore.WalletGetStateError" }
+
+    public var errorCode: Int {
+        switch self {
+        case .generic: return 0
+        case let .requestFailed(code, _): return Int(code)
+        }
+    }
+
+    public var diagnosticKind: String {
+        switch self {
+        case .generic: return "generic"
+        case let .requestFailed(_, reason): return reason.rawValue
+        }
+    }
 }
 
 public enum WalletGetUserAddressesError: Error {
@@ -419,8 +462,8 @@ func _internal_getExistingWaltBalance(account: Account) -> Signal<WalletExisting
 
 func _internal_getWalletState(account: Account) -> Signal<WalletState, WalletGetStateError> {
     return account.network.request(Api.functions.wallet.getState())
-    |> mapError { _ -> WalletGetStateError in
-        return .generic
+    |> mapError { error -> WalletGetStateError in
+        return WalletGetStateError(rpcCode: error.errorCode, rpcDescription: error.errorDescription)
     }
     |> map { result in
         return WalletState(apiState: result)

@@ -107,6 +107,7 @@ jobs:
           python3 Tests/Camera/run.py
           python3 Tests/Camera/native_zoom.py
           python3 Tests/Camera/round_video_layout.py
+          python3 Tests/WalletDiagnostics/run.py
           python3 Tests/StreamingDrafts/run.py
           python3 Tests/ApiLayer/run.py
           python3 -m unittest discover -s Tests/UISizing

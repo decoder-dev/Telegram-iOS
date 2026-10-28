@@ -43,6 +43,9 @@ private func walletContextErrorKind(_ error: Error) -> String? {
     if error is CancellationError {
         return "cancelled"
     }
+    if let error = error as? TelegramCore.WalletGetStateError {
+        return "telegram_wallet_state_\(error.diagnosticKind)"
+    }
     if let error = error as? TelegramCore.WalletOperationError {
         switch error {
         case .generic: return "telegram_generic"
