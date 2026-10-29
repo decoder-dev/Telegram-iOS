@@ -91,6 +91,9 @@ protocol PeerInfoHeaderTextFieldNode: ASDisplayNode {
 let TitleNodeStateRegular = 0
 let TitleNodeStateExpanded = 1
 
+/// The title's scale once it has collapsed into the navigation bar.
+let peerInfoCollapsedTitleScale: CGFloat = 0.6
+
 final class PeerInfoHeaderNode: ASDisplayNode {
     private var context: AccountContext
     private let isPremiumDisabled: Bool
@@ -1479,7 +1482,12 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     trailingIconsWidth += 4.0 + iconSize.width
                 }
             }
-            titleConstrainedSize.width = max(60.0, min(titleConstrainedSize.width, width - rightButtonsReserve * 2.0 - trailingIconsWidth))
+            // The pills only flank the title once it has collapsed into the bar, where it is drawn at
+            // `peerInfoCollapsedTitleScale` of the width measured here; the full-size title under the avatar has the
+            // whole page. Measuring the full-size text against the bar's gap cut names (and the username and phone
+            // line, which shares this width) to a third of the page in Settings, whose bar has two buttons.
+            let collapsedWidthLimit = (width - rightButtonsReserve * 2.0) / peerInfoCollapsedTitleScale - trailingIconsWidth
+            titleConstrainedSize.width = max(60.0, min(titleConstrainedSize.width, collapsedWidthLimit))
         }
         
         let titleNodeLayout = self.titleNode.updateLayout(text: titleStringText, states: [
@@ -1895,7 +1903,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             }
         }
         
-        let titleMinScale: CGFloat = 0.6
+        let titleMinScale: CGFloat = peerInfoCollapsedTitleScale
         let subtitleMinScale: CGFloat = 0.8
         let avatarMinScale: CGFloat = 0.55
         
