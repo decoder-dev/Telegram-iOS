@@ -281,7 +281,11 @@ extension ChatControllerImpl {
         }
         Logger.shared.log("RoundVideo", "preview: preparing, crop=\(normalizedCrop) trim=\(trimStart)..\(trimEnd)")
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
-        let statusController = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: nil))
+        // Cancellable: a video still in iCloud downloads first and can take a while.
+        let statusController = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: { [weak self] in
+            Logger.shared.log("RoundVideo", "preview: cancelled while preparing")
+            self?.recorderDataDisposable.set(nil)
+        }))
         self.present(statusController, in: .window(.root))
 
         let avAsset = Signal<AVAsset?, NoError> { subscriber in
@@ -311,7 +315,11 @@ extension ChatControllerImpl {
             }
             guard let video, video.duration >= 1.0, self.videoRecorderValue == nil else {
                 Logger.shared.log("RoundVideo", "preview: could not prepare the video")
-                self.recorderFeedback?.error()
+                if self.videoRecorderValue == nil {
+                    let isRussian = presentationData.strings.primaryComponent.languageCode.hasPrefix("ru")
+                    let text = isRussian ? "Не удалось сделать кружок из этого видео." : "Couldn't make a round video from this video."
+                    self.present(textAlertController(context: self.context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                }
                 return
             }
             Logger.shared.log("RoundVideo", "preview: ready, \(video.dimensions.width)x\(video.dimensions.height) \(video.duration)s")
@@ -338,6 +346,7 @@ extension ChatControllerImpl {
                         return panelState.withUpdatedMediaRecordingState(nil)
                     }
                 })
+                self.recorderFeedback = nil
                 self.updateDownButtonVisibility()
             }))
         }))

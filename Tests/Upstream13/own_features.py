@@ -655,6 +655,10 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         # Always the video-message export on send: the picked file was only cut to a square.
         self.assertIn('var hasAdjustments = results.count > 1 || self.existingVideo != nil', screen)
         self.assertIn('audioSessionType = .play(mixWithOthers: false)', screen)
+        # No camera: its placeholder, first-frame shimmer and pause blur must not show through the circle.
+        self.assertIn('self.node.prepareForExistingVideo()\n            self.node.addCaptureResult(.video(existingVideo))', screen)
+        self.assertIn('videoComposition.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2', read('submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/RoundVideoFromExistingVideo.swift'))
+        self.assertIn('Не удалось сделать кружок из этого видео.', recording)
         export = read('submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/RoundVideoFromExistingVideo.swift')
         self.assertIn('videoComposition.renderSize = CGSize(width: outputSide, height: outputSide)', export)
         self.assertIn('start + 60.0', export)
