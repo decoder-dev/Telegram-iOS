@@ -255,6 +255,30 @@ extension ChatControllerImpl {
         guard self.videoRecorderValue == nil else {
             return
         }
+        // The attachment menu stays up when its gallery closes, and the round-video screen lives under it, in the
+        // chat (its blur and the trimming panel are the chat's): it has to go first.
+        if let attachmentController = self.attachmentController {
+            // A menu already on its way out ignores a second dismiss and never calls back, hence the fallback.
+            var began = false
+            // A strong self, not [weak self]: Swift 6.4 miscompiles a weak capture beside a captured var (CLAUDE.md).
+            let begin: () -> Void = { [self] in
+                guard !began else {
+                    return
+                }
+                began = true
+                self.beginRoundVideoPreview(asset: asset, normalizedCrop: normalizedCrop, trimStart: trimStart, trimEnd: trimEnd)
+            }
+            attachmentController.dismiss(animated: true, completion: begin)
+            Queue.mainQueue().after(0.6, begin)
+        } else {
+            self.beginRoundVideoPreview(asset: asset, normalizedCrop: normalizedCrop, trimStart: trimStart, trimEnd: trimEnd)
+        }
+    }
+
+    private func beginRoundVideoPreview(asset: PHAsset, normalizedCrop: CGRect, trimStart: Double, trimEnd: Double) {
+        guard self.videoRecorderValue == nil else {
+            return
+        }
         Logger.shared.log("RoundVideo", "preview: preparing, crop=\(normalizedCrop) trim=\(trimStart)..\(trimEnd)")
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
         let statusController = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: nil))
