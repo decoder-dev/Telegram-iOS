@@ -6756,7 +6756,8 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     strongSelf.updateChatPresentationInterfaceState(animated: true, interactive: true, {
                         $0.updatedInputTextPanelState { panelState in
                             if let videoRecorder = videoRecorder {
-                                if panelState.mediaRecordingState == nil {
+                                // A picked video opens as a finished recording: the preview panel, never the recording one.
+                                if panelState.mediaRecordingState == nil && videoRecorder.existingVideo == nil {
                                     let recordingStatus = videoRecorder.recordingStatus
                                     return panelState.withUpdatedMediaRecordingState(.video(status: .recording(InstantVideoControllerRecordingStatus(micLevel: recordingStatus.micLevel, duration: recordingStatus.duration)), isLocked: strongSelf.lockMediaRecordingRequestId == strongSelf.beginMediaRecordingRequestId))
                                 }
@@ -6778,7 +6779,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         strongSelf.chatDisplayNode.setVideoRecorder(backgroundView: videoRecorder.backgroundView)
                         strongSelf.present(videoRecorder, in: .window(.root))
                         
-                        if strongSelf.lockMediaRecordingRequestId == strongSelf.beginMediaRecordingRequestId {
+                        if strongSelf.lockMediaRecordingRequestId == strongSelf.beginMediaRecordingRequestId && videoRecorder.existingVideo == nil {
                             videoRecorder.lockVideoRecording()
                         }
                     }

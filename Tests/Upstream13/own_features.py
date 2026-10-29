@@ -632,6 +632,31 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertIn('generateImage(size, rotatedContext: { _, context in', shared)
 
 
+    def test_gallery_round_video_opens_the_round_video_screen(self):
+        gallery = read('submodules/MediaPickerUI/Sources/LegacyMediaPickerGallery.swift')
+        self.assertIn('openRoundVideoPreview: ((PHAsset, CGRect, Double, Double) -> Void)? = nil', gallery)
+        self.assertIn('openRoundVideoPreview(phAsset, normalizedCrop, adjustments.trimStartValue, adjustments.trimEndValue)', gallery)
+        picker = read('submodules/MediaPickerUI/Sources/MediaPickerScreen.swift')
+        self.assertEqual(picker.count('openRoundVideoPreview: self.controller?.openRoundVideoPreview)'), 2)
+        menu = read('submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift')
+        self.assertIn('self?.presentRoundVideoPreview(asset: asset, normalizedCrop: normalizedCrop, trimStart: trimStart, trimEnd: trimEnd)', menu)
+        recording = read('submodules/TelegramUI/Sources/Chat/ChatControllerMediaRecording.swift')
+        self.assertIn('self.requestVideoRecorder(existingVideo: video)', recording)
+        self.assertIn('return panelState.withUpdatedMediaRecordingState(nil)', recording)
+        # Nothing to record more into, and the recording panel never shows for a picked video.
+        self.assertIn('if let videoRecorderValue = self.videoRecorderValue, videoRecorderValue.existingVideo != nil {', recording)
+        chat = read('submodules/TelegramUI/Sources/ChatController.swift')
+        self.assertIn('if panelState.mediaRecordingState == nil && videoRecorder.existingVideo == nil {', chat)
+        screen = read('submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/VideoMessageCameraScreen.swift')
+        self.assertIn('guard self.existingVideo == nil, self.audioSessionReady', screen)
+        self.assertIn('self.node.addCaptureResult(.video(existingVideo))', screen)
+        # Always the video-message export on send: the picked file was only cut to a square.
+        self.assertIn('var hasAdjustments = results.count > 1 || self.existingVideo != nil', screen)
+        self.assertIn('audioSessionType = .play(mixWithOthers: false)', screen)
+        export = read('submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/RoundVideoFromExistingVideo.swift')
+        self.assertIn('videoComposition.renderSize = CGSize(width: outputSide, height: outputSide)', export)
+        self.assertIn('start + 60.0', export)
+
     def test_profile_expansion_is_off_unless_extras_turns_it_on(self):
         screen = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoScreen.swift')
         body = screen[screen.index('override public func navigationExpansionDestination'):]

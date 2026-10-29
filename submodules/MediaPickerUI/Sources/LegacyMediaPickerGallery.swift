@@ -170,7 +170,8 @@ func presentLegacyMediaPickerGallery(
     finishedTransitionIn: @escaping () -> Void,
     willTransitionOut: @escaping () -> Void,
     dismissAll: @escaping () -> Void,
-    editCover: @escaping (CGSize, @escaping (UIImage) -> Void) -> Void = { _, _ in }
+    editCover: @escaping (CGSize, @escaping (UIImage) -> Void) -> Void = { _, _ in },
+    openRoundVideoPreview: ((PHAsset, CGRect, Double, Double) -> Void)? = nil
 ) -> TGModernGalleryController {
     let reminder = peer?.id == context.account.peerId
     let hasSilentPosting = hasSilentPosting && peer?.id != context.account.peerId
@@ -448,6 +449,16 @@ func presentLegacyMediaPickerGallery(
                         // The menu entry itself is the confirmation. A second action sheet presented right after the
                         // context menu closed ended up behind the gallery window, leaving the screen unresponsive.
                         sendAsRoundVideo = {
+                            // The chat opens the round-video screen on it, as after a recording: a circle to watch,
+                            // the input panel to trim, then Send. Sending at once remains for hosts without that screen.
+                            if let openRoundVideoPreview, let phAsset = (item.asset as? TGMediaAsset)?.backingAsset, let originalSize = item.asset.originalSize, originalSize.width > 0.0, originalSize.height > 0.0 {
+                                let crop = adjustments.cropRect
+                                let normalizedCrop = CGRect(x: crop.minX / originalSize.width, y: crop.minY / originalSize.height, width: crop.width / originalSize.width, height: crop.height / originalSize.height)
+                                Logger.shared.log("RoundVideo", "gallery: open round video preview, crop=\(crop) trim=\(adjustments.trimStartValue)..\(adjustments.trimEndValue)")
+                                dismissImpl()
+                                openRoundVideoPreview(phAsset, normalizedCrop, adjustments.trimStartValue, adjustments.trimEndValue)
+                                return
+                            }
                             Logger.shared.log("RoundVideo", "gallery: send as video message, crop=\(adjustments.cropRect) trim=\(adjustments.trimStartValue)..\(adjustments.trimEndValue)")
                             editingContext.setAdjustments(adjustments, for: item.asset)
                             Logger.shared.log("RoundVideo", "gallery: adjustments applied, sending")
