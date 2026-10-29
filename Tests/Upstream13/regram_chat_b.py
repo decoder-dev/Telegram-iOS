@@ -99,7 +99,9 @@ class LocalGroupAlias(unittest.TestCase):
 class MessageBookmarksTests(unittest.TestCase):
     def test_store_and_list_screen(self):
         store = read('submodules/TelegramUIPreferences/Sources/ForkLocalChatData.swift')
-        self.assertIn('ForkExtras.messageBookmarks.\\(accountPeerId.toInt64())', store)
+        # The stored key stays "ForkExtras.messageBookmarks.<account id>", so existing bookmarks survive.
+        self.assertIn('BananaAccountListStore<ForkMessageBookmark>(keyPrefix: "ForkExtras.messageBookmarks")', store)
+        self.assertIn('return "\\(self.keyPrefix).\\(accountPeerId.toInt64())"', read('submodules/TelegramCore/Sources/Arena/BananaAccountListStore.swift'))
         self.assertIn('items.removeAll(where: { $0.identity == bookmark.identity })', store)
         screen = read('submodules/SettingsUI/Sources/ForkMessageBookmarksController.swift')
         self.assertIn('public func forkMessageBookmarksController(context: AccountContext) -> ViewController', screen)
