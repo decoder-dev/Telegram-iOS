@@ -91,7 +91,9 @@ class ExtrasRowsWrap(unittest.TestCase):
         import re
         controller = read(CONTROLLER)
         rows = re.findall(r'ItemListSwitchItem\([^\n]*', controller)
-        self.assertGreater(len(rows), 50)
+        # Most switches are one generic settingToggle row; the rest have their own builders.
+        self.assertGreater(len(rows), 5)
+        self.assertIn('case let .settingToggle(_, _, title, value, keyPath):', controller)
         for row in rows:
             self.assertIn('maximumNumberOfLines: 0', row)
 
