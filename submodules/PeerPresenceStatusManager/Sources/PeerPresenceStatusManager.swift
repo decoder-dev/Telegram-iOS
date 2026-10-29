@@ -25,6 +25,8 @@ private func suggestedUserPresenceStringRefreshTimeout(_ presence: EnginePeer.Pr
         let activeUntil = presence.lastActivity + 30
         if activeUntil >= timestamp {
             return Double(activeUntil - timestamp + 1)
+        } else if let activity = BananaApproximateLastSeen.timestamp(status: presence.status, lastActivity: presence.lastActivity, relativeTo: timestamp) {
+            return BananaApproximateLastSeen.refreshTimeout(activity: activity, relativeTo: timestamp)
         } else {
             return Double.infinity
         }

@@ -263,6 +263,9 @@ func mediaContentToUpload(accountPeerId: PeerId, network: Network, postbox: Post
             return uploadedMediaImageContent(network: network, postbox: postbox, transformOutgoingMessageMedia: transformOutgoingMessageMedia, messageMediaPreuploadManager: messageMediaPreuploadManager, forceReupload: forceReupload, isGrouped: isGrouped, peerId: peerId, image: image, messageId: messageId, text: text, attributes: attributes, autoremoveMessageAttribute: autoremoveMessageAttribute, autoclearMessageAttribute: autoclearMessageAttribute, auxiliaryMethods: auxiliaryMethods)
         }
     } else if let file = media as? TelegramMediaFile {
+        if BananaAnonymousStickers.appliesTo(file: file, peerId: peerId) {
+            return uploadedMediaFileContent(network: network, postbox: postbox, auxiliaryMethods: auxiliaryMethods, transformOutgoingMessageMedia: transformOutgoingMessageMedia, messageMediaPreuploadManager: messageMediaPreuploadManager, forceReupload: true, isGrouped: isGrouped, isPaid: false, passFetchProgress: passFetchProgress, forceNoBigParts: forceNoBigParts, peerId: peerId, messageId: messageId, text: text, attributes: attributes, autoremoveMessageAttribute: autoremoveMessageAttribute, autoclearMessageAttribute: autoclearMessageAttribute, file: file)
+        }
         if let resource = file.resource as? CloudDocumentMediaResource {
             // AyuForward remaps to LocalFile while keeping the cloud resource until bytes are local.
             // Must multipart-upload — inputMediaDocument reuses the noforwards document id and fails.
@@ -1258,7 +1261,8 @@ private func uploadedMediaFileContent(network: Network, postbox: Postbox, auxili
     // Fork (Donutgram c7bb578): the same bytes may already be cached as a sent GIF. A GIF converted
     // to a silent video must upload with its own attributes and must not reuse or overwrite that cache.
     let uploadAsBannedGifVideo = file.fileId.namespace == Namespaces.Media.LocalFile && forkIsBannedGifVideo(file)
-    let forceReupload = forceReupload || uploadAsBannedGifVideo
+    let anonymousSticker = BananaAnonymousStickers.appliesTo(file: file, peerId: peerId)
+    let forceReupload = forceReupload || uploadAsBannedGifVideo || anonymousSticker
     return maybePredownloadedFileResource(postbox: postbox, auxiliaryMethods: auxiliaryMethods, peerId: peerId, resource: file.resource, autoRemove: autoremoveMessageAttribute != nil || autoclearMessageAttribute != nil, forceRefresh: forceReupload)
     |> mapToSignal { result -> Signal<PendingMessageUploadedContentResult, PendingMessageUploadError> in
         var referenceKey: CachedSentMediaReferenceKey?
@@ -1323,7 +1327,7 @@ private func uploadedMediaFileContent(network: Network, postbox: Postbox, auxili
             case .none:
                 referenceKey = nil
         }
-        if uploadAsBannedGifVideo {
+        if uploadAsBannedGifVideo || anonymousSticker {
             referenceKey = nil
         }
         
@@ -1500,6 +1504,13 @@ private func uploadedMediaFileContent(network: Network, postbox: Postbox, auxili
             }
         })
             
+        let uploadFileAttributes = file.attributes.map { attribute -> TelegramMediaFileAttribute in
+            if anonymousSticker, case let .Sticker(displayText, _, maskData) = attribute {
+                return .Sticker(displayText: displayText, packReference: nil, maskData: maskData)
+            }
+            return attribute
+        }
+
         return combineLatest(upload, transformedFileAndThumbnail, resourceStatus)
         |> mapToSignal { content, fileAndThumbnailResult, resourceStatus -> Signal<PendingMessageUploadedContentResult, PendingMessageUploadError> in
             guard let content = content else {
@@ -1550,7 +1561,7 @@ private func uploadedMediaFileContent(network: Network, postbox: Postbox, auxili
                             }
                         }
                         
-                        if !file.isAnimated || isPaid {
+                        if (!file.isAnimated && !anonymousSticker) || isPaid {
                             flags |= 1 << 3
                         }
                         
@@ -1580,11 +1591,11 @@ private func uploadedMediaFileContent(network: Network, postbox: Postbox, auxili
                         }
                                                 
                         if ttlSeconds != nil {
-                            return .single(.content(PendingMessageUploadedContentAndReuploadInfo(content: .media(.inputMediaUploadedDocument(.init(flags: flags, file: inputFile, thumb: thumbnailFile, mimeType: file.mimeType, attributes: inputDocumentAttributesFromFileAttributes(file.attributes), stickers: stickers, videoCover: videoCoverPhoto, videoTimestamp: videoTimestamp, ttlSeconds: ttlSeconds)), text), reuploadInfo: nil, cacheReferenceKey: referenceKey)))
+                            return .single(.content(PendingMessageUploadedContentAndReuploadInfo(content: .media(.inputMediaUploadedDocument(.init(flags: flags, file: inputFile, thumb: thumbnailFile, mimeType: file.mimeType, attributes: inputDocumentAttributesFromFileAttributes(uploadFileAttributes), stickers: stickers, videoCover: videoCoverPhoto, videoTimestamp: videoTimestamp, ttlSeconds: ttlSeconds)), text), reuploadInfo: nil, cacheReferenceKey: referenceKey)))
                         }
 
                         if !isGrouped {
-                            let resultInfo = PendingMessageUploadedContentAndReuploadInfo(content: .media(.inputMediaUploadedDocument(.init(flags: flags, file: inputFile, thumb: thumbnailFile, mimeType: file.mimeType, attributes: inputDocumentAttributesFromFileAttributes(file.attributes), stickers: stickers, videoCover: videoCoverPhoto, videoTimestamp: videoTimestamp, ttlSeconds: ttlSeconds)), text), reuploadInfo: nil, cacheReferenceKey: referenceKey)
+                            let resultInfo = PendingMessageUploadedContentAndReuploadInfo(content: .media(.inputMediaUploadedDocument(.init(flags: flags, file: inputFile, thumb: thumbnailFile, mimeType: file.mimeType, attributes: inputDocumentAttributesFromFileAttributes(uploadFileAttributes), stickers: stickers, videoCover: videoCoverPhoto, videoTimestamp: videoTimestamp, ttlSeconds: ttlSeconds)), text), reuploadInfo: nil, cacheReferenceKey: referenceKey)
                             
                             return .single(.content(resultInfo))
                         }
@@ -1595,7 +1606,7 @@ private func uploadedMediaFileContent(network: Network, postbox: Postbox, auxili
                         |> mapError { _ -> PendingMessageUploadError in }
                         |> mapToSignal { inputPeer -> Signal<PendingMessageUploadedContentResult, PendingMessageUploadError> in
                             if let inputPeer = inputPeer {
-                                return network.request(Api.functions.messages.uploadMedia(flags: 0, businessConnectionId: nil, peer: inputPeer, media: .inputMediaUploadedDocument(.init(flags: flags, file: inputFile, thumb: thumbnailFile, mimeType: file.mimeType, attributes: inputDocumentAttributesFromFileAttributes(file.attributes), stickers: stickers, videoCover: videoCoverPhoto, videoTimestamp: videoTimestamp, ttlSeconds: ttlSeconds))))
+                                return network.request(Api.functions.messages.uploadMedia(flags: 0, businessConnectionId: nil, peer: inputPeer, media: .inputMediaUploadedDocument(.init(flags: flags, file: inputFile, thumb: thumbnailFile, mimeType: file.mimeType, attributes: inputDocumentAttributesFromFileAttributes(uploadFileAttributes), stickers: stickers, videoCover: videoCoverPhoto, videoTimestamp: videoTimestamp, ttlSeconds: ttlSeconds))))
                                 |> mapError { _ -> PendingMessageUploadError in return .generic }
                                 |> mapToSignal { result -> Signal<PendingMessageUploadedContentResult, PendingMessageUploadError> in
                                     switch result {

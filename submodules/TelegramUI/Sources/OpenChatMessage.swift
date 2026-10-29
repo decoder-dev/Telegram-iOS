@@ -149,7 +149,12 @@ func openChatMessageImpl(_ params: OpenChatMessageParams) -> Bool {
         }
     }
 
-    if let mediaData = chatMessageGalleryControllerData(context: params.context, chatLocation: params.chatLocation, chatFilterTag: params.chatFilterTag, chatLocationContextHolder: params.chatLocationContextHolder, message: params.message, mediaSubject: params.mediaSubject, navigationController: params.navigationController, standalone: params.standalone, reverseMessageGalleryOrder: params.reverseMessageGalleryOrder, mode: params.mode, source: params.gallerySource, synchronousLoad: false, actionInteraction: params.actionInteraction) {
+    // Fork (Donutgram): a sticker this account sent with "Send stickers anonymously" opens the set kept on this device.
+    var localStickerData: ChatMessageGalleryControllerData?
+    if let file = params.message.media.first as? TelegramMediaFile, let reference = BananaAnonymousStickers.stickerPack(accountPeerId: params.context.account.peerId, file: file) {
+        localStickerData = .stickerPack(reference, file)
+    }
+    if let mediaData = localStickerData ?? chatMessageGalleryControllerData(context: params.context, chatLocation: params.chatLocation, chatFilterTag: params.chatFilterTag, chatLocationContextHolder: params.chatLocationContextHolder, message: params.message, mediaSubject: params.mediaSubject, navigationController: params.navigationController, standalone: params.standalone, reverseMessageGalleryOrder: params.reverseMessageGalleryOrder, mode: params.mode, source: params.gallerySource, synchronousLoad: false, actionInteraction: params.actionInteraction) {
         switch mediaData {
             case let .url(url):
                 params.openUrl(url)

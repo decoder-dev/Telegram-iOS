@@ -571,6 +571,32 @@ public func stringForStoryActivityTimestamp(strings: PresentationStrings, dateTi
     }
 }
 
+/// "last seen today at ~14:22" for a person whose last seen is hidden, from the time of their latest activity
+/// this client saw (`BananaApproximateLastSeen`). The tilde says the time is not their last online.
+private func stringForApproximateLastSeen(strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, timestamp: Int32, relativeTo now: Int32) -> String {
+    var t: time_t = time_t(timestamp)
+    var timeinfo: tm = tm()
+    localtime_r(&t, &timeinfo)
+
+    var nowTime: time_t = time_t(now)
+    var timeinfoNow: tm = tm()
+    localtime_r(&nowTime, &timeinfoNow)
+
+    let time = "~" + stringForShortTimestamp(hours: timeinfo.tm_hour, minutes: timeinfo.tm_min, dateTimeFormat: dateTimeFormat)
+    if timeinfo.tm_year == timeinfoNow.tm_year {
+        let dayDifference = timeinfoNow.tm_yday - timeinfo.tm_yday
+        if dayDifference == 0 {
+            return strings.LastSeen_TodayAt(time).string
+        } else if dayDifference == 1 {
+            return strings.LastSeen_YesterdayAt(time).string
+        }
+    } else if timeinfoNow.tm_year - timeinfo.tm_year == 1 && timeinfoNow.tm_yday == 0 && timeinfo.tm_mon == 11 && timeinfo.tm_mday == 31 {
+        return strings.LastSeen_YesterdayAt(time).string
+    }
+    let day = stringForTimestamp(day: timeinfo.tm_mday, month: timeinfo.tm_mon + 1, year: timeinfo.tm_year, dateTimeFormat: dateTimeFormat)
+    return strings.LastSeen_AtDate("\(day), \(time)").string
+}
+
 public func stringAndActivityForUserPresence(strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, presence: EnginePeer.Presence, relativeTo timestamp: Int32, expanded: Bool = false) -> (String, Bool) {
     // "Relative last seen" turns the profile's exact time back into "5 minutes ago"; "exact last
     // seen" still wins when both are on.
@@ -623,6 +649,8 @@ public func stringAndActivityForUserPresence(strings: PresentationStrings, dateT
         let activeUntil = presence.lastActivity + 30
         if activeUntil >= timestamp {
             return (strings.Presence_online, true)
+        } else if let activity = BananaApproximateLastSeen.timestamp(status: presence.status, lastActivity: presence.lastActivity, relativeTo: timestamp) {
+            return (stringForApproximateLastSeen(strings: strings, dateTimeFormat: dateTimeFormat, timestamp: activity, relativeTo: timestamp), false)
         } else {
             return (strings.LastSeen_Lately, false)
         }
@@ -678,6 +706,8 @@ public func userPresenceStringRefreshTimeout(_ presence: TelegramUserPresence, r
         let activeUntil = presence.lastActivity + 30
         if activeUntil >= timestamp {
             return Double(activeUntil - timestamp + 1)
+        } else if let activity = BananaApproximateLastSeen.timestamp(status: EnginePeer.Presence(presence).status, lastActivity: presence.lastActivity, relativeTo: timestamp) {
+            return BananaApproximateLastSeen.refreshTimeout(activity: activity, relativeTo: timestamp)
         } else {
             return Double.infinity
         }

@@ -210,6 +210,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideStickerChecks: Bool
     public var mentionAvatars: Bool
     public var relativeLastSeen: Bool
+    /// Fork (Donutgram): a person who hides their last seen shows the time of their latest activity, `last seen at ~14:22`.
+    public var approximateLastSeen: Bool
+    /// Fork (Donutgram): a sticker goes out without the reference to its set, so the recipient cannot open the set.
+    public var anonymousStickers: Bool
     public var disableCustomBackgrounds: Bool
     public var channelBottomDiscuss: Bool
     public var hideChannelBottomButton: Bool
@@ -610,6 +614,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideStickerChecks = false
         self.mentionAvatars = false
         self.relativeLastSeen = false
+        self.approximateLastSeen = false
+        self.anonymousStickers = false
         self.disableCustomBackgrounds = false
         self.channelBottomDiscuss = false
         self.hideChannelBottomButton = false
@@ -795,6 +801,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideStickerChecks = try container.decodeIfPresent(Bool.self, forKey: "hideStickerChecks") ?? false
         self.mentionAvatars = try container.decodeIfPresent(Bool.self, forKey: "mentionAvatars") ?? false
         self.relativeLastSeen = try container.decodeIfPresent(Bool.self, forKey: "relativeLastSeen") ?? false
+        self.approximateLastSeen = try container.decodeIfPresent(Bool.self, forKey: "approximateLastSeen") ?? false
+        self.anonymousStickers = try container.decodeIfPresent(Bool.self, forKey: "anonymousStickers") ?? false
         self.disableCustomBackgrounds = try container.decodeIfPresent(Bool.self, forKey: "disableCustomBackgrounds") ?? false
         self.channelBottomDiscuss = try container.decodeIfPresent(Bool.self, forKey: "channelBottomDiscuss") ?? false
         self.hideChannelBottomButton = try container.decodeIfPresent(Bool.self, forKey: "hideChannelBottomButton") ?? false
@@ -977,6 +985,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hideStickerChecks, forKey: "hideStickerChecks")
         try container.encode(self.mentionAvatars, forKey: "mentionAvatars")
         try container.encode(self.relativeLastSeen, forKey: "relativeLastSeen")
+        try container.encode(self.approximateLastSeen, forKey: "approximateLastSeen")
+        try container.encode(self.anonymousStickers, forKey: "anonymousStickers")
         try container.encode(self.disableCustomBackgrounds, forKey: "disableCustomBackgrounds")
         try container.encode(self.channelBottomDiscuss, forKey: "channelBottomDiscuss")
         try container.encode(self.hideChannelBottomButton, forKey: "hideChannelBottomButton")
