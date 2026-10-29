@@ -883,7 +883,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [55, 56, 1551, 1714, 2020, 1552, 1543, 58],
             [1739, 1731, 1732, 1730, 1733, 1734, 1980, 1981],
             [1740, 1736, 1737, 1738],
-            [1603, 1500, 1501, 1541, 57],
+            [1603, 1500, 1501, 1541, 2022, 57],
             [1604, 140, 141]
         ]),
         (.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]]),
@@ -2133,6 +2133,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
             .appearanceToggle(1501, ForkExtrasLocalizedString.string(forKey: "ForkExtras.ReactionGlow"), settings.reactionGlowEnabled, \.reactionGlowEnabled),
             .appearanceToggle(1541, russian ? "Снег" : "Snow", settings.snowEnabled, \.snowEnabled),
+            .appearanceToggle(2022, russian ? "Профиль раскрывается из шапки чата" : "Profile expands out of the chat header", settings.profileExpansionAnimation, \.profileExpansionAnimation),
             .accentSaturation(settings.accentColorSaturation),
             .designHeader(1604, russian ? "Локальные функции Premium" : "Local Premium features"),
             .localPremium(settings.localPremium),

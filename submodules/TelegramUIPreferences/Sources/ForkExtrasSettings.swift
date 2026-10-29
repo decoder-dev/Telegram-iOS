@@ -214,6 +214,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var approximateLastSeen: Bool
     /// Fork (Donutgram): a sticker goes out without the reference to its set, so the recipient cannot open the set.
     public var anonymousStickers: Bool
+    /// The profile grows out of the chat's header when opened from it (Telegram 13.1.1's expansion). Off: the plain slide.
+    public var profileExpansionAnimation: Bool
     public var disableCustomBackgrounds: Bool
     public var channelBottomDiscuss: Bool
     public var hideChannelBottomButton: Bool
@@ -616,6 +618,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.relativeLastSeen = false
         self.approximateLastSeen = false
         self.anonymousStickers = false
+        self.profileExpansionAnimation = false
         self.disableCustomBackgrounds = false
         self.channelBottomDiscuss = false
         self.hideChannelBottomButton = false
@@ -803,6 +806,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.relativeLastSeen = try container.decodeIfPresent(Bool.self, forKey: "relativeLastSeen") ?? false
         self.approximateLastSeen = try container.decodeIfPresent(Bool.self, forKey: "approximateLastSeen") ?? false
         self.anonymousStickers = try container.decodeIfPresent(Bool.self, forKey: "anonymousStickers") ?? false
+        self.profileExpansionAnimation = try container.decodeIfPresent(Bool.self, forKey: "profileExpansionAnimation") ?? false
         self.disableCustomBackgrounds = try container.decodeIfPresent(Bool.self, forKey: "disableCustomBackgrounds") ?? false
         self.channelBottomDiscuss = try container.decodeIfPresent(Bool.self, forKey: "channelBottomDiscuss") ?? false
         self.hideChannelBottomButton = try container.decodeIfPresent(Bool.self, forKey: "hideChannelBottomButton") ?? false
@@ -987,6 +991,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.relativeLastSeen, forKey: "relativeLastSeen")
         try container.encode(self.approximateLastSeen, forKey: "approximateLastSeen")
         try container.encode(self.anonymousStickers, forKey: "anonymousStickers")
+        try container.encode(self.profileExpansionAnimation, forKey: "profileExpansionAnimation")
         try container.encode(self.disableCustomBackgrounds, forKey: "disableCustomBackgrounds")
         try container.encode(self.channelBottomDiscuss, forKey: "channelBottomDiscuss")
         try container.encode(self.hideChannelBottomButton, forKey: "hideChannelBottomButton")

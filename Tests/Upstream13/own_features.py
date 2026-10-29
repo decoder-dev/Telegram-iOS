@@ -632,10 +632,28 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertIn('generateImage(size, rotatedContext: { _, context in', shared)
 
 
+    def test_profile_expansion_is_off_unless_extras_turns_it_on(self):
+        screen = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoScreen.swift')
+        body = screen[screen.index('override public func navigationExpansionDestination'):]
+        body = body[:body.index('\n    }\n')]
+        self.assertIn('guard self.context.sharedContext.immediateForkExtrasSettings.profileExpansionAnimation else {', body)
+        settings = read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift')
+        self.assertIn('self.profileExpansionAnimation = false', settings)
+        self.assertIn('decodeIfPresent(Bool.self, forKey: "profileExpansionAnimation") ?? false', settings)
+        self.assertIn('try container.encode(self.profileExpansionAnimation, forKey: "profileExpansionAnimation")', settings)
+        controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
+        self.assertEqual(controller.count('.appearanceToggle(2022,'), 1)
+
     def test_profile_title_leaves_room_for_the_right_buttons(self):
         header = read('submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoHeaderNode.swift')
         self.assertIn('trailingIconsWidth', header)
-        self.assertIn('width - rightButtonsReserve * 2.0 - trailingIconsWidth', header)
+        # Only the collapsed title sits between the pills, drawn at the bar's scale: the full-size name under the
+        # avatar (and the username line sharing its width) must not be cut to the bar's gap.
+        self.assertIn('let collapsedWidthLimit = (width - rightButtonsReserve * 2.0) / peerInfoCollapsedTitleScale - trailingIconsWidth', header)
+        self.assertIn('let titleMinScale: CGFloat = peerInfoCollapsedTitleScale', header)
+        # Settings on a 393 pt phone: two pills and an emoji status leave the full-size name ~200 pt, not ~110.
+        reserve = 16.0 + 2 * 52.0 + 8.0
+        self.assertGreater((393.0 - reserve * 2.0) / 0.6 - 28.0, 190.0)
 
 
     def test_wallet_state_retry_backs_off(self):
@@ -652,7 +670,7 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertIn('?? false', settings[settings.index('decodeIfPresent(Bool.self, forKey: "snowEnabled")'):][:120])
         controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
         self.assertIn('.appearanceToggle(1541,', controller)
-        self.assertIn('[1603, 1500, 1501, 1541, 57]', controller)
+        self.assertIn('[1603, 1500, 1501, 1541, 2022, 57]', controller)
         self.assertIn('[1508, 1509, 1735, 54, 1521, 1550, 1519]', controller)
         self.assertIn('hideStickerStatus', read('submodules/TelegramUI/Components/Chat/ChatMessageStickerItemNode/Sources/ChatMessageStickerItemNode.swift') .replace('ForkExtrasHotFlags.hideStickerStatus','hideStickerStatus'))
         # The stable id must stay unique: 1540 is the Appearance hub.

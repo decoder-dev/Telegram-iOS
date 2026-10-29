@@ -7346,6 +7346,10 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         guard self.isNodeLoaded else {
             return nil
         }
+        // Fork: the profile slides in like every other screen unless Extras turns the expansion back on.
+        guard self.context.sharedContext.immediateForkExtrasSettings.profileExpansionAnimation else {
+            return nil
+        }
         let node = self.controllerNode
         guard peerInfoExpansionAllowed(isOpenedFromChat: self.isOpenedFromChat, isSettings: self.isSettings, scrollOffset: node.scrollNode.view.contentOffset.y, isEditing: node.state.isEditing, isSearching: node.searchDisplayController != nil) else {
             return nil
