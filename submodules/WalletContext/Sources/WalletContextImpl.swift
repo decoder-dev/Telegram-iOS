@@ -140,6 +140,10 @@ actor WalletContextImpl {
     /// not asked every five seconds for as long as the app is open.
     var serverStateRetryFailureCount = 0
     var serverStateLastFailureTimestamp: CFAbsoluteTime = 0.0
+    /// Where the last refusal of the server state is kept across launches. A device log shows the app relaunched
+    /// several times an hour, each launch starting the backoff again from 20 s for both accounts while the server
+    /// answered every request with the same 400.
+    let serverStateRefusalDefaultsKey: String
             
     var pollingTask: Task<Void, Never>?
     var pollingTaskId: UUID?
@@ -223,7 +227,28 @@ actor WalletContextImpl {
         self.runtime = WalletEngineRuntime(engine: engine, storage: storage, logger: logger)
         self.storedStateWriter = WalletStoredStateWriter(engine: engine)
         self.streamingURLProvider = WalletStreamingURLProvider(engine: engine, logger: logger)
+        let refusalDefaultsKey = "wallet.serverStateRefusedAt.\(storageNamespace)"
+        self.serverStateRefusalDefaultsKey = refusalDefaultsKey
+        let refusedAt = UserDefaults.standard.double(forKey: refusalDefaultsKey)
+        if refusedAt > 0.0, CFAbsoluteTimeGetCurrent() - refusedAt < WalletContextImpl.serverStateRefusalMemory {
+            self.serverStateRetryFailureCount = WalletContextImpl.serverStateMaximumFailureCount
+            self.serverStateLastFailureTimestamp = refusedAt
+        }
         self.currentState = initialState
+    }
+
+    /// The failure count the backoff stops growing at.
+    static let serverStateMaximumFailureCount = 6
+    /// How long a remembered refusal holds the next launch back.
+    static let serverStateRefusalMemory: CFAbsoluteTime = 15.0 * 60.0
+
+    /// A request the server answered and refused (4xx: no wallet for this account, the method unavailable, a flood
+    /// wait) will be refused again; only a network failure is worth retrying soon.
+    static func isServerStateRefusal(_ error: Error) -> Bool {
+        guard case let .requestFailed(code, _)? = error as? WalletGetStateError else {
+            return false
+        }
+        return code >= 400 && code < 500
     }
 
     func shutdown() async {
@@ -604,6 +629,7 @@ actor WalletContextImpl {
             self.serverStateRetryTask?.cancel()
             self.serverStateRetryTask = nil
             self.serverStateRetryFailureCount = 0
+            UserDefaults.standard.removeObject(forKey: self.serverStateRefusalDefaultsKey)
             self.applyServerWalletState(value, forceActivation: promotedReplacement, balanceOverlayRevision: balanceOverlayRevision)
         } catch is CancellationError {
         } catch {
@@ -622,8 +648,14 @@ actor WalletContextImpl {
                     activeOperation: self.currentState.activeOperation
                 )
             }
-            self.serverStateRetryFailureCount = min(self.serverStateRetryFailureCount + 1, 6)
-            self.serverStateLastFailureTimestamp = CFAbsoluteTimeGetCurrent()
+            let failedAt = CFAbsoluteTimeGetCurrent()
+            if WalletContextImpl.isServerStateRefusal(error) {
+                self.serverStateRetryFailureCount = WalletContextImpl.serverStateMaximumFailureCount
+                UserDefaults.standard.set(failedAt, forKey: self.serverStateRefusalDefaultsKey)
+            } else {
+                self.serverStateRetryFailureCount = min(self.serverStateRetryFailureCount + 1, WalletContextImpl.serverStateMaximumFailureCount)
+            }
+            self.serverStateLastFailureTimestamp = failedAt
             self.scheduleServerStateRetry()
         }
     }
