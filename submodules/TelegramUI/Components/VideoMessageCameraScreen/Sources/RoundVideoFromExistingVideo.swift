@@ -83,8 +83,10 @@ public func roundVideoCaptureResult(asset: AVAsset, normalizedCrop: CGRect, trim
         exportSession.timeRange = timeRange
         exportSession.videoComposition = videoComposition
 
+        Logger.shared.log("RoundVideo", "export: display=\(displaySize) crop=\(crop) side=\(outputSide) range=\(start)..\(end) fps=\(frameRate)")
         exportSession.exportAsynchronously {
             guard exportSession.status == .completed else {
+                Logger.shared.log("RoundVideo", "export failed: status=\(exportSession.status.rawValue) error=\(String(describing: exportSession.error))")
                 try? FileManager.default.removeItem(at: outputUrl)
                 subscriber.putNext(nil)
                 subscriber.putCompletion()
