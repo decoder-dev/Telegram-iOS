@@ -159,41 +159,29 @@ public struct ForkMessageBookmark: Codable, Equatable {
 }
 
 public enum ForkMessageBookmarks {
-    private static func key(accountPeerId: EnginePeer.Id) -> String {
-        return "ForkExtras.messageBookmarks.\(accountPeerId.toInt64())"
-    }
+    private static let store = BananaAccountListStore<ForkMessageBookmark>(keyPrefix: "ForkExtras.messageBookmarks")
 
     /// Newest bookmark first.
     public static func all(accountPeerId: EnginePeer.Id) -> [ForkMessageBookmark] {
-        guard let data = UserDefaults.standard.data(forKey: key(accountPeerId: accountPeerId)),
-              let items = try? JSONDecoder().decode([ForkMessageBookmark].self, from: data) else {
-            return []
-        }
-        return items
-    }
-
-    private static func store(_ items: [ForkMessageBookmark], accountPeerId: EnginePeer.Id) {
-        if let data = try? JSONEncoder().encode(items) {
-            UserDefaults.standard.set(data, forKey: key(accountPeerId: accountPeerId))
-        }
+        return self.store.items(accountPeerId: accountPeerId)
     }
 
     public static func find(accountPeerId: EnginePeer.Id, peerId: Int64, messageNamespace: Int32, messageId: Int32) -> ForkMessageBookmark? {
-        return all(accountPeerId: accountPeerId).first(where: { $0.peerId == peerId && $0.messageNamespace == messageNamespace && $0.messageId == messageId })
+        return self.all(accountPeerId: accountPeerId).first(where: { $0.peerId == peerId && $0.messageNamespace == messageNamespace && $0.messageId == messageId })
     }
 
     /// Adds, or replaces the tags and snippet of, the bookmark for the same message.
     public static func upsert(accountPeerId: EnginePeer.Id, _ bookmark: ForkMessageBookmark) {
-        var items = all(accountPeerId: accountPeerId)
-        items.removeAll(where: { $0.identity == bookmark.identity })
-        items.insert(bookmark, at: 0)
-        store(items, accountPeerId: accountPeerId)
+        self.store.update(accountPeerId: accountPeerId) { items in
+            items.removeAll(where: { $0.identity == bookmark.identity })
+            items.insert(bookmark, at: 0)
+        }
     }
 
     public static func remove(accountPeerId: EnginePeer.Id, identity: String) {
-        var items = all(accountPeerId: accountPeerId)
-        items.removeAll(where: { $0.identity == identity })
-        store(items, accountPeerId: accountPeerId)
+        self.store.update(accountPeerId: accountPeerId) { items in
+            items.removeAll(where: { $0.identity == identity })
+        }
     }
 
     /// Splits "a, b；c" style input into trimmed, unique, non-empty tags.
