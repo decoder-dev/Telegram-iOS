@@ -148,7 +148,8 @@ extension ChatControllerImpl {
         }
     }
     
-    func requestVideoRecorder(existingVideo: VideoMessageCameraScreen.CaptureResult.Video? = nil) {
+    @discardableResult
+    func requestVideoRecorder(existingVideo: VideoMessageCameraScreen.CaptureResult.Video? = nil) -> VideoMessageCameraScreen? {
         if self.videoRecorderValue == nil {
             if let currentInputPanelFrame = self.chatDisplayNode.currentInputPanelFrame() {
                 if self.recorderFeedback == nil {
@@ -245,41 +246,67 @@ extension ChatControllerImpl {
                     self.resumeMediaRecorder()
                 }
                 self.videoRecorder.set(.single(controller))
+                return controller
             }
         }
+        return nil
     }
     
-    /// Fork: "Send as round video" from the gallery. The video is cut to a square and opened in the round-video screen
-    /// as if it had just been recorded: the circle plays it, the input panel trims it, Send sends it as a video message.
-    func presentRoundVideoPreview(asset: PHAsset, normalizedCrop: CGRect, trimStart: Double, trimEnd: Double) {
-        guard self.videoRecorderValue == nil else {
-            return
-        }
-        // The attachment menu stays up when its gallery closes, and the round-video screen lives under it, in the
-        // chat (its blur and the trimming panel are the chat's): it has to go first.
-        if let attachmentController = self.attachmentController {
-            // A menu already on its way out ignores a second dismiss and never calls back, hence the fallback.
-            var began = false
-            // A strong self, not [weak self]: Swift 6.4 miscompiles a weak capture beside a captured var (CLAUDE.md).
-            let begin: () -> Void = { [self] in
-                guard !began else {
-                    return
-                }
-                began = true
-                self.beginRoundVideoPreview(asset: asset, normalizedCrop: normalizedCrop, trimStart: trimStart, trimEnd: trimEnd)
+    /// The input panel's preview of a finished video recording (play, trim, delete, send), as when a recording stops.
+    private func showVideoRecordingPreview(_ data: VideoMessageCameraScreen.RecordedVideoData) {
+        self.updateChatPresentationInterfaceState(animated: true, interactive: true, {
+            $0.updatedInterfaceState {
+                $0.withUpdatedMediaDraftState(.video(
+                    ChatInterfaceMediaDraftState.Video(
+                        duration: data.duration,
+                        frames: data.frames,
+                        framesUpdateTimestamp: data.framesUpdateTimestamp,
+                        trimRange: data.trimRange
+                    )
+                ))
+            }.updatedInputTextPanelState { panelState in
+                return panelState.withUpdatedMediaRecordingState(nil)
             }
-            attachmentController.dismiss(animated: true, completion: begin)
-            Queue.mainQueue().after(0.6, begin)
-        } else {
-            self.beginRoundVideoPreview(asset: asset, normalizedCrop: normalizedCrop, trimStart: trimStart, trimEnd: trimEnd)
-        }
+        })
+        self.recorderFeedback = nil
+        self.updateDownButtonVisibility()
     }
 
-    private func beginRoundVideoPreview(asset: PHAsset, normalizedCrop: CGRect, trimStart: Double, trimEnd: Double) {
+    /// Fork: "Send as round video" from the gallery. The video is cut to the camera's square and opened in the
+    /// round-video screen as a recording that has just stopped: the circle plays it, the input panel trims it, Send
+    /// sends it through the screen's own video-message export.
+    ///
+    /// The screen and its panel are the chat's, under the attachment menu, so the menu is closed first; the video is
+    /// prepared meanwhile. A menu already on its way out never calls back, so its closing is assumed after 0.6 s.
+    func presentRoundVideoPreview(_ request: MediaPickerRoundVideoRequest) {
         guard self.videoRecorderValue == nil else {
             return
         }
-        Logger.shared.log("RoundVideo", "preview: preparing, crop=\(normalizedCrop) trim=\(trimStart)..\(trimEnd)")
+        Logger.shared.log("RoundVideo", "preview: preparing, crop=\(request.normalizedCrop) trim=\(request.trimRange)")
+
+        let menuClosed: Signal<Void, NoError>
+        if let attachmentController = self.attachmentController {
+            menuClosed = Signal<Void, NoError> { subscriber in
+                attachmentController.dismiss(animated: true, completion: {
+                    subscriber.putNext(Void())
+                    subscriber.putCompletion()
+                })
+                return EmptyDisposable
+            }
+            |> timeout(0.6, queue: Queue.mainQueue(), alternate: .single(Void()))
+        } else {
+            menuClosed = .single(Void())
+        }
+
+        let video: Signal<VideoMessageCameraScreen.CaptureResult.Video, RoundVideoPreparationError> = roundVideoSourceAsset(request.asset)
+        |> castError(RoundVideoPreparationError.self)
+        |> mapToSignal { asset -> Signal<VideoMessageCameraScreen.CaptureResult.Video, RoundVideoPreparationError> in
+            guard let asset else {
+                return .fail(.noVideoTrack)
+            }
+            return prepareRoundVideo(asset: asset, normalizedCrop: request.normalizedCrop, trimRange: request.trimRange)
+        }
+
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
         // Cancellable: a video still in iCloud downloads first and can take a while.
         let statusController = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: { [weak self] in
@@ -288,67 +315,32 @@ extension ChatControllerImpl {
         }))
         self.present(statusController, in: .window(.root))
 
-        let avAsset = Signal<AVAsset?, NoError> { subscriber in
-            let options = PHVideoRequestOptions()
-            options.isNetworkAccessAllowed = true
-            options.deliveryMode = .highQualityFormat
-            let requestId = PHImageManager.default().requestAVAsset(forVideo: asset, options: options, resultHandler: { avAsset, _, _ in
-                subscriber.putNext(avAsset)
-                subscriber.putCompletion()
-            })
-            return ActionDisposable {
-                PHImageManager.default().cancelImageRequest(requestId)
-            }
-        }
-        let prepared: Signal<VideoMessageCameraScreen.CaptureResult.Video?, NoError> = avAsset
-        |> mapToSignal { avAsset -> Signal<VideoMessageCameraScreen.CaptureResult.Video?, NoError> in
-            guard let avAsset else {
-                return .single(nil)
-            }
-            return roundVideoCaptureResult(asset: avAsset, normalizedCrop: normalizedCrop, trimStart: trimStart, trimEnd: trimEnd)
-        }
-        self.recorderDataDisposable.set((prepared
-        |> deliverOnMainQueue).startStrict(next: { [weak self, weak statusController] video in
+        self.recorderDataDisposable.set((combineLatest(menuClosed |> castError(RoundVideoPreparationError.self), video)
+        |> take(1)
+        |> deliverOnMainQueue).startStrict(next: { [weak self, weak statusController] _, video in
             statusController?.dismiss()
-            guard let self else {
-                return
-            }
-            guard let video, video.duration >= 1.0, self.videoRecorderValue == nil else {
-                Logger.shared.log("RoundVideo", "preview: could not prepare the video")
-                if self.videoRecorderValue == nil {
-                    let isRussian = presentationData.strings.primaryComponent.languageCode.hasPrefix("ru")
-                    let text = isRussian ? "Не удалось сделать кружок из этого видео." : "Couldn't make a round video from this video."
-                    self.present(textAlertController(context: self.context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
-                }
+            guard let self, self.videoRecorderValue == nil else {
                 return
             }
             Logger.shared.log("RoundVideo", "preview: ready, \(video.dimensions.width)x\(video.dimensions.height) \(video.duration)s")
-            self.requestVideoRecorder(existingVideo: video)
-            guard let videoRecorderValue = self.videoRecorderValue, videoRecorderValue.existingVideo != nil else {
+            guard let videoRecorder = self.requestVideoRecorder(existingVideo: video) else {
                 return
             }
-            self.recorderDataDisposable.set((videoRecorderValue.takenRecordedData()
+            self.recorderDataDisposable.set((videoRecorder.takenRecordedData()
             |> deliverOnMainQueue).startStrict(next: { [weak self] data in
-                guard let self, let data else {
-                    return
+                if let self, let data {
+                    self.showVideoRecordingPreview(data)
                 }
-                self.updateChatPresentationInterfaceState(animated: true, interactive: true, {
-                    $0.updatedInterfaceState {
-                        $0.withUpdatedMediaDraftState(.video(
-                            ChatInterfaceMediaDraftState.Video(
-                                duration: data.duration,
-                                frames: data.frames,
-                                framesUpdateTimestamp: data.framesUpdateTimestamp,
-                                trimRange: data.trimRange
-                            )
-                        ))
-                    }.updatedInputTextPanelState { panelState in
-                        return panelState.withUpdatedMediaRecordingState(nil)
-                    }
-                })
-                self.recorderFeedback = nil
-                self.updateDownButtonVisibility()
             }))
+        }, error: { [weak self, weak statusController] error in
+            statusController?.dismiss()
+            Logger.shared.log("RoundVideo", "preview: could not prepare the video: \(error)")
+            guard let self else {
+                return
+            }
+            let isRussian = presentationData.strings.primaryComponent.languageCode.hasPrefix("ru")
+            let text = isRussian ? "Не удалось сделать кружок из этого видео." : "Couldn't make a round video from this video."
+            self.present(textAlertController(context: self.context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
         }))
     }
 
@@ -542,22 +534,7 @@ extension ChatControllerImpl {
                                     strongSelf.recorderDataDisposable.set(nil)
                                     strongSelf.videoRecorder.set(.single(nil))
                                 } else {
-                                    strongSelf.updateChatPresentationInterfaceState(animated: true, interactive: true, {
-                                        $0.updatedInterfaceState {
-                                            $0.withUpdatedMediaDraftState(.video(
-                                                ChatInterfaceMediaDraftState.Video(
-                                                    duration: data.duration,
-                                                    frames: data.frames,
-                                                    framesUpdateTimestamp: data.framesUpdateTimestamp,
-                                                    trimRange: data.trimRange
-                                                )
-                                            ))
-                                        }.updatedInputTextPanelState { panelState in
-                                            return panelState.withUpdatedMediaRecordingState(nil)
-                                        }
-                                    })
-                                    strongSelf.recorderFeedback = nil
-                                    strongSelf.updateDownButtonVisibility()
+                                    strongSelf.showVideoRecordingPreview(data)
                                 }
                             }
                         }))
@@ -885,6 +862,22 @@ extension ChatControllerImpl {
                 return
             }
             videoRecorderValue.sendVideoRecording(silentPosting: silentPosting, scheduleTime: scheduleTime, repeatPeriod: repeatPeriod, messageEffect: messageEffect)
+        }
+    }
+}
+
+/// The playable video of a gallery asset; a video kept only in iCloud is downloaded first. Nil when there is none.
+private func roundVideoSourceAsset(_ asset: PHAsset) -> Signal<AVAsset?, NoError> {
+    return Signal { subscriber in
+        let options = PHVideoRequestOptions()
+        options.isNetworkAccessAllowed = true
+        options.deliveryMode = .highQualityFormat
+        let requestId = PHImageManager.default().requestAVAsset(forVideo: asset, options: options, resultHandler: { avAsset, _, _ in
+            subscriber.putNext(avAsset)
+            subscriber.putCompletion()
+        })
+        return ActionDisposable {
+            PHImageManager.default().cancelImageRequest(requestId)
         }
     }
 }

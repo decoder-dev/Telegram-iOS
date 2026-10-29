@@ -85,6 +85,7 @@ def swift_tests():
     prefs = declaration("submodules/TelegramUIPreferences/Sources/MediaInputSettings.swift", "public struct MediaInputSettings:")
     key = read("submodules/TelegramCore/Sources/TelegramEngine/Utils/StringCodingKey.swift")
     geometry = declaration("submodules/MediaPickerUI/Sources/LegacyMediaPickerGallery.swift", "func bananaRoundVideoGeometry(")
+    export_geometry = declaration("submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/RoundVideoFromExistingVideo.swift", "public struct RoundVideoExportGeometry:")
     parser = declaration("submodules/SettingsUI/Sources/BananaSettingsLinks.swift", "func bananaSettingsLinkTarget(")
     page = declaration("submodules/SettingsUI/Sources/BananaSettingsLinks.swift", "func bananaSettingsPage(")
     fixture = r'''
@@ -134,11 +135,28 @@ for invalid in [Double.nan, .infinity, -.infinity] {
 precondition(bananaRoundVideoGeometry(size: CGSize(width: 10, height: 10), crop: nil, duration: 30, trimStart: 0, trimEnd: 0) == nil)
 precondition(bananaRoundVideoGeometry(size: CGSize(width: 100, height: 100), crop: CGRect(x: 500, y: 500, width: 100, height: 100), duration: 30, trimStart: 0, trimEnd: 0) == nil)
 precondition(bananaRoundVideoGeometry(size: CGSize(width: 100, height: 100), crop: nil, duration: 30, trimStart: 35, trimEnd: 0) == nil)
+// A picked video's square, side and trim, as the round-video screen receives it.
+let portrait = RoundVideoExportGeometry(displaySize: CGSize(width: 1080, height: 1920), normalizedCrop: CGRect(x: 0, y: 420.0 / 1920.0, width: 1, height: 1080.0 / 1920.0), duration: 120, trimRange: 10 ..< 100)!
+precondition(portrait.crop == CGRect(x: 0, y: 420, width: 1080, height: 1080))
+precondition(portrait.outputSide == 480 && portrait.timeRange == 10 ..< 70)
+// The track is stored landscape and turned upright by its preferred transform: the crop's corners land on the square's.
+let upright = CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 1080, ty: 0)
+let toSquare = portrait.layerTransform(preferredTransform: upright)
+precondition(CGPoint(x: 420, y: 1080).applying(toSquare) == CGPoint(x: 0, y: 0))
+let farCorner = CGPoint(x: 1500, y: 0).applying(toSquare)
+precondition(abs(farCorner.x - 480) < 0.001 && abs(farCorner.y - 480) < 0.001)
+let small = RoundVideoExportGeometry(displaySize: CGSize(width: 100, height: 100), normalizedCrop: CGRect(x: 0, y: 0, width: 1, height: 1), duration: 5, trimRange: nil)!
+precondition(small.outputSide == 96 && small.timeRange == 0 ..< 5)
+let outside = RoundVideoExportGeometry(displaySize: CGSize(width: 1920, height: 1080), normalizedCrop: CGRect(x: 2, y: 2, width: 1, height: 1), duration: 200, trimRange: nil)!
+precondition(outside.crop == CGRect(x: 420, y: 0, width: 1080, height: 1080) && outside.timeRange == 0 ..< 60)
+precondition(RoundVideoExportGeometry(displaySize: CGSize(width: 10, height: 10), normalizedCrop: CGRect(x: 0, y: 0, width: 1, height: 1), duration: 5, trimRange: nil) == nil)
+precondition(RoundVideoExportGeometry(displaySize: CGSize(width: 100, height: 100), normalizedCrop: CGRect(x: 0, y: 0, width: 1, height: 1), duration: .nan, trimRange: nil) == nil)
+precondition(RoundVideoExportGeometry(displaySize: CGSize(width: 100, height: 100), normalizedCrop: CGRect(x: 0, y: 0, width: 1, height: 1), duration: 30, trimRange: 35 ..< 40) == nil)
 print("Audio settings migration/round trips, navigation-only links, round video crops/trims passed")
 '''
     with tempfile.TemporaryDirectory(prefix="banana-additions-") as tmp:
         path = pathlib.Path(tmp) / "main.swift"
-        path.write_text("\n\n".join([fixture, key, prefs, geometry, parser, page, tests]), encoding="utf-8")
+        path.write_text("\n\n".join([fixture, key, prefs, geometry, export_geometry, parser, page, tests]), encoding="utf-8")
         subprocess.run(["swift", str(path)], check=True)
         for source in [
             "submodules/SettingsUI/Sources/BananaSettingsLinks.swift",
