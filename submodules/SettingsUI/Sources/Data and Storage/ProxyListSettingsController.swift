@@ -429,7 +429,6 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
     let autoFetchTitle: String
     let autoFetchInfo: String
     let preferRussian = ForkPresentationLanguage.prefersRussianStrings
-        || strings.primaryComponent.languageCode.hasPrefix("ru")
     if preferRussian {
         useLocalDNSTitle = "Локальный DNS для прокси"
         useLocalDNSInfo = "Резолвить домен прокси через системный DNS вместо Google DoH (быстрее, если DoH недоступен)."
@@ -865,7 +864,6 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         }
         let presentationData = sharedContext.currentPresentationData.with { $0 }
         let preferRussian = ForkPresentationLanguage.prefersRussianStrings
-            || presentationData.strings.primaryComponent.languageCode.hasPrefix("ru")
         let _ = (proxySettings.get()
         |> take(1)
         |> deliverOnMainQueue).start(next: { settings in

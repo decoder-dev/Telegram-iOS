@@ -4635,7 +4635,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 guard !selected.isEmpty else {
                     break
                 }
-                let isRussian = self.presentationData.strings.baseLanguageCode.hasPrefix("ru")
+                let isRussian = ForkPresentationLanguage.prefersRussianStrings
                 let _ = (updateForkExtrasSettingsInteractively(accountManager: self.context.sharedContext.accountManager) { current in
                     return current.appendingRegexFilterPattern(fromSelectedText: selected).settings
                 }

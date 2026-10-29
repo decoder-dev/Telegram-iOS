@@ -338,7 +338,7 @@ extension ChatControllerImpl {
             guard let self else {
                 return
             }
-            let isRussian = presentationData.strings.primaryComponent.languageCode.hasPrefix("ru")
+            let isRussian = ForkPresentationLanguage.prefersRussianStrings
             let text = isRussian ? "Не удалось сделать кружок из этого видео." : "Couldn't make a round video from this video."
             self.present(textAlertController(context: self.context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
         }))

@@ -5,6 +5,7 @@ import Display
 import ItemListUI
 import SwiftSignalKit
 import TelegramPresentationData
+import TelegramUIPreferences
 import AccountContext
 import ComponentFlow
 import ComponentDisplayAdapters
@@ -138,7 +139,7 @@ private final class BananaTabBarPreviewItemNode: ListViewItemNode, ItemListItemN
             ComponentTransition(transition).setAlpha(view: tabBarView, alpha: item.layout.hidden ? 0.0 : 1.0)
             tabBarView.accessibilityElementsHidden = true
         }
-        self.hiddenLabel.text = item.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Панель вкладок скрыта" : "Tab bar hidden"
+        self.hiddenLabel.text = ForkPresentationLanguage.prefersRussianStrings ? "Панель вкладок скрыта" : "Tab bar hidden"
         self.hiddenLabel.textColor = item.theme.list.itemSecondaryTextColor
         transition.updateFrame(view: self.hiddenLabel, frame: CGRect(x: 20.0, y: 24.0, width: max(1.0, width - 40.0), height: 64.0))
         ComponentTransition(transition).setAlpha(view: self.hiddenLabel, alpha: item.layout.hidden ? 1.0 : 0.0)
