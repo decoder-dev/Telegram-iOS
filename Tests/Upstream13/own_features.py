@@ -1080,8 +1080,25 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('self.scheduleServerStateRetry()', request)
         cooldown = src.split('func serverStateCooldown() -> TimeInterval {', 1)[1].split('func requestServerWalletState', 1)[0]
         self.assertIn('self.walletScreenCount > 0 ? base : min(base * 4.0, 900.0)', cooldown)
-        self.assertIn('self.serverStateLastFailureTimestamp = CFAbsoluteTimeGetCurrent()', src)
+        self.assertIn('let failedAt = CFAbsoluteTimeGetCurrent()', src)
+        self.assertIn('self.serverStateLastFailureTimestamp = failedAt', src)
         self.assertIn('let delaySeconds = self.serverStateCooldown()', src)
+
+    def test_wallet_server_state_refusal_backs_off_at_once_and_across_launches(self):
+        # Device log (build 4365): wallet.getState answered 400 every time, yet each relaunch (several an hour) and
+        # each account started the backoff again from 20 s, so the app asked ~25 times an hour.
+        src = read('submodules/WalletContext/Sources/WalletContextImpl.swift')
+        refusal = src.split('static func isServerStateRefusal(_ error: Error) -> Bool {', 1)[1].split('func shutdown()', 1)[0]
+        self.assertIn('error as? WalletGetStateError', refusal)
+        self.assertIn('code >= 400 && code < 500', refusal)
+        failure = src.split('self.logger.error("wallet_state_failed", error)', 1)[1].split('self.scheduleServerStateRetry()', 1)[0]
+        self.assertIn('if WalletContextImpl.isServerStateRefusal(error) {', failure)
+        self.assertIn('self.serverStateRetryFailureCount = WalletContextImpl.serverStateMaximumFailureCount', failure)
+        self.assertIn('UserDefaults.standard.set(failedAt, forKey: self.serverStateRefusalDefaultsKey)', failure)
+        init = src.split('self.streamingURLProvider = WalletStreamingURLProvider(engine: engine, logger: logger)', 1)[1].split('self.currentState = initialState', 1)[0]
+        self.assertIn('UserDefaults.standard.double(forKey: refusalDefaultsKey)', init)
+        self.assertIn('CFAbsoluteTimeGetCurrent() - refusedAt < WalletContextImpl.serverStateRefusalMemory', init)
+        self.assertIn('UserDefaults.standard.removeObject(forKey: self.serverStateRefusalDefaultsKey)', src)
 
 
     def test_untrusted_numbers_and_names_cannot_trap_or_bloat(self):
