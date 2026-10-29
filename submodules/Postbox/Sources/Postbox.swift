@@ -1650,6 +1650,26 @@ public func openPostbox(basePath: String, seedConfiguration: SeedConfiguration, 
     }
 }
 
+/// The parameters a shared whole-namespace item collections view is kept under (`PostboxImpl.sharedItemCollectionsView`).
+private struct SharedItemCollectionsViewKey: Hashable {
+    let orderedItemListCollectionIds: [Int32]
+    let namespaces: [ItemCollectionId.Namespace]
+    let count: Int
+}
+
+private final class SharedItemCollectionsView {
+    let trackerIndex: Bag<(MutableItemCollectionsView, ValuePipe<ItemCollectionsView>)>.Index
+    var latest: ItemCollectionsView
+    let subscribers = Bag<(ItemCollectionsView) -> Void>()
+    var updatesDisposable: Disposable?
+    var releaseTimer: SwiftSignalKit.Timer?
+
+    init(trackerIndex: Bag<(MutableItemCollectionsView, ValuePipe<ItemCollectionsView>)>.Index, latest: ItemCollectionsView) {
+        self.trackerIndex = trackerIndex
+        self.latest = latest
+    }
+}
+
 final class PostboxImpl {
     public let queue: Queue
     public let seedConfiguration: SeedConfiguration
@@ -1662,6 +1682,8 @@ final class PostboxImpl {
     private var transactionStateVersion: Int64 = 0
     
     private var viewTracker: ViewTracker!
+    /// Whole-namespace item collections views shared by their subscribers (`sharedItemCollectionsView`); queue only.
+    private var sharedItemCollectionsViews: [SharedItemCollectionsViewKey: SharedItemCollectionsView] = [:]
     private var nextViewId = 0
     
     private var currentUpdatedState: PostboxCoding?
@@ -4198,6 +4220,9 @@ final class PostboxImpl {
     }
     
     public func itemCollectionsView(orderedItemListCollectionIds: [Int32], namespaces: [ItemCollectionId.Namespace], aroundIndex: ItemCollectionViewEntryIndex?, count: Int) -> Signal<ItemCollectionsView, NoError> {
+        if aroundIndex == nil {
+            return self.sharedItemCollectionsView(key: SharedItemCollectionsViewKey(orderedItemListCollectionIds: orderedItemListCollectionIds, namespaces: namespaces, count: count))
+        }
         return self.transactionSignal { [self] subscriber, transaction in
             let itemListViews = orderedItemListCollectionIds.map { collectionId -> MutableOrderedItemListView in
                 return MutableOrderedItemListView(postbox: self, collectionId: collectionId)
@@ -4224,6 +4249,80 @@ final class PostboxImpl {
         }
     }
     
+    /// How long a whole-namespace item collections view nobody watches is kept, so the next screen that asks for it
+    /// (the next chat's sticker and emoji keyboard) gets it at once instead of building it again.
+    static let sharedItemCollectionsViewLinger: Double = 60.0
+
+    /// A view of whole namespaces (no `aroundIndex`) is the same for every subscriber that asks with the same
+    /// parameters, and building one decodes every item of every pack: every chat's input panel asked for the installed
+    /// emoji and stickers, ~120 ms on this queue per chat opened (device log, 148 times in a day). Such views are
+    /// built once, kept current by the view tracker like any other, given to every subscriber and kept for a while
+    /// after the last one leaves. `MutableItemCollectionsView.replay` reloads the view from the tables on any change
+    /// to its namespaces, so a shared view always equals a freshly built one.
+    ///
+    /// Everything here runs on `self.queue`.
+    private func sharedItemCollectionsView(key: SharedItemCollectionsViewKey) -> Signal<ItemCollectionsView, NoError> {
+        return self.transactionSignal { [self] subscriber, transaction in
+            let shared: SharedItemCollectionsView
+            if let existing = self.sharedItemCollectionsViews[key] {
+                shared = existing
+                existing.releaseTimer?.invalidate()
+                existing.releaseTimer = nil
+            } else {
+                let itemListViews = key.orderedItemListCollectionIds.map { collectionId -> MutableOrderedItemListView in
+                    return MutableOrderedItemListView(postbox: self, collectionId: collectionId)
+                }
+                let mutableView = MutableItemCollectionsView(postbox: self, orderedItemListsViews: itemListViews, namespaces: key.namespaces, aroundIndex: nil, count: key.count)
+                let (index, signal) = self.viewTracker.addItemCollectionView(mutableView)
+                let created = SharedItemCollectionsView(trackerIndex: index, latest: ItemCollectionsView(mutableView))
+                created.updatesDisposable = signal.start(next: { [weak created] next in
+                    guard let created else {
+                        return
+                    }
+                    created.latest = next
+                    for subscriber in created.subscribers.copyItems() {
+                        subscriber(next)
+                    }
+                })
+                self.sharedItemCollectionsViews[key] = created
+                shared = created
+            }
+
+            subscriber.putNext(shared.latest)
+            let index = shared.subscribers.add({ next in
+                subscriber.putNext(next)
+            })
+
+            return ActionDisposable { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.queue.async {
+                    shared.subscribers.remove(index)
+                    if shared.subscribers.isEmpty {
+                        self.scheduleSharedItemCollectionsViewRelease(key: key, shared: shared)
+                    }
+                }
+            }
+        }
+    }
+
+    private func scheduleSharedItemCollectionsViewRelease(key: SharedItemCollectionsViewKey, shared: SharedItemCollectionsView) {
+        shared.releaseTimer?.invalidate()
+        let timer = SwiftSignalKit.Timer(timeout: PostboxImpl.sharedItemCollectionsViewLinger, repeat: false, completion: { [weak self, weak shared] in
+            guard let self, let shared, shared.subscribers.isEmpty, self.sharedItemCollectionsViews[key] === shared else {
+                return
+            }
+            shared.releaseTimer = nil
+            shared.updatesDisposable?.dispose()
+            shared.updatesDisposable = nil
+            self.viewTracker.removeItemCollectionView(shared.trackerIndex)
+            self.sharedItemCollectionsViews.removeValue(forKey: key)
+        }, queue: self.queue)
+        shared.releaseTimer = timer
+        timer.start()
+    }
+
     public func mergedOperationLogView(tag: PeerOperationLogTag, filterByPeerId: PeerId?, limit: Int) -> Signal<PeerMergedOperationLogView, NoError> {
         return self.transactionSignal { [self] subscriber, transaction in
             let view = MutablePeerMergedOperationLogView(postbox: self, tag: tag, filterByPeerId: filterByPeerId, limit: limit)
