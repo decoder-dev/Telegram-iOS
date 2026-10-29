@@ -1395,9 +1395,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         entries = [
             .designHeader(1608, russian ? "Звонки" : "Calls"),
             .settingToggle(80, .calls, ForkExtrasLocalizedString.confirmBeforeCall, settings.confirmBeforeCall, \.confirmBeforeCall),
-            .settingFooter(84, .calls, ForkExtrasLocalizedString.forceBuiltInMicFooter + "
-
-" + ForkExtrasLocalizedString.callsFooter),
+            .settingFooter(84, .calls, ForkExtrasLocalizedString.forceBuiltInMicFooter + "\n\n" + ForkExtrasLocalizedString.callsFooter),
             .settingToggle(83, .calls, ForkExtrasLocalizedString.forceBuiltInMic, settings.forceBuiltInMic, \.forceBuiltInMic),
             .designHeader(1609, russian ? "Голосовые и кружки" : "Voice and round videos"),
             .appearanceToggle(1515, russian ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
