@@ -1865,6 +1865,17 @@ public class VideoMessageCameraScreen: ViewController {
             })
         }
         
+        /// Fork: a picked video (`existingVideo`) never starts the camera, so the camera's placeholder picture, the
+        /// shimmer that waits for its first frame and the blur over a paused camera would show through the circle
+        /// while the video fades in. None of them is used.
+        func prepareForExistingVideo() {
+            self.mainPreviewView.isHidden = true
+            self.additionalPreviewView.isHidden = true
+            self.loadingView.alpha = 0.0
+            self.previewBlurView.isHidden = true
+            self.previewContainerContentView.backgroundColor = .black
+        }
+
         func pauseCameraCapture() {
             self.mainPreviewView.isEnabled = false
             self.additionalPreviewView.isEnabled = false
@@ -2558,6 +2569,7 @@ public class VideoMessageCameraScreen: ViewController {
 
         if let existingVideo = self.existingVideo {
             // Shown as a recording that has just stopped: the circle plays it, the chat's panel trims it.
+            self.node.prepareForExistingVideo()
             self.node.addCaptureResult(.video(existingVideo))
         }
     }

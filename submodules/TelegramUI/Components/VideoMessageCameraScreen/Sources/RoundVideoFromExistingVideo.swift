@@ -68,6 +68,11 @@ public func roundVideoCaptureResult(asset: AVAsset, normalizedCrop: CGRect, trim
         let frameRate = videoTrack.nominalFrameRate > 0.0 ? min(30.0, videoTrack.nominalFrameRate) : 30.0
         videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(frameRate.rounded()))
         videoComposition.instructions = [instruction]
+        // An HDR (HLG or Dolby Vision) recording is tone-mapped to SDR, as a round video is: left to the source's
+        // primaries, H.264 would carry it washed out.
+        videoComposition.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+        videoComposition.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+        videoComposition.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
         // 1280x720 stays H.264 whatever the source codec, and is larger than the output square.
         guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPreset1280x720) else {
