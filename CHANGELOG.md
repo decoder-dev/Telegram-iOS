@@ -65,6 +65,35 @@
 - Release tags target the actual build commit; release builds run accessibility, MTProto, VLESS and player regression checks before compiling the IPA. Symbolication inputs no longer interpolate shell code.
 - Validation scope: automated checks and source review. Full device UI/theme, real VLESS server and call-routing acceptance tests remain necessary; this release does not certify every screen or third-party library as defect-free.
 
+## [v13.1.1-4373]
+
+Stable release on official Telegram 13.1.1. Since v13.0-4293.
+
+### New
+- **Send as round video** from the gallery: a picked video opens on the round-video screen (crop, trim, preview), exported as a square SDR clip; the wait can be cancelled and a failure is shown.
+- Ported from Donutgram: approximate last seen, anonymous sticker sending, media copying (photo and video frame to the clipboard), TikTok link fallback, service message filter and confirmations, round-video sound through headphones (all optional switches in Extras).
+- Ported from Regram: chat and folder options (optional switches in Extras).
+- A share link (`tg://msg_url`, `t.me/share`) asks before its prefilled message opens, showing the text, link and recipient.
+- Suspicious senders (the report/block panel): links, buttons and emoji status are hidden, and nothing is marked read until the chat is accepted.
+- Logs menu: Save Archive again.
+
+### Fixed
+- Crash opening a profile from a chat whose header shows more lines than the profile (the profile expansion animation).
+- The profile expansion animation is off by default (Extras); names in Settings and profiles are no longer cut short, and Extras switch titles wrap instead of ending in an ellipsis.
+- Round-video recording: the keyboard and zoom dial no longer overlap; the zoom dial stays touchable on iOS 26 and 27.
+- iPhone Duo: the chat list search field, story camera and editor, modal status bar and column transitions.
+- QuickTime movies pasted from Photos are accepted.
+
+### Faster
+- Opening a chat no longer rebuilds the installed sticker and emoji packs each time (~120 ms per chat).
+- With the tab bar hidden, opening Settings no longer reloads notification exceptions, privacy, archived packs, two-step settings and sessions each time.
+- The wallet stops re-asking the server about a wallet it refuses (was ~25 requests an hour).
+- The network transport is rebuilt only when the preferred interface changes, not when a tunnel or AWDL comes and goes; cached data is trimmed in the background.
+
+### Internal
+- Extras settings rows are generic (one toggle and one footer row); fork lists (bookmarks, anonymous sticker sets) share one cached, locked store; one language check for all fork strings.
+- CI builds on Xcode 27.
+
 ## [v12.9.2-4039-pre]
 
 ### Fixed — VLESS: современные ссылки Xray не вставлялись
