@@ -642,6 +642,8 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertIn('self?.presentRoundVideoPreview(asset: asset, normalizedCrop: normalizedCrop, trimStart: trimStart, trimEnd: trimEnd)', menu)
         recording = read('submodules/TelegramUI/Sources/Chat/ChatControllerMediaRecording.swift')
         self.assertIn('self.requestVideoRecorder(existingVideo: video)', recording)
+        # The attachment menu covered the screen and the chat's trimming panel: it is dismissed first.
+        self.assertIn('attachmentController.dismiss(animated: true, completion: begin)', recording)
         self.assertIn('return panelState.withUpdatedMediaRecordingState(nil)', recording)
         # Nothing to record more into, and the recording panel never shows for a picked video.
         self.assertIn('if let videoRecorderValue = self.videoRecorderValue, videoRecorderValue.existingVideo != nil {', recording)
