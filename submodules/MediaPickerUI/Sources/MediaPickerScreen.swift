@@ -333,6 +333,9 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
     
     var dismissAll: () -> Void = { }
     public var editCover: (CGSize, @escaping (UIImage) -> Void) -> Void = { _, _ in }
+    /// Fork: "Send as round video" opens the chat's round-video screen on the picked video (asset, square crop as a
+    /// fraction of the frame, trim start and end). Nil sends it as a round video at once.
+    public var openRoundVideoPreview: ((PHAsset, CGRect, Double, Double) -> Void)?
     
     private class Node: ViewControllerTracingNode, ASGestureRecognizerDelegate {
         enum DisplayMode {
@@ -1440,7 +1443,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 self?.controller?.dismissAll()
             }, editCover: { [weak self] dimensions, completion in
                 self?.controller?.editCover(dimensions, completion)
-            })
+            }, openRoundVideoPreview: self.controller?.openRoundVideoPreview)
         }
         
         fileprivate func openSelectedMedia(item: TGMediaSelectableItem, immediateThumbnail: UIImage?) {
@@ -1481,7 +1484,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 self?.controller?.dismissAll()
             }, editCover: { _, _ in
                 
-            })
+            }, openRoundVideoPreview: self.controller?.openRoundVideoPreview)
         }
         
         fileprivate func openDraft(draft: MediaEditorDraft, immediateThumbnail: UIImage?) {

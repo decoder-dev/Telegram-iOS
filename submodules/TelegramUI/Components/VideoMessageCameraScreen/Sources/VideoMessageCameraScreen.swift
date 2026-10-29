@@ -2347,6 +2347,8 @@ public class VideoMessageCameraScreen: ViewController {
     private let inputPanelHeight: CGFloat
     fileprivate var allowLiveUpload: Bool
     fileprivate var viewOnceAvailable: Bool
+    /// Fork: a video picked elsewhere and shown as a finished recording, without the camera (`roundVideoCaptureResult`).
+    public let existingVideo: CaptureResult.Video?
     
     fileprivate let completion: (EnqueueMessage?, Bool?, Int32?, Int32?) -> Void
     
@@ -2503,8 +2505,10 @@ public class VideoMessageCameraScreen: ViewController {
         viewOnceAvailable: Bool,
         inputPanelHeight: CGFloat,
         chatNode: ASDisplayNode?,
+        existingVideo: CaptureResult.Video? = nil,
         completion: @escaping (EnqueueMessage?, Bool?, Int32?, Int32?) -> Void
     ) {
+        self.existingVideo = existingVideo
         self.context = context
         self.updatedPresentationData = updatedPresentationData
         self.allowLiveUpload = allowLiveUpload
@@ -2542,7 +2546,7 @@ public class VideoMessageCameraScreen: ViewController {
     }
 
     private func configureCameraIfReady() {
-        guard self.audioSessionReady, !self.didConfigureCamera, self.view.window != nil else { return }
+        guard self.existingVideo == nil, self.audioSessionReady, !self.didConfigureCamera, self.view.window != nil else { return }
         self.didConfigureCamera = true
         self.node.setupCamera()
     }
@@ -2551,6 +2555,11 @@ public class VideoMessageCameraScreen: ViewController {
         self.displayNode = Node(controller: self)
 
         super.displayNodeDidLoad()
+
+        if let existingVideo = self.existingVideo {
+            // Shown as a recording that has just stopped: the circle plays it, the chat's panel trims it.
+            self.node.addCaptureResult(.video(existingVideo))
+        }
     }
         
     fileprivate var didSend = false
@@ -2603,7 +2612,8 @@ public class VideoMessageCameraScreen: ViewController {
             var videoPaths: [String] = []
             var duration: Double = 0.0
             
-            var hasAdjustments = results.count > 1
+            // A picked video was only cut to a square; it is always encoded as a video message here.
+            var hasAdjustments = results.count > 1 || self.existingVideo != nil
             for result in results {
                 if case let .video(video) = result {
                     videoPaths.append(video.videoPath)
@@ -2846,7 +2856,10 @@ public class VideoMessageCameraScreen: ViewController {
     
     private func requestAudioSession() {
         let audioSessionType: ManagedAudioSessionType
-        if self.context.sharedContext.currentMediaInputSettings.with({ $0 }).pauseMusicOnRecording {
+        if self.existingVideo != nil {
+            // Nothing is recorded, so the microphone stays off; the circle only plays.
+            audioSessionType = .play(mixWithOthers: false)
+        } else if self.context.sharedContext.currentMediaInputSettings.with({ $0 }).pauseMusicOnRecording {
             audioSessionType = .record(speaker: false, video: true, withOthers: false)
         } else {
             audioSessionType = .record(speaker: false, video: true, withOthers: true)
