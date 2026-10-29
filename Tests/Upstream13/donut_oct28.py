@@ -85,5 +85,16 @@ class AnonymousStickers(unittest.TestCase):
         self.assertIn('BananaAnonymousStickers.stickerPack(accountPeerId: accountPeerId, file: file)', read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift'))
 
 
+class ExtrasRowsWrap(unittest.TestCase):
+    def test_every_extras_switch_wraps_its_title(self):
+        # Russian titles run to 36 characters, wider than a switch row on a phone: a one-line row cut them with "…".
+        import re
+        controller = read(CONTROLLER)
+        rows = re.findall(r'ItemListSwitchItem\([^\n]*', controller)
+        self.assertGreater(len(rows), 50)
+        for row in rows:
+            self.assertIn('maximumNumberOfLines: 0', row)
+
+
 if __name__ == '__main__':
     unittest.main()
