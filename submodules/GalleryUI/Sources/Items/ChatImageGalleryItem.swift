@@ -6,6 +6,7 @@ import SwiftSignalKit
 import Postbox
 import TelegramCore
 import TelegramPresentationData
+import TelegramUIPreferences
 import AccountContext
 import RadialStatusNode
 import PhotoResources
@@ -797,7 +798,7 @@ final class ChatImageGalleryItemNode: ZoomableContentGalleryItemNode {
                         })
                     })))
 
-                    items.append(.action(ContextMenuActionItem(text: (self.presentationData.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Копировать фото" : "Copy photo"), icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor) }, action: { [weak self] _, f in
+                    items.append(.action(ContextMenuActionItem(text: (ForkPresentationLanguage.prefersRussianStrings ? "Копировать фото" : "Copy photo"), icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor) }, action: { [weak self] _, f in
                         f(.default)
                         guard let self else {
                             return
@@ -808,7 +809,7 @@ final class ChatImageGalleryItemNode: ZoomableContentGalleryItemNode {
                                 return
                             }
                             UIPasteboard.general.image = image
-                            controller.present(UndoOverlayController(presentationData: self.presentationData, content: .copy(text: (self.presentationData.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Фото скопировано" : "Photo copied")), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .window(.root))
+                            controller.present(UndoOverlayController(presentationData: self.presentationData, content: .copy(text: (ForkPresentationLanguage.prefersRussianStrings ? "Фото скопировано" : "Photo copied")), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .window(.root))
                         }))
                     })))
 

@@ -632,6 +632,13 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertIn('generateImage(size, rotatedContext: { _, context in', shared)
 
 
+    def test_fork_strings_follow_one_language_check(self):
+        # Fork strings pick Russian through ForkPresentationLanguage (the app's language, ru/uk/be). A local
+        # hasPrefix("ru") left Ukrainian and Belarusian users with English among Russian fork strings.
+        import subprocess
+        out = subprocess.run(['git', 'grep', '-n', '-E', r'primaryComponent\.languageCode\.hasPrefix\("ru"\)|baseLanguageCode\.hasPrefix\("ru"\)', '--', 'submodules/*.swift'], cwd=ROOT, capture_output=True, text=True).stdout
+        self.assertEqual(out.strip(), '')
+
     def test_gallery_round_video_opens_the_round_video_screen(self):
         gallery = read('submodules/MediaPickerUI/Sources/LegacyMediaPickerGallery.swift')
         self.assertIn('openRoundVideoPreview: ((MediaPickerRoundVideoRequest) -> Void)? = nil', gallery)

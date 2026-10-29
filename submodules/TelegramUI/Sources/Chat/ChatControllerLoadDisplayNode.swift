@@ -643,7 +643,7 @@ extension ChatControllerImpl {
             return
         }
         self.didHandlePerformDismissAction = true
-        let text = (self.presentationData.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Вы были заблокированы в этом чате. Доступна только сохранённая история." : "You were banned from this chat. Only saved history is available.")
+        let text = (ForkPresentationLanguage.prefersRussianStrings ? "Вы были заблокированы в этом чате. Доступна только сохранённая история." : "You were banned from this chat. Only saved history is available.")
         self.present(textAlertController(context: self.context, title: nil, text: text, actions: [
             TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})
         ]), in: .window(.root))

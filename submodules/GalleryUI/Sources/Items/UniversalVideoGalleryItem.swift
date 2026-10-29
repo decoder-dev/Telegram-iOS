@@ -3876,7 +3876,7 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
                 
                 if let (message, file, _) = strongSelf.contentInfo(), let file, !message.isCopyProtected() && !item.peerIsCopyProtected && message.paidContent == nil {
                     let context = strongSelf.context
-                    items.append(.action(ContextMenuActionItem(text: (strongSelf.presentationData.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Копировать кадр" : "Copy frame"), icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor) }, action: { [weak self] _, f in
+                    items.append(.action(ContextMenuActionItem(text: (ForkPresentationLanguage.prefersRussianStrings ? "Копировать кадр" : "Copy frame"), icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Copy"), color: theme.actionSheet.primaryTextColor) }, action: { [weak self] _, f in
                         f(.default)
                         guard let self else {
                             return
@@ -3887,7 +3887,7 @@ final class UniversalVideoGalleryItemNode: ZoomableContentGalleryItemNode {
                                 return
                             }
                             UIPasteboard.general.image = image
-                            controller.present(UndoOverlayController(presentationData: self.presentationData, content: .copy(text: (self.presentationData.strings.primaryComponent.languageCode.hasPrefix("ru") ? "Кадр скопирован" : "Frame copied")), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .window(.root))
+                            controller.present(UndoOverlayController(presentationData: self.presentationData, content: .copy(text: (ForkPresentationLanguage.prefersRussianStrings ? "Кадр скопирован" : "Frame copied")), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .window(.root))
                         }))
                     })))
                 }
