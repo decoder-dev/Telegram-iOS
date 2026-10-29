@@ -340,8 +340,9 @@ public final class NavigationExpansionRendererImpl: NavigationExpansionRenderer 
             }
             self.labelHosts.append(host)
         }
-        // The upper screen's labels the lower screen does not show, on the places measured for them above.
-        for index in sourceLoan.labels.count ..< destinationLoan.labels.count {
+        // The upper screen's labels the lower screen does not show, on the places measured for them above. The range is
+        // empty, not reversed, when the lower screen shows more labels: a reversed range traps.
+        for index in sourceLoan.labels.count ..< max(sourceLoan.labels.count, destinationLoan.labels.count) {
             let destinationLabel = destinationLoan.labels[index]
             let destinationColor = index < destinationLoan.labelColors.count ? destinationLoan.labelColors[index] : .white
             let host = LabelHost(source: nil, destination: destinationLabel, destinationColor: destinationColor)
@@ -406,6 +407,26 @@ public final class NavigationExpansionRendererImpl: NavigationExpansionRenderer 
 
     private func frame(time: CGFloat, isOpening: Bool, sampleTime: Double) -> ExpansionFrame? {
         return self.choreography?.frame(ExpansionClock(time: time, isOpening: isOpening), press: self.press(at: sampleTime))
+    }
+
+    /// A frame for every label host. The choreography places one label per upper-screen label; a lower-screen label
+    /// the upper screen does not show (a chat header's extra line) rides the last placed label at its own offset from
+    /// it and fades with that label's source. It is not given a place in the geometry, because the last label there
+    /// is the anchor that carries the page.
+    private func labelFrames(_ frame: ExpansionFrame) -> [ExpansionLabelFrame] {
+        guard let sourceLoan = self.sourceLoan, sourceLoan.labels.count > frame.labels.count, let base = frame.labels.last else {
+            return frame.labels
+        }
+        let baseSource = sourceLoan.labels[frame.labels.count - 1].screenCenter
+        var result = frame.labels
+        for index in frame.labels.count ..< sourceLoan.labels.count {
+            let center = sourceLoan.labels[index].screenCenter
+            var label = base
+            label.center = CGPoint(x: base.center.x + (center.x - baseSource.x) * base.sourceScale, y: base.center.y + (center.y - baseSource.y) * base.sourceScale)
+            label.destinationAlpha = 0.0
+            result.append(label)
+        }
+        return result
     }
 
     /// The photo's shape in its view's own points, which the wrapper scales on each axis apart (the expanded photo, taller
@@ -566,8 +587,9 @@ public final class NavigationExpansionRendererImpl: NavigationExpansionRenderer 
             originContent.layer.transform = placement.transform
             originContent.alpha = f.originContent
         }
-        for (index, host) in self.labelHosts.enumerated() where index < f.labels.count {
-            let label = f.labels[index]
+        let labelFrames = self.labelFrames(f)
+        for (index, host) in self.labelHosts.enumerated() where index < labelFrames.count {
+            let label = labelFrames[index]
             host.sourceHost.layer.position = label.center
             host.sourceHost.layer.transform = CATransform3DMakeScale(label.sourceScale, label.sourceScale, 1.0)
             host.sourceHost.alpha = label.sourceAlpha
@@ -752,8 +774,9 @@ public final class NavigationExpansionRendererImpl: NavigationExpansionRenderer 
         }
 
         // The labels.
-        for (index, host) in self.labelHosts.enumerated() {
-            let labels = frames.map { $0.labels[index] }
+        let labelFrames = frames.map { self.labelFrames($0) }
+        for (index, host) in self.labelHosts.enumerated() where labelFrames.allSatisfy({ index < $0.count }) {
+            let labels = labelFrames.map { $0[index] }
             add(host.sourceHost.layer, "position", labels.map { point($0.center) })
             add(host.sourceHost.layer, "transform", labels.map { NSValue(caTransform3D: CATransform3DMakeScale($0.sourceScale, $0.sourceScale, 1.0)) })
             add(host.sourceHost.layer, "opacity", labels.map { number($0.sourceAlpha) })
@@ -976,6 +999,9 @@ public final class NavigationExpansionRendererImpl: NavigationExpansionRenderer 
     // Tests.
     var labelHostCentersForTesting: [CGPoint] {
         return self.labelHosts.map { $0.sourceHost.layer.position }
+    }
+    var sourceLabelAlphasForTesting: [CGFloat] {
+        return self.labelHosts.map { $0.sourceHost.alpha }
     }
     var destinationLabelHostsForTesting: [UIView] {
         return self.labelHosts.map { $0.destinationHost }

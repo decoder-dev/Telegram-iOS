@@ -83,6 +83,8 @@ private final class FakeDestination: NavigationExpansionDestinationProviding {
     var screenCornerRadii = makeExpansionGeometry().screenCornerRadii
     /// The avatar's corner radius over its side (a forum's is a rounded square).
     var avatarCornerFraction: CGFloat = 0.5
+    /// False as in a profile that shows no status line under its title where the chat's header does.
+    var hasStatus = true
     var lends = 0
     var returns = 0
     private(set) weak var top: UIView?
@@ -111,10 +113,13 @@ private final class FakeDestination: NavigationExpansionDestinationProviding {
         self.lends += 1
         let g = makeExpansionGeometry()
         // On the photo path its avatar view is the expanded photo, as the profile's is.
-        return NavigationExpansionDestinationLoan(avatar: g.avatar, photo: g.photo, avatarView: self.avatarView, avatarRestFrame: self.path == .photo ? g.photo! : g.avatar!, labels: [
-            NavigationExpansionLabel(view: self.titleView, textCenter: CGPoint(x: 79.0, y: 17.0), textSize: CGSize(width: 158.0, height: 34.0), screenCenter: g.labels[0].destinationCenter, coloring: .multiply([self.titleView.layer], .white)),
-            NavigationExpansionLabel(view: self.statusView, textCenter: CGPoint(x: 65.0, y: 10.0), textSize: CGSize(width: 130.0, height: 20.0), screenCenter: g.labels[1].destinationCenter, coloring: .multiply([self.statusView.layer], .white), followers: self.statusFollowers)
-        ], labelColors: [.white, .white], carriedEdge: g.carriedEdge, appearingViews: self.buttons, appearingCompanions: self.platters.map { [$0] }, overlayViews: self.overlays, backgroundViews: [self.background], listViews: [self.list], pageViews: self.pageViews, pageEdgeViews: self.pageEdgeViews, landingViews: self.landingViews, patternViews: [], glassTint: .purple, screenCornerRadii: self.screenCornerRadii, backButtonFrame: CGRect(x: 16.0, y: 64.0, width: 44.0, height: 44.0), avatarCornerFraction: self.avatarCornerFraction)
+        var labels = [
+            NavigationExpansionLabel(view: self.titleView, textCenter: CGPoint(x: 79.0, y: 17.0), textSize: CGSize(width: 158.0, height: 34.0), screenCenter: g.labels[0].destinationCenter, coloring: .multiply([self.titleView.layer], .white))
+        ]
+        if self.hasStatus {
+            labels.append(NavigationExpansionLabel(view: self.statusView, textCenter: CGPoint(x: 65.0, y: 10.0), textSize: CGSize(width: 130.0, height: 20.0), screenCenter: g.labels[1].destinationCenter, coloring: .multiply([self.statusView.layer], .white), followers: self.statusFollowers))
+        }
+        return NavigationExpansionDestinationLoan(avatar: g.avatar, photo: g.photo, avatarView: self.avatarView, avatarRestFrame: self.path == .photo ? g.photo! : g.avatar!, labels: labels, labelColors: labels.map { _ in .white }, carriedEdge: g.carriedEdge, appearingViews: self.buttons, appearingCompanions: self.platters.map { [$0] }, overlayViews: self.overlays, backgroundViews: [self.background], listViews: [self.list], pageViews: self.pageViews, pageEdgeViews: self.pageEdgeViews, landingViews: self.landingViews, patternViews: [], glassTint: .purple, screenCornerRadii: self.screenCornerRadii, backButtonFrame: CGRect(x: 16.0, y: 64.0, width: 44.0, height: 44.0), avatarCornerFraction: self.avatarCornerFraction)
     }
 
     func returnExpansionDestination() {
@@ -669,6 +674,31 @@ final class NavigationExpansionRendererTests: XCTestCase {
         XCTAssertEqual(hosts[1].alpha, 1.0, accuracy: 1e-6)
         XCTAssertEqual(hosts[1].layer.position.x, g.labels[1].destinationCenter.x, accuracy: 0.1)
         XCTAssertEqual(hosts[1].layer.position.y, g.labels[1].destinationCenter.y, accuracy: 0.1)
+    }
+
+    // A line the chat's header shows and the profile does not (its status) rides the title at its own offset and fades
+    // out as the labels cross, on both the frame-by-frame and the keyframed path. The renderer used to walk a reversed
+    // range for such a line and index the frames' labels past their end: two traps opening a profile (build 4356).
+    func test_extraSourceLabel_ridesTheTitleAndFadesOut() {
+        let (renderer, _, _, _, _) = self.make(configure: { $0.hasStatus = false })
+        let g = makeExpansionGeometry()
+        XCTAssertEqual(renderer.labelHostCentersForTesting.count, 2, "the chat's status keeps its host")
+        renderer.update(time: 0.0, isOpening: true, pose: .none)
+        var centers = renderer.labelHostCentersForTesting
+        XCTAssertEqual(centers[1].x, g.labels[1].sourceCenter.x, accuracy: 0.5)
+        XCTAssertEqual(centers[1].y, g.labels[1].sourceCenter.y, accuracy: 0.5)
+        XCTAssertEqual(renderer.sourceLabelAlphasForTesting[1], renderer.sourceLabelAlphasForTesting[0], accuracy: 1e-6)
+        renderer.update(time: 0.5, isOpening: true, pose: .none)
+        centers = renderer.labelHostCentersForTesting
+        XCTAssertGreaterThan(centers[1].y, centers[0].y, "under the title as it crosses")
+        renderer.update(time: 1.0, isOpening: true, pose: .none)
+        XCTAssertEqual(renderer.sourceLabelAlphasForTesting[1], 0.0, accuracy: 1e-6, "gone with the chat's title")
+        XCTAssertEqual(renderer.destinationLabelAlphasForTesting[1], 0.0, accuracy: 1e-6, "the profile has nothing to show there")
+        renderer.animate(timeline: self.timeline(from: 0.0, to: 1.0, opening: true))
+
+        let (closing, _, _, _, _) = self.make(opening: false, configure: { $0.hasStatus = false })
+        closing.update(time: 0.5, isOpening: false, pose: .none)
+        closing.animate(timeline: self.timeline(from: 1.0, to: 0.0, opening: false))
     }
 
     // The chat's avatar (live, animated avatars included) rides the flying circle above the profile's: at the open's
