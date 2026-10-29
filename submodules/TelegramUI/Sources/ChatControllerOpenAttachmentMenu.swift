@@ -1741,8 +1741,8 @@ extension ChatControllerImpl {
         controller.legacyCompletion = { fromGallery, signals, silently, scheduleTime, parameters, getAnimatedTransitionSource, sendCompletion in
             completion(fromGallery, signals, silently, scheduleTime, parameters, getAnimatedTransitionSource, sendCompletion)
         }
-        controller.openRoundVideoPreview = { [weak self] asset, normalizedCrop, trimStart, trimEnd in
-            self?.presentRoundVideoPreview(asset: asset, normalizedCrop: normalizedCrop, trimStart: trimStart, trimEnd: trimEnd)
+        controller.openRoundVideoPreview = { [weak self] request in
+            self?.presentRoundVideoPreview(request)
         }
         controller.editCover = { [weak self] dimensions, completion in
             guard let self else {

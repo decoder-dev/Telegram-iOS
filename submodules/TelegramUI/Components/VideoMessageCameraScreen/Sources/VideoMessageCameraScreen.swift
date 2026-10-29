@@ -2358,7 +2358,7 @@ public class VideoMessageCameraScreen: ViewController {
     private let inputPanelHeight: CGFloat
     fileprivate var allowLiveUpload: Bool
     fileprivate var viewOnceAvailable: Bool
-    /// Fork: a video picked elsewhere and shown as a finished recording, without the camera (`roundVideoCaptureResult`).
+    /// Fork: a video picked elsewhere and shown as a finished recording, without the camera (`prepareRoundVideo`).
     public let existingVideo: CaptureResult.Video?
     
     fileprivate let completion: (EnqueueMessage?, Bool?, Int32?, Int32?) -> Void

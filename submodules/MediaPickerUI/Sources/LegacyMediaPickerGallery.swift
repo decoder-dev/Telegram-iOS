@@ -44,6 +44,20 @@ private func roundVideoAdjustments(for item: TGMediaEditableItem, editingContext
     return TGVideoEditAdjustments(dictionary: values)
 }
 
+/// The chat's half of "Send as round video": the same square and trim as `adjustments`, as a fraction of the frame,
+/// so the chat can cut it from the video's own displayed size.
+private func roundVideoRequest(for item: TGMediaSelectableItem & TGMediaEditableItem, adjustments: TGVideoEditAdjustments) -> MediaPickerRoundVideoRequest? {
+    guard let asset = (item as? TGMediaAsset)?.backingAsset, let originalSize = item.originalSize, originalSize.width > 0.0, originalSize.height > 0.0 else {
+        return nil
+    }
+    let crop = adjustments.cropRect
+    return MediaPickerRoundVideoRequest(
+        asset: asset,
+        normalizedCrop: CGRect(x: crop.minX / originalSize.width, y: crop.minY / originalSize.height, width: crop.width / originalSize.width, height: crop.height / originalSize.height),
+        trimRange: adjustments.trimStartValue ..< adjustments.trimEndValue
+    )
+}
+
 private func galleryFetchResultItems(
     fetchResult: PHFetchResult<PHAsset>,
     index: Int,
@@ -171,7 +185,7 @@ func presentLegacyMediaPickerGallery(
     willTransitionOut: @escaping () -> Void,
     dismissAll: @escaping () -> Void,
     editCover: @escaping (CGSize, @escaping (UIImage) -> Void) -> Void = { _, _ in },
-    openRoundVideoPreview: ((PHAsset, CGRect, Double, Double) -> Void)? = nil
+    openRoundVideoPreview: ((MediaPickerRoundVideoRequest) -> Void)? = nil
 ) -> TGModernGalleryController {
     let reminder = peer?.id == context.account.peerId
     let hasSilentPosting = hasSilentPosting && peer?.id != context.account.peerId
@@ -451,12 +465,10 @@ func presentLegacyMediaPickerGallery(
                         sendAsRoundVideo = {
                             // The chat opens the round-video screen on it, as after a recording: a circle to watch,
                             // the input panel to trim, then Send. Sending at once remains for hosts without that screen.
-                            if let openRoundVideoPreview, let phAsset = (item.asset as? TGMediaAsset)?.backingAsset, let originalSize = item.asset.originalSize, originalSize.width > 0.0, originalSize.height > 0.0 {
-                                let crop = adjustments.cropRect
-                                let normalizedCrop = CGRect(x: crop.minX / originalSize.width, y: crop.minY / originalSize.height, width: crop.width / originalSize.width, height: crop.height / originalSize.height)
-                                Logger.shared.log("RoundVideo", "gallery: open round video preview, crop=\(crop) trim=\(adjustments.trimStartValue)..\(adjustments.trimEndValue)")
+                            if let openRoundVideoPreview, let request = roundVideoRequest(for: item.asset, adjustments: adjustments) {
+                                Logger.shared.log("RoundVideo", "gallery: open round video preview, crop=\(request.normalizedCrop) trim=\(request.trimRange)")
                                 dismissImpl()
-                                openRoundVideoPreview(phAsset, normalizedCrop, adjustments.trimStartValue, adjustments.trimEndValue)
+                                openRoundVideoPreview(request)
                                 return
                             }
                             Logger.shared.log("RoundVideo", "gallery: send as video message, crop=\(adjustments.cropRect) trim=\(adjustments.trimStartValue)..\(adjustments.trimEndValue)")
