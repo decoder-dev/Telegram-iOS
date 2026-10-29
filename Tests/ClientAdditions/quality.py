@@ -26,7 +26,7 @@ class Contracts(unittest.TestCase):
         self.assertNotIn('entries.append(.sensitiveContent(', source)
         self.assertIn('case .sensitiveContent?: return forkExtrasController(context: context, focus: .messageFilters, focusItemId: 147)', source)
         extras = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
-        self.assertIn('.showSensitiveContent(settings.showSensitiveContent)', extras)
+        self.assertIn('.settingToggle(147, .messageFilters, ForkExtrasLocalizedString.showSensitiveContent, settings.showSensitiveContent, \\.showSensitiveContent)', extras)
         self.assertIn('forkExtrasSettings(accountManager:', extras)
     def test_audio_play_label_exists_in_the_real_catalog(self):
         source = read('submodules/TelegramUI/Components/AttachmentFileController/Sources/AttachmentFileController.swift')

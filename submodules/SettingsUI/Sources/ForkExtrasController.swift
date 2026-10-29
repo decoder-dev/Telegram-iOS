@@ -568,216 +568,81 @@ private enum ForkExtrasDestination: Equatable {
 
 private final class ForkExtrasControllerArguments {
     let updateGhostModeMaster: (Bool) -> Void
-    let updateGhostDontReadMessages: (Bool) -> Void
-    let updateGhostDontReadStories: (Bool) -> Void
-    let updateGhostDontSendOnline: (Bool) -> Void
-    let updateGhostDontSendTyping: (Bool) -> Void
-    let updateGhostGoOfflineAutomatically: (Bool) -> Void
     let updateGhostReadOnInteract: (Bool) -> Void
-    let updateGhostAlertBeforeOpeningStory: (Bool) -> Void
-    let updateInstantPasscode: (Bool) -> Void
-    let updateStreamerMode: (Bool) -> Void
-    let updateHideMentions: (Bool) -> Void
-    let updateHidePinned: (Bool) -> Void
     let updateSessionBackup: (Bool) -> Void
-    let updateCompactChatList: (Bool) -> Void
-    let updateCompactMessagePreview: (Bool) -> Void
-    let updateCompactFolderNames: (Bool) -> Void
-    let updateHideReactionsBar: (Bool) -> Void
-    let updateShowDC: (Bool) -> Void
-    let updateShowProfileId: (Bool) -> Void
     let openAccentSaturation: () -> Void
-    let updateConfirmBeforeCall: (Bool) -> Void
-    let updateSendWithReturnKey: (Bool) -> Void
-    let updateForceBuiltInMic: (Bool) -> Void
-    let updateKeepAliveInBackground: (Bool) -> Void
     let openTranslationBackend: () -> Void
     let openTranscriptionBackend: () -> Void
     let updateScrollToNextChatDisabled: (Bool) -> Void
-    let updateSaveDeletedMessages: (Bool) -> Void
-    let updateSaveMessagesHistory: (Bool) -> Void
-    let updateSaveMedia: (Bool) -> Void
-    let updateSaveForBots: (Bool) -> Void
-    let updateAyuForward: (Bool) -> Void
-    let updateBypassDownloadRestrictions: (Bool) -> Void
-    let updateShowSensitiveContent: (Bool) -> Void
-    let updateProactiveSaveMedia: (Bool) -> Void
     let updateDeletedMessageMark: (String) -> Void
     let updateEditedMessageMark: (String) -> Void
-    let updateLocalPremium: (Bool) -> Void
     let updateAutoFetchMtProxy: (Bool) -> Void
-    let updateHideAds: (Bool) -> Void
-    let updateHideBlockedMessages: (Bool) -> Void
     let updateGhostScheduleMessages: (Bool) -> Void
-    let updateAllowSecretScreenshots: (Bool) -> Void
-    let updateExpireTtlButton: (Bool) -> Void
-    let updateKeepBannedChats: (Bool) -> Void
-    let updateRegexFiltersEnabled: (Bool) -> Void
-    let updateRegexFiltersCaseInsensitive: (Bool) -> Void
     let updateRegexFilterPatternsText: (String) -> Void
     let exportMessageSavingDatabase: () -> Void
     let importMessageSavingDatabase: () -> Void
     let openDestination: (ForkExtrasDestination) -> Void
     let updateMusicPolicy: (Int32, Bool) -> Void
     let openCategory: (ForkExtrasControllerFocus) -> Void
-    let updateHideAllChats: (Bool) -> Void
-    let updateRememberLastFolder: (Bool) -> Void
-    let updateHideTabBar: (Bool) -> Void
-    let updateShowMessageSeconds: (Bool) -> Void
     let context: AccountContext
     let openBrandTheme: (Bool) -> Void
     let updateCallsTab: (Bool) -> Void
     let updateAppearance: (WritableKeyPath<ForkExtrasSettings, Bool>, Bool) -> Void
-    let updateWideChannelPosts: (Bool) -> Void
     let openStickerSize: () -> Void
     let updateDoubleTapToEdit: (Bool) -> Void
-    let updateQuickTranslateButton: (Bool) -> Void
-    let updateSaveToCloudMenu: (Bool) -> Void
-    let updateSelectFromAuthor: (Bool) -> Void
-    let updateDownloadSpeedBoost: (Bool) -> Void
     let openOutgoingPhotoQuality: () -> Void
     let openIntChoice: (Int32) -> Void
 
     init(
         updateGhostModeMaster: @escaping (Bool) -> Void,
-        updateGhostDontReadMessages: @escaping (Bool) -> Void,
-        updateGhostDontReadStories: @escaping (Bool) -> Void,
-        updateGhostDontSendOnline: @escaping (Bool) -> Void,
-        updateGhostDontSendTyping: @escaping (Bool) -> Void,
-        updateGhostGoOfflineAutomatically: @escaping (Bool) -> Void,
         updateGhostReadOnInteract: @escaping (Bool) -> Void,
-        updateGhostAlertBeforeOpeningStory: @escaping (Bool) -> Void,
-        updateInstantPasscode: @escaping (Bool) -> Void,
-        updateStreamerMode: @escaping (Bool) -> Void,
-        updateHideMentions: @escaping (Bool) -> Void,
-        updateHidePinned: @escaping (Bool) -> Void,
         updateSessionBackup: @escaping (Bool) -> Void,
-        updateCompactChatList: @escaping (Bool) -> Void,
-        updateCompactMessagePreview: @escaping (Bool) -> Void,
-        updateCompactFolderNames: @escaping (Bool) -> Void,
-        updateHideReactionsBar: @escaping (Bool) -> Void,
-        updateShowDC: @escaping (Bool) -> Void,
-        updateShowProfileId: @escaping (Bool) -> Void,
         openAccentSaturation: @escaping () -> Void,
-        updateConfirmBeforeCall: @escaping (Bool) -> Void,
-        updateSendWithReturnKey: @escaping (Bool) -> Void,
-        updateForceBuiltInMic: @escaping (Bool) -> Void,
-        updateKeepAliveInBackground: @escaping (Bool) -> Void,
         openTranslationBackend: @escaping () -> Void,
         openTranscriptionBackend: @escaping () -> Void,
         updateScrollToNextChatDisabled: @escaping (Bool) -> Void,
-        updateSaveDeletedMessages: @escaping (Bool) -> Void,
-        updateSaveMessagesHistory: @escaping (Bool) -> Void,
-        updateSaveMedia: @escaping (Bool) -> Void,
-        updateSaveForBots: @escaping (Bool) -> Void,
-        updateAyuForward: @escaping (Bool) -> Void,
-        updateBypassDownloadRestrictions: @escaping (Bool) -> Void,
-        updateShowSensitiveContent: @escaping (Bool) -> Void,
-        updateProactiveSaveMedia: @escaping (Bool) -> Void,
         updateDeletedMessageMark: @escaping (String) -> Void,
         updateEditedMessageMark: @escaping (String) -> Void,
-        updateLocalPremium: @escaping (Bool) -> Void,
         updateAutoFetchMtProxy: @escaping (Bool) -> Void,
-        updateHideAds: @escaping (Bool) -> Void,
-        updateHideBlockedMessages: @escaping (Bool) -> Void,
         updateGhostScheduleMessages: @escaping (Bool) -> Void,
-        updateAllowSecretScreenshots: @escaping (Bool) -> Void,
-        updateExpireTtlButton: @escaping (Bool) -> Void,
-        updateKeepBannedChats: @escaping (Bool) -> Void,
-        updateRegexFiltersEnabled: @escaping (Bool) -> Void,
-        updateRegexFiltersCaseInsensitive: @escaping (Bool) -> Void,
         updateRegexFilterPatternsText: @escaping (String) -> Void,
         exportMessageSavingDatabase: @escaping () -> Void,
         importMessageSavingDatabase: @escaping () -> Void,
         openDestination: @escaping (ForkExtrasDestination) -> Void,
         updateMusicPolicy: @escaping (Int32, Bool) -> Void,
         openCategory: @escaping (ForkExtrasControllerFocus) -> Void,
-        updateHideAllChats: @escaping (Bool) -> Void,
-        updateRememberLastFolder: @escaping (Bool) -> Void,
-        updateHideTabBar: @escaping (Bool) -> Void,
-        updateShowMessageSeconds: @escaping (Bool) -> Void,
         context: AccountContext,
         openBrandTheme: @escaping (Bool) -> Void,
         updateCallsTab: @escaping (Bool) -> Void,
         updateAppearance: @escaping (WritableKeyPath<ForkExtrasSettings, Bool>, Bool) -> Void,
-        updateWideChannelPosts: @escaping (Bool) -> Void,
         openStickerSize: @escaping () -> Void,
         updateDoubleTapToEdit: @escaping (Bool) -> Void,
-        updateQuickTranslateButton: @escaping (Bool) -> Void,
-        updateSaveToCloudMenu: @escaping (Bool) -> Void,
-        updateSelectFromAuthor: @escaping (Bool) -> Void,
-        updateDownloadSpeedBoost: @escaping (Bool) -> Void,
         openOutgoingPhotoQuality: @escaping () -> Void,
         openIntChoice: @escaping (Int32) -> Void
     ) {
         self.updateGhostModeMaster = updateGhostModeMaster
-        self.updateGhostDontReadMessages = updateGhostDontReadMessages
-        self.updateGhostDontReadStories = updateGhostDontReadStories
-        self.updateGhostDontSendOnline = updateGhostDontSendOnline
-        self.updateGhostDontSendTyping = updateGhostDontSendTyping
-        self.updateGhostGoOfflineAutomatically = updateGhostGoOfflineAutomatically
         self.updateGhostReadOnInteract = updateGhostReadOnInteract
-        self.updateGhostAlertBeforeOpeningStory = updateGhostAlertBeforeOpeningStory
-        self.updateInstantPasscode = updateInstantPasscode
-        self.updateStreamerMode = updateStreamerMode
-        self.updateHideMentions = updateHideMentions
-        self.updateHidePinned = updateHidePinned
         self.updateSessionBackup = updateSessionBackup
-        self.updateCompactChatList = updateCompactChatList
-        self.updateCompactMessagePreview = updateCompactMessagePreview
-        self.updateCompactFolderNames = updateCompactFolderNames
-        self.updateHideReactionsBar = updateHideReactionsBar
-        self.updateShowDC = updateShowDC
-        self.updateShowProfileId = updateShowProfileId
         self.openAccentSaturation = openAccentSaturation
-        self.updateConfirmBeforeCall = updateConfirmBeforeCall
-        self.updateSendWithReturnKey = updateSendWithReturnKey
-        self.updateForceBuiltInMic = updateForceBuiltInMic
-        self.updateKeepAliveInBackground = updateKeepAliveInBackground
         self.openTranslationBackend = openTranslationBackend
         self.openTranscriptionBackend = openTranscriptionBackend
         self.updateScrollToNextChatDisabled = updateScrollToNextChatDisabled
-        self.updateSaveDeletedMessages = updateSaveDeletedMessages
-        self.updateSaveMessagesHistory = updateSaveMessagesHistory
-        self.updateSaveMedia = updateSaveMedia
-        self.updateSaveForBots = updateSaveForBots
-        self.updateAyuForward = updateAyuForward
-        self.updateBypassDownloadRestrictions = updateBypassDownloadRestrictions
-        self.updateShowSensitiveContent = updateShowSensitiveContent
-        self.updateProactiveSaveMedia = updateProactiveSaveMedia
         self.updateDeletedMessageMark = updateDeletedMessageMark
         self.updateEditedMessageMark = updateEditedMessageMark
-        self.updateLocalPremium = updateLocalPremium
         self.updateAutoFetchMtProxy = updateAutoFetchMtProxy
-        self.updateHideAds = updateHideAds
-        self.updateHideBlockedMessages = updateHideBlockedMessages
         self.updateGhostScheduleMessages = updateGhostScheduleMessages
-        self.updateAllowSecretScreenshots = updateAllowSecretScreenshots
-        self.updateExpireTtlButton = updateExpireTtlButton
-        self.updateKeepBannedChats = updateKeepBannedChats
-        self.updateRegexFiltersEnabled = updateRegexFiltersEnabled
-        self.updateRegexFiltersCaseInsensitive = updateRegexFiltersCaseInsensitive
         self.updateRegexFilterPatternsText = updateRegexFilterPatternsText
         self.exportMessageSavingDatabase = exportMessageSavingDatabase
         self.importMessageSavingDatabase = importMessageSavingDatabase
         self.openDestination = openDestination
         self.updateMusicPolicy = updateMusicPolicy
         self.openCategory = openCategory
-        self.updateHideAllChats = updateHideAllChats
-        self.updateRememberLastFolder = updateRememberLastFolder
-        self.updateHideTabBar = updateHideTabBar
-        self.updateShowMessageSeconds = updateShowMessageSeconds
         self.context = context
         self.openBrandTheme = openBrandTheme
         self.updateCallsTab = updateCallsTab
         self.updateAppearance = updateAppearance
-        self.updateWideChannelPosts = updateWideChannelPosts
         self.openStickerSize = openStickerSize
         self.updateDoubleTapToEdit = updateDoubleTapToEdit
-        self.updateQuickTranslateButton = updateQuickTranslateButton
-        self.updateSaveToCloudMenu = updateSaveToCloudMenu
-        self.updateSelectFromAuthor = updateSelectFromAuthor
-        self.updateDownloadSpeedBoost = updateDownloadSpeedBoost
         self.openOutgoingPhotoQuality = openOutgoingPhotoQuality
         self.openIntChoice = openIntChoice
     }
@@ -910,43 +775,23 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case hubNetwork
     case hubFooter
     case ghostModeMaster(Bool)
-    case ghostDontReadMessages(Bool)
-    case ghostDontReadStories(Bool)
-    case ghostDontSendOnline(Bool)
-    case ghostDontSendTyping(Bool)
-    case ghostGoOfflineAutomatically(Bool)
     case ghostGoOfflineAutomaticallyFooter
     case ghostReadOnInteract(Bool)
     case ghostReadOnInteractFooter
-    case ghostAlertBeforeOpeningStory(Bool)
     case ghostAlertBeforeOpeningStoryFooter
     case ghostScheduleMessages(Bool)
     case ghostScheduleMessagesFooter
     case ghostModeFooter
-    case streamerMode(Bool)
     case streamerModeFooter
-    case instantPasscode(Bool)
     case instantPasscodeFooter
-    case hideMentions(Bool)
     case hideMentionsFooter
-    case hidePinned(Bool)
     case hidePinnedFooter
     case sessionBackup(Bool)
     case sessionBackupFooter
-    case compactChatList(Bool)
-    case compactMessagePreview(Bool)
-    case compactFolderNames(Bool)
     case uiDensityFooter
-    case hideReactionsBar(Bool)
-    case showDC(Bool)
-    case showProfileId(Bool)
     case accentSaturation(Int32)
     case privacyFooter
-    case confirmBeforeCall(Bool)
-    case sendWithReturnKey(Bool)
     case sendWithReturnKeyFooter
-    case forceBuiltInMic(Bool)
-    case keepAliveInBackground(Bool)
     case keepAliveFooter
     case callsFooter
     case translationBackend(ForkTranslationBackend)
@@ -954,20 +799,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case translationFooter
     case scrollToNextChat(Bool)
     case scrollToNextChatFooter
-    case saveDeletedMessages(Bool)
     case saveDeletedMessagesFooter
-    case saveMessagesHistory(Bool)
     case saveMessagesHistoryFooter
-    case saveMedia(Bool)
     case saveMediaFooter
-    case saveForBots(Bool)
-    case ayuForward(Bool)
     case ayuForwardFooter
-    case bypassDownloadRestrictions(Bool)
     case bypassDownloadRestrictionsFooter
-    case showSensitiveContent(Bool)
     case showSensitiveContentFooter
-    case proactiveSaveMedia(Bool)
     case proactiveSaveMediaFooter
     case deletedMessageMark(String)
     case deletedMessageMarkFooter
@@ -976,49 +813,35 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case exportMessageSavingDatabase
     case importMessageSavingDatabase
     case messageSavingDbFooter
-    case localPremium(Bool)
     case localPremiumFooter
     case autoFetchMtProxy(Bool)
     case autoFetchMtProxyFooter
-    case hideAds(Bool)
     case hideAdsFooter
-    case hideBlockedMessages(Bool)
     case hideBlockedMessagesFooter
-    case allowSecretScreenshots(Bool)
     case allowSecretScreenshotsFooter
-    case expireTtlButton(Bool)
     case expireTtlButtonFooter
-    case keepBannedChats(Bool)
     case keepBannedChatsFooter
-    case regexFilters(Bool)
-    case regexFiltersCaseInsensitive(Bool)
     case regexFiltersPatterns(String)
     case regexFiltersFooter(Int)
-    case hideAllChats(Bool)
     case hideAllChatsFooter
-    case rememberLastFolder(Bool)
     case rememberLastFolderFooter
-    case hideTabBar(Bool)
     case hideTabBarFooter
-    case showMessageSeconds(Bool)
     case showMessageSecondsFooter
     case tabPreview(BananaTabBarLayout)
     case callsTab(Bool)
     case appearanceToggle(Int32, String, Bool, WritableKeyPath<ForkExtrasSettings, Bool>)
-    case wideChannelPosts(Bool)
+    /// A plain on/off row for one setting: its id (stable: links, search and the screen's grouping use it), the
+    /// section it is drawn in outside the regrouped screens, its title, its value and the setting it writes.
+    case settingToggle(Int32, ForkExtrasSection, String, Bool, WritableKeyPath<ForkExtrasSettings, Bool>)
     case wideChannelPostsFooter
     case stickerSize(Int32)
     /// A row that opens a list of numeric choices (id, title, current value's label); `openIntChoice` picks by id.
     case intChoice(Int32, String, String)
     case doubleTapToEdit(Bool)
     case doubleTapToEditFooter
-    case quickTranslate(Bool)
     case quickTranslateFooter
-    case saveToCloud(Bool)
     case saveToCloudFooter
-    case selectFromAuthor(Bool)
     case selectFromAuthorFooter
-    case downloadSpeedBoost(Bool)
     case downloadSpeedBoostFooter
     case outgoingPhotoQuality(Int32)
     case outgoingPhotoQualityFooter
@@ -1029,6 +852,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return Int32(100 + group)
         }
         switch self {
+        case let .settingToggle(_, section, _, _, _):
+            return section.rawValue
         case let .destination(_, _, destination):
             switch destination {
             case .proxy: return ForkExtrasSection.proxy.rawValue
@@ -1037,42 +862,42 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .designHeader, .designFooter, .brandTheme: return 100
         case .hubAppearance, .hubNinja, .hubGhost, .hubPrivacy, .hubChatList, .hubTabBar, .hubMessages, .hubMedia, .hubProfile, .hubNetwork, .hubFooter:
             return ForkExtrasSection.hub.rawValue
-        case .ghostModeMaster, .ghostDontReadMessages, .ghostDontReadStories, .ghostDontSendOnline, .ghostDontSendTyping, .ghostGoOfflineAutomatically, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStory, .ghostAlertBeforeOpeningStoryFooter, .ghostScheduleMessages, .ghostScheduleMessagesFooter, .ghostModeFooter:
+        case .ghostModeMaster, .ghostGoOfflineAutomaticallyFooter, .ghostReadOnInteract, .ghostReadOnInteractFooter, .ghostAlertBeforeOpeningStoryFooter, .ghostScheduleMessages, .ghostScheduleMessagesFooter, .ghostModeFooter:
             return ForkExtrasSection.ghost.rawValue
-        case .streamerMode, .streamerModeFooter, .instantPasscode, .instantPasscodeFooter:
+        case .streamerModeFooter, .instantPasscodeFooter:
             return ForkExtrasSection.lock.rawValue
-        case .hideMentions, .hideMentionsFooter, .hidePinned, .hidePinnedFooter:
+        case .hideMentionsFooter, .hidePinnedFooter:
             return ForkExtrasSection.notifications.rawValue
         case .sessionBackup, .sessionBackupFooter:
             return ForkExtrasSection.backup.rawValue
-        case .compactChatList, .compactMessagePreview, .compactFolderNames, .uiDensityFooter:
+        case .uiDensityFooter:
             return ForkExtrasSection.uiDensity.rawValue
-        case .hideReactionsBar, .showDC, .showProfileId, .accentSaturation, .privacyFooter:
+        case .accentSaturation, .privacyFooter:
             return ForkExtrasSection.privacy.rawValue
-        case .confirmBeforeCall, .sendWithReturnKey, .sendWithReturnKeyFooter, .forceBuiltInMic, .callsFooter:
+        case .sendWithReturnKeyFooter, .callsFooter:
             return ForkExtrasSection.calls.rawValue
-        case .keepAliveInBackground, .keepAliveFooter: return ForkExtrasSection.backgroundConnection.rawValue
+        case .keepAliveFooter: return ForkExtrasSection.backgroundConnection.rawValue
         case .translationBackend, .transcriptionBackend, .translationFooter:
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat, .scrollToNextChatFooter:
             return ForkExtrasSection.navigation.rawValue
-        case .saveDeletedMessages, .saveDeletedMessagesFooter, .saveMessagesHistory, .saveMessagesHistoryFooter, .saveMedia, .saveMediaFooter, .proactiveSaveMedia, .proactiveSaveMediaFooter, .deletedMessageMark, .deletedMessageMarkFooter, .editedMessageMark, .editedMessageMarkFooter, .exportMessageSavingDatabase, .importMessageSavingDatabase, .messageSavingDbFooter, .saveForBots, .ayuForward, .ayuForwardFooter, .bypassDownloadRestrictions, .bypassDownloadRestrictionsFooter:
+        case .saveDeletedMessagesFooter, .saveMessagesHistoryFooter, .saveMediaFooter, .proactiveSaveMediaFooter, .deletedMessageMark, .deletedMessageMarkFooter, .editedMessageMark, .editedMessageMarkFooter, .exportMessageSavingDatabase, .importMessageSavingDatabase, .messageSavingDbFooter, .ayuForwardFooter, .bypassDownloadRestrictionsFooter:
             return ForkExtrasSection.messageSaving.rawValue
-        case .hideAds, .hideAdsFooter, .hideBlockedMessages, .hideBlockedMessagesFooter, .showSensitiveContent, .showSensitiveContentFooter, .regexFilters, .regexFiltersCaseInsensitive, .regexFiltersPatterns, .regexFiltersFooter:
+        case .hideAdsFooter, .hideBlockedMessagesFooter, .showSensitiveContentFooter, .regexFiltersPatterns, .regexFiltersFooter:
             return ForkExtrasSection.messageFilters.rawValue
-        case .allowSecretScreenshots, .allowSecretScreenshotsFooter, .expireTtlButton, .expireTtlButtonFooter, .keepBannedChats, .keepBannedChatsFooter:
+        case .allowSecretScreenshotsFooter, .expireTtlButtonFooter, .keepBannedChatsFooter:
             return ForkExtrasSection.smallThings.rawValue
-        case .localPremium, .localPremiumFooter:
+        case .localPremiumFooter:
             return ForkExtrasSection.premium.rawValue
         case .autoFetchMtProxy, .autoFetchMtProxyFooter:
             return ForkExtrasSection.proxy.rawValue
-        case .hideAllChats, .hideAllChatsFooter, .rememberLastFolder, .rememberLastFolderFooter, .hideTabBar, .hideTabBarFooter:
+        case .hideAllChatsFooter, .rememberLastFolderFooter, .hideTabBarFooter:
             return ForkExtrasSection.folders.rawValue
-        case .tabPreview, .callsTab, .appearanceToggle, .visualPhoneNumber, .intChoice, .showMessageSeconds, .showMessageSecondsFooter, .wideChannelPosts, .wideChannelPostsFooter, .stickerSize:
+        case .tabPreview, .callsTab, .appearanceToggle, .visualPhoneNumber, .intChoice, .showMessageSecondsFooter, .wideChannelPostsFooter, .stickerSize:
             return ForkExtrasSection.appearance.rawValue
-        case .doubleTapToEdit, .doubleTapToEditFooter, .quickTranslate, .quickTranslateFooter, .saveToCloud, .saveToCloudFooter, .selectFromAuthor, .selectFromAuthorFooter, .outgoingPhotoQuality, .outgoingPhotoQualityFooter:
+        case .doubleTapToEdit, .doubleTapToEditFooter, .quickTranslateFooter, .saveToCloudFooter, .selectFromAuthorFooter, .outgoingPhotoQuality, .outgoingPhotoQualityFooter:
             return ForkExtrasSection.chatExtras.rawValue
-        case .downloadSpeedBoost, .downloadSpeedBoostFooter:
+        case .downloadSpeedBoostFooter:
             return ForkExtrasSection.downloads.rawValue
         }
     }
@@ -1089,6 +914,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .tabPreview: return 1507
         case .callsTab: return 1503
         case let .appearanceToggle(id, _, _, _): return id
+        case let .settingToggle(id, _, _, _, _): return id
         case let .intChoice(id, _, _): return id
         case .hubAppearance: return 1540
         case .hubNinja: return 0
@@ -1102,60 +928,32 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hubNetwork: return 5
         case .hubFooter: return 6
         case .ghostModeMaster: return 9
-        case .ghostDontReadMessages: return 10
-        case .ghostDontReadStories: return 11
-        case .ghostDontSendOnline: return 12
-        case .ghostDontSendTyping: return 13
-        case .ghostGoOfflineAutomatically: return 14
         case .ghostGoOfflineAutomaticallyFooter: return 15
         case .ghostReadOnInteract: return 16
         case .ghostReadOnInteractFooter: return 17
-        case .ghostAlertBeforeOpeningStory: return 18
         case .ghostAlertBeforeOpeningStoryFooter: return 19
         case .ghostScheduleMessages: return 20
         case .ghostScheduleMessagesFooter: return 21
         case .ghostModeFooter: return 22
-        case .streamerMode: return 28
         case .streamerModeFooter: return 29
-        case .instantPasscode: return 30
         case .instantPasscodeFooter: return 31
-        case .hideMentions: return 32
         case .hideMentionsFooter: return 33
-        case .hidePinned: return 34
         case .hidePinnedFooter: return 35
         case .sessionBackup: return 36
         case .sessionBackupFooter: return 37
-        case .allowSecretScreenshots: return 38
         case .allowSecretScreenshotsFooter: return 39
-        case .expireTtlButton: return 40
         case .expireTtlButtonFooter: return 41
-        case .keepBannedChats: return 42
         case .keepBannedChatsFooter: return 43
-        case .compactChatList: return 50
-        case .compactMessagePreview: return 51
-        case .compactFolderNames: return 52
         case .uiDensityFooter: return 53
-        case .hideReactionsBar: return 54
-        case .showDC: return 55
-        case .showProfileId: return 56
         case .accentSaturation: return 57
         case .privacyFooter: return 58
-        case .hideAllChats: return 59
         case .hideAllChatsFooter: return 60
-        case .rememberLastFolder: return 61
         case .rememberLastFolderFooter: return 62
-        case .hideTabBar: return 63
         case .hideTabBarFooter: return 64
-        case .showMessageSeconds: return 65
         case .showMessageSecondsFooter: return 66
-        case .wideChannelPosts: return 67
         case .wideChannelPostsFooter: return 68
         case .stickerSize: return 69
-        case .confirmBeforeCall: return 80
-        case .sendWithReturnKey: return 81
         case .sendWithReturnKeyFooter: return 82
-        case .forceBuiltInMic: return 83
-        case .keepAliveInBackground: return 146
         case .keepAliveFooter: return 149
         case .callsFooter: return 84
         case .translationBackend: return 85
@@ -1165,27 +963,17 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .scrollToNextChatFooter: return 89
         case .doubleTapToEdit: return 90
         case .doubleTapToEditFooter: return 91
-        case .quickTranslate: return 92
         case .quickTranslateFooter: return 93
-        case .saveToCloud: return 94
         case .saveToCloudFooter: return 95
-        case .selectFromAuthor: return 96
         case .selectFromAuthorFooter: return 97
         case .outgoingPhotoQuality: return 98
         case .outgoingPhotoQualityFooter: return 99
         case .visualPhoneNumber: return 1737
-        case .saveDeletedMessages: return 110
         case .saveDeletedMessagesFooter: return 111
-        case .saveMessagesHistory: return 112
         case .saveMessagesHistoryFooter: return 113
-        case .saveMedia: return 114
         case .saveMediaFooter: return 115
-        case .saveForBots: return 116
-        case .ayuForward: return 117
         case .ayuForwardFooter: return 118
-        case .bypassDownloadRestrictions: return 119
         case .bypassDownloadRestrictionsFooter: return 120
-        case .proactiveSaveMedia: return 121
         case .proactiveSaveMediaFooter: return 122
         case .deletedMessageMark: return 123
         case .deletedMessageMarkFooter: return 124
@@ -1194,21 +982,14 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .exportMessageSavingDatabase: return 127
         case .importMessageSavingDatabase: return 128
         case .messageSavingDbFooter: return 129
-        case .hideAds: return 130
         case .hideAdsFooter: return 131
-        case .hideBlockedMessages: return 132
         case .hideBlockedMessagesFooter: return 133
-        case .showSensitiveContent: return 147
         case .showSensitiveContentFooter: return 148
-        case .regexFilters: return 134
-        case .regexFiltersCaseInsensitive: return 135
         case .regexFiltersPatterns: return 136
         case .regexFiltersFooter: return 137
-        case .localPremium: return 140
         case .localPremiumFooter: return 141
         case .autoFetchMtProxy: return 142
         case .autoFetchMtProxyFooter: return 143
-        case .downloadSpeedBoost: return 144
         case .downloadSpeedBoostFooter: return 145
         }
     }
@@ -1240,68 +1021,23 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     /// The row's title for Settings search, or nil for headers, footers and rows search should not offer.
     func searchTitle(strings: PresentationStrings) -> String? {
         switch self {
-        case let .musicPolicy(_, title, _), let .appearanceToggle(_, title, _, _), let .intChoice(_, title, _):
+        case let .musicPolicy(_, title, _), let .appearanceToggle(_, title, _, _), let .settingToggle(_, _, title, _, _), let .intChoice(_, title, _):
             return title
         case .callsTab:
             return strings.Calls_TabTitle
         case .ghostModeMaster: return ForkExtrasLocalizedString.ghostModeMaster
-        case .ghostDontReadMessages: return ForkExtrasLocalizedString.ghostDontReadMessages
-        case .ghostDontReadStories: return ForkExtrasLocalizedString.ghostDontReadStories
-        case .ghostDontSendOnline: return ForkExtrasLocalizedString.ghostDontSendOnline
-        case .ghostDontSendTyping: return ForkExtrasLocalizedString.ghostDontSendTyping
-        case .ghostGoOfflineAutomatically: return ForkExtrasLocalizedString.ghostGoOfflineAutomatically
         case .ghostReadOnInteract: return ForkExtrasLocalizedString.ghostReadOnInteract
-        case .ghostAlertBeforeOpeningStory: return ForkExtrasLocalizedString.ghostAlertBeforeOpeningStory
         case .ghostScheduleMessages: return ForkExtrasLocalizedString.ghostScheduleMessages
-        case .streamerMode: return ForkExtrasLocalizedString.streamerMode
-        case .instantPasscode: return ForkExtrasLocalizedString.instantPasscode
-        case .hideMentions: return ForkExtrasLocalizedString.hideMentions
-        case .hidePinned: return ForkExtrasLocalizedString.hidePinned
-        case .compactChatList: return ForkExtrasLocalizedString.compactChatList
-        case .compactMessagePreview: return ForkExtrasLocalizedString.compactMessagePreview
-        case .compactFolderNames: return ForkExtrasLocalizedString.compactFolderNames
-        case .hideReactionsBar: return ForkExtrasLocalizedString.hideReactionsBar
-        case .showDC: return ForkExtrasLocalizedString.showDC
-        case .showProfileId: return ForkExtrasLocalizedString.showProfileId
         case .accentSaturation: return ForkExtrasLocalizedString.accentSaturation
-        case .confirmBeforeCall: return ForkExtrasLocalizedString.confirmBeforeCall
-        case .sendWithReturnKey: return ForkExtrasLocalizedString.sendWithReturnKey
-        case .forceBuiltInMic: return ForkExtrasLocalizedString.forceBuiltInMic
-        case .keepAliveInBackground: return ForkExtrasLocalizedString.keepAliveInBackground
         case .translationBackend: return ForkExtrasLocalizedString.translationBackend
         case .transcriptionBackend: return ForkExtrasLocalizedString.transcriptionBackend
         case .scrollToNextChat: return ForkExtrasLocalizedString.scrollToNextChat
-        case .saveDeletedMessages: return ForkExtrasLocalizedString.saveDeletedMessages
-        case .saveMessagesHistory: return ForkExtrasLocalizedString.saveMessagesHistory
-        case .saveMedia: return ForkExtrasLocalizedString.saveMedia
-        case .saveForBots: return ForkExtrasLocalizedString.saveForBots
-        case .ayuForward: return ForkExtrasLocalizedString.ayuForward
-        case .bypassDownloadRestrictions: return ForkExtrasLocalizedString.bypassDownloadRestrictions
-        case .showSensitiveContent: return ForkExtrasLocalizedString.showSensitiveContent
-        case .proactiveSaveMedia: return ForkExtrasLocalizedString.proactiveSaveMedia
         case .deletedMessageMark: return ForkExtrasLocalizedString.deletedMessageMark
         case .editedMessageMark: return ForkExtrasLocalizedString.editedMessageMark
         case .exportMessageSavingDatabase: return ForkExtrasLocalizedString.exportMessageSaving
         case .importMessageSavingDatabase: return ForkExtrasLocalizedString.importMessageSaving
-        case .localPremium: return ForkExtrasLocalizedString.localPremium
-        case .hideAds: return ForkExtrasLocalizedString.hideAds
-        case .hideBlockedMessages: return ForkExtrasLocalizedString.hideBlockedMessages
-        case .allowSecretScreenshots: return ForkExtrasLocalizedString.allowSecretScreenshots
-        case .expireTtlButton: return ForkExtrasLocalizedString.expireTtlButton
-        case .keepBannedChats: return ForkExtrasLocalizedString.keepBannedChats
-        case .regexFilters: return ForkExtrasLocalizedString.regexFilters
-        case .regexFiltersCaseInsensitive: return ForkExtrasLocalizedString.regexFiltersCaseInsensitive
-        case .hideAllChats: return ForkExtrasLocalizedString.hideAllChats
-        case .rememberLastFolder: return ForkExtrasLocalizedString.rememberLastFolder
-        case .hideTabBar: return ForkExtrasLocalizedString.hideTabBar
-        case .showMessageSeconds: return ForkExtrasLocalizedString.showMessageSeconds
-        case .wideChannelPosts: return ForkExtrasLocalizedString.wideChannelPosts
         case .stickerSize: return ForkExtrasLocalizedString.stickerSize
         case .doubleTapToEdit: return ForkExtrasLocalizedString.doubleTapToEdit
-        case .quickTranslate: return ForkExtrasLocalizedString.quickTranslate
-        case .saveToCloud: return ForkExtrasLocalizedString.saveToCloud
-        case .selectFromAuthor: return ForkExtrasLocalizedString.selectFromAuthor
-        case .downloadSpeedBoost: return ForkExtrasLocalizedString.downloadSpeedBoost
         case .outgoingPhotoQuality: return ForkExtrasLocalizedString.outgoingPhotoQuality
         case .visualPhoneNumber: return ForkPresentationLanguage.prefersRussianStrings ? "Показываемый номер" : "Displayed number"
         default:
@@ -1339,6 +1075,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return BananaTabBarPreviewItem(context: arguments.context, theme: presentationData.theme, strings: presentationData.strings, sectionId: self.section, layout: layout)
         case let .callsTab(value):
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.Calls_TabTitle, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: arguments.updateCallsTab, tag: BananaSettingsItemTag(id: self.stableId))
+        case let .settingToggle(_, _, title, value, keyPath):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateAppearance(keyPath, value)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .appearanceToggle(id, title, value, keyPath):
             let description: String?
             switch id {
@@ -1402,26 +1142,6 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostModeMaster, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateGhostModeMaster(value)
             }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .ghostDontReadMessages(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontReadMessages, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateGhostDontReadMessages(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .ghostDontReadStories(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontReadStories, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateGhostDontReadStories(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .ghostDontSendOnline(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontSendOnline, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateGhostDontSendOnline(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .ghostDontSendTyping(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostDontSendTyping, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateGhostDontSendTyping(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .ghostGoOfflineAutomatically(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostGoOfflineAutomatically, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateGhostGoOfflineAutomatically(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .ghostGoOfflineAutomaticallyFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostGoOfflineAutomaticallyFooter), sectionId: self.section)
         case let .ghostReadOnInteract(value):
@@ -1430,10 +1150,6 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .ghostReadOnInteractFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostReadOnInteractFooter), sectionId: self.section)
-        case let .ghostAlertBeforeOpeningStory(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ghostAlertBeforeOpeningStory, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateGhostAlertBeforeOpeningStory(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .ghostAlertBeforeOpeningStoryFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostAlertBeforeOpeningStoryFooter), sectionId: self.section)
         case let .ghostScheduleMessages(value):
@@ -1444,28 +1160,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostScheduleMessagesFooter), sectionId: self.section)
         case .ghostModeFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ghostModeFooter), sectionId: self.section)
-        case let .streamerMode(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.streamerMode, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateStreamerMode(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .streamerModeFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.streamerModeFooter), sectionId: self.section)
-        case let .instantPasscode(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.instantPasscode, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateInstantPasscode(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .instantPasscodeFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.instantPasscodeFooter), sectionId: self.section)
-        case let .hideMentions(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideMentions, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateHideMentions(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hideMentionsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideMentionsFooter), sectionId: self.section)
-        case let .hidePinned(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hidePinned, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateHidePinned(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hidePinnedFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hidePinnedFooter), sectionId: self.section)
         case let .sessionBackup(value):
@@ -1474,56 +1174,16 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .sessionBackupFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.sessionBackupFooter), sectionId: self.section)
-        case let .compactChatList(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.compactChatList, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateCompactChatList(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .compactMessagePreview(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.compactMessagePreview, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateCompactMessagePreview(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .compactFolderNames(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.compactFolderNames, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateCompactFolderNames(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .uiDensityFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.uiDensityFooter), sectionId: self.section)
-        case let .hideReactionsBar(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideReactionsBar, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateHideReactionsBar(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .showDC(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.showDC, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateShowDC(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .showProfileId(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.showProfileId, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateShowProfileId(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .accentSaturation(percent):
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.accentSaturation, label: "\(percent)%", sectionId: self.section, style: .blocks, action: {
                 arguments.openAccentSaturation()
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .privacyFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.privacyFooter), sectionId: self.section)
-        case let .confirmBeforeCall(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.confirmBeforeCall, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateConfirmBeforeCall(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .sendWithReturnKey(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.sendWithReturnKey, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateSendWithReturnKey(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .sendWithReturnKeyFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.sendWithReturnKeyFooter), sectionId: self.section)
-        case let .forceBuiltInMic(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.forceBuiltInMic, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateForceBuiltInMic(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .keepAliveInBackground(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.keepAliveInBackground, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateKeepAliveInBackground(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .keepAliveFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.keepAliveInBackgroundFooter), sectionId: self.section)
         case .callsFooter:
@@ -1558,50 +1218,18 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .scrollToNextChatFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.scrollToNextChatFooter), sectionId: self.section)
-        case let .saveDeletedMessages(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveDeletedMessages, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateSaveDeletedMessages(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .saveDeletedMessagesFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveDeletedMessagesFooter), sectionId: self.section)
-        case let .saveMessagesHistory(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveMessagesHistory, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateSaveMessagesHistory(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .saveMessagesHistoryFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveMessagesHistoryFooter), sectionId: self.section)
-        case let .saveMedia(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveMedia, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateSaveMedia(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .saveMediaFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveMediaFooter), sectionId: self.section)
-        case let .saveForBots(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveForBots, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateSaveForBots(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .ayuForward(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.ayuForward, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateAyuForward(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .ayuForwardFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.ayuForwardFooter), sectionId: self.section)
-        case let .bypassDownloadRestrictions(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.bypassDownloadRestrictions, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateBypassDownloadRestrictions(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .showSensitiveContent(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.showSensitiveContent, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateShowSensitiveContent(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .showSensitiveContentFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.showSensitiveContentFooter), sectionId: self.section)
         case .bypassDownloadRestrictionsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.bypassDownloadRestrictionsFooter), sectionId: self.section)
-        case let .proactiveSaveMedia(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.proactiveSaveMedia, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateProactiveSaveMedia(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .proactiveSaveMediaFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.proactiveSaveMediaFooter), sectionId: self.section)
         case let .deletedMessageMark(value):
@@ -1626,10 +1254,6 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             })
         case .messageSavingDbFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.messageSavingDbFooter), sectionId: self.section)
-        case let .localPremium(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.localPremium, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateLocalPremium(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .localPremiumFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.localPremiumFooter), sectionId: self.section)
         case let .autoFetchMtProxy(value):
@@ -1638,44 +1262,16 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .autoFetchMtProxyFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.autoFetchMtProxyFooter), sectionId: self.section)
-        case let .hideAds(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAds, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateHideAds(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hideAdsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideAdsFooter), sectionId: self.section)
-        case let .hideBlockedMessages(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideBlockedMessages, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateHideBlockedMessages(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hideBlockedMessagesFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideBlockedMessagesFooter), sectionId: self.section)
-        case let .allowSecretScreenshots(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.allowSecretScreenshots, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateAllowSecretScreenshots(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .allowSecretScreenshotsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.allowSecretScreenshotsFooter), sectionId: self.section)
-        case let .expireTtlButton(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.expireTtlButton, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateExpireTtlButton(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .expireTtlButtonFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.expireTtlButtonFooter), sectionId: self.section)
-        case let .keepBannedChats(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.keepBannedChats, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateKeepBannedChats(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .keepBannedChatsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.keepBannedChatsFooter), sectionId: self.section)
-        case let .regexFilters(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.regexFilters, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateRegexFiltersEnabled(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .regexFiltersCaseInsensitive(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.regexFiltersCaseInsensitive, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateRegexFiltersCaseInsensitive(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .regexFiltersPatterns(value):
             return ItemListMultilineInputItem(presentationData: presentationData, systemStyle: .glass, text: value, placeholder: ForkExtrasLocalizedString.regexFiltersPatterns, maxLength: ItemListMultilineInputItemTextLimit(value: 4000, display: false), sectionId: self.section, style: .blocks, capitalization: false, autocorrection: false, textUpdated: { value in
                 arguments.updateRegexFilterPatternsText(value)
@@ -1686,34 +1282,14 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
                 text += "\n\n" + (ForkPresentationLanguage.prefersRussianStrings ? "Не работают шаблонов: \(unusable) (неверное выражение, длиннее 512 символов или сверх лимита 64)." : "Patterns that will not work: \(unusable) (invalid expression, longer than 512 characters, or past the limit of 64).")
             }
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
-        case let .hideAllChats(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideAllChats, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateHideAllChats(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hideAllChatsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideAllChatsFooter), sectionId: self.section)
-        case let .rememberLastFolder(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.rememberLastFolder, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateRememberLastFolder(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .rememberLastFolderFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.rememberLastFolderFooter), sectionId: self.section)
-        case let .hideTabBar(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.hideTabBar, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateHideTabBar(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hideTabBarFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.hideTabBarFooter), sectionId: self.section)
-        case let .showMessageSeconds(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.showMessageSeconds, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateShowMessageSeconds(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .showMessageSecondsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.showMessageSecondsFooter), sectionId: self.section)
-        case let .wideChannelPosts(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.wideChannelPosts, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateWideChannelPosts(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .wideChannelPostsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.wideChannelPostsFooter), sectionId: self.section)
         case let .intChoice(id, title, label):
@@ -1730,28 +1306,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .doubleTapToEditFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.doubleTapToEditFooter), sectionId: self.section)
-        case let .quickTranslate(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.quickTranslate, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateQuickTranslateButton(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .quickTranslateFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.quickTranslateFooter), sectionId: self.section)
-        case let .saveToCloud(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.saveToCloud, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateSaveToCloudMenu(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .saveToCloudFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.saveToCloudFooter), sectionId: self.section)
-        case let .selectFromAuthor(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.selectFromAuthor, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateSelectFromAuthor(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .selectFromAuthorFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.selectFromAuthorFooter), sectionId: self.section)
-        case let .downloadSpeedBoost(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.downloadSpeedBoost, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateDownloadSpeedBoost(value)
-            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .downloadSpeedBoostFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ForkExtrasLocalizedString.downloadSpeedBoostFooter), sectionId: self.section)
         case let .outgoingPhotoQuality(value):
@@ -1887,18 +1447,18 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
     case .ghost:
         entries = [
             .ghostModeMaster(settings.isFullGhostMode),
-            .ghostDontReadMessages(settings.ghostDontReadMessages),
-            .ghostDontReadStories(settings.ghostDontReadStories),
-            .ghostDontSendOnline(settings.ghostDontSendOnline),
-            .ghostDontSendTyping(settings.ghostDontSendTyping),
+            .settingToggle(10, .ghost, ForkExtrasLocalizedString.ghostDontReadMessages, settings.ghostDontReadMessages, \.ghostDontReadMessages),
+            .settingToggle(11, .ghost, ForkExtrasLocalizedString.ghostDontReadStories, settings.ghostDontReadStories, \.ghostDontReadStories),
+            .settingToggle(12, .ghost, ForkExtrasLocalizedString.ghostDontSendOnline, settings.ghostDontSendOnline, \.ghostDontSendOnline),
+            .settingToggle(13, .ghost, ForkExtrasLocalizedString.ghostDontSendTyping, settings.ghostDontSendTyping, \.ghostDontSendTyping),
             .appearanceToggle(1560, russian ? "Скрывать «печатает…»" : "Hide “typing…”", settings.hideTypingText, \.hideTypingText),
             .appearanceToggle(1561, russian ? "Скрывать «записывает голосовое/кружок»" : "Hide “recording voice/round video”", settings.hideTypingVoice, \.hideTypingVoice),
             .appearanceToggle(1562, russian ? "Скрывать «отправляет файл/фото/видео»" : "Hide “sending file/photo/video”", settings.hideTypingFiles, \.hideTypingFiles),
-            .ghostGoOfflineAutomatically(settings.ghostGoOfflineAutomatically),
+            .settingToggle(14, .ghost, ForkExtrasLocalizedString.ghostGoOfflineAutomatically, settings.ghostGoOfflineAutomatically, \.ghostGoOfflineAutomatically),
             .ghostGoOfflineAutomaticallyFooter,
             .ghostReadOnInteract(settings.ghostReadOnInteract),
             .ghostReadOnInteractFooter,
-            .ghostAlertBeforeOpeningStory(settings.ghostAlertBeforeOpeningStory),
+            .settingToggle(18, .ghost, ForkExtrasLocalizedString.ghostAlertBeforeOpeningStory, settings.ghostAlertBeforeOpeningStory, \.ghostAlertBeforeOpeningStory),
             .ghostAlertBeforeOpeningStoryFooter,
             .ghostScheduleMessages(settings.ghostScheduleMessages),
             .ghostScheduleMessagesFooter,
@@ -1912,38 +1472,38 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1530, russian ? "Отправлять статистику в Telegram" : "Send statistics to Telegram", settings.sendTelegramStatistics, \.sendTelegramStatistics),
             .appearanceToggle(2030, russian ? "Убирать отслеживание из ссылок" : "Remove tracking from sent links", settings.stripTrackingParameters, \.stripTrackingParameters),
             .designFooter(2031, russian ? "Очищать ссылки в текстовых сообщениях. Код и подписанные ссылки сохраняются без изменений." : "Clean links in text messages. Code and signed links remain unchanged."),
-            .streamerMode(settings.streamerMode),
+            .settingToggle(28, .lock, ForkExtrasLocalizedString.streamerMode, settings.streamerMode, \.streamerMode),
             .streamerModeFooter,
-            .instantPasscode(settings.instantPasscodeLock),
+            .settingToggle(30, .lock, ForkExtrasLocalizedString.instantPasscode, settings.instantPasscodeLock, \.instantPasscodeLock),
             .instantPasscodeFooter,
-            .hideMentions(settings.hideMentionNotifications),
+            .settingToggle(32, .notifications, ForkExtrasLocalizedString.hideMentions, settings.hideMentionNotifications, \.hideMentionNotifications),
             .hideMentionsFooter,
-            .hidePinned(settings.hidePinnedNotifications),
+            .settingToggle(34, .notifications, ForkExtrasLocalizedString.hidePinned, settings.hidePinnedNotifications, \.hidePinnedNotifications),
             .hidePinnedFooter,
-            .allowSecretScreenshots(settings.allowSecretScreenshots),
+            .settingToggle(38, .smallThings, ForkExtrasLocalizedString.allowSecretScreenshots, settings.allowSecretScreenshots, \.allowSecretScreenshots),
             .allowSecretScreenshotsFooter,
             .appearanceToggle(1775, russian ? "Скриншоты в защищённых чатах" : "Screenshots in protected chats", settings.allowProtectedScreenshots, \.allowProtectedScreenshots),
-            .expireTtlButton(settings.expireTtlButton),
+            .settingToggle(40, .smallThings, ForkExtrasLocalizedString.expireTtlButton, settings.expireTtlButton, \.expireTtlButton),
             .expireTtlButtonFooter,
-            .keepBannedChats(settings.keepBannedChats),
+            .settingToggle(42, .smallThings, ForkExtrasLocalizedString.keepBannedChats, settings.keepBannedChats, \.keepBannedChats),
             .keepBannedChatsFooter,
         ]
     case .chatList:
         entries = [
             .designHeader(1602, russian ? "Список чатов" : "Chat list"),
-            .compactChatList(settings.compactChatList),
-            .compactMessagePreview(settings.compactMessagePreview),
+            .settingToggle(50, .uiDensity, ForkExtrasLocalizedString.compactChatList, settings.compactChatList, \.compactChatList),
+            .settingToggle(51, .uiDensity, ForkExtrasLocalizedString.compactMessagePreview, settings.compactMessagePreview, \.compactMessagePreview),
             .uiDensityFooter,
             .designHeader(1601, russian ? "Папки" : "Folders"),
-            .compactFolderNames(settings.compactFolderNames),
+            .settingToggle(52, .uiDensity, ForkExtrasLocalizedString.compactFolderNames, settings.compactFolderNames, \.compactFolderNames),
             .appearanceToggle(1499, ForkExtrasLocalizedString.string(forKey: "ForkExtras.BottomFolders"), settings.bottomChatFoldersEnabled, \.bottomChatFoldersEnabled),
             .appearanceToggle(1546, russian ? "Скрыть «Соединение…» в заголовке" : "Hide Connecting… in the title", settings.chatListHidesConnectionStatus, \.chatListHidesConnectionStatus),
             .appearanceToggle(1547, russian ? "Скрыть эмодзи-статус в заголовке" : "Hide emoji status in the title", settings.chatListHidesEmojiStatus, \.chatListHidesEmojiStatus),
             .appearanceToggle(1548, russian ? "Заголовок по центру" : "Centered title", settings.chatListCentersTitle, \.chatListCentersTitle),
             .appearanceToggle(1549, russian ? "Скрыть поиск в списке чатов" : "Hide search in the chat list", settings.chatListHidesSearch, \.chatListHidesSearch),
-            .hideAllChats(settings.hideAllChats),
+            .settingToggle(59, .folders, ForkExtrasLocalizedString.hideAllChats, settings.hideAllChats, \.hideAllChats),
             .hideAllChatsFooter,
-            .rememberLastFolder(settings.rememberLastFolder),
+            .settingToggle(61, .folders, ForkExtrasLocalizedString.rememberLastFolder, settings.rememberLastFolder, \.rememberLastFolder),
             .rememberLastFolderFooter,
             .appearanceToggle(1512, russian ? "Скрыть подсказки о днях рождения" : "Hide birthday banners", settings.hideBirthdayNotifications, \.hideBirthdayNotifications),
             .appearanceToggle(1773, russian ? "Скрыть истории" : "Hide stories", settings.hideStories, \.hideStories),
@@ -1956,7 +1516,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
     case .tabBar:
         entries = []
         if UIDevice.current.userInterfaceIdiom != .pad {
-            entries.append(.hideTabBar(settings.hideTabBar))
+            entries.append(.settingToggle(63, .folders, ForkExtrasLocalizedString.hideTabBar, settings.hideTabBar, \.hideTabBar))
             entries.append(.hideTabBarFooter)
         }
         entries.append(contentsOf: [
@@ -1985,9 +1545,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
     case .messages:
         entries = [
             .designHeader(1605, russian ? "Отображение" : "Display"),
-            .showMessageSeconds(settings.showMessageSeconds),
+            .settingToggle(65, .appearance, ForkExtrasLocalizedString.showMessageSeconds, settings.showMessageSeconds, \.showMessageSeconds),
             .showMessageSecondsFooter,
-            .wideChannelPosts(settings.wideChannelPosts),
+            .settingToggle(67, .appearance, ForkExtrasLocalizedString.wideChannelPosts, settings.wideChannelPosts, \.wideChannelPosts),
             .wideChannelPostsFooter,
             .stickerSize(settings.stickerSizePercent),
             .appearanceToggle(1508, russian ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
@@ -1996,7 +1556,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1533, russian ? "Убрать пинги" : "Remove mention pings", settings.removePings, \.removePings),
             .appearanceToggle(1509, russian ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
             .appearanceToggle(1735, russian ? "Скрыть кнопку подарка" : "Hide the gift button", settings.hideGiftButton, \.hideGiftButton),
-            .hideReactionsBar(settings.hideReactionsBar),
+            .settingToggle(54, .privacy, ForkExtrasLocalizedString.hideReactionsBar, settings.hideReactionsBar, \.hideReactionsBar),
             .appearanceToggle(1521, russian ? "Недавние эмодзи в реакциях" : "Recent emoji in reactions", settings.useRecentEmojiInReactions, \.useRecentEmojiInReactions),
             .appearanceToggle(1550, russian ? "Итоги опроса до голосования" : "Poll results before voting", settings.pollResultsBeforeVoting, \.pollResultsBeforeVoting),
             .appearanceToggle(1542, russian ? "Скрыть время у стикеров" : "Hide time on stickers", settings.hideStickerStatus, \.hideStickerStatus),
@@ -2027,7 +1587,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1710, russian ? "Запятая после упоминания" : "Comma after mention", settings.commaAfterMention, \.commaAfterMention),
             .appearanceToggle(1791, russian ? "«В начало чата» в меню аватарки" : "Jump to start in the avatar menu", settings.jumpToStartInChatMenu, \.jumpToStartInChatMenu),
             .designHeader(1606, russian ? "Отправка и правка" : "Sending and editing"),
-            .sendWithReturnKey(settings.sendWithReturnKey),
+            .settingToggle(81, .calls, ForkExtrasLocalizedString.sendWithReturnKey, settings.sendWithReturnKey, \.sendWithReturnKey),
             .sendWithReturnKeyFooter,
             .outgoingPhotoQuality(settings.outgoingPhotoQuality),
             .outgoingPhotoQualityFooter,
@@ -2037,11 +1597,11 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1800, russian ? "ID сообщения в группах и каналах" : "Message ID in groups and channels", settings.showMessageId, \.showMessageId),
             .appearanceToggle(1801, russian ? "Раскрывать спойлеры сразу" : "Reveal spoilers automatically", settings.autoRevealSpoilers, \.autoRevealSpoilers),
             .appearanceToggle(1803, russian ? "Меню: повторить и переслать без автора" : "Menu: Repeat and Forward without author", settings.repeatMessageMenu, \.repeatMessageMenu),
-            .quickTranslate(settings.quickTranslateButton),
+            .settingToggle(92, .chatExtras, ForkExtrasLocalizedString.quickTranslate, settings.quickTranslateButton, \.quickTranslateButton),
             .quickTranslateFooter,
-            .saveToCloud(settings.saveToCloudMenu),
+            .settingToggle(94, .chatExtras, ForkExtrasLocalizedString.saveToCloud, settings.saveToCloudMenu, \.saveToCloudMenu),
             .saveToCloudFooter,
-            .selectFromAuthor(settings.selectFromAuthor),
+            .settingToggle(96, .chatExtras, ForkExtrasLocalizedString.selectFromAuthor, settings.selectFromAuthor, \.selectFromAuthor),
             .selectFromAuthorFooter,
             .scrollToNextChat(settings.scrollToNextChatDisabled),
             .scrollToNextChatFooter,
@@ -2066,9 +1626,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
     case .media:
         entries = [
             .designHeader(1608, russian ? "Звонки" : "Calls"),
-            .confirmBeforeCall(settings.confirmBeforeCall),
+            .settingToggle(80, .calls, ForkExtrasLocalizedString.confirmBeforeCall, settings.confirmBeforeCall, \.confirmBeforeCall),
             .callsFooter,
-            .forceBuiltInMic(settings.forceBuiltInMic),
+            .settingToggle(83, .calls, ForkExtrasLocalizedString.forceBuiltInMic, settings.forceBuiltInMic, \.forceBuiltInMic),
             .designHeader(1609, russian ? "Голосовые и кружки" : "Voice and round videos"),
             .appearanceToggle(1515, russian ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
             .appearanceToggle(1516, russian ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
@@ -2109,8 +1669,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ]
     case .profile:
         entries = [
-            .showDC(settings.showDC),
-            .showProfileId(settings.showProfileId),
+            .settingToggle(55, .privacy, ForkExtrasLocalizedString.showDC, settings.showDC, \.showDC),
+            .settingToggle(56, .privacy, ForkExtrasLocalizedString.showProfileId, settings.showProfileId, \.showProfileId),
             .appearanceToggle(1551, russian ? "Точное время «был(а) в сети»" : "Exact last seen time", settings.exactLastSeen, \.exactLastSeen),
             .appearanceToggle(1714, russian ? "«Был(а) в сети» в профиле — сколько назад" : "Relative last seen on profiles", settings.relativeLastSeen, \.relativeLastSeen),
             .appearanceToggle(2020, russian ? "Примерное время активности, если «был(а) в сети» скрыто" : "Approximate last seen from activity", settings.approximateLastSeen, \.approximateLastSeen),
@@ -2136,23 +1696,23 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(2022, russian ? "Профиль раскрывается из шапки чата" : "Profile expands out of the chat header", settings.profileExpansionAnimation, \.profileExpansionAnimation),
             .accentSaturation(settings.accentColorSaturation),
             .designHeader(1604, russian ? "Локальные функции Premium" : "Local Premium features"),
-            .localPremium(settings.localPremium),
+            .settingToggle(140, .premium, ForkExtrasLocalizedString.localPremium, settings.localPremium, \.localPremium),
             .localPremiumFooter,
         ]
     case .ninja, .messageSaving, .messageFilters:
         entries = [
-            .saveDeletedMessages(settings.saveDeletedMessages),
+            .settingToggle(110, .messageSaving, ForkExtrasLocalizedString.saveDeletedMessages, settings.saveDeletedMessages, \.saveDeletedMessages),
             .saveDeletedMessagesFooter,
-            .saveMessagesHistory(settings.saveMessagesHistory),
+            .settingToggle(112, .messageSaving, ForkExtrasLocalizedString.saveMessagesHistory, settings.saveMessagesHistory, \.saveMessagesHistory),
             .saveMessagesHistoryFooter,
-            .saveMedia(settings.saveMedia),
+            .settingToggle(114, .messageSaving, ForkExtrasLocalizedString.saveMedia, settings.saveMedia, \.saveMedia),
             .saveMediaFooter,
-            .saveForBots(settings.saveForBots),
-            .ayuForward(settings.ayuForward),
+            .settingToggle(116, .messageSaving, ForkExtrasLocalizedString.saveForBots, settings.saveForBots, \.saveForBots),
+            .settingToggle(117, .messageSaving, ForkExtrasLocalizedString.ayuForward, settings.ayuForward, \.ayuForward),
             .ayuForwardFooter,
-            .bypassDownloadRestrictions(settings.bypassDownloadRestrictions),
+            .settingToggle(119, .messageSaving, ForkExtrasLocalizedString.bypassDownloadRestrictions, settings.bypassDownloadRestrictions, \.bypassDownloadRestrictions),
             .bypassDownloadRestrictionsFooter,
-            .proactiveSaveMedia(settings.proactiveSaveMedia),
+            .settingToggle(121, .messageSaving, ForkExtrasLocalizedString.proactiveSaveMedia, settings.proactiveSaveMedia, \.proactiveSaveMedia),
             .proactiveSaveMediaFooter,
             .deletedMessageMark(settings.deletedMessageMark),
             .deletedMessageMarkFooter,
@@ -2161,17 +1721,17 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .exportMessageSavingDatabase,
             .importMessageSavingDatabase,
             .messageSavingDbFooter,
-            .hideAds(settings.hideAds),
+            .settingToggle(130, .messageFilters, ForkExtrasLocalizedString.hideAds, settings.hideAds, \.hideAds),
             .hideAdsFooter,
-            .hideBlockedMessages(settings.hideBlockedMessages),
+            .settingToggle(132, .messageFilters, ForkExtrasLocalizedString.hideBlockedMessages, settings.hideBlockedMessages, \.hideBlockedMessages),
             .hideBlockedMessagesFooter,
-            .showSensitiveContent(settings.showSensitiveContent),
+            .settingToggle(147, .messageFilters, ForkExtrasLocalizedString.showSensitiveContent, settings.showSensitiveContent, \.showSensitiveContent),
             .showSensitiveContentFooter,
-            .regexFilters(settings.regexMessageFiltersEnabled),
+            .settingToggle(134, .messageFilters, ForkExtrasLocalizedString.regexFilters, settings.regexMessageFiltersEnabled, \.regexMessageFiltersEnabled),
         ]
         if settings.regexMessageFiltersEnabled {
             entries.append(contentsOf: [
-                .regexFiltersCaseInsensitive(settings.regexMessageFiltersCaseInsensitive),
+                .settingToggle(135, .messageFilters, ForkExtrasLocalizedString.regexFiltersCaseInsensitive, settings.regexMessageFiltersCaseInsensitive, \.regexMessageFiltersCaseInsensitive),
                 .regexFiltersPatterns(settings.regexMessageFilterPatterns.joined(separator: "\n")),
             ])
         }
@@ -2180,9 +1740,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         entries = [
             .destination(138, ForkPresentationLanguage.prefersRussianStrings ? "Прокси и подключение" : "Proxies and connection", .proxy),
 
-            .downloadSpeedBoost(settings.downloadSpeedBoost),
+            .settingToggle(144, .downloads, ForkExtrasLocalizedString.downloadSpeedBoost, settings.downloadSpeedBoost, \.downloadSpeedBoost),
             .downloadSpeedBoostFooter,
-            .keepAliveInBackground(settings.keepAliveInBackground),
+            .settingToggle(146, .backgroundConnection, ForkExtrasLocalizedString.keepAliveInBackground, settings.keepAliveInBackground, \.keepAliveInBackground),
             .keepAliveFooter,
         ]
     case .top:
@@ -2309,41 +1869,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 return updated
             }.start())
         },
-        updateGhostDontReadMessages: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.ghostDontReadMessages = value
-                return updated
-            }.start())
-        },
-        updateGhostDontReadStories: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.ghostDontReadStories = value
-                return updated
-            }.start())
-        },
-        updateGhostDontSendOnline: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.ghostDontSendOnline = value
-                return updated
-            }.start())
-        },
-        updateGhostDontSendTyping: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.ghostDontSendTyping = value
-                return updated
-            }.start())
-        },
-        updateGhostGoOfflineAutomatically: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.ghostGoOfflineAutomatically = value
-                return updated
-            }.start())
-        },
         updateGhostReadOnInteract: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
@@ -2351,41 +1876,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 if value {
                     updated.ghostScheduleMessages = false
                 }
-                return updated
-            }.start())
-        },
-        updateGhostAlertBeforeOpeningStory: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.ghostAlertBeforeOpeningStory = value
-                return updated
-            }.start())
-        },
-        updateInstantPasscode: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.instantPasscodeLock = value
-                return updated
-            }.start())
-        },
-        updateStreamerMode: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.streamerMode = value
-                return updated
-            }.start())
-        },
-        updateHideMentions: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.hideMentionNotifications = value
-                return updated
-            }.start())
-        },
-        updateHidePinned: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.hidePinnedNotifications = value
                 return updated
             }.start())
         },
@@ -2399,48 +1889,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 SessionKeychainBackup.deleteAll()
             }
         },
-        updateCompactChatList: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.compactChatList = value
-                return updated
-            }.start())
-        },
-        updateCompactMessagePreview: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.compactMessagePreview = value
-                return updated
-            }.start())
-        },
-        updateCompactFolderNames: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.compactFolderNames = value
-                return updated
-            }.start())
-        },
-        updateHideReactionsBar: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.hideReactionsBar = value
-                return updated
-            }.start())
-        },
-        updateShowDC: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.showDC = value
-                return updated
-            }.start())
-        },
-        updateShowProfileId: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.showProfileId = value
-                return updated
-            }.start())
-        },
         openAccentSaturation: {
             let percents: [Int32] = [0, 25, 50, 75, 100]
             presentPicker(title: ForkExtrasLocalizedString.accentSaturation, options: percents.map { percent in
@@ -2452,34 +1900,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                     }.start())
                 })
             })
-        },
-        updateConfirmBeforeCall: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.confirmBeforeCall = value
-                return updated
-            }.start())
-        },
-        updateSendWithReturnKey: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.sendWithReturnKey = value
-                return updated
-            }.start())
-        },
-        updateForceBuiltInMic: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.forceBuiltInMic = value
-                return updated
-            }.start())
-        },
-        updateKeepAliveInBackground: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.keepAliveInBackground = value
-                return updated
-            }.start())
         },
         openTranslationBackend: {
             var options: [(String, () -> Void)] = [
@@ -2528,62 +1948,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 return updated
             }.start())
         },
-        updateSaveDeletedMessages: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.saveDeletedMessages = value
-                return updated
-            }.start())
-        },
-        updateSaveMessagesHistory: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.saveMessagesHistory = value
-                return updated
-            }.start())
-        },
-        updateSaveMedia: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.saveMedia = value
-                return updated
-            }.start())
-        },
-        updateSaveForBots: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.saveForBots = value
-                return updated
-            }.start())
-        },
-        updateAyuForward: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.ayuForward = value
-                return updated
-            }.start())
-        },
-        updateBypassDownloadRestrictions: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.bypassDownloadRestrictions = value
-                return updated
-            }.start())
-        },
-        updateShowSensitiveContent: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.showSensitiveContent = value
-                return updated
-            }.start())
-        },
-        updateProactiveSaveMedia: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.proactiveSaveMedia = value
-                return updated
-            }.start())
-        },
         updateDeletedMessageMark: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
@@ -2598,13 +1962,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 return updated
             }.start())
         },
-        updateLocalPremium: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.localPremium = value
-                return updated
-            }.start())
-        },
         updateAutoFetchMtProxy: { value in
             let _ = updateProxySettingsInteractively(accountManager: context.sharedContext.accountManager, { current in
                 var current = current
@@ -2615,20 +1972,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 return current
             }).start()
         },
-        updateHideAds: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.hideAds = value
-                return updated
-            }.start())
-        },
-        updateHideBlockedMessages: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.hideBlockedMessages = value
-                return updated
-            }.start())
-        },
         updateGhostScheduleMessages: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
@@ -2636,41 +1979,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 if value {
                     updated.ghostReadOnInteract = false
                 }
-                return updated
-            }.start())
-        },
-        updateAllowSecretScreenshots: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.allowSecretScreenshots = value
-                return updated
-            }.start())
-        },
-        updateExpireTtlButton: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.expireTtlButton = value
-                return updated
-            }.start())
-        },
-        updateKeepBannedChats: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.keepBannedChats = value
-                return updated
-            }.start())
-        },
-        updateRegexFiltersEnabled: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.regexMessageFiltersEnabled = value
-                return updated
-            }.start())
-        },
-        updateRegexFiltersCaseInsensitive: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.regexMessageFiltersCaseInsensitive = value
                 return updated
             }.start())
         },
@@ -2758,34 +2066,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
         openCategory: { category in
             pushControllerImpl?(forkExtrasController(context: context, focus: category))
         },
-        updateHideAllChats: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.hideAllChats = value
-                return updated
-            }.start())
-        },
-        updateRememberLastFolder: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.rememberLastFolder = value
-                return updated
-            }.start())
-        },
-        updateHideTabBar: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.hideTabBar = value
-                return updated
-            }.start())
-        },
-        updateShowMessageSeconds: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.showMessageSeconds = value
-                return updated
-            }.start())
-        },
         context: context,
         openBrandTheme: { dark in
             if let controller = bananaGramThemePreviewController(context: context, dark: dark) {
@@ -2799,13 +2079,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated[keyPath: keyPath] = value
-                return updated
-            }.start())
-        },
-        updateWideChannelPosts: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.wideChannelPosts = value
                 return updated
             }.start())
         },
@@ -2825,34 +2098,6 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated.doubleTapToEdit = value
-                return updated
-            }.start())
-        },
-        updateQuickTranslateButton: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.quickTranslateButton = value
-                return updated
-            }.start())
-        },
-        updateSaveToCloudMenu: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.saveToCloudMenu = value
-                return updated
-            }.start())
-        },
-        updateSelectFromAuthor: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.selectFromAuthor = value
-                return updated
-            }.start())
-        },
-        updateDownloadSpeedBoost: { value in
-            updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.downloadSpeedBoost = value
                 return updated
             }.start())
         },
