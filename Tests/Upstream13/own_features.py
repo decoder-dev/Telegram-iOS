@@ -699,7 +699,7 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertIn('deleteDisappearedGift: (() -> Void)? = nil', sheet)
         controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
         self.assertIn('.appearanceToggle(1543,', controller)
-        self.assertIn('[55, 56, 1551, 1714, 1552, 1543, 58]', controller)
+        self.assertIn('[55, 56, 1551, 1714, 2020, 1552, 1543, 58]', controller)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertIn('BananaSpyStorage.trackDisappearedGifts = settings.showDisappearedGifts', shared)
 
@@ -743,7 +743,7 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         item = read('submodules/ChatListUI/Sources/Node/ChatListItem.swift')
         self.assertIn('BananaPresenceDisplay.current.showsOfflineDot', item)
         self.assertEqual(item.count('bananaPresenceIcon('), 7)
-        self.assertIn('[55, 56, 1551, 1714, 1552, 1543, 58]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
+        self.assertIn('[55, 56, 1551, 1714, 2020, 1552, 1543, 58]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
 
 
     def test_island_follows_the_app_icon(self):

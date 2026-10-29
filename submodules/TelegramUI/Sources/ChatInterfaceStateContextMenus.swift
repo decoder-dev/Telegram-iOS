@@ -2970,6 +2970,9 @@ func chatAvailableMessageActionsImpl(engine: TelegramEngine, accountPeerId: Engi
                         for case let .Sticker(_, packReference, _) in file.attributes {
                             if let _ = packReference {
                                 optionsMap[id]!.insert(.viewStickerPack)
+                            } else if BananaAnonymousStickers.stickerPack(accountPeerId: accountPeerId, file: file) != nil {
+                                // Fork (Donutgram): a sticker sent anonymously opens the set kept on this device.
+                                optionsMap[id]!.insert(.viewStickerPack)
                             }
                             break
                         }

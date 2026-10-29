@@ -103,7 +103,7 @@ class DonutMediaFeatures(unittest.TestCase):
 
     def test_extras_rows_are_listed_in_the_media_screen(self):
         source = read(CONTROLLER)
-        self.assertIn('            [1750, 1751, 1752, 1753, 1754, 1755, 1756, 1757, 1758],\n', source)
+        self.assertIn('            [1750, 1751, 1752, 1753, 1754, 1755, 1756, 2021, 1757, 1758],\n', source)
         media = source[source.index('    case .media:\n        entries = ['):source.index('    case .profile:\n        entries = [')]
         for row in ['.designHeader(1750', '.appearanceToggle(1751', '.appearanceToggle(1752', '.intChoice(1753',
                     '.appearanceToggle(1754', '.intChoice(1755', '.appearanceToggle(1756', '.appearanceToggle(1757',
