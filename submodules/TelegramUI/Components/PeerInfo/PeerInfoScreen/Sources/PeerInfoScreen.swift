@@ -382,12 +382,14 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
     
     let accountsAndPeers = Promise<[(AccountContext, EnginePeer, Int32)]>()
     let activeSessionsContextAndCount = Promise<(ActiveSessionsContext, Int, WebSessionsContext)?>()
-    let notificationExceptions = Promise<NotificationExceptionsList?>()
-    let privacySettings = Promise<AccountPrivacySettings?>()
-    let archivedPacks = Promise<[ArchivedStickerPackItem]?>()
+    /// The account's shared Settings data, when this is a Settings screen whose root controller provides it.
+    let settingsSharedData: PeerInfoSettingsSharedData?
+    let notificationExceptions: Promise<NotificationExceptionsList?>
+    let privacySettings: Promise<AccountPrivacySettings?>
+    let archivedPacks: Promise<[ArchivedStickerPackItem]?>
     let blockedPeers = Promise<BlockedPeersContext?>(nil)
     let hasTwoStepAuth = Promise<Bool?>(nil)
-    let twoStepAccessConfiguration = Promise<TwoStepVerificationAccessConfiguration?>(nil)
+    let twoStepAccessConfiguration: Promise<TwoStepVerificationAccessConfiguration?>
     let twoStepAuthData: Promise<TwoStepAuthData?>
     let supportPeerDisposable = MetaDisposable()
     let tipsPeerDisposable = MetaDisposable()
@@ -464,6 +466,12 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         self.controller = controller
         self.context = context
         self.twoStepAuthData = context.twoStepAuthData
+        let settingsSharedData = isSettings ? controller.settingsSharedData : nil
+        self.settingsSharedData = settingsSharedData
+        self.notificationExceptions = settingsSharedData?.notificationExceptions ?? Promise()
+        self.privacySettings = settingsSharedData?.privacySettings ?? Promise()
+        self.archivedPacks = settingsSharedData?.archivedPacks ?? Promise()
+        self.twoStepAccessConfiguration = settingsSharedData?.twoStepAccessConfiguration ?? Promise(nil)
         self.peerId = peerId
         self.isOpenedFromChat = isOpenedFromChat
         self.videoCallsEnabled = true
@@ -2176,17 +2184,20 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         
         let screenData: Signal<PeerInfoScreenData, NoError>
         if self.isSettings {
-            self.notificationExceptions.set(.single(NotificationExceptionsList(peers: [:], settings: [:]))
-            |> then(
-                context.engine.peers.notificationExceptionsList()
-                |> map(Optional.init)
-            ))
-            self.privacySettings.set(.single(nil) |> then(context.engine.privacy.requestAccountPrivacySettings() |> map(Optional.init)))
-            self.archivedPacks.set(.single(nil) |> then(context.engine.stickers.archivedStickerPacks() |> map(Optional.init)))
-            self.twoStepAccessConfiguration.set(.single(nil) |> then(context.engine.auth.twoStepVerificationConfiguration()
-            |> map { value -> TwoStepVerificationAccessConfiguration? in
-                return TwoStepVerificationAccessConfiguration(configuration: value, password: nil)
-            }))
+            // A shared set is loaded by the first Settings screen only; the others show what it loaded.
+            if self.settingsSharedData?.beginLoading() ?? true {
+                self.notificationExceptions.set(.single(NotificationExceptionsList(peers: [:], settings: [:]))
+                |> then(
+                    context.engine.peers.notificationExceptionsList()
+                    |> map(Optional.init)
+                ))
+                self.privacySettings.set(.single(nil) |> then(context.engine.privacy.requestAccountPrivacySettings() |> map(Optional.init)))
+                self.archivedPacks.set(.single(nil) |> then(context.engine.stickers.archivedStickerPacks() |> map(Optional.init)))
+                self.twoStepAccessConfiguration.set(.single(nil) |> then(context.engine.auth.twoStepVerificationConfiguration()
+                |> map { value -> TwoStepVerificationAccessConfiguration? in
+                    return TwoStepVerificationAccessConfiguration(configuration: value, password: nil)
+                }))
+            }
             
             let hasPassport = self.twoStepAuthData.get()
             |> map { data -> Bool in
@@ -6579,7 +6590,9 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
     private var accountsAndPeersValue: ((AccountContext, EnginePeer)?, [(AccountContext, EnginePeer, Int32)])?
     private var accountsAndPeersDisposable: Disposable?
     
-    private let activeSessionsContextAndCount = Promise<(ActiveSessionsContext, Int, WebSessionsContext)?>(nil)
+    private let activeSessionsContextAndCount: Promise<(ActiveSessionsContext, Int, WebSessionsContext)?>
+    /// The account's shared Settings data (`PeerInfoSettingsSharedData`); nil outside the root controller's Settings screens.
+    let settingsSharedData: PeerInfoSettingsSharedData?
 
     private var tabBarItemDisposable: Disposable?
 
@@ -6662,8 +6675,12 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         switchToGroupsInCommon: Bool = false,
         switchToStoryFolder: Int64? = nil,
         switchToMediaTarget: PeerInfoSwitchToMediaTarget? = nil,
+        settingsSharedData: PeerInfoSettingsSharedData? = nil,
     ) {
         self.context = context
+        let sharedData = isSettings ? settingsSharedData : nil
+        self.settingsSharedData = sharedData
+        self.activeSessionsContextAndCount = sharedData?.activeSessionsContextAndCount ?? Promise(nil)
         self.updatedPresentationData = updatedPresentationData
         self.peerId = peerId
         self.avatarInitiallyExpanded = avatarInitiallyExpanded
@@ -6738,7 +6755,10 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
                     return (activeSessionsContext, value, webSessionsContext)
                 }
             }
-            self.activeSessionsContextAndCount.set(activeSessionsContextAndCountSignal)
+            // A shared session list is started by the first Settings screen only.
+            if sharedData?.beginSessions() ?? true {
+                self.activeSessionsContextAndCount.set(activeSessionsContextAndCountSignal)
+            }
             
             self.accountsAndPeers.set(activeAccountsAndPeers(context: context))
             self.accountsAndPeersDisposable = (self.accountsAndPeers.get()

@@ -97,6 +97,9 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     private var currentShowNewsTab = false
     private var hideTabBarDisposable: Disposable?
     private weak var hiddenTabSettingsController: PeerInfoScreenImpl?
+    /// Loaded once for the account and shared by the Settings tab and every Settings screen pushed while the tab bar is
+    /// hidden, each of which used to load it again.
+    private let settingsSharedData = PeerInfoSettingsSharedData()
     
     override public var minimizedContainer: MinimizedContainer? {
         didSet {
@@ -249,7 +252,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             sharedContext.switchingData = (nil, nil, nil)
         }
         
-        let accountSettingsController = PeerInfoScreenImpl(context: self.context, updatedPresentationData: nil, peerId: self.context.account.peerId, avatarInitiallyExpanded: false, isOpenedFromChat: false, reactionSourceMessageId: nil, callMessages: [], isSettings: true)
+        let accountSettingsController = PeerInfoScreenImpl(context: self.context, updatedPresentationData: nil, peerId: self.context.account.peerId, avatarInitiallyExpanded: false, isOpenedFromChat: false, reactionSourceMessageId: nil, callMessages: [], isSettings: true, settingsSharedData: self.settingsSharedData)
         accountSettingsController.tabBarItemDebugTapAction = {
             // 10 rapid taps on Settings → reveal the secret Archive folder. The password is still
             // required to open it. With no password there is nothing hidden to reveal, so the
@@ -1008,7 +1011,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.popToRoot(animated: false)
         if ForkExtrasHotFlags.hidesTabBar(self.context.sharedContext.immediateForkExtrasSettings.hideTabBar, isPad: UIDevice.current.userInterfaceIdiom == .pad) {
             // Push a fresh settings screen so Back returns to Chats even while tabs are hidden.
-            let settings = PeerInfoScreenImpl(context: self.context, updatedPresentationData: nil, peerId: self.context.account.peerId, avatarInitiallyExpanded: false, isOpenedFromChat: false, reactionSourceMessageId: nil, callMessages: [], isSettings: true)
+            let settings = PeerInfoScreenImpl(context: self.context, updatedPresentationData: nil, peerId: self.context.account.peerId, avatarInitiallyExpanded: false, isOpenedFromChat: false, reactionSourceMessageId: nil, callMessages: [], isSettings: true, settingsSharedData: self.settingsSharedData)
             settings.parentController = self
             self.hiddenTabSettingsController = settings
             self.pushViewController(settings, animated: true)
