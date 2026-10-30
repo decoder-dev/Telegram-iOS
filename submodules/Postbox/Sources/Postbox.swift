@@ -4250,8 +4250,10 @@ final class PostboxImpl {
     }
     
     /// How long a whole-namespace item collections view nobody watches is kept, so the next screen that asks for it
-    /// (the next chat's sticker and emoji keyboard) gets it at once instead of building it again.
-    static let sharedItemCollectionsViewLinger: Double = 60.0
+    /// (the next chat's sticker and emoji keyboard) gets it at once instead of building it again. A minute was too
+    /// short: build 4374 still rebuilt it 58 times a day at 140 ms each, mostly after a pause between chats. It
+    /// holds what an open chat holds anyway, and replay keeps it current while it waits.
+    static let sharedItemCollectionsViewLinger: Double = 10.0 * 60.0
 
     /// A view of whole namespaces (no `aroundIndex`) is the same for every subscriber that asks with the same
     /// parameters, and building one decodes every item of every pack: every chat's input panel asked for the installed
