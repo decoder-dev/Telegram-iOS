@@ -1196,6 +1196,13 @@ public enum ForkRegexMessageFilters {
     private static let maxButtonPayloadMatchUTF16Length = 768
     /// Soft cap so a huge pasted list cannot explode compile / match cost.
     private static let maxPatterns = 64
+    /// How long one pattern may spend on one input. The size bounds above do not bound time: ICU backtracks
+    /// catastrophically on patterns such as `(a*)*b`, which never finished on 33 characters (31 Oct audit, C-1), and
+    /// matching runs while the chat list and history are built. Same budget as the Android client's `BoundedMatch`.
+    private static let matchBudget: Double = 0.02
+    /// Patterns that ran out of `matchBudget`: they are skipped until the app restarts, and the settings screen counts
+    /// them with the patterns that do not work. One slow input costs one budget, not one per message.
+    private static let expensivePatterns = Atomic<Set<String>>(value: [])
 
     private static let snapshot = Atomic<Snapshot>(value: Snapshot(
         fingerprint: Fingerprint(enabled: false, caseInsensitive: true, patterns: []),
@@ -1213,7 +1220,7 @@ public enum ForkRegexMessageFilters {
             guard !trimmed.isEmpty else {
                 continue
             }
-            if used >= maxPatterns || trimmed.utf16.count > 512 || (try? NSRegularExpression(pattern: trimmed, options: [])) == nil {
+            if used >= maxPatterns || trimmed.utf16.count > 512 || (try? NSRegularExpression(pattern: trimmed, options: [])) == nil || expensivePatterns.with({ $0.contains(trimmed) }) {
                 count += 1
             } else {
                 used += 1
@@ -1221,6 +1228,34 @@ public enum ForkRegexMessageFilters {
         }
         return count
     }
+
+    /// The patterns a filter list fetched by `tg://ayu/filters/import/…` may add: one per line, `#` lines are comments,
+    /// only valid expressions within the size bound, none already present, and only as many as fit under `maxPatterns`.
+    /// The list is written by whoever sent the link, so it never evicts the user's own patterns (the import used to
+    /// keep the last 64 of the merged list) and it is shown to the user before anything is added (31 Oct audit, C-2).
+    public static func importablePatterns(fromList text: String, existing: [String]) -> [String] {
+        var seen = Set(existing.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+        let room = max(0, maxPatterns - existing.count)
+        var result: [String] = []
+        for line in text.split(whereSeparator: { $0.isNewline }) {
+            if result.count >= room {
+                break
+            }
+            let pattern = String(line).trimmingCharacters(in: .whitespaces)
+            guard !pattern.isEmpty, !pattern.hasPrefix("#"), pattern.utf16.count <= 512, !seen.contains(pattern) else {
+                continue
+            }
+            guard (try? NSRegularExpression(pattern: pattern, options: [])) != nil else {
+                continue
+            }
+            seen.insert(pattern)
+            result.append(pattern)
+        }
+        return result
+    }
+
+    /// The most a fetched filter list may weigh; a list of 64 patterns of 512 characters is 33 KB.
+    public static let importListByteLimit = 64 * 1024
 
     public static func apply(enabled: Bool, caseInsensitive: Bool, patterns: [String]) {
         let fingerprint = Fingerprint(enabled: enabled, caseInsensitive: caseInsensitive, patterns: patterns)
@@ -1294,12 +1329,51 @@ public enum ForkRegexMessageFilters {
             return false
         }
         let range = NSRange(location: 0, length: length)
-        for regex in expressions {
-            if regex.firstMatch(in: text, options: [], range: range) != nil {
+        let expensive = expensivePatterns.with { $0 }
+        for regex in expressions where !expensive.contains(regex.pattern) {
+            switch boundedFirstMatch(regex, in: text, range: range) {
+            case .matched:
                 return true
+            case .noMatch:
+                break
+            case .timedOut:
+                // Fail open: a filter that cannot decide hides nothing.
+                let _ = expensivePatterns.modify { current in
+                    var current = current
+                    current.insert(regex.pattern)
+                    return current
+                }
+                Logger.shared.log("ForkRegexMessageFilters", "a pattern ran past \(Int(matchBudget * 1000.0)) ms and is skipped until restart")
             }
         }
         return false
+    }
+
+    enum BoundedMatchResult {
+        case matched
+        case noMatch
+        case timedOut
+    }
+
+    /// `firstMatch` with a deadline. `.reportProgress` has ICU call back periodically during a long match, including
+    /// inside backtracking, and the callback stops the search once `budget` is spent (measured on ICU: `(a*)*b` on 4096
+    /// characters stops at 20 ms). `.withoutAnchoringBounds` keeps `^` and `$` to the ends of the whole text: without it
+    /// they also matched at the edge of the `maxMatchUTF16Length` window, so `a$` matched a long message that does not
+    /// end in "a" (31 Oct audit, C-9).
+    static func boundedFirstMatch(_ regex: NSRegularExpression, in text: String, range: NSRange, budget: Double = matchBudget) -> BoundedMatchResult {
+        // Monotonic: a clock change must not end or extend a match.
+        let deadline = ProcessInfo.processInfo.systemUptime + budget
+        var result: BoundedMatchResult = .noMatch
+        regex.enumerateMatches(in: text, options: [.reportProgress, .withoutAnchoringBounds], range: range) { match, _, stop in
+            if match != nil {
+                result = .matched
+                stop.pointee = true
+            } else if ProcessInfo.processInfo.systemUptime > deadline {
+                result = .timedOut
+                stop.pointee = true
+            }
+        }
+        return result
     }
 
     /// Match the same useful payload AyuGram exposes to filters: message text plus inline-button

@@ -400,51 +400,55 @@ private func handleAyuFiltersImportDeepLink(context: AccountContext, presentatio
     let statusController = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: nil))
     context.sharedContext.presentGlobalController(statusController, nil)
 
-    let task = URLSession.shared.dataTask(with: url) { data, _, _ in
+    // The list is written by whoever sent the link: bounded in time and size, shown before anything is added, and
+    // never allowed to turn filtering on (31 Oct audit, C-2: a tapped link silently installed and enabled filters).
+    var request = URLRequest(url: url)
+    request.timeoutInterval = 10.0
+    let task = URLSession.shared.dataTask(with: request) { data, _, _ in
         Queue.mainQueue().async {
             statusController.dismiss()
 
+            let russian = ForkPresentationLanguage.prefersRussianStrings
             let showResult: (String) -> Void = { text in
                 let alertController = textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
                 context.sharedContext.presentGlobalController(alertController, nil)
             }
 
-            guard let data, let text = String(data: data, encoding: .utf8) else {
+            guard let data, data.count <= ForkRegexMessageFilters.importListByteLimit, let text = String(data: data, encoding: .utf8) else {
                 showResult(presentationData.strings.Login_UnknownError)
                 return
             }
-            let patterns = text
-                .split(whereSeparator: { $0.isNewline })
-                .map { String($0).trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+            let existing = context.sharedContext.immediateForkExtrasSettings.regexMessageFilterPatterns
+            let patterns = ForkRegexMessageFilters.importablePatterns(fromList: text, existing: existing)
             guard !patterns.isEmpty else {
-                showResult(presentationData.strings.Login_UnknownError)
+                showResult(russian ? "В списке нет новых шаблонов, которые можно добавить." : "The list has no new patterns that can be added.")
                 return
             }
 
-            let _ = updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                var updated = current
-                updated.regexMessageFiltersEnabled = true
-                var existing = Set(updated.regexMessageFilterPatterns)
-                var merged = updated.regexMessageFilterPatterns
-                for pattern in patterns {
-                    guard pattern.utf16.count <= 512 else {
-                        continue
-                    }
-                    if existing.insert(pattern).inserted {
-                        merged.append(pattern)
-                    }
-                }
-                if merged.count > 64 {
-                    merged = Array(merged.suffix(64))
-                }
-                updated.regexMessageFilterPatterns = merged
-                return updated
-            }.start()
-
-            if let navigationController {
-                navigationController.pushViewController(forkExtrasController(context: context, focus: .messageFilters))
+            let shownCount = min(patterns.count, 10)
+            var listing = patterns.prefix(shownCount).map { pattern -> String in
+                return pattern.count > 80 ? String(pattern.prefix(80)) + "…" : pattern
+            }.joined(separator: "\n")
+            if patterns.count > shownCount {
+                listing += russian ? "\n…и ещё \(patterns.count - shownCount)" : "\n…and \(patterns.count - shownCount) more"
             }
+            let title = russian ? "Добавить фильтры?" : "Add filters?"
+            let message = (russian ? "Шаблонов: \(patterns.count), из \(host). Сообщения, которые им соответствуют, будут скрыты, когда фильтры включены.\n\n" : "\(patterns.count) patterns from \(host). Messages they match are hidden while filters are on.\n\n") + listing
+            let confirmation = textAlertController(context: context, title: title, text: message, actions: [
+                TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                TextAlertAction(type: .defaultAction, title: russian ? "Добавить" : "Add", action: {
+                    let _ = updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                        var updated = current
+                        // Recomputed against the settings being written, in case they changed meanwhile.
+                        updated.regexMessageFilterPatterns.append(contentsOf: ForkRegexMessageFilters.importablePatterns(fromList: patterns.joined(separator: "\n"), existing: updated.regexMessageFilterPatterns))
+                        return updated
+                    }.start()
+                    if let navigationController {
+                        navigationController.pushViewController(forkExtrasController(context: context, focus: .messageFilters))
+                    }
+                })
+            ])
+            context.sharedContext.presentGlobalController(confirmation, nil)
         }
     }
     task.resume()
