@@ -549,15 +549,26 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         enqueue = read('submodules/TelegramCore/Sources/PendingMessages/EnqueueMessage.swift')
         self.assertIn('text.isEmpty, !sourceMessage.attributes.contains(where: { $0 is RichTextMessageAttribute })', enqueue)
 
-    def test_ghost_read_on_interact_covers_composer_sends_and_reaction_reads_obey_ghost(self):
+    def test_ghost_read_on_interact_covers_composer_sends_and_reaction_reads_stay_open(self):
         chat = read('submodules/TelegramUI/Sources/ChatController.swift')
         self.assertIn('func beginGhostReadOnInteractForSend()', chat)
         self.assertEqual(chat.count('self.beginGhostReadOnInteractForSend()'), 1)
         load = read('submodules/TelegramUI/Sources/Chat/ChatControllerLoadDisplayNode.swift')
         self.assertIn('if scheduleTime == nil {\n                strongSelf.beginGhostReadOnInteractForSend()', load)
         read_actions = read('submodules/TelegramCore/Sources/TelegramEngine/Messages/InstallInteractiveReadMessagesAction.swift')
-        body = read_actions.split('func addOrUpdate(messages: [StoreMessage], transaction: Transaction) {', 1)[1][:400]
-        self.assertIn('if ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: self.accountPeerId, peerId: self.peerId) {\n            return', body)
+        # Reactions and poll votes are only unseen on the account's own messages; marking them seen is
+        # readMessageContents on that message and tells nobody anything. Gating it on Don't Read (12 Oct) left the
+        # chat's reactions counter on screen for good (device report, 30 Oct). History and mention reads stay gated.
+        body = read_actions.split('func addOrUpdate(messages: [StoreMessage], transaction: Transaction) {', 1)[1].split('self.didReadReactionsInMessages(readReactionIds)', 1)[0]
+        self.assertNotIn('shouldSuppressMessageReads', body)
+        self.assertIn('if ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: stateManager.accountPeerId, peerId: peerId) {', read_actions.split('final class StoreOrUpdateMessageActionImpl', 1)[0])
+        history = read('submodules/TelegramUI/Sources/ChatHistoryListNode.swift')
+        reactions = history.split('if canRead != (self.interactiveReadReactionsDisposable != nil) {', 1)[1].split('func lastVisbleMesssage()', 1)[0]
+        self.assertNotIn('ghostSuppressesReads', reactions)
+        attempt = history.split('private func attemptReadingReactions() {', 1)[1][:300]
+        self.assertNotIn('ghostSuppressesReads', attempt)
+        self.assertIn('skipReadHistory || self.ghostSuppressesReads) && !self.context.account.isSupportUser', history)
+        self.assertIn('skipReadHistory || strongSelf.ghostSuppressesReads) && !strongSelf.messageIdsScheduledForMarkAsSeen.isEmpty', history)
 
     def test_proxy_screens_are_not_stacked_twice(self):
         preview = read('submodules/TelegramUI/Components/ProxyServerPreviewScreen/Sources/ProxyServerPreviewScreen.swift')

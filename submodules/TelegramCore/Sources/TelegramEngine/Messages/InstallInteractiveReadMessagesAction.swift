@@ -196,11 +196,9 @@ private final class StoreOrUpdateMessageActionImpl: StoreOrUpdateMessageAction {
     }
     
     func addOrUpdate(messages: [StoreMessage], transaction: Transaction) {
-        // This action stays installed after Don't Read turns on (it is only disposed when reading becomes
-        // impossible), so it has to re-check the ghost setting itself.
-        if ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: self.accountPeerId, peerId: self.peerId) {
-            return
-        }
+        // No Don't Read check here: reactions and poll votes are only ever unseen on the account's own messages,
+        // and marking them seen (readMessageContents on that message) tells nobody anything. Suppressing it kept
+        // the chat's reactions counter up after every reaction had been looked at.
         var readReactionIds: [MessageId: [ReactionsMessageAttribute.RecentPeer]] = [:]
         var readPollVoteIds = Set<MessageId>()
         
