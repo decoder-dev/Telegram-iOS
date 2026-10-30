@@ -347,6 +347,19 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         MultilineTextComponent(text: .plain(NSAttributedString(string: details.joined(separator: " · "), font: tableFont, textColor: tableTextColor)))
                     )
                 ))
+                // A link can switch TLS certificate checking off (allowInsecure). This card is where the user decides
+                // to connect, and nothing here said so: whoever runs or intercepts the tunnel's TLS could then read the
+                // traffic (31 Oct audit, C-5). The editor already says it; say it here too, before Connect.
+                if security == "tls", ["1", "true"].contains((query["allowInsecure"] ?? "").lowercased()) {
+                    let warning = ForkPresentationLanguage.prefersRussianStrings ? "Проверка TLS-сертификата сервера отключена в этой ссылке: подменивший сервер сможет читать трафик туннеля." : "This link turns off checking the server's TLS certificate: a server that impersonates it could read the tunnel's traffic."
+                    tableItems.append(.init(
+                        id: "vless-insecure",
+                        title: "",
+                        component: AnyComponent(
+                            MultilineTextComponent(text: .plain(NSAttributedString(string: warning, font: Font.regular(13.0), textColor: environment.theme.list.itemDestructiveColor)), maximumNumberOfLines: 0)
+                        )
+                    ))
+                }
             }
             
             if !isWebProxy {
