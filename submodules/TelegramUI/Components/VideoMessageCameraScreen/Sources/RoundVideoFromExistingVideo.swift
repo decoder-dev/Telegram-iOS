@@ -84,8 +84,8 @@ public enum RoundVideoPreparationError: Error, CustomStringConvertible {
 }
 
 /// Fork: makes a picked video into what the round-video camera records, for `VideoMessageCameraScreen`'s
-/// `existingVideo`: the square of `normalizedCrop`, at most a minute of `trimRange`, H.264 in SDR. The bitrate does
-/// not matter here, since the screen always runs its own video-message export on send.
+/// `existingVideo`: the square of `normalizedCrop`, at most a minute of `trimRange`, in SDR, close to lossless. The
+/// screen always runs its own video-message export on send, which is the one lossy step.
 public func prepareRoundVideo(asset: AVAsset, normalizedCrop: CGRect, trimRange: Range<Double>?) -> Signal<VideoMessageCameraScreen.CaptureResult.Video, RoundVideoPreparationError> {
     return Signal { subscriber in
         guard let videoTrack = asset.tracks(withMediaType: .video).first else {
@@ -119,8 +119,13 @@ public func prepareRoundVideo(asset: AVAsset, normalizedCrop: CGRect, trimRange:
         videoComposition.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
         videoComposition.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
 
-        // 1280x720 encodes H.264 whatever the source's codec, and is larger than any output square.
-        guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPreset1280x720) else {
+        // This file is an intermediate: on send the screen always encodes it as a video message (480 px, 1.2 Mbit/s),
+        // the one lossy step a recorded round video also goes through. Exported with a size preset (1280x720) it was
+        // already squeezed once, and the second encode made a picked video visibly worse than a recorded one
+        // (device report, 30 Oct). The highest-quality preset keeps the intermediate close to lossless. Only AVFoundation
+        // reads it back (the preview and that encode), so its codec does not matter, and the composition's render
+        // size, not the preset, sets its dimensions.
+        guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality) else {
             subscriber.putError(.exportUnavailable)
             return EmptyDisposable
         }
