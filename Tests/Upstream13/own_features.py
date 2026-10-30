@@ -1095,6 +1095,13 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('self.serverStateLastFailureTimestamp = failedAt', src)
         self.assertIn('let delaySeconds = self.serverStateCooldown()', src)
 
+    def test_round_video_from_gallery_is_encoded_lossily_once(self):
+        # Device report (30 Oct): a picked video sent as a round video looked worse than a recorded one. The
+        # intermediate was exported with a size preset and then encoded again as a video message on send.
+        src = read('submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/RoundVideoFromExistingVideo.swift')
+        self.assertIn('AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality)', src)
+        self.assertNotIn('AVAssetExportPreset1280x720', src)
+
     def test_wallet_server_state_refusal_backs_off_at_once_and_across_launches(self):
         # Device log (build 4365): wallet.getState answered 400 every time, yet each relaunch (several an hour) and
         # each account started the backoff again from 20 s, so the app asked ~25 times an hour.
