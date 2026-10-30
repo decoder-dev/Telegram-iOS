@@ -673,6 +673,18 @@ extension ChatControllerImpl {
         let initTimestamp = self.initTimestamp
         #endif
         
+        // Opening a chat takes ~320 ms in device logs (p50 321, p90 341 over 504 opens), suspiciously tight for real
+        // work. Readiness waits for all three of these; log when each first holds, so a log says which one it waits on.
+        let forkOpenTiming = self.forkOpenTiming
+        for (name, signal) in [("data", self.contentDataReady.get()), ("wallpaper", self.wallpaperReady.get()), ("presentation", self.presentationReady.get())] {
+            let _ = (signal
+            |> filter { $0 }
+            |> take(1)
+            |> deliverOnMainQueue).startStandalone(next: { _ in
+                forkOpenTiming.log("\(name) ready")
+            })
+        }
+        
         self.ready.set(combineLatest(queue: .mainQueue(), [
             self.contentDataReady.get(),
             self.wallpaperReady.get(),

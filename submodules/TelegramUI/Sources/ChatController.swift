@@ -662,7 +662,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     var globalControlPanelsContextStateDisposable: Disposable?
     
     /// Started when the controller is created; logged when the chat's content is ready (`ForkOpenTiming`).
-    private let forkOpenTiming = ForkOpenTiming(kind: "chat")
+    let forkOpenTiming = ForkOpenTiming(kind: "chat")
     
     public init(
         context: AccountContext,
