@@ -1073,7 +1073,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case let .regexFiltersFooter(unusable):
             var text = ForkExtrasLocalizedString.regexFiltersFooter
             if unusable > 0 {
-                text += "\n\n" + (ForkPresentationLanguage.prefersRussianStrings ? "Не работают шаблонов: \(unusable) (неверное выражение, длиннее 512 символов или сверх лимита 64)." : "Patterns that will not work: \(unusable) (invalid expression, longer than 512 characters, or past the limit of 64).")
+                text += "\n\n" + (ForkPresentationLanguage.prefersRussianStrings ? "Не работают шаблонов: \(unusable) (неверное выражение, длиннее 512 символов, сверх лимита 64 или слишком медленное — такое отключается до перезапуска)." : "Patterns that will not work: \(unusable) (invalid expression, longer than 512 characters, past the limit of 64, or too slow, which is turned off until restart).")
             }
             return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case let .intChoice(id, title, label):
