@@ -593,6 +593,10 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertNotIn('.sessionBackup(settings.sessionKeychainBackup)', extras)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertNotIn('SessionKeychainBackup.save(', shared)
+        backup = read('submodules/TelegramUIPreferences/Sources/SessionKeychainBackup.swift')
+        # 31 Oct audit, C-3: nothing may write auth keys to the Keychain again; only the removal remains.
+        self.assertNotIn('SecItemAdd', backup)
+        self.assertNotIn('kSecReturnData', backup)
         self.assertIn('SessionKeychainBackup.deleteAll()', shared)
 
 
