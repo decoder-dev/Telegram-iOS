@@ -551,7 +551,9 @@ public final class PeerSelectionControllerImpl: ViewController, PeerSelectionCon
                 if let tabContainerData = strongSelf.tabContainerData {
                     var found = false
                     if let index = tabContainerData.0.firstIndex(where: { $0.id == selectedEntryId }) {
-                        for i in (0 ..< index - 1).reversed() {
+                        // The tabs before the removed one, nearest first. `0 ..< index - 1` skipped the nearest and,
+                        // for the first tab, was a reversed range that trapped (build 4374, 30 Oct).
+                        for i in (0 ..< index).reversed() {
                             if resolvedItems.contains(where: { $0.id == tabContainerData.0[i].id }) {
                                 selectedEntryId = tabContainerData.0[i].id
                                 found = true

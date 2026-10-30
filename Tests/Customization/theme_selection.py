@@ -155,10 +155,15 @@ for policy in ["disabled", "system", "scheduled", "brightness"] {
 }
 print("Local preset application: active day/night slots, wallpaper isolation, policy preservation and repeat Apply passed")
 """.replace('__PRESET_FUNCTION__', preset_function)
-controller_source = (root / 'submodules/ChatListUI/Sources/ChatListController.swift').read_text(encoding='utf-8')
-start = controller_source.index('                        for i in (0 ..< index')
-end = controller_source.index('\n                    }', start)
-loop = controller_source[start:end]
+def folder_fallback_loop(path):
+    source = (root / path).read_text(encoding='utf-8')
+    start = source.index('                        for i in (0 ..< index')
+    end = source.index('\n                    }', start)
+    return source[start:end]
+# The chat list and the chat picker (forward, share) carry the same fallback; the picker kept upstream's
+# `0 ..< index - 1`, which trapped when the first tab was removed (build 4374).
+loop = folder_fallback_loop('submodules/ChatListUI/Sources/ChatListController.swift')
+picker_loop = folder_fallback_loop('submodules/TelegramUI/Components/PeerSelectionController/Sources/PeerSelectionController.swift')
 folder_tests = r"""
 import Foundation
 struct Tab { var id: Int }
@@ -171,12 +176,23 @@ func fallback(old: [Int], remaining: [Int], selected: Int) -> Int? {
 __FOLDER_LOOP__
     return found ? selectedEntryId : nil
 }
-precondition(fallback(old: [1, 2], remaining: [2], selected: 1) == nil)
-precondition(fallback(old: [0, 1, 2], remaining: [0, 1], selected: 2) == 1)
-precondition(fallback(old: [0, 1, 2], remaining: [0], selected: 2) == 0)
-precondition(fallback(old: [0], remaining: [], selected: 0) == nil)
+func pickerFallback(old: [Int], remaining: [Int], selected: Int) -> Int? {
+    let tabContainerData = (old.map { Tab(id: $0) }, false)
+    let resolvedItems = remaining.map { Tab(id: $0) }
+    guard let index = old.firstIndex(of: selected) else { return nil }
+    var selectedEntryId = selected
+    var found = false
+__PICKER_LOOP__
+    return found ? selectedEntryId : nil
+}
+for f in [fallback, pickerFallback] {
+    precondition(f([1, 2], [2], 1) == nil)
+    precondition(f([0, 1, 2], [0, 1], 2) == 1)
+    precondition(f([0, 1, 2], [0], 2) == 0)
+    precondition(f([0], [], 0) == nil)
+}
 print("Removed folder fallback: first tab, immediate predecessor, multiple removals passed")
-""".replace('__FOLDER_LOOP__', loop)
+""".replace('__FOLDER_LOOP__', loop).replace('__PICKER_LOOP__', picker_loop)
 
 with tempfile.TemporaryDirectory(prefix='appearance-policy-') as tmp:
     path = pathlib.Path(tmp) / 'main.swift'
