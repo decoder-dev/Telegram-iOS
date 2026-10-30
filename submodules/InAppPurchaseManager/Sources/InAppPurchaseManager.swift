@@ -254,6 +254,14 @@ public final class InAppPurchaseManager: NSObject {
     private var productRequestRetryTimer: SwiftSignalKit.Timer?
     private var productRequestRetryCount: Int = 0
     
+    /// When the store last answered with no products. Every account context has its own manager and the count above
+    /// starts from zero in each, so a build without products (a re-signed sideload) climbed the whole 10 s ... 15 min
+    /// ladder again for every account on every launch: 218 requests in one day's device log. A recent empty answer
+    /// starts the retries at the ceiling; the first request of a manager still goes out at once.
+    private static let emptyProductsAnswerKey = "InAppPurchaseManager.emptyProductsAnswerAt"
+    private static let emptyProductsAnswerMemory: Double = 24.0 * 60.0 * 60.0
+    private static let maximumRetryExponent = 7
+    
     private let stateQueue = Queue()
     private var paymentContexts: [String: PaymentTransactionContext] = [:]
     
@@ -267,6 +275,11 @@ public final class InAppPurchaseManager: NSObject {
         self.engine = engine
                 
         super.init()
+        
+        let emptyAnswerAt = UserDefaults.standard.double(forKey: InAppPurchaseManager.emptyProductsAnswerKey)
+        if emptyAnswerAt > 0.0, Date().timeIntervalSince1970 - emptyAnswerAt < InAppPurchaseManager.emptyProductsAnswerMemory {
+            self.productRequestRetryCount = InAppPurchaseManager.maximumRetryExponent
+        }
         
         SKPaymentQueue.default().add(self)
         self.requestProducts()
@@ -315,7 +328,7 @@ public final class InAppPurchaseManager: NSObject {
         }
         // A build that cannot load its products (a re-signed sideload has none) would otherwise ask the
         // store every 10 seconds for as long as it runs; back off to a 15 minute ceiling instead.
-        let delay = min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, 7))), 900.0)
+        let delay = min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, InAppPurchaseManager.maximumRetryExponent))), 900.0)
         self.productRequestRetryCount += 1
         Logger.shared.log("InAppPurchaseManager", "Retrying product request in \(Int(delay)) seconds")
         let retryTimer = SwiftSignalKit.Timer(timeout: delay, repeat: false, completion: { [weak self] in
@@ -601,9 +614,11 @@ extension InAppPurchaseManager: SKProductsRequestDelegate {
 
             Logger.shared.log("InAppPurchaseManager", "Received products \(products.map({ $0.skProduct.productIdentifier }).joined(separator: ", "))")
             guard !products.isEmpty else {
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: InAppPurchaseManager.emptyProductsAnswerKey)
                 self.scheduleProductRequestRetry()
                 return
             }
+            UserDefaults.standard.removeObject(forKey: InAppPurchaseManager.emptyProductsAnswerKey)
             self.productRequestRetryTimer?.invalidate()
             self.productRequestRetryTimer = nil
             self.products = products

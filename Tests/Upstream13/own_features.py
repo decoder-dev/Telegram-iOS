@@ -1063,7 +1063,13 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('UserDefaults.standard.set(now as NSNumber, forKey: backgroundIndexKey)', app)
         self.assertLess(app.index('forKey: backgroundIndexKey)'), app.index('Executing cleanup task'))
         iap = read('submodules/InAppPurchaseManager/Sources/InAppPurchaseManager.swift')
-        self.assertIn('min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, 7))), 900.0)', iap)
+        self.assertIn('min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, InAppPurchaseManager.maximumRetryExponent))), 900.0)', iap)
+        self.assertIn('private static let maximumRetryExponent = 7', iap)
+        # Device log (30 Oct): every account context and every launch climbed the ladder again, 218 requests a
+        # day for a build with no products. A recent empty answer starts the retries at the ceiling.
+        self.assertIn('UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: InAppPurchaseManager.emptyProductsAnswerKey)', iap)
+        self.assertIn('self.productRequestRetryCount = InAppPurchaseManager.maximumRetryExponent', iap)
+        self.assertIn('UserDefaults.standard.removeObject(forKey: InAppPurchaseManager.emptyProductsAnswerKey)', iap)
         self.assertIn('self.productRequestRetryCount = 0', iap)
         picker = read('submodules/LegacyMediaPickerUI/Sources/LegacyICloudFilePicker.swift')
         self.assertIn('source: "cancel"', picker)
