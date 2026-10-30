@@ -462,6 +462,12 @@ public enum MessageSavingStore {
                 }
             })
         }
+        // The store loads on first use, and the first use may be the main thread (a message's context menu asks
+        // `hasEdits`), which then decoded up to 5000 records before the menu could open. Load it here, at launch, on
+        // the store's own queue; `loadIfNeeded` runs once under the lock, so a caller that comes first just waits.
+        queue.async {
+            loadIfNeeded()
+        }
         let _ = MessageSavingBridge.retainedMessageIds.swap({ accountPeerId, peerId in
             return deleted(accountPeerId: accountPeerId, peerId: peerId).map { MessageId(peerId: PeerId($0.peerId), namespace: $0.namespace, id: $0.messageId) }
         })
