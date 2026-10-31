@@ -58,4 +58,20 @@ final class ArchiveSessionTests: XCTestCase {
         XCTAssertFalse(session.isLockedArchivedPeer(EnginePeer.Id(1)))
         XCTAssertTrue(session.isLockedArchivedPeer(EnginePeer.Id(2)))
     }
+
+    func testUnlockBelongsToTheAccountItWasEnteredOn() {
+        let session = ArchiveLockSession.shared
+        let account = EnginePeer.Id(5001)
+        let other = EnginePeer.Id(5002)
+        session.bindPasswordProtection(accountId: 5001, accountPeerId: account, isPasswordConfigured: .single(true))
+        XCTAssertFalse(session.isUnlocked(accountPeerId: account))
+        session.unlock()
+        XCTAssertTrue(session.isUnlocked(accountPeerId: account), "Search inside an open Archive must see its chats")
+        XCTAssertFalse(session.isUnlocked(accountPeerId: other), "An unlock does not open another account's Archive")
+        session.relock()
+        XCTAssertFalse(session.isUnlocked(accountPeerId: account))
+        session.bindPasswordProtection(accountId: 5003, isPasswordConfigured: .single(true))
+        session.unlock()
+        XCTAssertFalse(session.isUnlocked(accountPeerId: account), "A rebind forgets the previous account")
+    }
 }

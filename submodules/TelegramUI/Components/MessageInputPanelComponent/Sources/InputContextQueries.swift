@@ -208,7 +208,7 @@ private func updatedContextQueryResultStateForQuery(context: AccountContext, cha
                         guard case let .mentions(peers)? = result(previous) else {
                             return result(previous)
                         }
-                        return .mentions(peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.id) })
+                        return .mentions(peers.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.id) })
                     }
                 }
             }
@@ -222,7 +222,7 @@ private func updatedContextQueryResultStateForQuery(context: AccountContext, cha
                     return context.account.postbox.transaction { transaction -> (ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult? in
                         if case let .peers(peers) = recentPeers {
                             let peers = peers.filter { peer in
-                                return peer.addressName != nil && !archiveNotificationShouldRedact(transaction: transaction, peerId: peer.id)
+                                return peer.addressName != nil && !archiveSearchShouldHide(transaction: transaction, peerId: peer.id)
                             }.compactMap { EnginePeer($0) }
                             return { _ in return .mentions(peers) }
                         } else {
@@ -237,7 +237,7 @@ private func updatedContextQueryResultStateForQuery(context: AccountContext, cha
                 |> mapToSignal { peersAndPresences -> Signal<(ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult?, NoError> in
                     return context.account.postbox.transaction { transaction -> (ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult? in
                         let peers = peersAndPresences.filter { peer in
-                            if archiveNotificationShouldRedact(transaction: transaction, peerId: peer.peerId) {
+                            if archiveSearchShouldHide(transaction: transaction, peerId: peer.peerId) {
                                 return false
                             }
                             if let peer = peer.peer, case .user = peer, peer.addressName != nil {

@@ -326,13 +326,13 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                |> mapToSignal { foundLocalPeers, foundRemotePeers -> Signal<FoundPeers, NoError> in
                     return context.stateManager.postbox.transaction { transaction -> FoundPeers in
                         return FoundPeers(
-                            foundLocalPeers: foundLocalPeers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peerId) },
+                            foundLocalPeers: foundLocalPeers.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.peerId) },
                             foundRemotePeers: (
-                                foundRemotePeers.0.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.id) },
-                                foundRemotePeers.1.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.id) },
+                                foundRemotePeers.0.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.peer.id) },
+                                foundRemotePeers.1.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.peer.id) },
                                 foundRemotePeers.2
                             ),
-                            hideSavedMessages: archiveNotificationShouldRedact(transaction: transaction, peerId: context.accountPeerId)
+                            hideSavedMessages: archiveSearchShouldHide(transaction: transaction, peerId: context.accountPeerId)
                         )
                     }
                 })
@@ -493,7 +493,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
                 }
                 var index = 0
                 for (peer, requiresPremiumForMessaging) in recentPeerList {
-                    if archiveNotificationShouldRedact(transaction: transaction, peerId: peer.peerId) {
+                    if archiveSearchShouldHide(transaction: transaction, peerId: peer.peerId) {
                         continue
                     }
                     if let mainPeer = peer.peers[peer.peerId], canSendMessagesToPeer(mainPeer) {

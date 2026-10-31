@@ -32,12 +32,21 @@ private func archiveLockedPeerIdsSignal(context: AccountContext) -> Signal<Set<E
     }
     |> distinctUntilChanged
     
+    // An open Archive hides nothing from the screen that opened it.
+    let accountPeerId = context.account.peerId
+    let archiveUnlocked = ArchiveLockSession.shared.unlockedSignal
+    |> map { _ -> Bool in
+        return ArchiveLockSession.shared.isUnlocked(accountPeerId: accountPeerId)
+    }
+    |> distinctUntilChanged
+
     return combineLatest(
         passwordConfigured,
+        archiveUnlocked,
         context.engine.messages.chatList(group: .archive, count: 100)
     )
-    |> mapToSignal { configured, _ -> Signal<Set<EnginePeer.Id>, NoError> in
-        if !configured {
+    |> mapToSignal { configured, unlocked, _ -> Signal<Set<EnginePeer.Id>, NoError> in
+        if !configured || unlocked {
             return .single([])
         }
         return context.account.postbox.transaction { transaction in

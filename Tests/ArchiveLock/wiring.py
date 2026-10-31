@@ -59,7 +59,7 @@ assert ".isAccountHidden" in share, "The share extension must not offer a hidden
 
 assert "if HiddenAccountsSession.shared.state.hiddenAccountIds.contains(context.account.id.int64)" in helpers, "The app switcher snapshot must not show a hidden account"
 assert "passwordPeerId: peerId" in helpers, "A hidden account is opened with its own password, not the one on screen"
-hide_toggle = helpers[helpers.index("public func setArchiveHidesAccount("):helpers.index("public func setArchivePassword(")]
+hide_toggle = helpers[helpers.index("public func setArchiveHidesAccount("):helpers.index("public func removeArchivePassword(")]
 assert "verifyPassword: true" in hide_toggle, "Showing a hidden account again needs its password"
 
 root_controller = read("submodules/TelegramUI/Sources/TelegramRootController.swift")
@@ -70,5 +70,27 @@ preview = tab_actions[tab_actions.index("func accountContextMenu("):tab_actions.
 assert "HiddenAccountsSession.shared.state.isLocked(accountId: id.int64)" in preview, "Long-pressing a locked hidden account must not preview its chats"
 switch_row = tab_actions[tab_actions.index("func switchToAccount(id: AccountRecordId)"):tab_actions.index("self.accountsAndPeers.set(.never())")]
 assert "HiddenAccountsSession.shared.state.isLocked(accountId: id.int64)" in switch_row, "A cancelled password must not leave the account list frozen"
+
+logout = tab_actions[tab_actions.index("func logoutAccount(id: AccountRecordId)"):tab_actions.index("let presentationData = self.presentationData", tab_actions.index("func logoutAccount(id: AccountRecordId)"))]
+assert "ensureHiddenAccountUnlocked(" in logout, "Logging out a locked hidden account needs its password"
+intents = read("submodules/TelegramIntents/Sources/TelegramIntents.swift")
+assert ".isAccountHidden" in intents, "A hidden account must not donate chats to the share sheet and Siri suggestions"
+assert "clearHiddenAccountTraces(context: context)" in hide_toggle, "Hiding an account removes its delivered notifications and donated chats"
+
+# Search, mentions and the share sheet follow the open Archive; notifications, calls and Siri stay strict.
+for path in [
+    "submodules/ChatListUI/Sources/ChatListSearchListPaneNode.swift",
+    "submodules/ChatListSearchRecentPeersNode/Sources/ChatListSearchRecentPeersNode.swift",
+    "submodules/ShareController/Sources/SharePeersContainerNode.swift",
+    "submodules/ShareController/Sources/ShareSearchContainerNode.swift",
+    "submodules/TelegramUI/Components/MessageInputPanelComponent/Sources/InputContextQueries.swift",
+]:
+    text = read(path)
+    assert "archiveSearchShouldHide(transaction: transaction," in text, path
+    assert "archiveNotificationShouldRedact(transaction: transaction," not in text, path + " must not hide chats of an open Archive"
+assert "archiveNotificationShouldRedact(transaction: transaction, peerId: peerId)" in service, "Notifications keep the strict check"
+for path in ["submodules/ContactListUI/Sources/ContactListNode.swift", "submodules/CallListUI/Sources/CallListControllerNode.swift"]:
+    assert "if !configured || unlocked {" in read(path), path + " must show an open Archive's chats"
+assert "accountPeerId: context.account.peerId, isPasswordConfigured:" in helpers, "The session must know its account to answer per-account unlock checks"
 
 print("Archive lock entry points, recovery, biometrics, cooldown clamp, notification staging and hidden accounts: passed")
