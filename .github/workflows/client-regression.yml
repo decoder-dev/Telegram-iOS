@@ -43,6 +43,8 @@ on:
       - 'submodules/TelegramUIPreferences/Sources/MessageSavingStore.swift'
       - 'submodules/TelegramUIPreferences/Sources/ForkPresentationLanguage.swift'
       - 'submodules/ChatListUI/Sources/ArchiveLockHelpers.swift'
+      - 'submodules/TelegramUIPreferences/Sources/HiddenAccountsSession.swift'
+      - 'submodules/TelegramUIPreferences/Sources/ChatArchiveSettings.swift'
       - 'submodules/TelegramUIPreferences/Sources/ArchivePasswordKeychain.swift'
       - 'submodules/SettingsUI/Sources/**'
       - 'submodules/ChatListUI/Sources/ArchiveLockLocalizedString.swift'

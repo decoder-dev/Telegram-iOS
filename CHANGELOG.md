@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### Fixed — password recovery and hidden-account authorization
+- Device-owner password recovery opens the replacement prompt and keeps the existing protection until the new password is confirmed and saved. Cancellation or storage failure leaves the Archive and hidden accounts protected.
+- A replacement password immediately replaces the in-memory backup verifier too. Old biometric enrollment is cleared.
+- Changing a hidden account's owner, or showing and hiding it again, revokes its earlier unlock.
+- Regression coverage runs the actual password replacement flow, including rejected authentication, cancellation and storage retry. Release builds also run the Security tests.
+
 ### Fixed — search in an open Archive
 - Search (chats, messages, recent peers, downloads, channels), @mentions, the share sheet, contacts and calls hid the chats of a password-protected Archive even while it was open, so searching inside an unlocked Archive found nothing. They now hide them only while the Archive of that account is locked; notifications, calls and Siri keep hiding them always.
 

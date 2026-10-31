@@ -7,6 +7,9 @@ source = (root / 'submodules/ChatListUI/Sources/ArchiveLockHelpers.swift').read_
 start = source.index('private var activePasswordPrompts:')
 end = source.index('\nprivate var archiveAlertThemeSubscriptionKey:', start)
 fixtures = (root / 'Tests/ArchiveLock/PasswordFlowFixtures.swift').read_text(encoding='utf-8')
+# Compile the real replacement and persistence code rather than an always-successful stub.
+replacement_start = source.index('public func setArchivePassword(')
+replacement_end = source.index('/// Recovery for a password', replacement_start)
 tests = '''
 let context = AccountContext()
 var successes = 0
@@ -45,9 +48,68 @@ for _ in 0..<20 {
 }
 precondition(writes == 2 && successes == 1 && cancelled == 20)
 precondition(presented.isEmpty && Queue.callbacks.isEmpty)
+func beginOwnerReset() {
+    presentArchivePasswordAlert(context: context, title: "Unlock", message: nil, confirmTitle: "Unlock", verifyPassword: true, onSuccess: { successes += 1 }, onCancel: { cancelled += 1 }, allowOwnerReset: true)
+    let alert = presented.removeLast()
+    precondition(alert.actions.count == 3)
+    alert.actions[2].invoke()
+}
+func expectOldProtection() {
+    precondition(ArchivePasswordKeychain.stored == "password")
+    precondition(ArchivePasswordKeychain.backup == "password")
+    precondition(archiveSettings.isPasswordConfigured && archiveSettings.passwordVerifier == "password")
+}
+let successesBeforeReset = successes
+var expectedCancellations = cancelled
+for authResult in [false, nil] as [Bool?] {
+    LocalAuth.result = authResult
+    beginOwnerReset()
+    expectedCancellations += 1
+    precondition(cancelled == expectedCancellations && successes == successesBeforeReset)
+    precondition(presented.isEmpty && activePasswordPrompts.isEmpty)
+    expectOldProtection()
+}
+LocalAuth.result = true
+LocalAuth.duringAuthentication = { ArchiveLockSession.shared.authorizationGeneration += 1 }
+beginOwnerReset()
+expectedCancellations += 1
+precondition(cancelled == expectedCancellations && presented.isEmpty)
+expectOldProtection()
+LocalAuth.duringAuthentication = {}
+
+beginOwnerReset()
+precondition(presented.count == 1, "Owner reset must actually present the new-password prompt")
+expectOldProtection()
+submit("", cancel: true)
+expectedCancellations += 1
+precondition(cancelled == expectedCancellations && activePasswordPrompts.isEmpty)
+expectOldProtection()
+
+beginOwnerReset()
+submit("new-password"); Queue.drain()
+submit("", cancel: true)
+expectedCancellations += 1
+precondition(cancelled == expectedCancellations && activePasswordPrompts.isEmpty)
+expectOldProtection()
+
+ArchivePasswordKeychain.storeSucceeds = false
+beginOwnerReset()
+submit("new-password"); Queue.drain(); submit("new-password"); Queue.drain()
+precondition(presented.last?.message == ArchiveLockLocalizedString.storageError)
+expectOldProtection()
+precondition(successes == successesBeforeReset && cancelled == expectedCancellations)
+ArchivePasswordKeychain.storeSucceeds = true
+submit("new-password"); Queue.drain(); submit("new-password"); Queue.drain()
+precondition(successes == successesBeforeReset + 1 && cancelled == expectedCancellations)
+precondition(ArchivePasswordKeychain.stored == "new-password")
+precondition(ArchivePasswordKeychain.backup == "new-password")
+precondition(archiveSettings.isPasswordConfigured && archiveSettings.passwordVerifier == "new-password")
+precondition(!ArchivePasswordKeychain.matchesPassword("password", peerId: 1))
+precondition(presented.isEmpty && activePasswordPrompts.isEmpty)
+print("Owner reset: rejected/stale authentication, cancellation, persistence failure/retry and replacement: passed")
 print("Archive password persistence failure/retry, mismatches and 20 prompt release cycles: passed")
 '''
 with tempfile.TemporaryDirectory(prefix='archive-password-flow-') as tmp:
     path = pathlib.Path(tmp) / 'main.swift'
-    path.write_text(fixtures + '\n' + source[start:end] + '\n' + tests, encoding='utf-8')
+    path.write_text(fixtures + '\n' + source[start:end] + '\n' + source[replacement_start:replacement_end] + '\n' + tests, encoding='utf-8')
     subprocess.run(['swift', str(path)], check=True)

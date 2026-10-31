@@ -172,6 +172,12 @@ public final class HiddenAccountsSession {
     /// The hidden accounts in force: the stored settings, limited to owners that are signed in with a password.
     public func updateOwners(_ owners: [Int64: Int64]) {
         self.update { state in
+            // Authorization belongs to the owner that granted it, not to the account id forever.
+            // Showing and hiding again, or assigning another owner, requires fresh authorization.
+            state.unlockedAccountIds = state.unlockedAccountIds.filter { accountId in
+                guard let owner = owners[accountId] else { return false }
+                return state.owners[accountId] == owner
+            }
             state.owners = owners
             state.isResolved = true
             if let revealedOwnerId = state.revealedOwnerId, !owners.values.contains(revealedOwnerId) {

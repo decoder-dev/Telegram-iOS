@@ -67,6 +67,33 @@ final class HiddenAccountsTests: XCTestCase {
 
     // MARK: session
 
+    func testChangingOwnerRevokesAnEarlierUnlock() {
+        let session = HiddenAccountsSession.shared
+        session.updateOwners([self.second: self.owner])
+        session.unlock(accountId: self.second)
+        session.updateOwners([self.second: self.other])
+        XCTAssertTrue(session.state.isLocked(accountId: self.second))
+        XCTAssertNil(session.state.listing(accountId: self.second))
+    }
+
+    func testShowingAndHidingAgainRequiresFreshAuthorization() {
+        let session = HiddenAccountsSession.shared
+        session.updateOwners([self.second: self.owner])
+        session.unlockAccounts(ownerAccountId: self.owner)
+        session.updateOwners([:])
+        session.updateOwners([self.second: self.owner])
+        XCTAssertTrue(session.state.isLocked(accountId: self.second))
+    }
+
+    func testUnchangedOwnerPreservesAnAuthorizedSession() {
+        let session = HiddenAccountsSession.shared
+        session.updateOwners([self.second: self.owner])
+        session.unlock(accountId: self.second)
+        session.updateOwners([self.second: self.owner, self.third: self.other])
+        XCTAssertFalse(session.state.isLocked(accountId: self.second))
+        XCTAssertTrue(session.state.isLocked(accountId: self.third))
+    }
+
     func testOnlyTheOwnersSettingsTapsListItsHiddenAccountsAndOnlyItsPasswordOpensThem() {
         let session = HiddenAccountsSession.shared
         session.updateOwners([self.second: self.owner, self.third: self.other])

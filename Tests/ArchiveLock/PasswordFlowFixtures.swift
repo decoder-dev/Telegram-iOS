@@ -35,24 +35,28 @@ final class Logger {
 }
 final class ArchiveLockSession {
     static let shared = ArchiveLockSession()
+    var authorizationGeneration = 0
+    func unlock() {}
     func beginSuppressBackgroundRelock() {}
     func endSuppressBackgroundRelock() {}
 }
-enum ArchiveUnlockResult {
+public enum ArchiveUnlockResult {
     case unlocked, cancelled, notProtected
-}
-func resetArchivePasswordAfterDeviceOwnerAuth(context: AccountContext, present: @escaping (Any) -> Void, completion: @escaping (ArchiveUnlockResult) -> Void) {
-    completion(.unlocked)
 }
 struct Signal<Value, Error> {
     var value: Value? = nil
-    func startStandalone(next: @escaping (Value) -> Void) { if let value { next(value) } }
+    func startStandalone(next: ((Value) -> Void)? = nil) { if let value { next?(value) } }
 }
 func deliverOnMainQueue<Value, Error>(_ signal: Signal<Value, Error>) -> Signal<Value, Error> { signal }
 infix operator |>
 func |><Value, Error, Result>(_ signal: Signal<Value, Error>, _ transform: (Signal<Value, Error>) -> Result) -> Result { transform(signal) }
 enum LocalAuth {
-    static func authenticateDeviceOwner(reason: String) -> Signal<Bool?, NoError> { Signal() }
+    static var result: Bool? = true
+    static var duringAuthentication: () -> Void = {}
+    static func authenticateDeviceOwner(reason: String) -> Signal<Bool?, NoError> {
+        duringAuthentication()
+        return Signal(value: .some(result))
+    }
 }
 typealias NoError = Never
 final class Queue {
@@ -75,18 +79,33 @@ struct PresentationValue {
 struct SharedContext { let currentPresentationData = PresentationValue() }
 enum EnginePeer { typealias Id = Int64 }
 struct Account { let peerId: EnginePeer.Id = 1 }
-final class AccountContext {
+public typealias ViewController = Any
+public final class AccountContext {
     let account = Account()
     let sharedContext = SharedContext()
+    let engine = 0
 }
 enum ArchivePasswordKeychain {
+    static var stored: String? = "password"
+    static var backup: String? = "password"
+    static var storeSucceeds = true
+    static func store(password: String, peerId: Int64) -> Bool {
+        guard storeSucceeds else { return false }
+        stored = password
+        return true
+    }
+    static func loadHash(peerId: Int64) -> String? { stored }
+    static func noteBackupVerifier(_ value: String?, peerId: Int64) { backup = value }
     static func remainingCooldown(peerId: Int64) -> Double { 0 }
-    static func matchesPassword(_ value: String, peerId: Int64) -> Bool { value == "password" }
+    static func matchesPassword(_ value: String, peerId: Int64) -> Bool { value == stored || value == backup }
     static func clearFailureState(peerId: Int64) {}
     static func recordFailure(peerId: Int64) {}
     static func failureCount(peerId: Int64) -> Int { 1 }
 }
 enum ArchiveLockLocalizedString {
+    static let setTitle = "Set"
+    static let setText = "Set password"
+    static let continueAction = "Continue"
     static let passwordPlaceholder = "Password"
     static let confirmTitle = "Confirm"
     static let confirmText = "Confirm password"
@@ -97,6 +116,25 @@ enum ArchiveLockLocalizedString {
     static func tooManyAttempts(seconds: Int) -> String { "Cooldown" }
     static func incorrectPassword(attemptsLeft: Int) -> String { "Incorrect" }
 }
+struct ChatArchiveSettings {
+    var isPasswordConfigured = true
+    var passwordVerifier: String? = "password"
+    func clearingLegacyPasswordHash() -> Self { self }
+    func withUpdatedIsPasswordConfigured(_ value: Bool) -> Self {
+        var result = self; result.isPasswordConfigured = value; return result
+    }
+    func withUpdatedPasswordVerifier(_ value: String?) -> Self {
+        var result = self; result.passwordVerifier = value; return result
+    }
+    func withUpdatedBiometricsDomainState(_ value: Data?) -> Self { self }
+}
+var archiveSettings = ChatArchiveSettings()
+func updateChatArchiveSettings(engine: Int, _ update: (ChatArchiveSettings) -> ChatArchiveSettings) -> Signal<Bool, NoError> {
+    archiveSettings = update(archiveSettings)
+    return Signal(value: true)
+}
+func alignKeepArchivedUnmutedIfNeeded(context: AccountContext) {}
+func clearStaleArchiveNotifications(context: AccountContext) {}
 var presented: [UIAlertController] = []
 func presentUIAlert(context: AccountContext, alert: UIAlertController, onUnavailableHost: @escaping () -> Void) { presented.append(alert) }
 

@@ -120,6 +120,7 @@ jobs:
           python3 Tests/ArchiveLock/wiring.py
       - name: Managed proxy observation and customization tests
         run: |
+          python3 Tests/Security/run.py
           python3 Tests/ManagedProxy/run.py
           python3 Tests/ManagedProxy/probe_queue.py
           python3 Tests/ManagedProxy/bootstrap.py

@@ -792,14 +792,18 @@ private func presentArchivePasswordAlert(
             alert.addAction(UIAlertAction(title: ArchiveLockLocalizedString.lostReset, style: .destructive, handler: { [weak alert] _ in
                 guard let alert else { return }
                 alert.dismiss(animated: false)
+                let generation = ArchiveLockSession.shared.authorizationGeneration
                 ArchiveLockSession.shared.beginSuppressBackgroundRelock()
                 let _ = (LocalAuth.authenticateDeviceOwner(reason: ArchiveLockLocalizedString.lostReason)
                 |> deliverOnMainQueue).startStandalone(next: { result in
                     ArchiveLockSession.shared.endSuppressBackgroundRelock()
-                    guard result == true else {
+                    guard result == true, ArchiveLockSession.shared.authorizationGeneration == generation else {
                         wrappedOnCancel()
                         return
                     }
+                    // Transfer prompt ownership to the replacement-password flow. Keeping this
+                    // entry would make setArchivePassword reject its own prompt as a duplicate.
+                    activePasswordPrompts.remove(peerId)
                     Logger.shared.log("ArchiveLock", "owner-reset requested from the unlock prompt")
                     resetArchivePasswordAfterDeviceOwnerAuth(context: context, present: { _ in
                         // `setArchivePassword` presents its own alerts internally; this hook is
@@ -881,31 +885,25 @@ public func setArchivePassword(context: AccountContext, present: @escaping (View
             }
             ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
             let verifier = ArchivePasswordKeychain.loadHash(peerId: context.account.peerId)
+            ArchivePasswordKeychain.noteBackupVerifier(verifier, peerId: context.account.peerId)
             let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true).withUpdatedPasswordVerifier(verifier)
+                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true).withUpdatedPasswordVerifier(verifier).withUpdatedBiometricsDomainState(nil)
             }.startStandalone()
             return true
         }
     )
 }
 
-/// Reset the Archive password after a successful device-owner authentication (passcode or biometrics): wipe the stored
-/// credential and verifier, then capture a new password. Shared by the no-verifier recovery flow and the explicit
+/// Replace the Archive password after successful device-owner authentication (passcode or biometrics).
+/// Keep the old protection until the replacement is confirmed and stored: cancellation or a Keychain failure must
+/// never expose the Archive or the owner's hidden accounts. Shared by the no-verifier recovery flow and the explicit
 /// "Forgot password?" reset in the unlock prompt.
 private func resetArchivePasswordAfterDeviceOwnerAuth(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (ArchiveUnlockResult) -> Void) {
-    let peerId = context.account.peerId
-    let _ = ArchivePasswordKeychain.clear(peerId: peerId)
-    let _ = (updateChatArchiveSettings(engine: context.engine) { current in
-        // The verifier copy and the enrolled-biometrics snapshot go too: with the verifier
-        // left behind, `archiveIsPasswordProtected` restored the old password into the
-        // Keychain on the next check, so "Remove password" silently undid itself.
-        current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false).withUpdatedPasswordVerifier(nil).withUpdatedBiometricsDomainState(nil)
-    }
-    |> deliverOnMainQueue).startStandalone(completed: {
-        Logger.shared.log("ArchiveLock", "password reset by device owner")
-        setArchivePassword(context: context, present: present, completion: { didSet in
-            completion(didSet ? .unlocked : .notProtected)
-        })
+    setArchivePassword(context: context, present: present, completion: { didSet in
+        if didSet {
+            Logger.shared.log("ArchiveLock", "password replaced by device owner")
+        }
+        completion(didSet ? .unlocked : .cancelled)
     })
 }
 
