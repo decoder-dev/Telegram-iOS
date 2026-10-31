@@ -78,7 +78,7 @@ func managedSynchronizeConsumeMessageContentOperations(postbox: Postbox, network
                 return postbox.mergedOperationLogView(tag: OperationLogTags.SynchronizeConsumeMessageContents, limit: 10)
                 |> map { $0.entries }
             }
-            let peers = ForkGhostModeSettings.exceptionPeerIds(accountPeerId: stateManager.accountPeerId)
+            let peers = ForkGhostModeSettings.readPermittedPeerIds(accountPeerId: stateManager.accountPeerId)
             if peers.isEmpty {
                 return .single([])
             }

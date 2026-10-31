@@ -9446,10 +9446,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     }
 
     func beginGhostReadOnInteractIfEnabled() {
-        guard ForkGhostModeSettings.readOnInteract else {
+        guard ForkGhostModeSettings.readOnInteract, let peerId = self.chatLocation.peerId else {
             return
         }
-        ForkGhostModeSettings.beginReadOnInteractOverride()
+        ForkGhostModeSettings.beginReadOnInteractOverride(accountPeerId: self.context.account.peerId, peerId: peerId)
         // The override only *permits* online reporting; poke the presence manager so the
         // "briefly show online" half of the feature actually fires (and re-pokes itself
         // offline when the window closes — see performGhostInteractPresenceBlink).

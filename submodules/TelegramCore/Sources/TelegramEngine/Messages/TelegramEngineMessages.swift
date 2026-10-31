@@ -1926,7 +1926,7 @@ public extension TelegramEngine {
         }
         
         public func reportPeerReadMetrics(peerId: EnginePeer.Id, metrics: [TelegramMessageReadMetric]) -> Signal<Never, NoError> {
-            guard ForkTelegramStatisticsSettings.enabled, !ForkGhostModeSettings.shouldSuppressMessageReads else { return .complete() }
+            guard ForkTelegramStatisticsSettings.enabled, !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: self.account.peerId, peerId: peerId) else { return .complete() }
             return self.account.postbox.transaction { transaction -> Api.InputPeer? in
                 return transaction.getPeer(peerId).flatMap(apiInputPeer)
             }
