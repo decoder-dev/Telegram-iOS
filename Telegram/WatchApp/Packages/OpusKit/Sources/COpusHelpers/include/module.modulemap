@@ -1,4 +1,0 @@
-module COpusHelpers {
-    header "copus_helpers.h"
-    export *
-}
