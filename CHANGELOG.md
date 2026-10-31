@@ -9,6 +9,12 @@
 ### Fixed — search in an open Archive
 - Search (chats, messages, recent peers, downloads, channels), @mentions, the share sheet, contacts and calls hid the chats of a password-protected Archive even while it was open, so searching inside an unlocked Archive found nothing. They now hide them only while the Archive of that account is locked; notifications, calls and Siri keep hiding them always.
 
+### Added — what the Archive password locks
+- Archive settings → "What the password locks": Archive and Saved Messages, each with its own switch (at least one stays on; both by default, as before). An item that is not locked behaves as stock: the Archive row stays listed and opens without a prompt, Saved Messages stays in Settings and search. Locking less needs the password.
+
+### Removed
+- Settings no longer offer Ask a Question, Telegram FAQ and Telegram Features (also gone from Settings search).
+
 ### Added — hidden accounts
 - An account with an Archive password can hide other signed-in accounts (the second, the third, any number): Archive settings → "Hidden accounts" lists every other account with its own switch. A hidden account leaves the account list, the Settings tab switcher, double tap, quick actions, the share sheet, widgets and Spotlight, and its unread count no longer reaches the Settings badge.
 - Settings × 10 on the owner account lists the accounts it hides (without unread counts or a chat preview); tapping one asks for the owner's Archive password and opens it. Opening the owner's Archive with its password opens them too. Notifications, links and shortcuts never open a locked hidden account.

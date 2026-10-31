@@ -227,7 +227,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         }
     }
     
-    if ArchiveLockSession.shared.isRevealed {
+    if ArchiveLockSession.shared.isSavedMessagesListed {
         items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 1, text: presentationData.strings.Settings_SavedMessages, icon: PresentationResourcesSettings.savedMessages, action: {
             interaction.openSettings(.savedMessages)
         }))
@@ -356,15 +356,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         }
     }
     
-    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 0, text: presentationData.strings.Settings_Support, icon: PresentationResourcesSettings.support, action: {
-        interaction.openSettings(.support)
-    }))
-    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 1, text: presentationData.strings.Settings_FAQ, icon: PresentationResourcesSettings.faq, action: {
-        interaction.openSettings(.faq)
-    }))
-    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.Settings_Tips, icon: PresentationResourcesSettings.tips, action: {
-        interaction.openSettings(.tips)
-    }))
+    // Ask a Question, Telegram FAQ and Telegram Features are not offered in this client: only its version stays here.
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     let appBuild = Bundle.main.infoDictionary?[kCFBundleVersionKey as String] as? String ?? ""
     items[.support]!.append(PeerInfoScreenCommentItem(id: 100, text: "Telegram \(appVersion) (\(appBuild))\ndecoder-dev"))

@@ -24,12 +24,26 @@ public struct ChatArchiveSettings: Equatable, Codable {
     /// Biometric enrollment (`LAContext.evaluatedPolicyDomainState`) at the time Face ID / Touch ID unlock was trusted.
     /// A different enrollment (a newly added face or finger) must not open the Archive.
     public var biometricsDomainState: Data?
+    /// What the password locks: the Archive folder and its chats, and Saved Messages. At least one of the two; both by
+    /// default, which is how the lock always behaved.
+    public var locksArchive: Bool
+    public var locksSavedMessages: Bool
+
+    /// Whether the Archive folder and its chats are locked: a password is set and it covers them.
+    public var isArchiveLocked: Bool {
+        return self.isPasswordConfigured && self.locksArchive
+    }
+
+    /// Whether Saved Messages is locked: a password is set and it covers it.
+    public var isSavedMessagesLocked: Bool {
+        return self.isPasswordConfigured && self.locksSavedMessages
+    }
 
     public static var `default`: ChatArchiveSettings {
         return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, legacyLockPasswordHash: nil, useBiometrics: false, isPasswordConfigured: false)
     }
 
-    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false, isPasswordConfigured: Bool = false, passwordVerifier: String? = nil, biometricsDomainState: Data? = nil) {
+    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false, isPasswordConfigured: Bool = false, passwordVerifier: String? = nil, biometricsDomainState: Data? = nil, locksArchive: Bool = true, locksSavedMessages: Bool = true) {
         self.isHiddenByDefault = isHiddenByDefault
         self.hiddenPsaPeerId = hiddenPsaPeerId
         self.legacyLockPasswordHash = legacyLockPasswordHash
@@ -37,6 +51,8 @@ public struct ChatArchiveSettings: Equatable, Codable {
         self.isPasswordConfigured = isPasswordConfigured
         self.passwordVerifier = passwordVerifier
         self.biometricsDomainState = biometricsDomainState
+        self.locksArchive = locksArchive || !locksSavedMessages
+        self.locksSavedMessages = locksSavedMessages
     }
 
     public init(from decoder: Decoder) throws {
@@ -59,6 +75,11 @@ public struct ChatArchiveSettings: Equatable, Codable {
             self.passwordVerifier = nil
         }
         self.biometricsDomainState = try container.decodeIfPresent(Data.self, forKey: "biometricsDomainState")
+        // Absent in settings written before the choice existed: both, as the lock behaved then.
+        let locksSavedMessages = ((try container.decodeIfPresent(Int32.self, forKey: "locksSavedMessages")) ?? 1) != 0
+        let locksArchive = ((try container.decodeIfPresent(Int32.self, forKey: "locksArchive")) ?? 1) != 0
+        self.locksSavedMessages = locksSavedMessages
+        self.locksArchive = locksArchive || !locksSavedMessages
         // Extensions must redact before the main app has migrated the legacy credential.
         self.isPasswordConfigured = self.isPasswordConfigured || self.legacyLockPasswordHash != nil || self.passwordVerifier != nil
     }
@@ -79,18 +100,28 @@ public struct ChatArchiveSettings: Equatable, Codable {
         try container.encode((self.isPasswordConfigured ? 1 : 0) as Int32, forKey: "isPasswordConfigured")
         try container.encodeIfPresent(self.passwordVerifier, forKey: "passwordVerifier")
         try container.encodeIfPresent(self.biometricsDomainState, forKey: "biometricsDomainState")
+        try container.encode((self.locksArchive ? 1 : 0) as Int32, forKey: "locksArchive")
+        try container.encode((self.locksSavedMessages ? 1 : 0) as Int32, forKey: "locksSavedMessages")
     }
 
     public func clearingLegacyPasswordHash() -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier, biometricsDomainState: self.biometricsDomainState)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier, biometricsDomainState: self.biometricsDomainState, locksArchive: self.locksArchive, locksSavedMessages: self.locksSavedMessages)
     }
 
     public func withUpdatedUseBiometrics(_ useBiometrics: Bool) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier, biometricsDomainState: self.biometricsDomainState)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier, biometricsDomainState: self.biometricsDomainState, locksArchive: self.locksArchive, locksSavedMessages: self.locksSavedMessages)
     }
 
     public func withUpdatedIsPasswordConfigured(_ isPasswordConfigured: Bool) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: isPasswordConfigured ? self.useBiometrics : false, isPasswordConfigured: isPasswordConfigured, passwordVerifier: isPasswordConfigured ? self.passwordVerifier : nil, biometricsDomainState: isPasswordConfigured ? self.biometricsDomainState : nil)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: isPasswordConfigured ? self.useBiometrics : false, isPasswordConfigured: isPasswordConfigured, passwordVerifier: isPasswordConfigured ? self.passwordVerifier : nil, biometricsDomainState: isPasswordConfigured ? self.biometricsDomainState : nil, locksArchive: self.locksArchive, locksSavedMessages: self.locksSavedMessages)
+    }
+
+    /// Change what the password locks. At least one stays locked: asking for neither keeps the Archive.
+    public func withUpdatedLockTargets(archive: Bool, savedMessages: Bool) -> ChatArchiveSettings {
+        var result = self
+        result.locksSavedMessages = savedMessages
+        result.locksArchive = archive || !savedMessages
+        return result
     }
 
     public func withUpdatedBiometricsDomainState(_ biometricsDomainState: Data?) -> ChatArchiveSettings {
@@ -100,7 +131,7 @@ public struct ChatArchiveSettings: Equatable, Codable {
     }
 
     public func withUpdatedPasswordVerifier(_ passwordVerifier: String?) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured || passwordVerifier != nil, passwordVerifier: passwordVerifier, biometricsDomainState: self.biometricsDomainState)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured || passwordVerifier != nil, passwordVerifier: passwordVerifier, biometricsDomainState: self.biometricsDomainState, locksArchive: self.locksArchive, locksSavedMessages: self.locksSavedMessages)
     }
 }
 
@@ -154,6 +185,12 @@ public final class ArchiveLockSession {
     private var lockedPeerIdsBindingAccountId: Int64?
     private var lockedPeerIdsDisposable: Disposable?
     private var lockedPeerIds = Set<EnginePeer.Id>()
+    /// Whether the bound account's password covers Saved Messages. True until the first value (fail closed: its row in
+    /// Settings stays hidden rather than flashing in).
+    private var savedMessagesLocked = true
+    private var savedMessagesBindingAccountId: Int64?
+    private var savedMessagesDisposable: Disposable?
+    private let savedMessagesListedPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
     private var lockedPeerIdsResolved = false
     /// App-switcher cover / foreground cleanup. Looked up at fire time so they can be
     /// registered after `bindBackgroundRelock` (first-wins) has already claimed the slot.
@@ -201,7 +238,31 @@ public final class ArchiveLockSession {
         return !self.passwordConfigured || self.revealed
     }
     
-    /// Whether the currently bound account has an Archive password set.
+    /// Whether the bound account's password covers Saved Messages.
+    public var isSavedMessagesLocked: Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.savedMessagesLocked
+    }
+
+    /// Whether Saved Messages is listed in Settings: it is not locked, or Settings × 10 revealed it (opening it still asks
+    /// for the password).
+    public var isSavedMessagesListed: Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return !self.savedMessagesLocked || self.revealed
+    }
+
+    public var savedMessagesListedSignal: Signal<Bool, NoError> {
+        return self.savedMessagesListedPromise.get()
+    }
+
+    private func updateSavedMessagesListed() {
+        self.savedMessagesListedPromise.set(self.isSavedMessagesListed)
+    }
+
+    /// Whether the currently bound account's Archive folder is locked (`isPasswordConfigured` is true only when the
+    /// password covers the Archive: `bindPasswordProtection` is fed `archiveFolderLockSignal`).
     public var isPasswordConfigured: Bool {
         self.lock.lock()
         defer { self.lock.unlock() }
@@ -270,12 +331,17 @@ public final class ArchiveLockSession {
             // Cancel a mid-collapse omit if Settings is tapped again.
             self.folderPresentationPromise.set(.expanded)
         }
+        self.updateSavedMessagesListed()
     }
     
     public func relock() {
         // With no password there is no lock to re-apply, and re-locking has side effects the
-        // stock Archive must not get: it pops an open Archive screen and hides the folder row.
-        guard self.isLockActive else {
+        // stock Archive must not get: it pops an open Archive screen and hides the folder row. A Settings × 10 reveal of
+        // a locked Saved Messages alone (the Archive itself not locked) is still taken back.
+        self.lock.lock()
+        let revealedOnly = self.revealed
+        self.lock.unlock()
+        guard self.isLockActive || revealedOnly else {
             return
         }
         var shouldNotifyRelock = false
@@ -304,6 +370,7 @@ public final class ArchiveLockSession {
         if shouldNotifyRelock || shouldNotifyReveal {
             self.relockedPipe.putNext(Void())
         }
+        self.updateSavedMessagesListed()
     }
     
     /// Keep the folder row briefly so ChatList can play the official spring collapse, then omit it
@@ -358,6 +425,7 @@ public final class ArchiveLockSession {
         self.unlockedPromise.set(false)
         self.revealedPromise.set(false)
         self.folderPresentationPromise.set(.omitted)
+        self.updateSavedMessagesListed()
         previousDisposable?.dispose()
         
         let disposable = (isPasswordConfigured
@@ -415,6 +483,7 @@ public final class ArchiveLockSession {
         // `unlocked` is deliberately left alone when a password is *set*: `setArchivePassword`
         // unlocks the session as part of the same flow, and this push lands after it.
         self.revealedPromise.set(effectiveRevealed)
+        self.updateSavedMessagesListed()
         if shouldClearUnlocked {
             self.unlockedPromise.set(false)
         }
@@ -519,6 +588,51 @@ public final class ArchiveLockSession {
         return self.lockedPeerIds.contains(peerId)
     }
     
+    /// Tracks whether the bound account's password covers Saved Messages. Same replacement rules as
+    /// `bindPasswordProtection`: a new account record replaces the subscription and starts locked.
+    public func bindSavedMessagesLock(accountId: Int64, isLocked: Signal<Bool, NoError>) {
+        self.lock.lock()
+        if self.savedMessagesBindingAccountId == accountId {
+            self.lock.unlock()
+            return
+        }
+        let previousDisposable = self.savedMessagesDisposable
+        self.savedMessagesBindingAccountId = accountId
+        self.savedMessagesDisposable = EmptyDisposable
+        self.savedMessagesLocked = true
+        self.lock.unlock()
+        previousDisposable?.dispose()
+        self.updateSavedMessagesListed()
+
+        let disposable = (isLocked
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).startStrict(next: { [weak self] value in
+            guard let self else {
+                return
+            }
+            self.lock.lock()
+            guard self.savedMessagesBindingAccountId == accountId else {
+                self.lock.unlock()
+                return
+            }
+            self.savedMessagesLocked = value
+            self.lock.unlock()
+            self.updateSavedMessagesListed()
+        })
+
+        var isObsolete = false
+        self.lock.lock()
+        if self.savedMessagesBindingAccountId == accountId {
+            self.savedMessagesDisposable = disposable
+        } else {
+            isObsolete = true
+        }
+        self.lock.unlock()
+        if isObsolete {
+            disposable.dispose()
+        }
+    }
+
     /// Keep `currentLockedPeerIds` in sync with Postbox. Replaces any previous subscription
     /// when the bound account record changes (same pattern as `bindPasswordProtection`).
     public func bindLockedPeerIds(accountId: Int64, lockedPeerIds: Signal<Set<EnginePeer.Id>, NoError>) {
@@ -656,11 +770,14 @@ public func archiveIsPasswordProtected(peerId: EnginePeer.Id, settings: ChatArch
 /// since the latter requires Keychain access this check must also work without.
 public func archiveNotificationShouldRedact(transaction: Transaction, peerId: EnginePeer.Id) -> Bool {
     let savedMessagesPeerId = (transaction.getState() as? AuthorizedAccountState)?.peerId
-    guard peerId == savedMessagesPeerId || transaction.getPeerChatListIndex(peerId)?.0 == Namespaces.PeerGroup.archive else {
+    let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
+    if peerId == savedMessagesPeerId {
+        return settings.isSavedMessagesLocked
+    }
+    guard transaction.getPeerChatListIndex(peerId)?.0 == Namespaces.PeerGroup.archive else {
         return false
     }
-    let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
-    return settings.isPasswordConfigured
+    return settings.isArchiveLocked
 }
 
 public func hiddenAccountsSettings(accountManager: AccountManager<TelegramAccountManagerTypes>) -> Signal<HiddenAccountsSettings, NoError> {
@@ -728,8 +845,11 @@ public func archiveLockedPeerIds(transaction: Transaction) -> Set<EnginePeer.Id>
     guard settings.isPasswordConfigured else {
         return []
     }
-    var peerIds = Set(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
-    if let peerId = (transaction.getState() as? AuthorizedAccountState)?.peerId {
+    var peerIds = Set<EnginePeer.Id>()
+    if settings.isArchiveLocked {
+        peerIds.formUnion(transaction.chatListGetAllPeerIds(groupId: Namespaces.PeerGroup.archive))
+    }
+    if settings.isSavedMessagesLocked, let peerId = (transaction.getState() as? AuthorizedAccountState)?.peerId {
         peerIds.insert(peerId)
     }
     return peerIds

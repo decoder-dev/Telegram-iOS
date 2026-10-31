@@ -4170,72 +4170,8 @@ private func helpSearchableItems(context: AccountContext) -> [SettingsSearchable
     
     var items: [SettingsSearchableItem] = []
     
-    items.append(
-        SettingsSearchableItem(
-            id: "ask-question",
-            title: strings.Settings_Support,
-            alternate: synonyms(strings.SettingsSearch_Synonyms_Support),
-            icon: .support,
-            breadcrumbs: [],
-            present: { context, _, present in
-                let _ = (context.engine.peers.supportPeerId()
-                |> deliverOnMainQueue).start(next: { peerId in
-                    if let peerId = peerId {
-                        present(.push, context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))
-                    }
-                })
-            }
-        )
-    )
-    
-    items.append(
-        SettingsSearchableItem(
-            id: "faq",
-            title: strings.Settings_FAQ,
-            alternate: synonyms(strings.SettingsSearch_Synonyms_FAQ),
-            icon: .faq,
-            breadcrumbs: [],
-            present: { context, navigationController, present in
-                let _ = (cachedFaqInstantPage(context: context)
-                |> take(1)
-                |> deliverOnMainQueue).start(next: { resolvedUrl in
-                    context.sharedContext.openResolvedUrl(resolvedUrl, context: context, urlContext: .generic, navigationController: navigationController, forceExternal: false, forceUpdate: false, openPeer: { peer, navigation in
-                    }, sendFile: nil, sendSticker: nil, sendEmoji: nil, requestMessageActionUrlAuth: nil, joinVoiceChat: nil, present: { controller, arguments in
-                        present(.push, controller)
-                    }, dismissInput: {}, contentContext: nil, progress: nil, completion: nil)
-                })
-            }
-        )
-    )
-    
-    items.append(
-        SettingsSearchableItem(
-            id: "features",
-            title: strings.Settings_Tips,
-            alternate: [],
-            icon: .tips,
-            breadcrumbs: [],
-            present: { context, navigationController, present in
-                let controller = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: nil))
-                present(.immediate, controller)
-                
-                let _ = (context.engine.peers.resolvePeerByName(name: strings.Settings_TipsUsername, referrer: nil)
-                |> mapToSignal { result -> Signal<EnginePeer?, NoError> in
-                    guard case let .result(result) = result else {
-                        return .complete()
-                    }
-                    return .single(result)
-                }
-                |> deliverOnMainQueue).startStandalone(next: { [weak controller] peer in
-                    controller?.dismiss()
-                    if let peer, let navigationController {
-                        context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer)))
-                    }
-                })
-            }
-        )
-    )
-    
+    // Ask a Question, Telegram FAQ and Telegram Features are not offered in this client (see the Settings list).
+
     items.append(
         SettingsSearchableItem(
             id: "privacy-policy",
@@ -4402,13 +4338,13 @@ func settingsSearchableItems(
             icon: .savedMessages,
             breadcrumbs: [],
             present: { context, _, present in
-                ensureArchiveUnlocked(context: context, present: { present(.modal, $0) }, completion: { result in
+                ensureArchiveUnlocked(context: context, forSavedMessages: true, present: { present(.modal, $0) }, completion: { result in
                     if case .cancelled = result { return }
                     present(.push, context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: context.account.peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))
                 })
             }
         )
-        if ArchiveLockSession.shared.isRevealed {
+        if ArchiveLockSession.shared.isSavedMessagesListed {
             allItems.append(savedMessages)
         }
         
