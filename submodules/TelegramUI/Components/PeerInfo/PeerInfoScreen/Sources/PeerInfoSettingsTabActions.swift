@@ -14,6 +14,7 @@ import ComponentDisplayAdapters
 import EmojiStatusComponent
 import TelegramUIPreferences
 import SettingsUI
+import ChatListUI
 
 extension PeerInfoScreenNode {
     func accountContextMenuItems(context: AccountContext, logout: @escaping () -> Void) -> Signal<[ContextMenuItem], NoError> {
@@ -83,6 +84,25 @@ extension PeerInfoScreenNode {
     }
     
     func logoutAccount(id: AccountRecordId) {
+        // Logging out a locked hidden account (the swipe on its row after Settings × 10) needs its password, like
+        // opening it: anyone holding the phone could otherwise sign it out.
+        if HiddenAccountsSession.shared.state.isLocked(accountId: id.int64) {
+            let _ = (self.context.sharedContext.activeAccountContexts
+            |> take(1)
+            |> deliverOnMainQueue).startStandalone(next: { [weak self] _, accounts, _ in
+                guard let self, let hiddenAccount = accounts.first(where: { $0.0 == id })?.1 else {
+                    return
+                }
+                ensureHiddenAccountUnlocked(context: self.context, hiddenAccount: hiddenAccount, completion: { [weak self] success in
+                    guard let self, success else {
+                        return
+                    }
+                    HiddenAccountsSession.shared.unlock(accountId: id.int64)
+                    self.logoutAccount(id: id)
+                })
+            })
+            return
+        }
         let presentationData = self.presentationData
         self.logoutConfirmationDisposable.set(nil)
         self.logoutConfirmationDisposable.set((self.context.sharedContext.activeAccountContexts
