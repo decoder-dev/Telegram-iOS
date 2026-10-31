@@ -67,6 +67,17 @@ final class VlessTests: XCTestCase {
         XCTAssertEqual(VlessProfileParser.parse(reality), .failure(.invalidShortId))
     }
 
+    func testSockoptValuesAreBoundedIntegers() throws {
+        let base = profileURL.replacingOccurrences(of: "type=ws", with: "type=ws&downFrame=16")
+        XCTAssertEqual(try VlessProfileParser.parse(base).get().sockoptDownFrame, 16)
+        for value in ["-1", "abc", "1e3", "99999999999", "+5", "%E2%91%A0"] {
+            let uri = profileURL.replacingOccurrences(of: "type=ws", with: "type=ws&downFrame=" + value)
+            XCTAssertEqual(VlessProfileParser.parse(uri), .failure(.unsupportedParameter("downFrame")), value)
+        }
+        let secs = profileURL.replacingOccurrences(of: "type=ws", with: "type=ws&scStreamDownServerSecs=-3")
+        XCTAssertEqual(VlessProfileParser.parse(secs), .failure(.unsupportedParameter("scStreamDownServerSecs")))
+    }
+
     func testIPv6AndCommonTCPLinkParameters() throws {
         let uri = profileURL.replacingOccurrences(of: "example.com", with: "[::1]").replacingOccurrences(of: "type=ws", with: "type=raw&headerType=none")
         let profile = try VlessProfileParser.parse(uri).get()

@@ -415,14 +415,27 @@ public enum VlessProfileParser {
             }
         }
 
-        // Sockopt
-        var sockoptDownFrame: Int?
-        if let rawDownFrame = query["downFrame"], !rawDownFrame.isEmpty {
-            sockoptDownFrame = Int(rawDownFrame)
+        // Sockopt: a non-negative decimal integer that fits an Int32, or the link is rejected, like every other
+        // parameter here. A value that did not parse used to be dropped silently and any size was accepted
+        // (31 Oct audit, C-12).
+        func sockoptValue(_ name: String) -> Result<Int?, VlessProfileError> {
+            guard let raw = query[name], !raw.isEmpty else {
+                return .success(nil)
+            }
+            guard raw.count <= 10, raw.allSatisfy({ $0.isASCII && $0.isNumber }), let value = Int(raw), value <= Int(Int32.max) else {
+                return .failure(.unsupportedParameter(name))
+            }
+            return .success(value)
         }
-        var sockoptScStreamDownServerSecs: Int?
-        if let rawScStream = query["scStreamDownServerSecs"], !rawScStream.isEmpty {
-            sockoptScStreamDownServerSecs = Int(rawScStream)
+        let sockoptDownFrame: Int?
+        switch sockoptValue("downFrame") {
+        case let .success(value): sockoptDownFrame = value
+        case let .failure(error): return .failure(error)
+        }
+        let sockoptScStreamDownServerSecs: Int?
+        switch sockoptValue("scStreamDownServerSecs") {
+        case let .success(value): sockoptScStreamDownServerSecs = value
+        case let .failure(error): return .failure(error)
         }
 
         return .success(VlessProfile(
