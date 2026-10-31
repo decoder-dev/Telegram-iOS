@@ -724,34 +724,6 @@ private func presentArchivePasswordAlert(
         alert.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel, handler: { _ in
             wrappedOnCancel()
         }))
-        if verifyPassword, allowOwnerReset {
-            // Owner escape hatch: the password is forgotten or stops matching. Device-owner
-            // authentication (device passcode / biometrics) must pass before anything is wiped.
-            alert.addAction(UIAlertAction(title: ArchiveLockLocalizedString.lostReset, style: .destructive, handler: { [weak alert] _ in
-                guard let alert else { return }
-                alert.dismiss(animated: false)
-                ArchiveLockSession.shared.beginSuppressBackgroundRelock()
-                let _ = (LocalAuth.authenticateDeviceOwner(reason: ArchiveLockLocalizedString.lostReason)
-                |> deliverOnMainQueue).startStandalone(next: { result in
-                    ArchiveLockSession.shared.endSuppressBackgroundRelock()
-                    guard result == true else {
-                        wrappedOnCancel()
-                        return
-                    }
-                    Logger.shared.log("ArchiveLock", "owner-reset requested from the unlock prompt")
-                    resetArchivePasswordAfterDeviceOwnerAuth(context: context, present: { vc in
-                        presentUIAlert(context: context, alert: vc as! UIAlertController, onUnavailableHost: {})
-                    }, completion: { unlockResult in
-                        switch unlockResult {
-                        case .unlocked:
-                            wrappedOnSuccess()
-                        case .cancelled, .notProtected:
-                            wrappedOnCancel()
-                        }
-                    })
-                })
-            }))
-        }
         alert.addAction(UIAlertAction(title: confirmTitle, style: .default, handler: { [weak alert] _ in
             guard let alert else { return }
             let trimmed = (alert.textFields?.first?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -812,6 +784,36 @@ private func presentArchivePasswordAlert(
                 wrappedOnCancel()
             }
         }))
+        if verifyPassword, allowOwnerReset {
+            // Owner escape hatch: the password is forgotten or stops matching. Device-owner
+            // authentication (device passcode / biometrics) must pass before anything is wiped.
+            // Added after the confirm action: the alert keeps Cancel = action 0, Confirm = action 1,
+            // which the ArchiveLock regression slice relies on to drive the prompt.
+            alert.addAction(UIAlertAction(title: ArchiveLockLocalizedString.lostReset, style: .destructive, handler: { [weak alert] _ in
+                guard let alert else { return }
+                alert.dismiss(animated: false)
+                ArchiveLockSession.shared.beginSuppressBackgroundRelock()
+                let _ = (LocalAuth.authenticateDeviceOwner(reason: ArchiveLockLocalizedString.lostReason)
+                |> deliverOnMainQueue).startStandalone(next: { result in
+                    ArchiveLockSession.shared.endSuppressBackgroundRelock()
+                    guard result == true else {
+                        wrappedOnCancel()
+                        return
+                    }
+                    Logger.shared.log("ArchiveLock", "owner-reset requested from the unlock prompt")
+                    resetArchivePasswordAfterDeviceOwnerAuth(context: context, present: { vc in
+                        presentUIAlert(context: context, alert: vc as! UIAlertController, onUnavailableHost: {})
+                    }, completion: { unlockResult in
+                        switch unlockResult {
+                        case .unlocked:
+                            wrappedOnSuccess()
+                        case .cancelled, .notProtected:
+                            wrappedOnCancel()
+                        }
+                    })
+                })
+            }))
+        }
         presentUIAlert(context: context, alert: alert, onUnavailableHost: wrappedOnCancel)
     }
     

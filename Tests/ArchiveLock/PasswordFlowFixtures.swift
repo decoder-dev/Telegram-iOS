@@ -12,7 +12,7 @@ final class UITextField {
     var returnKeyType: Option = .done
 }
 final class UIAlertAction {
-    enum Style { case cancel, `default` }
+    enum Style { case cancel, `default`, destructive }
     let handler: ((UIAlertAction) -> Void)?
     init(title: String, style: Style, handler: ((UIAlertAction) -> Void)?) { self.handler = handler }
     func invoke() { handler?(self) }
@@ -27,7 +27,34 @@ final class UIAlertController {
         let field = UITextField(); configurationHandler(field); textFields?.append(field)
     }
     func addAction(_ action: UIAlertAction) { actions.append(action) }
+    func dismiss(animated: Bool, completion: (() -> Void)? = nil) { completion?() }
 }
+final class Logger {
+    static let shared = Logger()
+    func log(_ tag: String, _ message: String) {}
+}
+final class ArchiveLockSession {
+    static let shared = ArchiveLockSession()
+    func beginSuppressBackgroundRelock() {}
+    func endSuppressBackgroundRelock() {}
+}
+enum ArchiveUnlockResult {
+    case unlocked, cancelled, notProtected
+}
+func resetArchivePasswordAfterDeviceOwnerAuth(context: AccountContext, present: @escaping (Any) -> Void, completion: @escaping (ArchiveUnlockResult) -> Void) {
+    completion(.unlocked)
+}
+struct Signal<Value, Error> {
+    var value: Value? = nil
+    func startStandalone(next: @escaping (Value) -> Void) { if let value { next(value) } }
+}
+func deliverOnMainQueue<Value, Error>(_ signal: Signal<Value, Error>) -> Signal<Value, Error> { signal }
+@discardableResult
+func |><Value, Error, Result>(_ signal: Signal<Value, Error>, _ transform: (Signal<Value, Error>) -> Result) -> Result { transform(signal) }
+enum LocalAuth {
+    static func authenticateDeviceOwner(reason: String) -> Signal<Bool?, NoError> { Signal() }
+}
+typealias NoError = Never
 final class Queue {
     static var callbacks: [() -> Void] = []
     static func mainQueue() -> Queue { Queue() }
@@ -65,6 +92,8 @@ enum ArchiveLockLocalizedString {
     static let confirmText = "Confirm password"
     static let storageError = "Storage failed"
     static let passwordsDoNotMatch = "Mismatch"
+    static let lostReset = "Reset"
+    static let lostReason = "Reason"
     static func tooManyAttempts(seconds: Int) -> String { "Cooldown" }
     static func incorrectPassword(attemptsLeft: Int) -> String { "Incorrect" }
 }
