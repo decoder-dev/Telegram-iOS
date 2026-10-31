@@ -425,20 +425,23 @@ public class ShareRootControllerImpl {
                         guard let primary = accounts.primary else { return .complete() }
                         let contexts = accounts.accounts.map { $0.1 }
                         let environment = ShareControllerExtensionEnvironment(sharedContext: primary.sharedContext, accounts: contexts)
-                        return combineLatest(contexts.map { accountContext in
-                            accountContext.engine.data.get(
-                                TelegramEngine.EngineData.Item.Peer.Peer(id: accountContext.account.peerId),
-                                TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
-                            )
-                            |> map { peer, archiveSettings -> ShareControllerSwitchableAccount? in
-                                guard let peer else { return nil }
+                        let hiddenAccounts = hiddenAccountsSettings(accountManager: primary.sharedContext.accountManager) |> take(1)
+                        return combineLatest(hiddenAccounts, combineLatest(contexts.map { accountContext in
+                            accountContext.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: accountContext.account.peerId))
+                            |> map { peer -> (AccountContext, EnginePeer)? in
+                                return peer.flatMap { (accountContext, $0) }
+                            }
+                        }))
+                        |> map { hiddenAccounts, accounts -> [ShareControllerSwitchableAccount?] in
+                            return accounts.map { item -> ShareControllerSwitchableAccount? in
+                                guard let (accountContext, peer) = item else { return nil }
                                 // A hidden account is never offered here: the extension has no Settings × 10 to reveal it.
-                                if accountContext.account.id != primary.account.id, (archiveSettings?.get(ChatArchiveSettings.self) ?? .default).isAccountHidden {
+                                if accountContext.account.id != primary.account.id, hiddenAccounts.isHidden(accountContext.account.id.int64) {
                                     return nil
                                 }
                                 return ShareControllerSwitchableAccount(account: ShareControllerAppAccountContext(context: accountContext), peer: peer)
                             }
-                        })
+                        }
                         |> map { accounts in
                             return (environment, ShareControllerAppAccountContext(context: primary), accounts.compactMap { $0 })
                         }

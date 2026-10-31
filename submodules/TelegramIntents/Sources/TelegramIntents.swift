@@ -65,10 +65,11 @@ public func donateSendMessageIntent(account: Account, sharedContext: SharedAccou
         }
         |> mapToSignal { unlocked -> Signal<[(EngineRawPeer, SendMessageIntentSubject, UIImage?)], NoError> in
             if unlocked {
-                return sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.intentsSettings])
+                return sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.intentsSettings, ApplicationSpecificSharedDataKeys.hiddenAccountsSettings])
                 |> take(1)
                 |> mapToSignal { sharedData -> Signal<[(EngineRawPeer, SendMessageIntentSubject)], NoError> in
                     let settings = sharedData.entries[ApplicationSpecificSharedDataKeys.intentsSettings]?.get(IntentsSettings.self) ?? IntentsSettings.defaultSettings
+                    let hiddenAccounts = sharedData.entries[ApplicationSpecificSharedDataKeys.hiddenAccountsSettings]?.get(HiddenAccountsSettings.self) ?? .default
                     if let accountId = settings.account, accountId != account.peerId {
                         return .single([])
                     }
@@ -79,14 +80,13 @@ public func donateSendMessageIntent(account: Account, sharedContext: SharedAccou
                     return TelegramEngine(account: account).data.get(
                         EngineDataMap(peerIds.map(TelegramEngine.EngineData.Item.Peer.Peer.init)),
                         EngineDataMap(peerIds.map(TelegramEngine.EngineData.Item.Peer.IsContact.init)),
-                        EngineDataMap(peerIds.map(TelegramEngine.EngineData.Item.Messages.ChatListGroup.init)),
-                        TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+                        EngineDataMap(peerIds.map(TelegramEngine.EngineData.Item.Messages.ChatListGroup.init))
                     )
-                    |> map { peerMap, isContactMap, chatListGroupMap, archiveSettings -> [(EngineRawPeer, SendMessageIntentSubject)] in
+                    |> map { peerMap, isContactMap, chatListGroupMap -> [(EngineRawPeer, SendMessageIntentSubject)] in
                         var peers: [(EngineRawPeer, SendMessageIntentSubject)] = []
                         // A hidden account's chats never reach the share sheet or Siri suggestions, which outlive the app
                         // session and are shown outside it.
-                        if (archiveSettings?.get(ChatArchiveSettings.self) ?? .default).isAccountHidden {
+                        if hiddenAccounts.isHidden(account.id.int64) {
                             return peers
                         }
                         for peerId in peerIds {
