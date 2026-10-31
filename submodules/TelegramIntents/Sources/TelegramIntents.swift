@@ -79,10 +79,16 @@ public func donateSendMessageIntent(account: Account, sharedContext: SharedAccou
                     return TelegramEngine(account: account).data.get(
                         EngineDataMap(peerIds.map(TelegramEngine.EngineData.Item.Peer.Peer.init)),
                         EngineDataMap(peerIds.map(TelegramEngine.EngineData.Item.Peer.IsContact.init)),
-                        EngineDataMap(peerIds.map(TelegramEngine.EngineData.Item.Messages.ChatListGroup.init))
+                        EngineDataMap(peerIds.map(TelegramEngine.EngineData.Item.Messages.ChatListGroup.init)),
+                        TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
                     )
-                    |> map { peerMap, isContactMap, chatListGroupMap -> [(EngineRawPeer, SendMessageIntentSubject)] in
+                    |> map { peerMap, isContactMap, chatListGroupMap, archiveSettings -> [(EngineRawPeer, SendMessageIntentSubject)] in
                         var peers: [(EngineRawPeer, SendMessageIntentSubject)] = []
+                        // A hidden account's chats never reach the share sheet or Siri suggestions, which outlive the app
+                        // session and are shown outside it.
+                        if (archiveSettings?.get(ChatArchiveSettings.self) ?? .default).isAccountHidden {
+                            return peers
+                        }
                         for peerId in peerIds {
                             if peerId.namespace != Namespaces.Peer.SecretChat, let maybePeer = peerMap[peerId], let peer = maybePeer {
                                 var subject: SendMessageIntentSubject?
