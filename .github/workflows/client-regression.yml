@@ -31,6 +31,7 @@ on:
       - 'Tests/Camera/**'
       - 'submodules/TelegramUI/Components/VideoMessageCameraScreen/**'
       - 'submodules/TelegramUI/Sources/ChatController.swift'
+      - 'submodules/TelegramUI/Sources/SpotlightContacts.swift'
       - 'submodules/TelegramUI/Sources/Chat/ChatControllerMediaRecording.swift'
       - 'Tests/StreamingDrafts/**'
       - 'submodules/Postbox/Sources/Postbox.swift'
@@ -105,6 +106,8 @@ jobs:
       - run: python3 Tests/ClientAdditions/run.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/quality.py
+        if: ${{ !cancelled() }}
+      - run: python3 Tests/ClientAdditions/spotlight.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/MessageFilters/run.py
         if: ${{ !cancelled() }}

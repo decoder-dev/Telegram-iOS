@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### Fixed — Spotlight database stalls
+- Resolve contact avatars on Spotlight's queue after the database privacy snapshot is read. Device logs showed this processing holding a Postbox transaction for seconds and delaying unrelated database work.
+- Update the player build dependency `qs` to 6.16.2 to fix its denial-of-service advisory.
+
 ### Fixed — password recovery and hidden-account authorization
 - Device-owner password recovery opens the replacement prompt and keeps the existing protection until the new password is confirmed and saved. Cancellation or storage failure leaves the Archive and hidden accounts protected.
 - A replacement password immediately replaces the in-memory backup verifier too. Old biometric enrollment is cleared.

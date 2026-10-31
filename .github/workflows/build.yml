@@ -128,6 +128,7 @@ jobs:
           python3 Tests/Customization/run.py
           python3 Tests/ClientAdditions/run.py
           python3 Tests/ClientAdditions/quality.py
+          python3 Tests/ClientAdditions/spotlight.py
           python3 Tests/ClientAdditions/menu_layout.py
           python3 Tests/ChatListSync/run.py
           python3 Tests/Customization/theme_selection.py

@@ -219,8 +219,14 @@ private func manageableSpotlightContacts(appBasePath: String, accounts: Signal<[
                 engine.messages.chatList(group: .archive, count: 100)
             )
             |> mapToSignal { view, recentApps, _, _ -> Signal<[EnginePeer.Id: SpotlightIndexStorageItem], NoError> in
-                return account.postbox.transaction { transaction -> [EnginePeer.Id: SpotlightIndexStorageItem] in
-                    let locked = archiveLockedPeerIds(transaction: transaction)
+                // Only the privacy snapshot needs the database. Resolving every avatar's
+                // resource path can wait on MediaBox/disk; doing that inside this transaction
+                // held up message updates and history loads for seconds in device logs.
+                return account.postbox.transaction { transaction -> Set<EnginePeer.Id> in
+                    return archiveLockedPeerIds(transaction: transaction)
+                }
+                |> deliverOn(queue)
+                |> map { locked -> [EnginePeer.Id: SpotlightIndexStorageItem] in
                     var result: [EnginePeer.Id: SpotlightIndexStorageItem] = [:]
                     var peers: [EnginePeer] = []
                     peers.append(contentsOf: view.peers)
@@ -231,7 +237,7 @@ private func manageableSpotlightContacts(appBasePath: String, accounts: Signal<[
                         }
                         if case let .user(user) = peer {
                             let avatarSourcePath = smallestImageRepresentation(user.photo).flatMap { representation -> String? in
-                                let resourcePath = TelegramEngine(account: account).resources.resourcePath(resource: EngineMediaResource(representation.resource))
+                                let resourcePath = engine.resources.resourcePath(resource: EngineMediaResource(representation.resource))
                                 if resourcePath.hasPrefix(appBasePath + "/") {
                                     return String(resourcePath[resourcePath.index(resourcePath.startIndex, offsetBy: appBasePath.count + 1)...])
                                 } else {
