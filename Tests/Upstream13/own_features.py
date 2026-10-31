@@ -938,7 +938,7 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
     @unittest.skipUnless(shutil.which('swiftc'), 'Swift unavailable locally; account isolation executes in macOS CI')
     def test_actual_exception_store_isolates_accounts_and_persists_revocations(self):
         policy = read('submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift')
-        production = policy.split('    private static let exceptionsKey =', 1)[1].split('    /// True when dont-read', 1)[0]
+        production = policy.split('    private static let exceptionsKey =', 1)[1].split("    /// True when Don't Read is on, for a read not tied to one chat.", 1)[0]
         production = '    private static let exceptionsKey =' + production
         # Use an isolated UserDefaults key while executing the real store, locking and predicates.
         production = production.replace('ForkGhostModeSettings.exceptionPeers.v2', 'BananaGram.fixture.' + os.urandom(8).hex())
@@ -954,6 +954,10 @@ enum Policy {
     static var shouldSuppressMessageReads = true
     static var suppressOutgoingActivity = true
     static let didChangeNotification = Notification.Name("fixture")
+    struct State { var interactOverrideActive = false; var interactOverrideAccountPeerId: Int64? = nil; var interactOverridePeerId: Int64? = nil }
+    static let state = Atomic<State>(value: State())
+    static func openWindow(account: PeerId, chat: PeerId) { _ = state.modify { _ in State(interactOverrideActive: true, interactOverrideAccountPeerId: account.toInt64(), interactOverridePeerId: chat.toInt64()) } }
+    static func closeWindow() { _ = state.modify { _ in State() } }
 ''' + production.replace('public static', 'static') + r'''
     static func verifyPersistence() {
         precondition(loadExceptionPeers() == exceptionPeers.with { $0 })
@@ -971,8 +975,20 @@ Policy.setException(accountPeerId: b, peerId: chat, true)
 Policy.setException(accountPeerId: a, peerId: chat, false)
 precondition(Policy.shouldSuppressMessageReads(accountPeerId: a, peerId: chat))
 precondition(!Policy.shouldSuppressMessageReads(accountPeerId: b, peerId: chat))
+// A Read on Interact window allows reads in its own chat of its own account only (31 Oct audit, C-7).
+let other = PeerId(400)
+Policy.openWindow(account: a, chat: other)
+precondition(!Policy.shouldSuppressMessageReads(accountPeerId: a, peerId: other))
+precondition(Policy.shouldSuppressMessageReads(accountPeerId: b, peerId: other))
+precondition(Policy.shouldSuppressMessageReads(accountPeerId: a, peerId: chat))
+precondition(Policy.interactOverrideActive(accountPeerId: a) && !Policy.interactOverrideActive(accountPeerId: b))
+precondition(Policy.readPermittedPeerIds(accountPeerId: a) == [other])
+precondition(Policy.readPermittedPeerIds(accountPeerId: b) == [chat])
+Policy.closeWindow()
+precondition(Policy.shouldSuppressMessageReads(accountPeerId: a, peerId: other))
+precondition(Policy.readPermittedPeerIds(accountPeerId: a) == [])
 Policy.verifyPersistence()
-print("Account-scoped ghost exceptions: isolation/persistence/revocation passed")
+print("Account-scoped ghost exceptions: isolation/persistence/revocation/override window passed")
 '''
         with tempfile.TemporaryDirectory() as directory:
             source = pathlib.Path(directory) / 'main.swift'
