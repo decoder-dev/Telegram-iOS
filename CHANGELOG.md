@@ -9,6 +9,16 @@
 ### Fixed — search in an open Archive
 - Search (chats, messages, recent peers, downloads, channels), @mentions, the share sheet, contacts and calls hid the chats of a password-protected Archive even while it was open, so searching inside an unlocked Archive found nothing. They now hide them only while the Archive of that account is locked; notifications, calls and Siri keep hiding them always.
 
+### Added — BananaGram → Security
+Built from how accounts are actually stolen (fake "votes" and "security checks" with a login QR, the login code typed into a site, a bot or a mini app, the number handed to a bot, phishing links, fake "Telegram support"). All protections are on by default:
+- **Block QR code login**: the in-app Link Device scanner signs no other device in.
+- **Never send the login code**: a message holding a code Telegram sent in the last 15 minutes (typed, spaced, dashed, or the code message forwarded) is held back with an explanation.
+- **Never share my number**: Share My Number buttons of bots and chats and mini app phone requests are refused.
+- **Warn in mini apps**: the first time each mini app opens it says never to enter a Telegram code, password or number there.
+- **Confirm website links**: a website opened from a message shows its real address first.
+- **Warn about fake support**: a chat with an unverified account named like Telegram staff ("Безопасность", "Support", "Поддержка") warns once.
+- The screen also shows whether two-step verification is on and how many sessions are active, with a way to each.
+
 ### Added — what the Archive password locks
 - Archive settings → "What the password locks": Archive and Saved Messages, each with its own switch (at least one stays on; both by default, as before). An item that is not locked behaves as stock: the Archive row stays listed and opens without a prompt, Saved Messages stays in Settings and search. Locking less needs the password.
 

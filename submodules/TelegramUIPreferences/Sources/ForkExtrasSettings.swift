@@ -160,6 +160,18 @@ public struct ForkExtrasSettings: Codable, Equatable {
     /// Ask before a `tg://msg_url`, `tg://msg` or `t.me/share` link opens its prefilled message (on by default: such links are
     /// how a worm spreads itself through a user's contacts).
     public var confirmShareLinks: Bool
+    /// Security: the in-app QR scanner never signs another device in (fake "votes", "checks" and house-chat posters pass a login QR off as something else). On by default.
+    public var securityBlockQrLogin: Bool
+    /// Security: a message holding a login code Telegram sent in the last 15 minutes is not sent anywhere (the code is the account). On by default.
+    public var securityGuardLoginCodes: Bool
+    /// Security: the account's own phone number is not sent to bots, mini apps or chats by a button (it is the first half of a login). On by default.
+    public var securityBlockPhoneSharing: Bool
+    /// Security: the first time a mini app opens it says never to enter a Telegram code or password there. On by default.
+    public var securityWarnMiniApps: Bool
+    /// Security: every link to a website opened from a message asks first and shows the real address. On by default.
+    public var securityConfirmExternalLinks: Bool
+    /// Security: opening a chat with an unverified account named like Telegram's staff warns about it once. On by default.
+    public var securityFlagFakeSupport: Bool
     /// Donutgram: ask before a tap on a previewed chat (long press in the list) opens it. Off by default.
     public var confirmChatPreviewEntry: Bool
     public var disableGiftStarsRedirect: Bool
@@ -581,6 +593,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.confirmReactionsInUnjoinedChats = false
         self.confirmTelegramLinks = false
         self.confirmShareLinks = true
+        self.securityBlockQrLogin = true
+        self.securityGuardLoginCodes = true
+        self.securityBlockPhoneSharing = true
+        self.securityWarnMiniApps = true
+        self.securityConfirmExternalLinks = true
+        self.securityFlagFakeSupport = true
         self.confirmChatPreviewEntry = false
         self.disableGiftStarsRedirect = false
         self.visualLabels = [:]
@@ -766,6 +784,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.confirmReactionsInUnjoinedChats = try container.decodeIfPresent(Bool.self, forKey: "confirmReactionsInUnjoinedChats") ?? false
         self.confirmTelegramLinks = try container.decodeIfPresent(Bool.self, forKey: "confirmTelegramLinks") ?? false
         self.confirmShareLinks = try container.decodeIfPresent(Bool.self, forKey: "confirmShareLinks") ?? true
+        self.securityBlockQrLogin = try container.decodeIfPresent(Bool.self, forKey: "securityBlockQrLogin") ?? true
+        self.securityGuardLoginCodes = try container.decodeIfPresent(Bool.self, forKey: "securityGuardLoginCodes") ?? true
+        self.securityBlockPhoneSharing = try container.decodeIfPresent(Bool.self, forKey: "securityBlockPhoneSharing") ?? true
+        self.securityWarnMiniApps = try container.decodeIfPresent(Bool.self, forKey: "securityWarnMiniApps") ?? true
+        self.securityConfirmExternalLinks = try container.decodeIfPresent(Bool.self, forKey: "securityConfirmExternalLinks") ?? true
+        self.securityFlagFakeSupport = try container.decodeIfPresent(Bool.self, forKey: "securityFlagFakeSupport") ?? true
         self.confirmChatPreviewEntry = try container.decodeIfPresent(Bool.self, forKey: "confirmChatPreviewEntry") ?? false
         self.disableGiftStarsRedirect = try container.decodeIfPresent(Bool.self, forKey: "disableGiftStarsRedirect") ?? false
         self.visualLabels = (try container.decodeIfPresent([Int64: Int32].self, forKey: "visualLabels") ?? [:]).filter { (1...4).contains($0.value) }
@@ -954,6 +978,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.confirmReactionsInUnjoinedChats, forKey: "confirmReactionsInUnjoinedChats")
         try container.encode(self.confirmTelegramLinks, forKey: "confirmTelegramLinks")
         try container.encode(self.confirmShareLinks, forKey: "confirmShareLinks")
+        try container.encode(self.securityBlockQrLogin, forKey: "securityBlockQrLogin")
+        try container.encode(self.securityGuardLoginCodes, forKey: "securityGuardLoginCodes")
+        try container.encode(self.securityBlockPhoneSharing, forKey: "securityBlockPhoneSharing")
+        try container.encode(self.securityWarnMiniApps, forKey: "securityWarnMiniApps")
+        try container.encode(self.securityConfirmExternalLinks, forKey: "securityConfirmExternalLinks")
+        try container.encode(self.securityFlagFakeSupport, forKey: "securityFlagFakeSupport")
         try container.encode(self.confirmChatPreviewEntry, forKey: "confirmChatPreviewEntry")
         try container.encode(self.disableGiftStarsRedirect, forKey: "disableGiftStarsRedirect")
         try container.encode(self.visualLabels, forKey: "visualLabels")

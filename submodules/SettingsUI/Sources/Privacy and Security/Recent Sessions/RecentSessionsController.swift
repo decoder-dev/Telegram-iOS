@@ -893,6 +893,13 @@ public func recentSessionsController(context: AccountContext, activeSessionsCont
             ])
         presentControllerImpl?(controller, ViewControllerPresentationArguments(presentationAnimation: .modalSheet))
     }, addDevice: {
+        // BananaGram → Security: a login QR passed off as a "vote" or a "check" is scanned right here.
+        if context.sharedContext.immediateForkExtrasSettings.securityBlockQrLogin {
+            context.sharedContext.mainWindow?.present(bananaSecurityBlockedController(context: context, text: BananaSecurityStrings.qrLoginBlocked, openSettings: {
+                pushControllerImpl?(bananaSecurityController(context: context))
+            }), on: .root)
+            return
+        }
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         DeviceAccess.authorizeAccess(to: .camera(.qrCode), presentationData: presentationData, present: { c, a in
             c.presentationArguments = a

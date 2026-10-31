@@ -564,6 +564,7 @@ private enum ForkExtrasLocalizedString {
 
 private enum ForkExtrasDestination: Equatable {
     case proxy
+    case security
 }
 
 private final class ForkExtrasControllerArguments {
@@ -800,6 +801,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case let .destination(_, _, destination):
             switch destination {
             case .proxy: return ForkExtrasSection.proxy.rawValue
+            case .security: return ForkExtrasSection.hub.rawValue
             }
         case .audioHeader, .musicPolicy: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
@@ -871,6 +873,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     /// The list diff merges sorted lists, so `<` has to agree with the display order or rows that appear and
     /// disappear (the regex filter rows) get inserted next to stale copies and are drawn twice.
     private static let positionOverrides: [Int32: Double] = [
+        1995: 2.5,     // Security follows Privacy on the Extras hub.
         7: 3.3,        // Tab bar follows Chat list and folders.
         8: 4.3,        // Calls and audio follows Messages and composer.
         23: 4.6,       // Profile and effects follows Calls and audio.
@@ -925,6 +928,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             let icon: UIImage?
             switch destination {
             case .proxy: icon = PresentationResourcesSettings.proxy
+            case .security: icon = PresentationResourcesSettings.security
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openDestination(destination)
@@ -1198,6 +1202,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .hubNinja,
             .hubGhost,
             .hubPrivacy,
+            // Security: switches against the ways accounts are stolen (BananaSecurityController).
+            .destination(1995, BananaSecurityStrings.title, .security),
             .hubChatList,
             .hubTabBar,
             .hubMessages,
@@ -1799,6 +1805,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
         openDestination: { destination in
             switch destination {
             case .proxy: pushControllerImpl?(context.sharedContext.makeProxySettingsController(context: context))
+            case .security: pushControllerImpl?(bananaSecurityController(context: context))
             }
         },
         updateMusicPolicy: { id, value in

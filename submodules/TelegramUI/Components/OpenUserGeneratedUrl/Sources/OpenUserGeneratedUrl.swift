@@ -112,6 +112,9 @@ public func openUserGeneratedUrl(
     } else if context.sharedContext.immediateForkExtrasSettings.confirmTelegramLinks && isTelegramLinkUrl(url) {
         // "Confirm Telegram link opens": every link a message opens inside Telegram is asked about first.
         concealed = true
+    } else if context.sharedContext.immediateForkExtrasSettings.securityConfirmExternalLinks && isWebsiteLinkUrl(url) {
+        // BananaGram → Security: a website (a fake "vote", "gift" or login page) is asked about first, with its real address.
+        concealed = true
     } else if let parsedUrl = parseInternalUrl(sharedContext: context.sharedContext, context: context, query: url) {
         if case .proxy = parsedUrl {
             concealed = true
@@ -366,4 +369,17 @@ private func punycodedFullURLString(_ input: String) throws -> String {
     // URLComponents.string can be nil for some malformed component combinations
     if let out = comps.string { return out }
     throw URLPunycodeError.invalidURL
+}
+
+/// A link to a website rather than to something inside Telegram: http(s) (or no scheme, as message entities often have),
+/// and not a t.me / telegram.me / telegram.org link.
+private func isWebsiteLinkUrl(_ url: String) -> Bool {
+    if isTelegramLinkUrl(url) {
+        return false
+    }
+    let lowercased = url.lowercased()
+    if lowercased.hasPrefix("http://") || lowercased.hasPrefix("https://") {
+        return true
+    }
+    return !lowercased.contains("://") && lowercased.contains(".")
 }
