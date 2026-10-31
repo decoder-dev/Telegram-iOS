@@ -52,13 +52,16 @@ concurrency:
   group: telegram-ios-ipa-${{ github.ref }}
   cancel-in-progress: false
 
+# Read-only by default. Only `publish`, which runs no code from submodules or third-party archives, may write
+# releases (31 Oct audit, C-8: the job that builds third-party code used to hold contents: write).
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   regression:
     name: Regression tests
-    if: ${{ !inputs.skip_regression }}
+    # A stable release never skips it; skip_regression is for pre-releases only.
+    if: ${{ !inputs.skip_regression || inputs.stable_release }}
     runs-on: macos-26
     timeout-minutes: 30
     permissions:
@@ -152,6 +155,12 @@ jobs:
     name: Build IPA (${{ inputs.toolchain == 'xcode27' && 'xcode-27' || 'macos-26' }})
     runs-on: ${{ inputs.toolchain == 'xcode27' && 'xcode-27' || 'macos-26' }}
     timeout-minutes: 240
+    permissions:
+      contents: read
+    outputs:
+      app_version: ${{ steps.version.outputs.app_version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      ipa_name: ${{ steps.version.outputs.ipa_name }}
 
     env:
       BUILD_CONFIGURATION: release_arm64
@@ -351,6 +360,7 @@ jobs:
           PY
 
       - name: Compute build number
+        id: version
         run: |
           set -euo pipefail
           BUILD_NUMBER_OFFSET="$(cat build_number_offset)"
@@ -361,6 +371,11 @@ jobs:
             echo "BUILD_NUMBER=$BUILD_NUMBER"
             echo "IPA_NAME=BananaGram-${APP_VERSION}-${BUILD_NUMBER}-sideload.ipa"
           } >> "$GITHUB_ENV"
+          {
+            echo "app_version=$APP_VERSION"
+            echo "build_number=$BUILD_NUMBER"
+            echo "ipa_name=BananaGram-${APP_VERSION}-${BUILD_NUMBER}-sideload.ipa"
+          } >> "$GITHUB_OUTPUT"
           echo "BananaGram ${APP_VERSION} (${BUILD_NUMBER})"
 
       - name: Archive sideload iPhone application
@@ -445,8 +460,71 @@ jobs:
               print("::warning::IPA missing expected fake-signing artifacts; Sideloadly may still re-sign")
           PY
 
+      - name: Upload debug symbols
+        if: ${{ inputs.generate_dsym && (success() || failure()) }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: Telegram-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-dSYMs
+          path: build/artifacts/Telegram.DSYMs.zip
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload sideload IPA artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: Telegram-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-sideload
+          path: artifacts/${{ env.IPA_NAME }}
+          if-no-files-found: ignore
+          retention-days: 14
+
+  publish:
+    # Writes the release, and nothing else holds that permission. It runs only this repository's scripts on an
+    # artifact the build job produced.
+    needs: build
+    if: ${{ !cancelled() && needs.build.result == 'success' && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)) }}
+    name: Publish GitHub release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      APP_VERSION: ${{ needs.build.outputs.app_version }}
+      BUILD_NUMBER: ${{ needs.build.outputs.build_number }}
+      IPA_NAME: ${{ needs.build.outputs.ipa_name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      # A release is published only for a commit on main: a tag pushed on any other commit, or a dispatch on
+      # another branch, still builds but publishes nothing.
+      - name: Require a commit on main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::${GITHUB_SHA} is not on main; refusing to publish a release for it."
+            exit 1
+          fi
+
+      - name: Download sideload IPA artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: Telegram-${{ needs.build.outputs.app_version }}-${{ needs.build.outputs.build_number }}-sideload
+          path: artifacts
+
+      # The checksum is published as a release asset, so the IPA can be checked against something other than the
+      # page that serves it.
+      - name: Checksums
+        run: |
+          set -euo pipefail
+          cd artifacts
+          sha256sum "$IPA_NAME" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
         env:
           GH_TOKEN: ${{ github.token }}
           STABLE_RELEASE: ${{ inputs.stable_release == true }}
@@ -454,7 +532,9 @@ jobs:
         run: |
           set -euo pipefail
           IPA="$PWD/artifacts/${IPA_NAME}"
+          SUMS="$PWD/artifacts/SHA256SUMS.txt"
           test -f "$IPA"
+          test -f "$SUMS"
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             TAG="${GITHUB_REF_NAME}"
           elif [[ "${STABLE_RELEASE}" == "true" ]]; then
@@ -530,7 +610,7 @@ jobs:
           - Commit: \`${GITHUB_SHA}\`
           EOF
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$IPA" --clobber
+            gh release upload "$TAG" "$IPA" "$SUMS" --clobber
             if ((${#RELEASE_EXTRA_ARGS[@]})); then
               gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES" "${RELEASE_EXTRA_ARGS[@]}"
             else
@@ -538,13 +618,13 @@ jobs:
             fi
           else
             if ((${#RELEASE_EXTRA_ARGS[@]})); then
-              gh release create "$TAG" "$IPA" \
+              gh release create "$TAG" "$IPA" "$SUMS" \
                 --target "$GITHUB_SHA" \
                 --title "$TITLE" \
                 --notes-file "$NOTES" \
                 "${RELEASE_EXTRA_ARGS[@]}"
             else
-              gh release create "$TAG" "$IPA" \
+              gh release create "$TAG" "$IPA" "$SUMS" \
                 --target "$GITHUB_SHA" \
                 --title "$TITLE" \
                 --notes-file "$NOTES" \
@@ -552,20 +632,3 @@ jobs:
             fi
           fi
 
-      - name: Upload debug symbols
-        if: ${{ inputs.generate_dsym && (success() || failure()) }}
-        uses: actions/upload-artifact@v5
-        with:
-          name: Telegram-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-dSYMs
-          path: build/artifacts/Telegram.DSYMs.zip
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Upload sideload IPA artifact
-        if: success() || failure()
-        uses: actions/upload-artifact@v5
-        with:
-          name: Telegram-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}-sideload
-          path: artifacts/${{ env.IPA_NAME }}
-          if-no-files-found: ignore
-          retention-days: 14
