@@ -16,7 +16,6 @@ import DeviceLocationManager
 import ItemListUI
 import LegacyUI
 import ChatListUI
-import AccountUtils
 import PeerInfoUI
 import SettingsUI
 import PasscodeUI
@@ -211,6 +210,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     private let hiddenAccountIdsDisposable = MetaDisposable()
     private let hiddenAccountLeaveDisposable = MetaDisposable()
     private let hiddenAccountSwitchDisposable = MetaDisposable()
+    private let hiddenAccountArchiveUnlockDisposable = MetaDisposable()
     /// The account the app is leaving a locked hidden account for, while that switch is in flight.
     private var hiddenAccountLeaveTargetId: AccountRecordId?
     
@@ -1190,20 +1190,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         
         if applicationBindings.isMainApp {
             // Widgets and Spotlight outlive the app session, so a hidden account never reaches them.
-            let visibleAccountContexts = self.activeAccountContexts
-            |> mapToSignal { _, accounts, _ -> Signal<[AccountContext], NoError> in
-                if accounts.isEmpty {
-                    return .single([])
-                }
-                return combineLatest(accounts.map { _, context, _ -> Signal<AccountContext?, NoError> in
-                    return accountIsHiddenSignal(context: context)
-                    |> map { isHidden -> AccountContext? in
-                        return isHidden ? nil : context
-                    }
-                })
-                |> map { contexts -> [AccountContext] in
-                    return contexts.compactMap { $0 }
-                }
+            let visibleAccountContexts = combineLatest(self.activeAccountContexts, hiddenAccountsSettings(accountManager: accountManager))
+            |> map { activeAccounts, hiddenSettings -> [AccountContext] in
+                return activeAccounts.accounts.map { $0.1 }.filter { !hiddenSettings.isHidden($0.account.id.int64) }
             }
             self.widgetDataContext = WidgetDataContext(basePath: self.basePath, inForeground: self.applicationBindings.applicationInForeground, activeAccounts: visibleAccountContexts
             |> map { contexts in
@@ -1227,27 +1216,52 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 }
             })
 
-            self.hiddenAccountIdsDisposable.set((self.activeAccountContexts
-            |> mapToSignal { _, accounts, _ -> Signal<Set<Int64>, NoError> in
+            // The hidden accounts in force: the stored settings, limited to owners that are signed in and still have an
+            // Archive password (an owner without one could never open them, so they are shown).
+            self.hiddenAccountIdsDisposable.set((combineLatest(self.activeAccountContexts, hiddenAccountsSettings(accountManager: accountManager))
+            |> mapToSignal { activeAccounts, hiddenSettings -> Signal<[Int64: Int64], NoError> in
+                let accounts = activeAccounts.accounts
                 if accounts.isEmpty {
                     // Not loaded yet (or none left): an empty answer would mark the hidden accounts as read and let a
-                    // switch through before their settings are.
+                    // switch through before they are.
                     return .never()
                 }
-                return combineLatest(accounts.map { id, context, _ -> Signal<Int64?, NoError> in
-                    return accountIsHiddenSignal(context: context)
-                    |> map { isHidden -> Int64? in
-                        return isHidden ? id.int64 : nil
+                let ownerIds = Set(hiddenSettings.owners.values)
+                let owners = accounts.filter { ownerIds.contains($0.0.int64) }
+                if owners.isEmpty {
+                    return .single([:])
+                }
+                return combineLatest(owners.map { id, context, _ -> Signal<Int64?, NoError> in
+                    return context.engine.data.subscribe(
+                        TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+                    )
+                    |> map { preference -> Int64? in
+                        return (preference?.get(ChatArchiveSettings.self) ?? .default).isPasswordConfigured ? id.int64 : nil
                     }
+                    |> distinctUntilChanged
                 })
-                |> map { ids -> Set<Int64> in
-                    return Set(ids.compactMap { $0 })
+                |> map { protectedOwners -> [Int64: Int64] in
+                    let protectedOwnerIds = Set(protectedOwners.compactMap { $0 })
+                    let liveIds = Set(accounts.map { $0.0.int64 })
+                    return hiddenSettings.owners.filter { protectedOwnerIds.contains($0.value) && liveIds.contains($0.key) }
                 }
             }
             |> distinctUntilChanged
-            |> deliverOnMainQueue).startStrict(next: { ids in
-                HiddenAccountsSession.shared.updateHiddenAccountIds(ids)
+            |> deliverOnMainQueue).startStrict(next: { owners in
+                HiddenAccountsSession.shared.updateOwners(owners)
             }))
+            // Opening an owner's Archive with its password opens everything it hides too, until the next relock.
+            self.hiddenAccountArchiveUnlockDisposable.set((ArchiveLockSession.shared.unlockedSignal
+            |> deliverOnMainQueue).startStrict(next: { [weak self] unlocked in
+                guard let self, unlocked, let primary = self.activeAccountsValue?.primary else {
+                    return
+                }
+                if ArchiveLockSession.shared.isUnlocked(accountPeerId: primary.account.peerId) {
+                    HiddenAccountsSession.shared.unlockAccounts(ownerAccountId: primary.account.id.int64)
+                }
+            }))
+            // Entries for accounts that signed out are dropped (the owner, or the hidden account itself).
+            let _ = updateHiddenAccountsSettings(accountManager: accountManager, { $0 }).startStandalone()
             // A hidden account on screen that is locked again (the app went to the background, Lock Now, or it was
             // hidden at launch) is left for the first account that is not hidden.
             self.hiddenAccountLeaveDisposable.set((combineLatest(queue: .mainQueue(), self.activeAccountContexts, HiddenAccountsSession.shared.stateSignal)
@@ -1259,7 +1273,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     self.hiddenAccountLeaveTargetId = nil
                     return
                 }
-                guard let visible = activeAccounts.accounts.first(where: { !state.hiddenAccountIds.contains($0.0.int64) }) else {
+                // Back to the account that hid it when that one is signed in, else the first account that is not hidden.
+                let ownerId = state.owners[primary.account.id.int64]
+                guard let visible = activeAccounts.accounts.first(where: { $0.0.int64 == ownerId }) ?? activeAccounts.accounts.first(where: { !state.hiddenAccountIds.contains($0.0.int64) }) else {
                     return
                 }
                 // Every state change while the switch is in flight lands here again; one switch is enough.
@@ -1417,6 +1433,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         self.hiddenAccountIdsDisposable.dispose()
         self.hiddenAccountLeaveDisposable.dispose()
         self.hiddenAccountSwitchDisposable.dispose()
+        self.hiddenAccountArchiveUnlockDisposable.dispose()
         self.presentationDataDisposable.dispose()
         self.automaticMediaDownloadSettingsDisposable.dispose()
         self.currentAutodownloadSettingsDisposable.dispose()
@@ -2093,30 +2110,31 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             self.performSwitchToAccount(id: id, fromSettingsController: settingsController, withChatListController: chatListController)
             return
         }
-        guard let hiddenAccount = self.activeAccountsValue?.accounts.first(where: { $0.0 == id })?.1 else {
-            self.performSwitchToAccount(id: id, fromSettingsController: settingsController, withChatListController: chatListController)
-            return
-        }
-        // The target may be hidden (or the hidden accounts are not read yet): ask its own settings. A locked hidden
-        // account opens only from the account list after Settings × 10, and only with its password; every other way
-        // in (a notification, a shortcut, a link) is ignored, since asking for a password would show that it exists.
-        self.hiddenAccountSwitchDisposable.set((accountIsHiddenSignal(context: hiddenAccount)
+        // The target may be hidden (or the hidden accounts are not checked yet): ask the stored settings. A locked hidden
+        // account opens only from the account list after its owner's Settings × 10, and only with the owner's Archive
+        // password; every other way in (a notification, a shortcut, a link) is ignored, since asking for a password
+        // would show that it exists.
+        self.hiddenAccountSwitchDisposable.set((hiddenAccountsSettings(accountManager: self.accountManager)
         |> take(1)
-        |> deliverOnMainQueue).startStrict(next: { [weak self] isHidden in
+        |> deliverOnMainQueue).startStrict(next: { [weak self] hiddenSettings in
             guard let self else {
                 return
             }
             let state = HiddenAccountsSession.shared.state
-            // Decided from the account's own setting: the hidden set may not have been read yet.
-            if !isHidden || state.unlockedAccountIds.contains(id.int64) {
+            guard let ownerId = hiddenSettings.owner(of: id.int64), !state.unlockedAccountIds.contains(id.int64) else {
                 self.performSwitchToAccount(id: id, fromSettingsController: settingsController, withChatListController: chatListController)
                 return
             }
-            guard state.isRevealed, let primary = self.activeAccountsValue?.primary else {
+            guard let owner = self.activeAccountsValue?.accounts.first(where: { $0.0.int64 == ownerId })?.1 else {
+                // The owner signed out: nothing hides it any more.
+                self.performSwitchToAccount(id: id, fromSettingsController: settingsController, withChatListController: chatListController)
+                return
+            }
+            guard state.revealedOwnerId == ownerId || ArchiveLockSession.shared.isUnlocked(accountPeerId: owner.account.peerId), let primary = self.activeAccountsValue?.primary else {
                 Logger.shared.log("HiddenAccounts", "ignoring a switch to a locked hidden account")
                 return
             }
-            ensureHiddenAccountUnlocked(context: primary, hiddenAccount: hiddenAccount, completion: { [weak self] success in
+            ensureHiddenAccountUnlocked(context: primary, owner: owner, completion: { [weak self] success in
                 guard let self, success else {
                     return
                 }

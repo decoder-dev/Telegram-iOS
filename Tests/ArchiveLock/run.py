@@ -11,7 +11,7 @@ settings = source[source.index('public struct ChatArchiveSettings'):source.index
 coding_key = (root / 'submodules/TelegramCore/Sources/TelegramEngine/Utils/StringCodingKey.swift').read_text()
 # The background relock in the session also closes the hidden accounts, so their session is compiled with it.
 hidden_source = (root / 'submodules/TelegramUIPreferences/Sources/HiddenAccountsSession.swift').read_text()
-hidden = hidden_source[hidden_source.index('/// In-memory state of hidden accounts'):]
+hidden = hidden_source[hidden_source.index('/// Which accounts are hidden, and by whom'):]
 with tempfile.TemporaryDirectory(prefix='archive-session-') as directory:
     package = pathlib.Path(directory)
     tests = package / 'Tests/ArchiveSessionTests'

@@ -908,6 +908,7 @@ private final class NotificationServiceHandler {
                 ApplicationSpecificSharedDataKeys.inAppNotificationSettings,
                 ApplicationSpecificSharedDataKeys.voiceCallSettings,
                 ApplicationSpecificSharedDataKeys.automaticMediaDownloadSettings,
+                ApplicationSpecificSharedDataKeys.hiddenAccountsSettings,
                 SharedDataKeys.loggingSettings
             ])
         )
@@ -941,6 +942,19 @@ private final class NotificationServiceHandler {
             }
 
             let inAppNotificationSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.inAppNotificationSettings]?.get(InAppNotificationSettings.self) ?? InAppNotificationSettings.defaultSettings
+
+            // An account another account hides (HiddenAccountsSettings) shows nothing at all: not even a redacted banner,
+            // a sound or a badge, since any of them says the account exists.
+            let hiddenAccounts = sharedData.entries[ApplicationSpecificSharedDataKeys.hiddenAccountsSettings]?.get(HiddenAccountsSettings.self) ?? .default
+            if let recordId, hiddenAccounts.isHidden(recordId.int64) {
+                Logger.shared.log("NotificationService \(episode)", "Account is hidden, showing nothing")
+
+                let content = NotificationContent(isLockedMessage: nil)
+                updateCurrentContent(content)
+                completed()
+
+                return
+            }
             
             let voiceCallSettings: VoiceCallSettings
             if let value = sharedData.entries[ApplicationSpecificSharedDataKeys.voiceCallSettings]?.get(VoiceCallSettings.self) {
@@ -1011,29 +1025,13 @@ private final class NotificationServiceHandler {
                     recipientAccountName = .single(nil)
                 }
 
-                // A hidden account (ChatArchiveSettings.isAccountHidden) shows nothing at all: not even a redacted banner,
-                // a sound or a badge, since any of them says the account exists.
-                let accountIsHidden = stateManager.postbox.transaction { transaction -> Bool in
-                    return hiddenAccountNotificationsShouldRedact(transaction: transaction)
-                }
-
                 strongSelf.notificationKeyDisposable.set((combineLatest(queue: strongSelf.queue,
                     existingMasterNotificationsKey(postbox: stateManager.postbox),
                     settings,
                     lottieSettings,
-                    recipientAccountName,
-                    accountIsHidden
-                ) |> deliverOn(strongSelf.queue)).start(next: { notificationsKey, notificationSoundList, lottieSettings, recipientAccountName, accountIsHidden in
+                    recipientAccountName
+                ) |> deliverOn(strongSelf.queue)).start(next: { notificationsKey, notificationSoundList, lottieSettings, recipientAccountName in
                     guard let strongSelf = self else {
-                        let content = NotificationContent(isLockedMessage: nil)
-                        updateCurrentContent(content)
-                        completed()
-
-                        return
-                    }
-                    if accountIsHidden {
-                        Logger.shared.log("NotificationService \(episode)", "Account is hidden, showing nothing")
-
                         let content = NotificationContent(isLockedMessage: nil)
                         updateCurrentContent(content)
                         completed()

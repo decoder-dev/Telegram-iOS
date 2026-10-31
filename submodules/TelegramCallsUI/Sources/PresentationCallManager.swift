@@ -207,10 +207,15 @@ public final class PresentationCallManagerImpl: PresentationCallManager {
                             TelegramEngine.EngineData.Item.Peer.Peer(id: state.peerId),
                             TelegramEngine.EngineData.Item.Peer.IsContact(id: state.peerId)
                         ),
-                        context.account.postbox.transaction { transaction -> Bool in
-                            // A hidden account that has not been opened with its password rings without a name too.
-                            let hiddenAccountLocked = hiddenAccountNotificationsShouldRedact(transaction: transaction) && !HiddenAccountsSession.shared.state.unlockedAccountIds.contains(context.account.id.int64)
-                            return hiddenAccountLocked || archiveNotificationShouldRedact(transaction: transaction, peerId: state.peerId)
+                        // A hidden account that has not been opened with its owner's password rings without a name too.
+                        combineLatest(
+                            hiddenAccountIsLocked(accountManager: context.sharedContext.accountManager, accountId: context.account.id.int64),
+                            context.account.postbox.transaction { transaction -> Bool in
+                                return archiveNotificationShouldRedact(transaction: transaction, peerId: state.peerId)
+                            }
+                        )
+                        |> map { hiddenAccountLocked, archiveRedacts -> Bool in
+                            return hiddenAccountLocked || archiveRedacts
                         }
                     )
                     |> map { peerAndContact, shouldRedact -> (AccountContext, EnginePeer, CallSessionRingingState, Bool, NetworkType, Bool)? in

@@ -905,25 +905,29 @@ public func setArchiveUseBiometrics(context: AccountContext, enabled: Bool) {
     }.startStandalone()
 }
 
-/// Asks for a hidden account's own Archive password before the app switches to it, presenting over `context`, the account
-/// on screen. Password only: Face ID would let anyone holding the unlocked phone open an account they cannot see.
-/// `completion(true)` once the password matched; the caller unlocks `HiddenAccountsSession` and switches.
-public func ensureHiddenAccountUnlocked(context: AccountContext, hiddenAccount: AccountContext, completion: @escaping (Bool) -> Void) {
-    let _ = (hiddenAccount.engine.data.get(
+/// Asks for the owner's Archive password before the app opens one of the accounts it hides (or signs it out), presenting
+/// over `context`, the account on screen. Password only: Face ID would let anyone holding the unlocked phone open an
+/// account they cannot see. No prompt while the owner's Archive is already open: that password was just entered.
+/// `completion(true)` once it matched; the caller unlocks `HiddenAccountsSession` and goes on.
+public func ensureHiddenAccountUnlocked(context: AccountContext, owner: AccountContext, completion: @escaping (Bool) -> Void) {
+    if ArchiveLockSession.shared.isUnlocked(accountPeerId: owner.account.peerId) {
+        completion(true)
+        return
+    }
+    let _ = (owner.engine.data.get(
         TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
     )
     |> deliverOnMainQueue).startStandalone(next: { preference in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
-        let peerId = hiddenAccount.account.peerId
-        guard settings.isAccountHidden, archiveIsPasswordProtected(peerId: peerId, settings: settings) else {
-            // Not hidden after all (the setting changed meanwhile): nothing to ask.
+        let peerId = owner.account.peerId
+        guard archiveIsPasswordProtected(peerId: peerId, settings: settings) else {
+            // The owner has no password any more, so it hides nothing (`SharedAccountContextImpl` shows such accounts).
             completion(true)
             return
         }
-        // No readable verifier means no password can match, and the reset offered for the Archive belongs to the
-        // account on screen, not to this one. It has to be reopened the way it was hidden: from inside it.
         if !ArchivePasswordKeychain.hasPassword(peerId: peerId), (settings.passwordVerifier ?? "").isEmpty, settings.legacyLockPasswordHash == nil {
-            Logger.shared.log("ArchiveLock", "hidden account has no readable verifier")
+            // No copy of the verifier is readable, so no password can match. The owner resets it from its own Archive.
+            Logger.shared.log("ArchiveLock", "hidden account owner has no readable verifier")
             completion(false)
             return
         }
@@ -944,21 +948,21 @@ public func ensureHiddenAccountUnlocked(context: AccountContext, hiddenAccount: 
     })
 }
 
-/// Hide or show this account (`ChatArchiveSettings.hidesAccount`). Hiding needs the Archive password to be set and keeps
-/// the account open until the app goes to the background; showing it again asks for the password, like removing it.
-public func setArchiveHidesAccount(context: AccountContext, enabled: Bool, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {
+/// Hide `hiddenAccount` behind the Archive password of `context` (the account on screen, which must have one), or show it
+/// again. Hiding takes effect at once and asks nothing; showing it again asks for the password unless the Archive is open.
+public func setAccountHidden(context: AccountContext, hiddenAccount: AccountContext, hidden: Bool, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {
+    let ownerId = context.account.id.int64
+    let hiddenId = hiddenAccount.account.id.int64
     let apply: () -> Void = {
-        if enabled {
-            // The account on screen stays open: hiding it must not throw the user out of it on the spot.
-            HiddenAccountsSession.shared.unlock(accountId: context.account.id.int64)
-            clearHiddenAccountTraces(context: context)
+        let _ = updateHiddenAccountsSettings(accountManager: context.sharedContext.accountManager, { current in
+            return current.withHidden(hiddenId, ownerAccountId: hidden ? ownerId : nil)
+        }).startStandalone()
+        if hidden {
+            clearHiddenAccountTraces(context: hiddenAccount)
         }
-        let _ = updateChatArchiveSettings(engine: context.engine) { current in
-            current.withUpdatedHidesAccount(enabled)
-        }.startStandalone()
         completion(true)
     }
-    if enabled {
+    if hidden || ArchiveLockSession.shared.isUnlocked(accountPeerId: context.account.peerId) {
         apply()
         return
     }
@@ -1010,6 +1014,11 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
                 // Keychain on the next check, so "Remove password" silently undid itself.
                 current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false).withUpdatedPasswordVerifier(nil).withUpdatedBiometricsDomainState(nil)
                 }.startStandalone()
+                // Without the password nothing could open the accounts it hid, so they are shown again.
+                let ownerId = context.account.id.int64
+                let _ = updateHiddenAccountsSettings(accountManager: context.sharedContext.accountManager, { current in
+                    return current.removingOwner(ownerId)
+                }).startStandalone()
                 completion(true)
             },
             onCancel: {

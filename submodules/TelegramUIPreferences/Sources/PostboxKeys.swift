@@ -64,6 +64,7 @@ private enum ApplicationSpecificSharedDataKeyValues: Int32 {
     case updateSettings = 21
     case chatSettings = 22
     case forkExtrasSettings = 23
+    case hiddenAccountsSettings = 24
 }
 
 public struct ApplicationSpecificSharedDataKeys {
@@ -91,6 +92,7 @@ public struct ApplicationSpecificSharedDataKeys {
     public static let updateSettings: EngineDataBuffer = applicationSpecificPreferencesKey(ApplicationSpecificSharedDataKeyValues.updateSettings.rawValue)
     public static let chatSettings: EngineDataBuffer = applicationSpecificPreferencesKey(ApplicationSpecificSharedDataKeyValues.chatSettings.rawValue)
     public static let forkExtrasSettings: EngineDataBuffer = applicationSpecificSharedDataKey(ApplicationSpecificSharedDataKeyValues.forkExtrasSettings.rawValue)
+    public static let hiddenAccountsSettings: EngineDataBuffer = applicationSpecificSharedDataKey(ApplicationSpecificSharedDataKeyValues.hiddenAccountsSettings.rawValue)
 }
 
 private enum ApplicationSpecificItemCacheCollectionIdValues: Int8 {

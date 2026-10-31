@@ -11,6 +11,7 @@ import AccountContext
 import UndoUI
 import ChatListUI
 import LocalAuth
+import ItemListPeerItem
 
 private final class ArchiveSettingsControllerArguments {
     let updateUnmuted: (Bool) -> Void
@@ -20,7 +21,8 @@ private final class ArchiveSettingsControllerArguments {
     let toggleBiometrics: (Bool) -> Void
     let changePassword: () -> Void
     let lockNow: () -> Void
-    let toggleHideAccount: (Bool) -> Void
+    let toggleHiddenAccount: (Int64, Bool) -> Void
+    let hiddenAccountContext: (Int64) -> AccountContext?
 
     init(
         updateUnmuted: @escaping (Bool) -> Void,
@@ -30,7 +32,8 @@ private final class ArchiveSettingsControllerArguments {
         toggleBiometrics: @escaping (Bool) -> Void,
         changePassword: @escaping () -> Void,
         lockNow: @escaping () -> Void,
-        toggleHideAccount: @escaping (Bool) -> Void
+        toggleHiddenAccount: @escaping (Int64, Bool) -> Void,
+        hiddenAccountContext: @escaping (Int64) -> AccountContext?
     ) {
         self.updateUnmuted = updateUnmuted
         self.updateFolders = updateFolders
@@ -39,7 +42,8 @@ private final class ArchiveSettingsControllerArguments {
         self.toggleBiometrics = toggleBiometrics
         self.changePassword = changePassword
         self.lockNow = lockNow
-        self.toggleHideAccount = toggleHideAccount
+        self.toggleHiddenAccount = toggleHiddenAccount
+        self.hiddenAccountContext = hiddenAccountContext
     }
 }
 
@@ -70,8 +74,9 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
     case changePassword
     case passwordLockNow
     case passwordFooter
-    case hideAccountValue(Bool)
-    case hideAccountFooter
+    case hiddenAccountsHeader
+    case hiddenAccount(index: Int32, row: ArchiveHiddenAccountRow)
+    case hiddenAccountsFooter
 
     var section: ItemListSectionId {
         switch self {
@@ -83,7 +88,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return ArchiveSettingsSection.unknown.rawValue
         case .passwordHeader, .passwordValue, .biometricsValue, .changePassword, .passwordLockNow, .passwordFooter:
             return ArchiveSettingsSection.password.rawValue
-        case .hideAccountValue, .hideAccountFooter:
+        case .hiddenAccountsHeader, .hiddenAccount, .hiddenAccountsFooter:
             return ArchiveSettingsSection.hideAccount.rawValue
         }
     }
@@ -120,10 +125,12 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return 13
         case .passwordFooter:
             return 14
-        case .hideAccountValue:
+        case .hiddenAccountsHeader:
             return 15
-        case .hideAccountFooter:
-            return 16
+        case let .hiddenAccount(index, _):
+            return 100 + index
+        case .hiddenAccountsFooter:
+            return 10000
         }
     }
         
@@ -180,14 +187,27 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             })
         case .passwordFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.footer), sectionId: self.section)
-        case let .hideAccountValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.hideAccount, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.toggleHideAccount(value)
+        case .hiddenAccountsHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.hiddenAccountsHeader, sectionId: self.section)
+        case let .hiddenAccount(_, row):
+            guard let accountContext = arguments.hiddenAccountContext(row.accountId) else {
+                return ItemListTextItem(presentationData: presentationData, text: .plain(""), sectionId: self.section)
+            }
+            let accountId = row.accountId
+            return ItemListPeerItem(presentationData: presentationData, systemStyle: .glass, dateTimeFormat: PresentationDateTimeFormat(), nameDisplayOrder: .firstLast, context: accountContext, peer: row.peer, height: .generic, aliasHandling: .standard, nameStyle: .plain, presence: nil, text: .none, label: .none, editing: ItemListPeerItemEditing(editable: false, editing: false, revealed: false), revealOptions: nil, switchValue: ItemListPeerItemSwitch(value: row.isHidden, style: .standard), enabled: true, selectable: false, sectionId: self.section, action: nil, setPeerIdWithRevealedOptions: { _, _ in }, removePeer: { _ in }, toggleUpdated: { value in
+                arguments.toggleHiddenAccount(accountId, value)
             })
-        case .hideAccountFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.hideAccountFooter), sectionId: self.section)
+        case .hiddenAccountsFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.hiddenAccountsFooter), sectionId: self.section)
         }
     }
+}
+
+/// One other signed-in account in the "Hidden accounts" section.
+struct ArchiveHiddenAccountRow: Equatable {
+    let accountId: Int64
+    let peer: EnginePeer
+    let isHidden: Bool
 }
 
 private func archiveSettingsControllerEntries(
@@ -200,8 +220,7 @@ private func archiveSettingsControllerEntries(
     isPremiumEnabled: Bool,
     biometricAuthentication: LocalAuthBiometricAuthentication?,
     useBiometrics: Bool,
-    hidesAccount: Bool,
-    hasOtherAccounts: Bool
+    hiddenAccountRows: [ArchiveHiddenAccountRow]
 ) -> [ArchiveSettingsControllerEntry] {
     var entries: [ArchiveSettingsControllerEntry] = []
 
@@ -236,10 +255,13 @@ private func archiveSettingsControllerEntries(
     }
     entries.append(.passwordFooter)
 
-    // Hiding the only account would leave nothing to switch to, so the row needs another account to exist.
-    if passwordOn, hasOtherAccounts {
-        entries.append(.hideAccountValue(hidesAccount))
-        entries.append(.hideAccountFooter)
+    // The other signed-in accounts this password can hide.
+    if passwordOn, !hiddenAccountRows.isEmpty {
+        entries.append(.hiddenAccountsHeader)
+        for (index, row) in hiddenAccountRows.enumerated() {
+            entries.append(.hiddenAccount(index: Int32(index), row: row))
+        }
+        entries.append(.hiddenAccountsFooter)
     }
 
     return entries
@@ -259,8 +281,15 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
     // so cancel snaps the UI back instead of leaving an optimistic ON state.
     let passwordLockOverride = ValuePromise<Bool?>(nil, ignoreRepeated: true)
     let sessionUnlockedPromise = ValuePromise<Bool>(ArchiveLockSession.shared.isUnlocked, ignoreRepeated: true)
-    // Same role as `passwordLockOverride` for the hide-account switch while its password sheet is open.
-    let hideAccountOverride = ValuePromise<Bool?>(nil, ignoreRepeated: true)
+    // Same role as `passwordLockOverride` for a hidden-account switch while its password sheet is open.
+    let hiddenAccountOverrides = ValuePromise<[Int64: Bool]>([:], ignoreRepeated: true)
+    var hiddenAccountOverridesValue: [Int64: Bool] = [:]
+    let updateHiddenAccountOverride: (Int64, Bool?) -> Void = { accountId, value in
+        hiddenAccountOverridesValue[accountId] = value
+        hiddenAccountOverrides.set(hiddenAccountOverridesValue)
+    }
+    // The other accounts, kept for the rows' avatars and for hiding them.
+    var otherAccountContexts: [Int64: AccountContext] = [:]
     
     let arguments = ArchiveSettingsControllerArguments(
         updateUnmuted: { value in
@@ -334,22 +363,68 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
                 dismissOpenArchiveControllers(from: navigationControllerImpl?(), context: context)
             })
         },
-        toggleHideAccount: { enabled in
-            hideAccountOverride.set(enabled)
-            setArchiveHidesAccount(context: context, enabled: enabled, present: { controller in
+        toggleHiddenAccount: { accountId, hidden in
+            guard let hiddenAccount = otherAccountContexts[accountId] else {
+                return
+            }
+            updateHiddenAccountOverride(accountId, hidden)
+            setAccountHidden(context: context, hiddenAccount: hiddenAccount, hidden: hidden, present: { controller in
                 presentControllerImpl?(controller)
             }, completion: { success in
                 if success {
-                    hideAccountOverride.set(nil)
+                    updateHiddenAccountOverride(accountId, nil)
                 } else {
-                    hideAccountOverride.set(!enabled)
+                    updateHiddenAccountOverride(accountId, !hidden)
                     Queue.mainQueue().after(0.05) {
-                        hideAccountOverride.set(nil)
+                        updateHiddenAccountOverride(accountId, nil)
                     }
                 }
             })
+        },
+        hiddenAccountContext: { accountId in
+            return otherAccountContexts[accountId]
         }
     )
+
+    // Every other signed-in account, except ones another account hides (a hidden account belongs to its owner).
+    let ownerId = context.account.id.int64
+    let otherAccounts: Signal<[(AccountContext, EnginePeer)], NoError> = context.sharedContext.activeAccountContexts
+    |> mapToSignal { _, accounts, _ -> Signal<[(AccountContext, EnginePeer)], NoError> in
+        let others = accounts.filter { $0.1.account.id != context.account.id }.map { $0.1 }
+        if others.isEmpty {
+            return .single([])
+        }
+        return combineLatest(others.map { accountContext -> Signal<(AccountContext, EnginePeer)?, NoError> in
+            return accountContext.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: accountContext.account.peerId))
+            |> map { peer -> (AccountContext, EnginePeer)? in
+                return peer.flatMap { (accountContext, $0) }
+            }
+        })
+        |> map { list in
+            return list.compactMap { $0 }
+        }
+    }
+    let hiddenAccountRows: Signal<[ArchiveHiddenAccountRow], NoError> = combineLatest(queue: .mainQueue(),
+        otherAccounts,
+        hiddenAccountsSettings(accountManager: context.sharedContext.accountManager),
+        hiddenAccountOverrides.get()
+    )
+    |> map { accounts, hiddenSettings, overrides -> [ArchiveHiddenAccountRow] in
+        // A hidden account (this one) hides nobody: its own Archive could only be opened from inside it.
+        if hiddenSettings.isHidden(ownerId) {
+            return []
+        }
+        var rows: [ArchiveHiddenAccountRow] = []
+        for (accountContext, peer) in accounts {
+            let accountId = accountContext.account.id.int64
+            otherAccountContexts[accountId] = accountContext
+            if let owner = hiddenSettings.owner(of: accountId), owner != ownerId {
+                continue
+            }
+            rows.append(ArchiveHiddenAccountRow(accountId: accountId, peer: peer, isHidden: overrides[accountId] ?? (hiddenSettings.owner(of: accountId) == ownerId)))
+        }
+        return rows
+    }
     
     let signal = combineLatest(queue: .mainQueue(),
         context.sharedContext.presentationData,
@@ -359,15 +434,10 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)),
         passwordLockOverride.get(),
         sessionUnlockedPromise.get(),
-        hideAccountOverride.get(),
-        context.sharedContext.activeAccountContexts
-        |> map { _, accounts, _ -> Bool in
-            return accounts.count > 1
-        }
-        |> distinctUntilChanged
+        hiddenAccountRows
     )
     |> deliverOnMainQueue
-    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference, passwordOverride, sessionUnlocked, hideOverride, hasOtherAccounts -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference, passwordOverride, sessionUnlocked, hiddenAccountRows -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var presentationData = presentationData
 
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
@@ -396,8 +466,7 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
             isPremiumEnabled: !isPremiumDisabled,
             biometricAuthentication: LocalAuth.biometricAuthentication,
             useBiometrics: archiveSettings.useBiometrics,
-            hidesAccount: hideOverride ?? archiveSettings.isAccountHidden,
-            hasOtherAccounts: hasOtherAccounts
+            hiddenAccountRows: hiddenAccountRows
         ), style: .blocks, animateChanges: true)
         
         return (controllerState, (listState, arguments))

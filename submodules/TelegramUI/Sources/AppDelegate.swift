@@ -2517,11 +2517,15 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         |> timeout(2.0, queue: Queue.mainQueue(), alternate: .single((nil, true)))
         |> mapToSignal { matched, _ -> Signal<(AccountContext?, Bool), NoError> in
             if let matched {
-                let accountId = matched.account.id.int64
-                return matched.account.postbox.transaction { transaction -> (AccountContext?, Bool) in
-                    // A hidden account that has not been opened with its password rings without a name too.
-                    let hiddenAccountLocked = hiddenAccountNotificationsShouldRedact(transaction: transaction) && !HiddenAccountsSession.shared.state.unlockedAccountIds.contains(accountId)
-                    return (matched, hiddenAccountLocked || archiveNotificationShouldRedact(transaction: transaction, peerId: peerId))
+                // A hidden account that has not been opened with its owner's password rings without a name too.
+                return combineLatest(
+                    hiddenAccountIsLocked(accountManager: sharedContext.accountManager, accountId: matched.account.id.int64),
+                    matched.account.postbox.transaction { transaction -> Bool in
+                        return archiveNotificationShouldRedact(transaction: transaction, peerId: peerId)
+                    }
+                )
+                |> map { hiddenAccountLocked, archiveRedacts -> (AccountContext?, Bool) in
+                    return (matched, hiddenAccountLocked || archiveRedacts)
                 }
             } else {
                 return .single((nil, true))
