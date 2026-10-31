@@ -16,6 +16,7 @@ import DeviceLocationManager
 import ItemListUI
 import LegacyUI
 import ChatListUI
+import AccountUtils
 import PeerInfoUI
 import SettingsUI
 import PasscodeUI
@@ -207,6 +208,11 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     }
     
     private let registeredNotificationTokensDisposable = MetaDisposable()
+    private let hiddenAccountIdsDisposable = MetaDisposable()
+    private let hiddenAccountLeaveDisposable = MetaDisposable()
+    private let hiddenAccountSwitchDisposable = MetaDisposable()
+    /// The account the app is leaving a locked hidden account for, while that switch is in flight.
+    private var hiddenAccountLeaveTargetId: AccountRecordId?
     
     public let mediaManager: MediaManager
     public let contactDataManager: DeviceContactDataManager?
@@ -1183,9 +1189,25 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         })
         
         if applicationBindings.isMainApp {
-            self.widgetDataContext = WidgetDataContext(basePath: self.basePath, inForeground: self.applicationBindings.applicationInForeground, activeAccounts: self.activeAccountContexts
-            |> map { _, accounts, _ in
-                return accounts.map { $0.1.account }
+            // Widgets and Spotlight outlive the app session, so a hidden account never reaches them.
+            let visibleAccountContexts = self.activeAccountContexts
+            |> mapToSignal { _, accounts, _ -> Signal<[AccountContext], NoError> in
+                if accounts.isEmpty {
+                    return .single([])
+                }
+                return combineLatest(accounts.map { _, context, _ -> Signal<AccountContext?, NoError> in
+                    return accountIsHiddenSignal(context: context)
+                    |> map { isHidden -> AccountContext? in
+                        return isHidden ? nil : context
+                    }
+                })
+                |> map { contexts -> [AccountContext] in
+                    return contexts.compactMap { $0 }
+                }
+            }
+            self.widgetDataContext = WidgetDataContext(basePath: self.basePath, inForeground: self.applicationBindings.applicationInForeground, activeAccounts: visibleAccountContexts
+            |> map { contexts in
+                return contexts.map { $0.account }
             }, presentationData: self.presentationData, appLockContext: self.appLockContext as! AppLockContextImpl)
             
             let enableSpotlight = accountManager.sharedData(keys: Set([ApplicationSpecificSharedDataKeys.intentsSettings]))
@@ -1194,11 +1216,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                 return intentsSettings.contacts
             }
             |> distinctUntilChanged
-            self.spotlightDataContext = SpotlightDataContext(appBasePath: applicationBindings.containerPath, accountManager: accountManager, accounts: combineLatest(enableSpotlight, self.activeAccountContexts
-            |> map { _, accounts, _ in
-                return accounts.map { _, account, _ in
-                    return account.account
-                }
+            self.spotlightDataContext = SpotlightDataContext(appBasePath: applicationBindings.containerPath, accountManager: accountManager, accounts: combineLatest(enableSpotlight, visibleAccountContexts
+            |> map { contexts in
+                return contexts.map { $0.account }
             }) |> map { enableSpotlight, accounts in
                 if enableSpotlight {
                     return accounts
@@ -1206,6 +1226,50 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     return []
                 }
             })
+
+            self.hiddenAccountIdsDisposable.set((self.activeAccountContexts
+            |> mapToSignal { _, accounts, _ -> Signal<Set<Int64>, NoError> in
+                if accounts.isEmpty {
+                    // Not loaded yet (or none left): an empty answer would mark the hidden accounts as read and let a
+                    // switch through before their settings are.
+                    return .never()
+                }
+                return combineLatest(accounts.map { id, context, _ -> Signal<Int64?, NoError> in
+                    return accountIsHiddenSignal(context: context)
+                    |> map { isHidden -> Int64? in
+                        return isHidden ? id.int64 : nil
+                    }
+                })
+                |> map { ids -> Set<Int64> in
+                    return Set(ids.compactMap { $0 })
+                }
+            }
+            |> distinctUntilChanged
+            |> deliverOnMainQueue).startStrict(next: { ids in
+                HiddenAccountsSession.shared.updateHiddenAccountIds(ids)
+            }))
+            // A hidden account on screen that is locked again (the app went to the background, Lock Now, or it was
+            // hidden at launch) is left for the first account that is not hidden.
+            self.hiddenAccountLeaveDisposable.set((combineLatest(queue: .mainQueue(), self.activeAccountContexts, HiddenAccountsSession.shared.stateSignal)
+            |> deliverOnMainQueue).startStrict(next: { [weak self] activeAccounts, state in
+                guard let self, state.isResolved, let primary = activeAccounts.primary else {
+                    return
+                }
+                guard state.isLocked(accountId: primary.account.id.int64) else {
+                    self.hiddenAccountLeaveTargetId = nil
+                    return
+                }
+                guard let visible = activeAccounts.accounts.first(where: { !state.hiddenAccountIds.contains($0.0.int64) }) else {
+                    return
+                }
+                // Every state change while the switch is in flight lands here again; one switch is enough.
+                if self.hiddenAccountLeaveTargetId == visible.0 {
+                    return
+                }
+                self.hiddenAccountLeaveTargetId = visible.0
+                Logger.shared.log("HiddenAccounts", "leaving a locked hidden account for \(visible.0.int64)")
+                self.performSwitchToAccount(id: visible.0, fromSettingsController: nil, withChatListController: nil)
+            }))
         }
         
         /*if #available(iOS 13.0, *) {
@@ -1350,6 +1414,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     deinit {
         assertionFailure("SharedAccountContextImpl is not supposed to be deallocated")
         self.registeredNotificationTokensDisposable.dispose()
+        self.hiddenAccountIdsDisposable.dispose()
+        self.hiddenAccountLeaveDisposable.dispose()
+        self.hiddenAccountSwitchDisposable.dispose()
         self.presentationDataDisposable.dispose()
         self.automaticMediaDownloadSettingsDisposable.dispose()
         self.currentAutodownloadSettingsDisposable.dispose()
@@ -2018,6 +2085,48 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     }
     
     public func switchToAccount(id: AccountRecordId, fromSettingsController settingsController: ViewController? = nil, withChatListController chatListController: ViewController? = nil) {
+        if self.activeAccountsValue?.primary?.account.id == id {
+            return
+        }
+        let hiddenState = HiddenAccountsSession.shared.state
+        if hiddenState.isResolved && !hiddenState.isLocked(accountId: id.int64) {
+            self.performSwitchToAccount(id: id, fromSettingsController: settingsController, withChatListController: chatListController)
+            return
+        }
+        guard let hiddenAccount = self.activeAccountsValue?.accounts.first(where: { $0.0 == id })?.1 else {
+            self.performSwitchToAccount(id: id, fromSettingsController: settingsController, withChatListController: chatListController)
+            return
+        }
+        // The target may be hidden (or the hidden accounts are not read yet): ask its own settings. A locked hidden
+        // account opens only from the account list after Settings × 10, and only with its password; every other way
+        // in (a notification, a shortcut, a link) is ignored, since asking for a password would show that it exists.
+        self.hiddenAccountSwitchDisposable.set((accountIsHiddenSignal(context: hiddenAccount)
+        |> take(1)
+        |> deliverOnMainQueue).startStrict(next: { [weak self] isHidden in
+            guard let self else {
+                return
+            }
+            let state = HiddenAccountsSession.shared.state
+            // Decided from the account's own setting: the hidden set may not have been read yet.
+            if !isHidden || state.unlockedAccountIds.contains(id.int64) {
+                self.performSwitchToAccount(id: id, fromSettingsController: settingsController, withChatListController: chatListController)
+                return
+            }
+            guard state.isRevealed, let primary = self.activeAccountsValue?.primary else {
+                Logger.shared.log("HiddenAccounts", "ignoring a switch to a locked hidden account")
+                return
+            }
+            ensureHiddenAccountUnlocked(context: primary, hiddenAccount: hiddenAccount, completion: { [weak self] success in
+                guard let self, success else {
+                    return
+                }
+                HiddenAccountsSession.shared.unlock(accountId: id.int64)
+                self.performSwitchToAccount(id: id, fromSettingsController: settingsController, withChatListController: chatListController)
+            })
+        }))
+    }
+
+    private func performSwitchToAccount(id: AccountRecordId, fromSettingsController settingsController: ViewController?, withChatListController chatListController: ViewController?) {
         if self.activeAccountsValue?.primary?.account.id == id {
             return
         }

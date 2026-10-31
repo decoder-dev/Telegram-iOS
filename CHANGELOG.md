@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### Added — hidden accounts
+- Archive settings → "Hide This Account" (needs the Archive password and another signed-in account). While the Archive is locked, the account leaves the account list, the Settings tab switcher, double tap, quick actions, the share sheet, widgets and Spotlight, and its unread count no longer reaches the Settings badge.
+- Settings × 10 lists hidden accounts (without unread counts or a chat preview); tapping one asks for its own Archive password and opens it. Notifications, links and shortcuts never open a locked hidden account.
+- Going to the background (or Lock Now) locks hidden accounts again; the app leaves a hidden account it is showing for the first visible one, and the app switcher snapshot is covered.
+- Pushes of a hidden account show nothing; incoming calls ring without the caller's name. Showing the account again needs the password; removing the password shows it.
+
 ### Fixed — September 27 audit
 - Failed legacy Archive password migration preserves the only credential; successful migration updates the notification-protection flag before discarding the legacy hash.
 - Archive password setup, rotation and removal no longer report success or change preference mirrors after a failed Keychain mutation. Password prompts release their action closures on dismissal.

@@ -45,6 +45,10 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.LostText": "This build cannot read the saved Archive password (it was stored by a differently signed install). Confirm it is you with the device passcode, then set a new password.",
             "ArchiveLock.LostReset": "Reset Password",
             "ArchiveLock.LostReason": "Reset the Archive password",
+            "ArchiveLock.HideAccount": "Hide This Account",
+            "ArchiveLock.HideAccountFooter": "The account disappears from the account list and its notifications and calls are hidden while the Archive is locked. To open it from another account, tap Settings 10 times, then tap the account and enter this password.",
+            "ArchiveLock.HiddenAccountEnterText": "Enter the Archive password of this account to open it",
+            "ArchiveLock.ShowAccountText": "Enter the password to show this account in the account list again",
         ],
         "ru": [
             "ArchiveLock.PasswordSection": "ПАРОЛЬ",
@@ -81,6 +85,10 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.LostText": "Эта сборка не может прочитать сохранённый пароль архива: его записала установка с другой подписью. Подтвердите, что это вы, код-паролем устройства и задайте новый пароль.",
             "ArchiveLock.LostReset": "Сбросить пароль",
             "ArchiveLock.LostReason": "Сброс пароля архива",
+            "ArchiveLock.HideAccount": "Скрывать этот аккаунт",
+            "ArchiveLock.HideAccountFooter": "Пока архив заблокирован, аккаунта нет в списке аккаунтов, а его уведомления и звонки скрыты. Чтобы открыть его из другого аккаунта, нажмите «Настройки» 10 раз, затем нажмите на аккаунт и введите этот пароль.",
+            "ArchiveLock.HiddenAccountEnterText": "Введите пароль архива этого аккаунта, чтобы открыть его",
+            "ArchiveLock.ShowAccountText": "Введите пароль, чтобы снова показывать этот аккаунт в списке аккаунтов",
         ],
     ]
     
@@ -117,6 +125,10 @@ public enum ArchiveLockLocalizedString {
     public static var lockArchive: String { string(forKey: "ArchiveLock.LockArchive") }
     public static var lockNow: String { string(forKey: "ArchiveLock.LockNow") }
     public static var footer: String { string(forKey: "ArchiveLock.Footer") }
+    public static var hideAccount: String { string(forKey: "ArchiveLock.HideAccount") }
+    public static var hideAccountFooter: String { string(forKey: "ArchiveLock.HideAccountFooter") }
+    public static var hiddenAccountEnterText: String { string(forKey: "ArchiveLock.HiddenAccountEnterText") }
+    public static var showAccountText: String { string(forKey: "ArchiveLock.ShowAccountText") }
     public static var enterTitle: String { string(forKey: "ArchiveLock.EnterTitle") }
     public static var enterText: String { string(forKey: "ArchiveLock.EnterText") }
     public static var unlock: String { string(forKey: "ArchiveLock.Unlock") }

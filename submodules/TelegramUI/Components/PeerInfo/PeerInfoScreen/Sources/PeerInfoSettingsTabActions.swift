@@ -41,6 +41,12 @@ extension PeerInfoScreenNode {
     }
     
     func accountContextMenu(id: AccountRecordId, node: ASDisplayNode, gesture: ContextGesture?) {
+        // The preview is that account's chat list: a hidden account listed by Settings × 10 shows nothing before its
+        // password.
+        if HiddenAccountsSession.shared.state.isLocked(accountId: id.int64) {
+            gesture?.cancel()
+            return
+        }
         var selectedAccount: Account?
         let _ = (self.accountsAndPeers.get()
         |> take(1)
@@ -66,6 +72,12 @@ extension PeerInfoScreenNode {
     }
 
     func switchToAccount(id: AccountRecordId) {
+        // A locked hidden account asks for its password first and may stay closed, so the account list keeps updating
+        // until the switch really happens.
+        if HiddenAccountsSession.shared.state.isLocked(accountId: id.int64) {
+            self.context.sharedContext.switchToAccount(id: id, fromSettingsController: nil, withChatListController: nil)
+            return
+        }
         self.accountsAndPeers.set(.never())
         self.context.sharedContext.switchToAccount(id: id, fromSettingsController: nil, withChatListController: nil)
     }
