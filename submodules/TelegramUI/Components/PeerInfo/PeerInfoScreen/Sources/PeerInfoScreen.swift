@@ -7400,7 +7400,9 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         guard let (maybePrimary, other) = self.accountsAndPeersValue, let _ = maybePrimary else {
             return
         }
-        for account in other {
+        // A hidden account listed by Settings × 10 opens from the list with its password, not by a double tap.
+        let hiddenState = HiddenAccountsSession.shared.state
+        for account in other where !hiddenState.isLocked(accountId: account.0.account.id.int64) {
             self.controllerNode.switchToAccount(id: account.0.account.id)
             break
         }

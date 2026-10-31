@@ -9,6 +9,9 @@ source = (root / 'submodules/TelegramUIPreferences/Sources/ChatArchiveSettings.s
 session = source[source.index('public enum ArchiveFolderPresentation'):source.index('public func updateChatArchiveSettings')]
 settings = source[source.index('public struct ChatArchiveSettings'):source.index('public enum ArchiveFolderPresentation')]
 coding_key = (root / 'submodules/TelegramCore/Sources/TelegramEngine/Utils/StringCodingKey.swift').read_text()
+# The background relock in the session also closes the hidden accounts, so their session is compiled with it.
+hidden_source = (root / 'submodules/TelegramUIPreferences/Sources/HiddenAccountsSession.swift').read_text()
+hidden = hidden_source[hidden_source.index('/// In-memory state of hidden accounts'):]
 with tempfile.TemporaryDirectory(prefix='archive-session-') as directory:
     package = pathlib.Path(directory)
     tests = package / 'Tests/ArchiveSessionTests'
@@ -27,10 +30,11 @@ public enum EnginePeer {
         public func toInt64() -> Int64 { value }
     }
 }
-''' + session + settings + coding_key + '''
+''' + session + settings + hidden + coding_key + '''
 // Hashing is outside this settings serialization test; legacy-hash fixtures bypass this stub.
 func archivePasswordHash(_ value: String) -> String { value }
 ''')
     (tests / 'SessionTests.swift').write_text((root / 'Tests/ArchiveLock/SessionTests.swift').read_text())
     (tests / 'SettingsTests.swift').write_text((root / 'Tests/ArchiveLock/SettingsTests.swift').read_text())
+    (tests / 'HiddenAccountsTests.swift').write_text((root / 'Tests/ArchiveLock/HiddenAccountsTests.swift').read_text())
     subprocess.run(['swift', 'test', '--package-path', directory], check=True)

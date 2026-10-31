@@ -1011,13 +1011,29 @@ private final class NotificationServiceHandler {
                     recipientAccountName = .single(nil)
                 }
 
+                // A hidden account (ChatArchiveSettings.isAccountHidden) shows nothing at all: not even a redacted banner,
+                // a sound or a badge, since any of them says the account exists.
+                let accountIsHidden = stateManager.postbox.transaction { transaction -> Bool in
+                    return hiddenAccountNotificationsShouldRedact(transaction: transaction)
+                }
+
                 strongSelf.notificationKeyDisposable.set((combineLatest(queue: strongSelf.queue,
                     existingMasterNotificationsKey(postbox: stateManager.postbox),
                     settings,
                     lottieSettings,
-                    recipientAccountName
-                ) |> deliverOn(strongSelf.queue)).start(next: { notificationsKey, notificationSoundList, lottieSettings, recipientAccountName in
+                    recipientAccountName,
+                    accountIsHidden
+                ) |> deliverOn(strongSelf.queue)).start(next: { notificationsKey, notificationSoundList, lottieSettings, recipientAccountName, accountIsHidden in
                     guard let strongSelf = self else {
+                        let content = NotificationContent(isLockedMessage: nil)
+                        updateCurrentContent(content)
+                        completed()
+
+                        return
+                    }
+                    if accountIsHidden {
+                        Logger.shared.log("NotificationService \(episode)", "Account is hidden, showing nothing")
+
                         let content = NotificationContent(isLockedMessage: nil)
                         updateCurrentContent(content)
                         completed()

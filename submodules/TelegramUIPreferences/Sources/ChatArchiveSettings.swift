@@ -24,12 +24,22 @@ public struct ChatArchiveSettings: Equatable, Codable {
     /// Biometric enrollment (`LAContext.evaluatedPolicyDomainState`) at the time Face ID / Touch ID unlock was trusted.
     /// A different enrollment (a newly added face or finger) must not open the Archive.
     public var biometricsDomainState: Data?
+    /// Hide this whole account while its Archive is locked: it leaves the account list, the account switcher and the
+    /// other accounts' badges, and its notifications and calls are redacted. Settings × 10 shows it in the account list,
+    /// and its Archive password opens it (`HiddenAccountsSession`). Only meaningful while a password is set; cleared
+    /// with the password.
+    public var hidesAccount: Bool
+
+    /// Whether this account is hidden: it asked to be and its Archive has a password.
+    public var isAccountHidden: Bool {
+        return self.hidesAccount && self.isPasswordConfigured
+    }
 
     public static var `default`: ChatArchiveSettings {
         return ChatArchiveSettings(isHiddenByDefault: false, hiddenPsaPeerId: nil, legacyLockPasswordHash: nil, useBiometrics: false, isPasswordConfigured: false)
     }
 
-    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false, isPasswordConfigured: Bool = false, passwordVerifier: String? = nil, biometricsDomainState: Data? = nil) {
+    public init(isHiddenByDefault: Bool, hiddenPsaPeerId: EnginePeer.Id?, legacyLockPasswordHash: String? = nil, useBiometrics: Bool = false, isPasswordConfigured: Bool = false, passwordVerifier: String? = nil, biometricsDomainState: Data? = nil, hidesAccount: Bool = false) {
         self.isHiddenByDefault = isHiddenByDefault
         self.hiddenPsaPeerId = hiddenPsaPeerId
         self.legacyLockPasswordHash = legacyLockPasswordHash
@@ -37,6 +47,7 @@ public struct ChatArchiveSettings: Equatable, Codable {
         self.isPasswordConfigured = isPasswordConfigured
         self.passwordVerifier = passwordVerifier
         self.biometricsDomainState = biometricsDomainState
+        self.hidesAccount = hidesAccount
     }
 
     public init(from decoder: Decoder) throws {
@@ -59,6 +70,7 @@ public struct ChatArchiveSettings: Equatable, Codable {
             self.passwordVerifier = nil
         }
         self.biometricsDomainState = try container.decodeIfPresent(Data.self, forKey: "biometricsDomainState")
+        self.hidesAccount = ((try container.decodeIfPresent(Int32.self, forKey: "hidesAccount")) ?? 0) != 0
         // Extensions must redact before the main app has migrated the legacy credential.
         self.isPasswordConfigured = self.isPasswordConfigured || self.legacyLockPasswordHash != nil || self.passwordVerifier != nil
     }
@@ -79,18 +91,25 @@ public struct ChatArchiveSettings: Equatable, Codable {
         try container.encode((self.isPasswordConfigured ? 1 : 0) as Int32, forKey: "isPasswordConfigured")
         try container.encodeIfPresent(self.passwordVerifier, forKey: "passwordVerifier")
         try container.encodeIfPresent(self.biometricsDomainState, forKey: "biometricsDomainState")
+        try container.encode((self.hidesAccount ? 1 : 0) as Int32, forKey: "hidesAccount")
     }
 
     public func clearingLegacyPasswordHash() -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier, biometricsDomainState: self.biometricsDomainState)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: nil, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier, biometricsDomainState: self.biometricsDomainState, hidesAccount: self.hidesAccount)
     }
 
     public func withUpdatedUseBiometrics(_ useBiometrics: Bool) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier, biometricsDomainState: self.biometricsDomainState)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: useBiometrics, isPasswordConfigured: self.isPasswordConfigured, passwordVerifier: self.passwordVerifier, biometricsDomainState: self.biometricsDomainState, hidesAccount: self.hidesAccount)
     }
 
     public func withUpdatedIsPasswordConfigured(_ isPasswordConfigured: Bool) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: isPasswordConfigured ? self.useBiometrics : false, isPasswordConfigured: isPasswordConfigured, passwordVerifier: isPasswordConfigured ? self.passwordVerifier : nil, biometricsDomainState: isPasswordConfigured ? self.biometricsDomainState : nil)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: isPasswordConfigured ? self.useBiometrics : false, isPasswordConfigured: isPasswordConfigured, passwordVerifier: isPasswordConfigured ? self.passwordVerifier : nil, biometricsDomainState: isPasswordConfigured ? self.biometricsDomainState : nil, hidesAccount: isPasswordConfigured ? self.hidesAccount : false)
+    }
+
+    public func withUpdatedHidesAccount(_ hidesAccount: Bool) -> ChatArchiveSettings {
+        var result = self
+        result.hidesAccount = hidesAccount && self.isPasswordConfigured
+        return result
     }
 
     public func withUpdatedBiometricsDomainState(_ biometricsDomainState: Data?) -> ChatArchiveSettings {
@@ -100,7 +119,7 @@ public struct ChatArchiveSettings: Equatable, Codable {
     }
 
     public func withUpdatedPasswordVerifier(_ passwordVerifier: String?) -> ChatArchiveSettings {
-        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured || passwordVerifier != nil, passwordVerifier: passwordVerifier, biometricsDomainState: self.biometricsDomainState)
+        return ChatArchiveSettings(isHiddenByDefault: self.isHiddenByDefault, hiddenPsaPeerId: self.hiddenPsaPeerId, legacyLockPasswordHash: self.legacyLockPasswordHash, useBiometrics: self.useBiometrics, isPasswordConfigured: self.isPasswordConfigured || passwordVerifier != nil, passwordVerifier: passwordVerifier, biometricsDomainState: self.biometricsDomainState, hidesAccount: self.hidesAccount)
     }
 }
 
@@ -594,6 +613,11 @@ public final class ArchiveLockSession {
                 }
                 self.willRelockHandler?()
                 self.relock()
+                // Hidden accounts close only on a real background: leaving one switches the whole app to another
+                // account, which Control Center or a call banner over the app must not do.
+                if !inForeground {
+                    HiddenAccountsSession.shared.relock()
+                }
             }
         })
         self.lock.lock()
@@ -645,6 +669,13 @@ public func archiveNotificationShouldRedact(transaction: Transaction, peerId: En
     }
     let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
     return settings.isPasswordConfigured
+}
+
+/// Whether every notification and call of this account must be redacted because the account is hidden. Postbox only,
+/// so the Notification Service Extension can use it (see `archiveNotificationShouldRedact`).
+public func hiddenAccountNotificationsShouldRedact(transaction: Transaction) -> Bool {
+    let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
+    return settings.isAccountHidden
 }
 
 /// Engine-data equivalent of `archiveNotificationShouldRedact` for call sites that already

@@ -253,14 +253,22 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         }
         
         let accountSettingsController = PeerInfoScreenImpl(context: self.context, updatedPresentationData: nil, peerId: self.context.account.peerId, avatarInitiallyExpanded: false, isOpenedFromChat: false, reactionSourceMessageId: nil, callMessages: [], isSettings: true, settingsSharedData: self.settingsSharedData)
+        let accountId = self.context.account.id.int64
         accountSettingsController.tabBarItemDebugTapAction = {
-            // 10 rapid taps on Settings → reveal the secret Archive folder. The password is still
-            // required to open it. With no password there is nothing hidden to reveal, so the
-            // gesture does nothing at all rather than buzzing with no visible effect.
-            guard ArchiveLockSession.shared.isPasswordConfigured else {
+            // 10 rapid taps on Settings → reveal the secret Archive folder and the hidden accounts (listed in Settings).
+            // A password is still required to open either. With nothing hidden the gesture does nothing at all rather
+            // than buzzing with no visible effect.
+            var revealed = false
+            if ArchiveLockSession.shared.isPasswordConfigured {
+                ArchiveLockSession.shared.reveal()
+                revealed = true
+            }
+            if HiddenAccountsSession.shared.reveal(primaryAccountId: accountId) {
+                revealed = true
+            }
+            guard revealed else {
                 return
             }
-            ArchiveLockSession.shared.reveal()
             let generator = UIImpactFeedbackGenerator(style: .medium)
             generator.impactOccurred()
         }

@@ -20,6 +20,7 @@ private final class ArchiveSettingsControllerArguments {
     let toggleBiometrics: (Bool) -> Void
     let changePassword: () -> Void
     let lockNow: () -> Void
+    let toggleHideAccount: (Bool) -> Void
 
     init(
         updateUnmuted: @escaping (Bool) -> Void,
@@ -28,7 +29,8 @@ private final class ArchiveSettingsControllerArguments {
         togglePassword: @escaping (Bool) -> Void,
         toggleBiometrics: @escaping (Bool) -> Void,
         changePassword: @escaping () -> Void,
-        lockNow: @escaping () -> Void
+        lockNow: @escaping () -> Void,
+        toggleHideAccount: @escaping (Bool) -> Void
     ) {
         self.updateUnmuted = updateUnmuted
         self.updateFolders = updateFolders
@@ -37,6 +39,7 @@ private final class ArchiveSettingsControllerArguments {
         self.toggleBiometrics = toggleBiometrics
         self.changePassword = changePassword
         self.lockNow = lockNow
+        self.toggleHideAccount = toggleHideAccount
     }
 }
 
@@ -45,6 +48,7 @@ private enum ArchiveSettingsSection: Int32 {
     case folders
     case unknown
     case password
+    case hideAccount
 }
 
 private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
@@ -66,6 +70,8 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
     case changePassword
     case passwordLockNow
     case passwordFooter
+    case hideAccountValue(Bool)
+    case hideAccountFooter
 
     var section: ItemListSectionId {
         switch self {
@@ -77,6 +83,8 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return ArchiveSettingsSection.unknown.rawValue
         case .passwordHeader, .passwordValue, .biometricsValue, .changePassword, .passwordLockNow, .passwordFooter:
             return ArchiveSettingsSection.password.rawValue
+        case .hideAccountValue, .hideAccountFooter:
+            return ArchiveSettingsSection.hideAccount.rawValue
         }
     }
 
@@ -112,6 +120,10 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return 13
         case .passwordFooter:
             return 14
+        case .hideAccountValue:
+            return 15
+        case .hideAccountFooter:
+            return 16
         }
     }
         
@@ -168,6 +180,12 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             })
         case .passwordFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.footer), sectionId: self.section)
+        case let .hideAccountValue(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.hideAccount, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.toggleHideAccount(value)
+            })
+        case .hideAccountFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.hideAccountFooter), sectionId: self.section)
         }
     }
 }
@@ -181,7 +199,9 @@ private func archiveSettingsControllerEntries(
     isPremium: Bool,
     isPremiumEnabled: Bool,
     biometricAuthentication: LocalAuthBiometricAuthentication?,
-    useBiometrics: Bool
+    useBiometrics: Bool,
+    hidesAccount: Bool,
+    hasOtherAccounts: Bool
 ) -> [ArchiveSettingsControllerEntry] {
     var entries: [ArchiveSettingsControllerEntry] = []
 
@@ -216,6 +236,12 @@ private func archiveSettingsControllerEntries(
     }
     entries.append(.passwordFooter)
 
+    // Hiding the only account would leave nothing to switch to, so the row needs another account to exist.
+    if passwordOn, hasOtherAccounts {
+        entries.append(.hideAccountValue(hidesAccount))
+        entries.append(.hideAccountFooter)
+    }
+
     return entries
 }
 
@@ -233,6 +259,8 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
     // so cancel snaps the UI back instead of leaving an optimistic ON state.
     let passwordLockOverride = ValuePromise<Bool?>(nil, ignoreRepeated: true)
     let sessionUnlockedPromise = ValuePromise<Bool>(ArchiveLockSession.shared.isUnlocked, ignoreRepeated: true)
+    // Same role as `passwordLockOverride` for the hide-account switch while its password sheet is open.
+    let hideAccountOverride = ValuePromise<Bool?>(nil, ignoreRepeated: true)
     
     let arguments = ArchiveSettingsControllerArguments(
         updateUnmuted: { value in
@@ -300,9 +328,25 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         },
         lockNow: {
             ArchiveLockSession.shared.relock()
+            HiddenAccountsSession.shared.relock()
             sessionUnlockedPromise.set(false)
             Queue.mainQueue().after(0.3, {
                 dismissOpenArchiveControllers(from: navigationControllerImpl?(), context: context)
+            })
+        },
+        toggleHideAccount: { enabled in
+            hideAccountOverride.set(enabled)
+            setArchiveHidesAccount(context: context, enabled: enabled, present: { controller in
+                presentControllerImpl?(controller)
+            }, completion: { success in
+                if success {
+                    hideAccountOverride.set(nil)
+                } else {
+                    hideAccountOverride.set(!enabled)
+                    Queue.mainQueue().after(0.05) {
+                        hideAccountOverride.set(nil)
+                    }
+                }
             })
         }
     )
@@ -314,10 +358,16 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)),
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)),
         passwordLockOverride.get(),
-        sessionUnlockedPromise.get()
+        sessionUnlockedPromise.get(),
+        hideAccountOverride.get(),
+        context.sharedContext.activeAccountContexts
+        |> map { _, accounts, _ -> Bool in
+            return accounts.count > 1
+        }
+        |> distinctUntilChanged
     )
     |> deliverOnMainQueue
-    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference, passwordOverride, sessionUnlocked -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference, passwordOverride, sessionUnlocked, hideOverride, hasOtherAccounts -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var presentationData = presentationData
 
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
@@ -345,7 +395,9 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
             isPremium: isPremium,
             isPremiumEnabled: !isPremiumDisabled,
             biometricAuthentication: LocalAuth.biometricAuthentication,
-            useBiometrics: archiveSettings.useBiometrics
+            useBiometrics: archiveSettings.useBiometrics,
+            hidesAccount: hideOverride ?? archiveSettings.isAccountHidden,
+            hasOtherAccounts: hasOtherAccounts
         ), style: .blocks, animateChanges: true)
         
         return (controllerState, (listState, arguments))
