@@ -156,13 +156,13 @@ private final class AccountPresenceManagerImpl {
                     return
                 }
                 let ghost = BananaPresenceSettings.shared
-                let policy = (ghost.ghostHidesOnline, ghost.ghostAutomaticOffline)
+                let policy = (ghost.ghostHidesOnline(accountPeerId: self.accountPeerId), ghost.ghostAutomaticOffline(accountPeerId: self.accountPeerId))
                 guard policy != self.lastPresencePolicy else { return }
                 self.lastPresencePolicy = policy
-                if !(ghost.ghostModeEnabled && ghost.ghostAutomaticOffline) {
+                if !(ghost.ghostModeEnabled && ghost.ghostAutomaticOffline(accountPeerId: self.accountPeerId)) {
                     self.resetOtherSessionState()
                 }
-                if !ghost.ghostHidesOnline {
+                if !ghost.ghostHidesOnline(accountPeerId: self.accountPeerId) {
                     // Nothing records the server's status meanwhile, so it would be stale when ghost
                     // mode hides online again.
                     ghost.setServerOnlineUntil(nil, accountId: self.accountId)
@@ -305,7 +305,7 @@ private final class AccountPresenceManagerImpl {
     // Donutgram: asks the server for this account's status, so the own profile shows an online of
     // another client that no update reported here (the app was closed or disconnected meanwhile).
     private func refreshServerStatus() {
-        guard BananaPresenceSettings.shared.ghostHidesOnline, !self.resolvingInitialPresence else {
+        guard BananaPresenceSettings.shared.ghostHidesOnline(accountPeerId: self.accountPeerId), !self.resolvingInitialPresence else {
             return
         }
         let offlinePacketsSent = self.offlinePacketsSent
@@ -314,7 +314,7 @@ private final class AccountPresenceManagerImpl {
             return .single([])
         }
         |> deliverOn(self.queue)).start(next: { [weak self] users in
-            guard let self, BananaPresenceSettings.shared.ghostHidesOnline else {
+            guard let self, BananaPresenceSettings.shared.ghostHidesOnline(accountPeerId: self.accountPeerId) else {
                 return
             }
             for user in users {
@@ -460,7 +460,7 @@ private final class AccountPresenceManagerImpl {
         guard !self.resolvingInitialPresence else { return }
         // The request may have been queued before ghost mode was turned off.
         let ghost = BananaPresenceSettings.shared
-        guard ghost.ghostModeEnabled && ghost.ghostAutomaticOffline else { return }
+        guard ghost.ghostModeEnabled && ghost.ghostAutomaticOffline(accountPeerId: self.accountPeerId) else { return }
         // While another session keeps the account online the fallback packet would only make it
         // flip. Actions and the reports they caused are still answered: if the other session is
         // gone by now, the account would stay online otherwise.
@@ -521,8 +521,8 @@ private final class AccountPresenceManagerImpl {
 
     private func updatePresence(_ isOnline: Bool) {
         let ghost = BananaPresenceSettings.shared
-        let effectiveOnline = isOnline && !ghost.ghostHidesOnline
-        if !effectiveOnline && ghost.ghostHidesOnline && !self.didResolveInitialPresence && ghost.lastOnlineTimestamp(accountId: self.accountId) == nil {
+        let effectiveOnline = isOnline && !ghost.ghostHidesOnline(accountPeerId: self.accountPeerId)
+        if !effectiveOnline && ghost.ghostHidesOnline(accountPeerId: self.accountPeerId) && !self.didResolveInitialPresence && ghost.lastOnlineTimestamp(accountId: self.accountId) == nil {
             if !self.resolvingInitialPresence {
                 self.resolvingInitialPresence = true
                 self.onlineTimer?.invalidate()
@@ -580,8 +580,8 @@ private final class AccountPresenceManagerImpl {
             self.onlineTimer?.invalidate()
             self.onlineTimer = nil
             // `isOnline` is true while the app is in front: only then can the user act.
-            self.updateOfflineFallbackTimer(isActive: isOnline && ghost.ghostModeEnabled && ghost.ghostAutomaticOffline)
-            if ghost.ghostHidesOnline {
+            self.updateOfflineFallbackTimer(isActive: isOnline && ghost.ghostModeEnabled && ghost.ghostAutomaticOffline(accountPeerId: self.accountPeerId))
+            if ghost.ghostHidesOnline(accountPeerId: self.accountPeerId) {
                 self.lastGhostOffline = (timestamp: self.network.globalTime, cause: GhostOfflineCause.routine)
             }
             self.offlinePacketsSent += 1

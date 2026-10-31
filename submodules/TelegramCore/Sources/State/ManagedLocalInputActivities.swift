@@ -482,6 +482,11 @@ public enum ForkGhostModeSettings {
             public var readOnInteract: Bool = false
             public var interactOverrideActive: Bool = false
             public var interactOverrideGeneration: Int = 0
+            /// The account and chat the open override window belongs to (`PeerId.toInt64()`). Reads are allowed only
+            /// there and online only for that account (31 Oct audit, C-7: the window used to allow reads in every chat
+            /// of every account for its 1.5 s).
+            public var interactOverrideAccountPeerId: Int64? = nil
+            public var interactOverridePeerId: Int64? = nil
 
             public init(
                 suppressOutgoingActivity: Bool = false,
@@ -602,8 +607,9 @@ public enum ForkGhostModeSettings {
     /// Duration of the read-on-interact override window (online blink + allowed reads).
     public static let readOnInteractOverrideDuration: TimeInterval = 1.5
 
-    /// Call when the user sends/reacts and Read on Interact is enabled.
-    public static func beginReadOnInteractOverride(duration: TimeInterval = ForkGhostModeSettings.readOnInteractOverrideDuration) {
+    /// Call when the user sends/reacts in a chat and Read on Interact is enabled. The window allows reads in that chat of
+    /// that account and online for that account, nothing else.
+    public static func beginReadOnInteractOverride(accountPeerId: PeerId, peerId: PeerId, duration: TimeInterval = ForkGhostModeSettings.readOnInteractOverrideDuration) {
         var generation: Int?
         update { current in
             guard current.readOnInteract else {
@@ -612,6 +618,8 @@ public enum ForkGhostModeSettings {
             var next = current
             next.interactOverrideActive = true
             next.interactOverrideGeneration += 1
+            next.interactOverrideAccountPeerId = accountPeerId.toInt64()
+            next.interactOverridePeerId = peerId.toInt64()
             generation = next.interactOverrideGeneration
             return next
         }
@@ -625,6 +633,8 @@ public enum ForkGhostModeSettings {
                 }
                 var next = current
                 next.interactOverrideActive = false
+                next.interactOverrideAccountPeerId = nil
+                next.interactOverridePeerId = nil
                 return next
             }
         }
@@ -655,6 +665,28 @@ public enum ForkGhostModeSettings {
         return exceptionPeers.with { ($0[String(accountPeerId.toInt64())] ?? []).sorted().map { PeerId($0) } }
     }
 
+    /// The chats of an account where reads go through while Don't Read is on: its exceptions and, while a Read on
+    /// Interact window is open for it, that window's chat.
+    public static func readPermittedPeerIds(accountPeerId: PeerId) -> [PeerId] {
+        var result = exceptionPeerIds(accountPeerId: accountPeerId)
+        let current = state.with { $0 }
+        if current.interactOverrideActive, current.interactOverrideAccountPeerId == accountPeerId.toInt64(), let peerId = current.interactOverridePeerId, !result.contains(PeerId(peerId)) {
+            result.append(PeerId(peerId))
+        }
+        return result
+    }
+
+    /// True while a Read on Interact window is open for this account.
+    public static func interactOverrideActive(accountPeerId: PeerId) -> Bool {
+        let current = state.with { $0 }
+        return current.interactOverrideActive && current.interactOverrideAccountPeerId == accountPeerId.toInt64()
+    }
+
+    private static func interactOverrideAllowsReads(accountPeerId: PeerId, peerId: PeerId) -> Bool {
+        let current = state.with { $0 }
+        return current.interactOverrideActive && current.interactOverrideAccountPeerId == accountPeerId.toInt64() && current.interactOverridePeerId == peerId.toInt64()
+    }
+
     public static func setException(accountPeerId: PeerId, peerId: PeerId, _ value: Bool) {
         exceptionWriteLock.lock()
         let updated = exceptionPeers.modify { current in
@@ -675,20 +707,17 @@ public enum ForkGhostModeSettings {
     }
 
     public static func shouldSuppressMessageReads(accountPeerId: PeerId, peerId: PeerId) -> Bool {
-        return shouldSuppressMessageReads && !isException(accountPeerId: accountPeerId, peerId: peerId)
+        return shouldSuppressMessageReads && !isException(accountPeerId: accountPeerId, peerId: peerId) && !interactOverrideAllowsReads(accountPeerId: accountPeerId, peerId: peerId)
     }
 
     public static func suppressesOutgoingActivity(accountPeerId: PeerId, peerId: PeerId) -> Bool {
         return suppressOutgoingActivity && !isException(accountPeerId: accountPeerId, peerId: peerId)
     }
 
-    /// True when dont-read is on and the read-on-interact override window is closed.
+    /// True when Don't Read is on, for a read not tied to one chat. A Read on Interact window does not lift it: the window
+    /// belongs to one chat (`shouldSuppressMessageReads(accountPeerId:peerId:)`).
     public static var shouldSuppressMessageReads: Bool {
-        let current = state.with { $0 }
-        if current.interactOverrideActive {
-            return false
-        }
-        return current.suppressMessageReads
+        return state.with { $0.suppressMessageReads }
     }
 
     /// Emit for every policy change, including changes to exceptions while the global flag stays on.
@@ -704,12 +733,14 @@ public enum ForkGhostModeSettings {
         }
     }
 
+    /// True when Don't Send Online is on, for a status not tied to one account.
     public static var shouldSuppressOnline: Bool {
-        let current = state.with { $0 }
-        if current.interactOverrideActive {
-            return false
-        }
-        return current.suppressOnline
+        return state.with { $0.suppressOnline }
+    }
+
+    /// True when Don't Send Online is on and no Read on Interact window is open for this account.
+    public static func shouldSuppressOnline(accountPeerId: PeerId) -> Bool {
+        return state.with { $0.suppressOnline } && !interactOverrideActive(accountPeerId: accountPeerId)
     }
 }
 

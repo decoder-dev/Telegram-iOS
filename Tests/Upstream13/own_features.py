@@ -902,7 +902,7 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
     def test_queue_threads_and_locations_use_account_scoped_permissions(self):
         queue = read('submodules/TelegramCore/Sources/State/ManagedSynchronizeConsumeMessageContentsOperations.swift')
         self.assertIn('filterByPeerId: peerId, limit: 10', queue)
-        self.assertIn('exceptionPeerIds(accountPeerId: stateManager.accountPeerId)', queue)
+        self.assertIn('readPermittedPeerIds(accountPeerId: stateManager.accountPeerId)', queue)  # exceptions plus an open Read on Interact chat
         self.assertIn('shouldSuppressMessageReads(accountPeerId: stateManager.accountPeerId, peerId: $0.peerId)', queue)
         threads = read('submodules/TelegramCore/Sources/TelegramEngine/Messages/ReplyThreadHistory.swift')
         self.assertIn('shouldSuppressMessageReads(accountPeerId: self.account.peerId, peerId: peerId)', threads)
@@ -1104,6 +1104,30 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('let failedAt = CFAbsoluteTimeGetCurrent()', src)
         self.assertIn('self.serverStateLastFailureTimestamp = failedAt', src)
         self.assertIn('let delaySeconds = self.serverStateCooldown()', src)
+
+    def test_read_on_interact_window_belongs_to_one_chat_of_one_account(self):
+        # 31 Oct audit, C-7: the window opened by a send allowed reads in every chat of every account, and online for
+        # every account, for its 1.5 s.
+        policy = read('submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift')
+        self.assertIn('public static func beginReadOnInteractOverride(accountPeerId: PeerId, peerId: PeerId,', policy)
+        per_chat = policy.split('public static func shouldSuppressMessageReads(accountPeerId: PeerId, peerId: PeerId) -> Bool {', 1)[1].split('}', 1)[0]
+        self.assertIn('!interactOverrideAllowsReads(accountPeerId: accountPeerId, peerId: peerId)', per_chat)
+        global_reads = policy.split('public static var shouldSuppressMessageReads: Bool {', 1)[1].split('\n    }', 1)[0]
+        self.assertNotIn('interactOverrideActive', global_reads)
+        global_online = policy.split('public static var shouldSuppressOnline: Bool {', 1)[1].split('\n    }', 1)[0]
+        self.assertNotIn('interactOverrideActive', global_online)
+        allows = policy.split('private static func interactOverrideAllowsReads(', 1)[1].split('\n    }', 1)[0]
+        self.assertIn('current.interactOverrideAccountPeerId == accountPeerId.toInt64()', allows)
+        self.assertIn('current.interactOverridePeerId == peerId.toInt64()', allows)
+        chat = read('submodules/TelegramUI/Sources/ChatController.swift')
+        self.assertIn('ForkGhostModeSettings.beginReadOnInteractOverride(accountPeerId: self.context.account.peerId, peerId: peerId)', chat)
+        presence = read('submodules/TelegramCore/Sources/State/ManagedAccountPresence.swift')
+        manager = presence.split('final class AccountPresenceManagerImpl', 1)[1]
+        self.assertNotIn('ghost.ghostHidesOnline,', manager)
+        self.assertNotIn('ghost.ghostAutomaticOffline)', manager)
+        self.assertIn('ghost.ghostAutomaticOffline(accountPeerId: self.accountPeerId)', manager)
+        consume = read('submodules/TelegramCore/Sources/State/ManagedSynchronizeConsumeMessageContentsOperations.swift')
+        self.assertIn('ForkGhostModeSettings.readPermittedPeerIds(accountPeerId: stateManager.accountPeerId)', consume)
 
     def test_round_video_from_gallery_is_encoded_lossily_once(self):
         # Device report (30 Oct): a picked video sent as a round video looked worse than a recorded one. The

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftSignalKit
+import Postbox
 
 public final class BananaPresenceSettings {
     public static let shared = BananaPresenceSettings()
@@ -13,8 +14,17 @@ public final class BananaPresenceSettings {
     public static let serverOfflineWasOnlineKey = "serverOfflineWasOnline"
     private let defaults = UserDefaults.standard
     public var ghostModeEnabled: Bool { ForkGhostModeSettings.suppressOnline || ForkGhostModeSettings.goOfflineAutomatically }
+    /// For a request not tied to one account: any open Read on Interact window lifts it.
     public var ghostAutomaticOffline: Bool { ForkGhostModeSettings.goOfflineAutomatically && !ForkGhostModeSettings.interactOverrideActive }
     public var ghostHidesOnline: Bool { ForkGhostModeSettings.shouldSuppressOnline || self.ghostAutomaticOffline }
+    /// For one account: only a Read on Interact window opened in that account lifts it, so an action in one account does
+    /// not show another one online (31 Oct audit, C-7).
+    public func ghostAutomaticOffline(accountPeerId: PeerId) -> Bool {
+        return ForkGhostModeSettings.goOfflineAutomatically && !ForkGhostModeSettings.interactOverrideActive(accountPeerId: accountPeerId)
+    }
+    public func ghostHidesOnline(accountPeerId: PeerId) -> Bool {
+        return ForkGhostModeSettings.shouldSuppressOnline(accountPeerId: accountPeerId) || self.ghostAutomaticOffline(accountPeerId: accountPeerId)
+    }
     private func accountKey(_ key: String, accountId: Int64) -> String { "BananaPresence.\(accountId).\(key)" }
     private func integer(_ key: String) -> Int { self.defaults.integer(forKey: key) }
     func requestGhostOffline(network: Network) {
