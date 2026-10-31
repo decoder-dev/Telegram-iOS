@@ -249,7 +249,7 @@ public final class ChatListSearchRecentPeersNode: ASDisplayNode {
                 return .single(([], [:], [:]))
             case let .peers(peers):
                 return stateManager.postbox.transaction { transaction -> [EnginePeer] in
-                    return peers.filter { !$0.isDeleted && (peerFilter?(EnginePeer($0)) ?? true) && !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.id) }.map { EnginePeer($0) }
+                    return peers.filter { !$0.isDeleted && (peerFilter?(EnginePeer($0)) ?? true) && !archiveSearchShouldHide(transaction: transaction, peerId: $0.id) }.map { EnginePeer($0) }
                 }
                 |> mapToSignal { peers -> Signal<([EnginePeer], [EnginePeer.Id: (Int32, Bool)], [EnginePeer.Id : EnginePeer.Presence]), NoError> in
                     if peers.isEmpty {

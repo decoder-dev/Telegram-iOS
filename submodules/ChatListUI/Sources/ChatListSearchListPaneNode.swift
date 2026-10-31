@@ -2006,7 +2006,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
             fixedRecentlySearchedPeers = context.engine.peers.recentlySearchedPeers()
             |> mapToSignal { peers -> Signal<[RecentlySearchedPeer], NoError> in
                 return context.account.postbox.transaction { transaction -> [RecentlySearchedPeer] in
-                    return peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.peerId) }
+                    return peers.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.peer.peerId) }
                 }
             }
             |> map { peers -> [RecentlySearchedPeer] in
@@ -2077,8 +2077,8 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 |> mapToSignal { value -> Signal<(inProgressItems: [DownloadItem], doneItems: [RenderedRecentDownloadItem]), NoError> in
                     return context.account.postbox.transaction { transaction -> (inProgressItems: [DownloadItem], doneItems: [RenderedRecentDownloadItem]) in
                         return (
-                            value.inProgressItems.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.message.id.peerId) },
-                            value.doneItems.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.message.id.peerId) }
+                            value.inProgressItems.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.message.id.peerId) },
+                            value.doneItems.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.message.id.peerId) }
                         )
                     }
                     |> deliverOnMainQueue
@@ -2369,7 +2369,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     let fixedOrRemovedRecentlySearchedPeers = context.engine.peers.recentlySearchedPeers()
                     |> mapToSignal { peers -> Signal<[RecentlySearchedPeer], NoError> in
                         return context.account.postbox.transaction { transaction -> [RecentlySearchedPeer] in
-                            return peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.peerId) }
+                            return peers.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.peer.peerId) }
                         }
                     }
                     |> map { peers -> [RecentlySearchedPeer] in
@@ -2445,7 +2445,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     // the same check notification redaction already relies on.
                     |> mapToSignal { peers -> Signal<[EngineRenderedPeer], NoError> in
                         return context.account.postbox.transaction { transaction -> [EngineRenderedPeer] in
-                            return peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peerId) }
+                            return peers.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.peerId) }
                         }
                     }
 
@@ -2624,7 +2624,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     }
                     |> mapToSignal { result -> Signal<(peers: [EngineRenderedPeer], unread: [EnginePeer.Id: (Int32, Bool)], recentlySearchedPeerIds: Set<EnginePeer.Id>), NoError> in
                         return context.account.postbox.transaction { transaction in
-                            let peers = result.peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peerId) }
+                            let peers = result.peers.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.peerId) }
                             let allowed = Set(peers.map(\.peerId))
                             return (peers: peers, unread: result.unread.filter { allowed.contains($0.key) }, recentlySearchedPeerIds: result.recentlySearchedPeerIds)
                         }
@@ -2734,7 +2734,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     }
                     |> mapToSignal { result -> Signal<(peers: [EngineRenderedPeer], unread: [EnginePeer.Id: (Int32, Bool)], recentlySearchedPeerIds: Set<EnginePeer.Id>), NoError> in
                         return context.account.postbox.transaction { transaction in
-                            let peers = result.peers.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peerId) }
+                            let peers = result.peers.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.peerId) }
                             let allowed = Set(peers.map(\.peerId))
                             return (peers: peers, unread: result.unread.filter { allowed.contains($0.key) }, recentlySearchedPeerIds: result.recentlySearchedPeerIds)
                         }
@@ -2789,8 +2789,8 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
             |> mapToSignal { local, global, ads, searching -> Signal<([FoundPeer], [FoundPeer], [AdPeer], Bool), NoError> in
                 return context.account.postbox.transaction { transaction -> ([FoundPeer], [FoundPeer], [AdPeer], Bool) in
                     return (
-                        local.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.id) },
-                        global.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.peer.id) },
+                        local.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.peer.id) },
+                        global.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.peer.id) },
                         ads,
                         searching
                     )
@@ -2933,7 +2933,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         var mappedResults: [ChatListSearchMessagesResult] = []
                         for resultData in results {
                             let (result, updatedState) = resultData
-                            let filteredMessages = result.messages.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.id.peerId) }
+                            let filteredMessages = result.messages.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.id.peerId) }
 
                             mappedResults.append(ChatListSearchMessagesResult(query: finalQuery, messages: filteredMessages.map({ EngineMessage($0) }).sorted(by: { $0.index > $1.index }), readStates: result.readStates.mapValues { EnginePeerReadCounters(state: $0, isMuted: false) }, threadInfo: result.threadInfo, hasMore: !result.completed, totalCount: result.totalCount, state: updatedState))
                         }
@@ -2957,7 +2957,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                                 return context.engine.messages.searchMessages(location: searchLocations[i], query: finalQuery, state: searchContext.result.state, limit: 80)
                                 |> mapToSignal { result, updatedState -> Signal<ChatListSearchMessagesResult, NoError> in
                                     return context.account.postbox.transaction { transaction -> ChatListSearchMessagesResult in
-                                        let filteredMessages = result.messages.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0.id.peerId) }
+                                        let filteredMessages = result.messages.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0.id.peerId) }
                                         return ChatListSearchMessagesResult(query: finalQuery, messages: filteredMessages.map({ EngineMessage($0) }).sorted(by: { $0.index > $1.index }), readStates: result.readStates.mapValues { EnginePeerReadCounters(state: $0, isMuted: false) }, threadInfo: result.threadInfo, hasMore: !result.completed, totalCount: result.totalCount, state: updatedState)
                                     }
                                 }
@@ -3317,7 +3317,8 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
 
                 let lowercasedQuery = finalQuery.lowercased()
                 if lowercasedQuery.count > 1 && (presentationData.strings.DialogList_SavedMessages.lowercased().hasPrefix(lowercasedQuery) || "saved messages".hasPrefix(lowercasedQuery)) {
-                    if !ArchiveLockSession.shared.isPasswordConfigured, !existingPeerIds.contains(accountPeer.id), filteredPeer(EnginePeer(accountPeer), EnginePeer(accountPeer)) {
+                    // Saved Messages is locked with the Archive: listed when there is no password or the Archive is open.
+                    if !ArchiveLockSession.shared.isPasswordConfigured || ArchiveLockSession.shared.isUnlocked(accountPeerId: accountPeer.id), !existingPeerIds.contains(accountPeer.id), filteredPeer(EnginePeer(accountPeer), EnginePeer(accountPeer)) {
                         existingPeerIds.insert(accountPeer.id)
                         entries.append(.localPeer(EnginePeer(accountPeer), nil, nil, index, presentationData.theme, presentationData.strings, presentationData.nameSortOrder, presentationData.nameDisplayOrder, localExpandType, nil, false, false))
                         index += 1
@@ -4293,7 +4294,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 |> mapToSignal { peerIds -> Signal<LocalChannels, NoError> in
                     return context.account.postbox.transaction { transaction -> LocalChannels in
                         return LocalChannels(
-                            peerIds: peerIds.filter { !archiveNotificationShouldRedact(transaction: transaction, peerId: $0) },
+                            peerIds: peerIds.filter { !archiveSearchShouldHide(transaction: transaction, peerId: $0) },
                             isExpanded: isChannelsTabExpanded
                         )
                     }

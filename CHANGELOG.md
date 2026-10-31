@@ -6,11 +6,15 @@
 
 ## [Unreleased]
 
+### Fixed — search in an open Archive
+- Search (chats, messages, recent peers, downloads, channels), @mentions, the share sheet, contacts and calls hid the chats of a password-protected Archive even while it was open, so searching inside an unlocked Archive found nothing. They now hide them only while the Archive of that account is locked; notifications, calls and Siri keep hiding them always.
+
 ### Added — hidden accounts
 - Archive settings → "Hide This Account" (needs the Archive password and another signed-in account). While the Archive is locked, the account leaves the account list, the Settings tab switcher, double tap, quick actions, the share sheet, widgets and Spotlight, and its unread count no longer reaches the Settings badge.
 - Settings × 10 lists hidden accounts (without unread counts or a chat preview); tapping one asks for its own Archive password and opens it. Notifications, links and shortcuts never open a locked hidden account.
 - Going to the background (or Lock Now) locks hidden accounts again; the app leaves a hidden account it is showing for the first visible one, and the app switcher snapshot is covered.
 - Pushes of a hidden account show nothing; incoming calls ring without the caller's name. Showing the account again needs the password; removing the password shows it.
+- Hiding an account removes its delivered notifications and the chats it suggested in the iOS share sheet and Siri; it suggests none while hidden. Logging out a locked hidden account from the list needs its password too.
 
 ### Fixed — September 27 audit
 - Failed legacy Archive password migration preserves the only credential; successful migration updates the notification-protection flag before discarding the legacy hash.

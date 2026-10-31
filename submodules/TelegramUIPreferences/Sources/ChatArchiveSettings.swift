@@ -164,6 +164,8 @@ public final class ArchiveLockSession {
     /// into omitted while the chat list is still appearing.
     private var passwordStateResolved = false
     private var passwordBindingAccountId: Int64?
+    /// The bound account's peer id, for checks that only know the account from its Postbox (`archiveSearchShouldHide`).
+    private var passwordBindingAccountPeerId: EnginePeer.Id?
     private var passwordDisposable: Disposable?
     private var muteSweepAccountIds = Set<Int64>()
     private var keepArchivedAlignAccountIds = Set<Int64>()
@@ -200,6 +202,14 @@ public final class ArchiveLockSession {
         self.lock.lock()
         defer { self.lock.unlock() }
         return self.unlocked
+    }
+
+    /// Whether this account's Archive is open right now. False for every account but the bound one: an unlock belongs
+    /// to the account it was entered on.
+    public func isUnlocked(accountPeerId: EnginePeer.Id) -> Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.unlocked && self.passwordBindingAccountPeerId == accountPeerId
     }
     
     /// Whether the Archive folder may appear in the main chat list. With no password there is
@@ -344,12 +354,13 @@ public final class ArchiveLockSession {
     /// account: binding for a different account replaces the existing subscription rather than
     /// adding to it, and a late value from the superseded one is dropped by the id check in
     /// `updatePasswordConfigured`.
-    public func bindPasswordProtection(accountId: Int64, isPasswordConfigured: Signal<Bool, NoError>) {
+    public func bindPasswordProtection(accountId: Int64, accountPeerId: EnginePeer.Id? = nil, isPasswordConfigured: Signal<Bool, NoError>) {
         self.lock.lock()
         if self.passwordBindingAccountId == accountId {
             self.lock.unlock()
             return
         }
+        self.passwordBindingAccountPeerId = accountPeerId
         let previousDisposable = self.passwordDisposable
         // Claim the slot with a placeholder before subscribing, so a second caller for this same
         // account takes the early return above instead of starting a duplicate subscription.
@@ -676,6 +687,17 @@ public func archiveNotificationShouldRedact(transaction: Transaction, peerId: En
 public func hiddenAccountNotificationsShouldRedact(transaction: Transaction) -> Bool {
     let settings = transaction.getPreferencesEntry(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)?.get(ChatArchiveSettings.self) ?? .default
     return settings.isAccountHidden
+}
+
+/// Whether search, mentions and the share sheet leave this peer out: it is in a password-protected Archive and that Archive
+/// is locked. Unlike notifications and calls (`archiveNotificationShouldRedact`, which also run in extensions and while
+/// the app is in the background), these are on screen in front of someone who has just opened the Archive, and hiding
+/// its chats from them there made searching inside an unlocked Archive find nothing.
+public func archiveSearchShouldHide(transaction: Transaction, peerId: EnginePeer.Id) -> Bool {
+    if let accountPeerId = (transaction.getState() as? AuthorizedAccountState)?.peerId, ArchiveLockSession.shared.isUnlocked(accountPeerId: accountPeerId) {
+        return false
+    }
+    return archiveNotificationShouldRedact(transaction: transaction, peerId: peerId)
 }
 
 /// Engine-data equivalent of `archiveNotificationShouldRedact` for call sites that already
