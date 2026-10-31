@@ -543,7 +543,6 @@ public func ensureArchiveUnlocked(
                 message: ArchiveLockLocalizedString.enterText,
                 confirmTitle: ArchiveLockLocalizedString.unlock,
                 verifyPassword: true,
-                allowOwnerReset: true,
                 onSuccess: {
                     guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration else {
                         completion(.cancelled)
@@ -561,7 +560,8 @@ public func ensureArchiveUnlocked(
                 },
                 onCancel: {
                     completion(.cancelled)
-                }
+                },
+                allowOwnerReset: true
             )
         }
 
@@ -801,8 +801,9 @@ private func presentArchivePasswordAlert(
                         return
                     }
                     Logger.shared.log("ArchiveLock", "owner-reset requested from the unlock prompt")
-                    resetArchivePasswordAfterDeviceOwnerAuth(context: context, present: { vc in
-                        presentUIAlert(context: context, alert: vc as! UIAlertController, onUnavailableHost: {})
+                    resetArchivePasswordAfterDeviceOwnerAuth(context: context, present: { _ in
+                        // `setArchivePassword` presents its own alerts internally; this hook is
+                        // currently unused by that path and exists for signature compatibility.
                     }, completion: { unlockResult in
                         switch unlockResult {
                         case .unlocked:
