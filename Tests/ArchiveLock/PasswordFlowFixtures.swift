@@ -49,7 +49,7 @@ struct Signal<Value, Error> {
     func startStandalone(next: @escaping (Value) -> Void) { if let value { next(value) } }
 }
 func deliverOnMainQueue<Value, Error>(_ signal: Signal<Value, Error>) -> Signal<Value, Error> { signal }
-@discardableResult
+infix operator |>
 func |><Value, Error, Result>(_ signal: Signal<Value, Error>, _ transform: (Signal<Value, Error>) -> Result) -> Result { transform(signal) }
 enum LocalAuth {
     static func authenticateDeviceOwner(reason: String) -> Signal<Bool?, NoError> { Signal() }
