@@ -3318,7 +3318,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 let lowercasedQuery = finalQuery.lowercased()
                 if lowercasedQuery.count > 1 && (presentationData.strings.DialogList_SavedMessages.lowercased().hasPrefix(lowercasedQuery) || "saved messages".hasPrefix(lowercasedQuery)) {
                     // Saved Messages is locked with the Archive: listed when there is no password or the Archive is open.
-                    if !ArchiveLockSession.shared.isPasswordConfigured || ArchiveLockSession.shared.isUnlocked(accountPeerId: accountPeer.id), !existingPeerIds.contains(accountPeer.id), filteredPeer(EnginePeer(accountPeer), EnginePeer(accountPeer)) {
+                    if !ArchiveLockSession.shared.isSavedMessagesLocked || ArchiveLockSession.shared.isUnlocked(accountPeerId: accountPeer.id), !existingPeerIds.contains(accountPeer.id), filteredPeer(EnginePeer(accountPeer), EnginePeer(accountPeer)) {
                         existingPeerIds.insert(accountPeer.id)
                         entries.append(.localPeer(EnginePeer(accountPeer), nil, nil, index, presentationData.theme, presentationData.strings, presentationData.nameSortOrder, presentationData.nameDisplayOrder, localExpandType, nil, false, false))
                         index += 1

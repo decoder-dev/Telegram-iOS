@@ -2040,7 +2040,7 @@ public final class ChatListNode: ListViewImpl {
         |> distinctUntilChanged
         let archiveFolderPresentation = combineLatest(
             ArchiveLockSession.shared.folderPresentationSignal,
-            archivePasswordProtectionSignal(context: context),
+            archiveFolderLockSignal(context: context),
             fullyHideArchive
         )
         |> map { (presentation, isPasswordProtected, fullyHideArchive) -> ArchiveFolderPresentation in
@@ -2056,7 +2056,7 @@ public final class ChatListNode: ListViewImpl {
         // rebuild the entry instead of leaving a previously laid-out preview on screen.
         let archiveFolderContentsHidden = combineLatest(
             ArchiveLockSession.shared.unlockedSignal,
-            archivePasswordProtectionSignal(context: context)
+            archiveFolderLockSignal(context: context)
         )
         |> map { unlocked, isPasswordProtected -> Bool in
             return isPasswordProtected && !unlocked

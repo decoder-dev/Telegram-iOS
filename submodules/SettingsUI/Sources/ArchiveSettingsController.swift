@@ -22,6 +22,7 @@ private final class ArchiveSettingsControllerArguments {
     let changePassword: () -> Void
     let lockNow: () -> Void
     let toggleHiddenAccount: (Int64, Bool) -> Void
+    let updateLockTargets: (Bool, Bool) -> Void
     let hiddenAccountContext: (Int64) -> AccountContext?
 
     init(
@@ -33,6 +34,7 @@ private final class ArchiveSettingsControllerArguments {
         changePassword: @escaping () -> Void,
         lockNow: @escaping () -> Void,
         toggleHiddenAccount: @escaping (Int64, Bool) -> Void,
+        updateLockTargets: @escaping (Bool, Bool) -> Void,
         hiddenAccountContext: @escaping (Int64) -> AccountContext?
     ) {
         self.updateUnmuted = updateUnmuted
@@ -43,6 +45,7 @@ private final class ArchiveSettingsControllerArguments {
         self.changePassword = changePassword
         self.lockNow = lockNow
         self.toggleHiddenAccount = toggleHiddenAccount
+        self.updateLockTargets = updateLockTargets
         self.hiddenAccountContext = hiddenAccountContext
     }
 }
@@ -52,6 +55,7 @@ private enum ArchiveSettingsSection: Int32 {
     case folders
     case unknown
     case password
+    case lockTargets
     case hideAccount
 }
 
@@ -74,6 +78,10 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
     case changePassword
     case passwordLockNow
     case passwordFooter
+    case lockTargetsHeader
+    case lockTargetArchive(isOn: Bool, savedMessagesOn: Bool)
+    case lockTargetSavedMessages(isOn: Bool, archiveOn: Bool)
+    case lockTargetsFooter
     case hiddenAccountsHeader
     case hiddenAccount(index: Int32, row: ArchiveHiddenAccountRow)
     case hiddenAccountsFooter
@@ -88,6 +96,8 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return ArchiveSettingsSection.unknown.rawValue
         case .passwordHeader, .passwordValue, .biometricsValue, .changePassword, .passwordLockNow, .passwordFooter:
             return ArchiveSettingsSection.password.rawValue
+        case .lockTargetsHeader, .lockTargetArchive, .lockTargetSavedMessages, .lockTargetsFooter:
+            return ArchiveSettingsSection.lockTargets.rawValue
         case .hiddenAccountsHeader, .hiddenAccount, .hiddenAccountsFooter:
             return ArchiveSettingsSection.hideAccount.rawValue
         }
@@ -125,8 +135,16 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return 13
         case .passwordFooter:
             return 14
+        case .lockTargetsHeader:
+            return 20
+        case .lockTargetArchive:
+            return 21
+        case .lockTargetSavedMessages:
+            return 22
+        case .lockTargetsFooter:
+            return 23
         case .hiddenAccountsHeader:
-            return 15
+            return 30
         case let .hiddenAccount(index, _):
             return 100 + index
         case .hiddenAccountsFooter:
@@ -187,6 +205,19 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             })
         case .passwordFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.footer), sectionId: self.section)
+        case .lockTargetsHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.lockTargetsHeader, sectionId: self.section)
+        case let .lockTargetArchive(isOn, savedMessagesOn):
+            // The last thing still locked cannot be switched off: turn the other one on first.
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockTargetArchive, value: isOn, enabled: !isOn || savedMessagesOn, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateLockTargets(value, savedMessagesOn)
+            })
+        case let .lockTargetSavedMessages(isOn, archiveOn):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockTargetSavedMessages, value: isOn, enabled: !isOn || archiveOn, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateLockTargets(archiveOn, value)
+            })
+        case .lockTargetsFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.lockTargetsFooter), sectionId: self.section)
         case .hiddenAccountsHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.hiddenAccountsHeader, sectionId: self.section)
         case let .hiddenAccount(_, row):
@@ -201,6 +232,12 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.hiddenAccountsFooter), sectionId: self.section)
         }
     }
+}
+
+/// What the password locks, as the switches show it.
+struct ArchiveLockTargets: Equatable {
+    let archive: Bool
+    let savedMessages: Bool
 }
 
 /// One other signed-in account in the "Hidden accounts" section.
@@ -220,6 +257,7 @@ private func archiveSettingsControllerEntries(
     isPremiumEnabled: Bool,
     biometricAuthentication: LocalAuthBiometricAuthentication?,
     useBiometrics: Bool,
+    lockTargets: ArchiveLockTargets,
     hiddenAccountRows: [ArchiveHiddenAccountRow]
 ) -> [ArchiveSettingsControllerEntry] {
     var entries: [ArchiveSettingsControllerEntry] = []
@@ -255,6 +293,13 @@ private func archiveSettingsControllerEntries(
     }
     entries.append(.passwordFooter)
 
+    if passwordOn {
+        entries.append(.lockTargetsHeader)
+        entries.append(.lockTargetArchive(isOn: lockTargets.archive, savedMessagesOn: lockTargets.savedMessages))
+        entries.append(.lockTargetSavedMessages(isOn: lockTargets.savedMessages, archiveOn: lockTargets.archive))
+        entries.append(.lockTargetsFooter)
+    }
+
     // The other signed-in accounts this password can hide.
     if passwordOn, !hiddenAccountRows.isEmpty {
         entries.append(.hiddenAccountsHeader)
@@ -288,6 +333,8 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         hiddenAccountOverridesValue[accountId] = value
         hiddenAccountOverrides.set(hiddenAccountOverridesValue)
     }
+    // Same role for the lock target switches.
+    let lockTargetsOverride = ValuePromise<ArchiveLockTargets?>(nil, ignoreRepeated: true)
     // The other accounts, kept for the rows' avatars and for hiding them.
     var otherAccountContexts: [Int64: AccountContext] = [:]
     
@@ -381,6 +428,17 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
                 }
             })
         },
+        updateLockTargets: { archive, savedMessages in
+            lockTargetsOverride.set(ArchiveLockTargets(archive: archive, savedMessages: savedMessages))
+            setArchiveLockTargets(context: context, archive: archive, savedMessages: savedMessages, present: { controller in
+                presentControllerImpl?(controller)
+            }, completion: { _ in
+                // Back to the stored value either way: a cancelled password leaves it unchanged.
+                Queue.mainQueue().after(0.05) {
+                    lockTargetsOverride.set(nil)
+                }
+            })
+        },
         hiddenAccountContext: { accountId in
             return otherAccountContexts[accountId]
         }
@@ -434,10 +492,11 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)),
         passwordLockOverride.get(),
         sessionUnlockedPromise.get(),
-        hiddenAccountRows
+        hiddenAccountRows,
+        lockTargetsOverride.get()
     )
     |> deliverOnMainQueue
-    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference, passwordOverride, sessionUnlocked, hiddenAccountRows -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference, passwordOverride, sessionUnlocked, hiddenAccountRows, lockTargetsOverride -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var presentationData = presentationData
 
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
@@ -466,6 +525,7 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
             isPremiumEnabled: !isPremiumDisabled,
             biometricAuthentication: LocalAuth.biometricAuthentication,
             useBiometrics: archiveSettings.useBiometrics,
+            lockTargets: lockTargetsOverride ?? ArchiveLockTargets(archive: archiveSettings.locksArchive, savedMessages: archiveSettings.locksSavedMessages),
             hiddenAccountRows: hiddenAccountRows
         ), style: .blocks, animateChanges: true)
         

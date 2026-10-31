@@ -259,7 +259,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             // Settings). This account's Archive password is still required to open either. With nothing hidden the gesture does nothing at all rather
             // than buzzing with no visible effect.
             var revealed = false
-            if ArchiveLockSession.shared.isPasswordConfigured {
+            if ArchiveLockSession.shared.isPasswordConfigured || ArchiveLockSession.shared.isSavedMessagesLocked {
                 ArchiveLockSession.shared.reveal()
                 revealed = true
             }

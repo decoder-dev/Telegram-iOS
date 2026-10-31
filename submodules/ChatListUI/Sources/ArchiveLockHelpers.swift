@@ -180,6 +180,36 @@ public func archivePasswordProtectionSignal(context: AccountContext) -> Signal<B
     |> distinctUntilChanged
 }
 
+/// Whether the password covers this account's Archive folder and its chats (`ChatArchiveSettings.locksArchive`). Drives
+/// the folder's Settings × 10 presentation and its title-only row; an Archive the password does not cover is a stock one.
+public func archiveFolderLockSignal(context: AccountContext) -> Signal<Bool, NoError> {
+    return combineLatest(archivePasswordProtectionSignal(context: context), archiveLockTargetsSignal(context: context))
+    |> map { isProtected, targets -> Bool in
+        return isProtected && targets.archive
+    }
+    |> distinctUntilChanged
+}
+
+/// Whether the password covers this account's Saved Messages (`ChatArchiveSettings.locksSavedMessages`).
+public func savedMessagesLockSignal(context: AccountContext) -> Signal<Bool, NoError> {
+    return combineLatest(archivePasswordProtectionSignal(context: context), archiveLockTargetsSignal(context: context))
+    |> map { isProtected, targets -> Bool in
+        return isProtected && targets.savedMessages
+    }
+    |> distinctUntilChanged
+}
+
+private func archiveLockTargetsSignal(context: AccountContext) -> Signal<(archive: Bool, savedMessages: Bool), NoError> {
+    return context.engine.data.subscribe(
+        TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+    )
+    |> map { preference -> (archive: Bool, savedMessages: Bool) in
+        let settings = preference?.get(ChatArchiveSettings.self) ?? .default
+        return (settings.locksArchive, settings.locksSavedMessages)
+    }
+    |> distinctUntilChanged(isEqual: { $0.archive == $1.archive && $0.savedMessages == $1.savedMessages })
+}
+
 private weak var archiveSwitcherCoveringView: WindowCoveringView?
 
 private func navigationContainsArchiveUI(_ navigationController: NavigationController, archivedPeerIds: Set<EnginePeer.Id>) -> Bool {
@@ -212,7 +242,8 @@ private func archiveLockSwitcherCoverNeeded(context: AccountContext) -> Bool {
     if HiddenAccountsSession.shared.state.hiddenAccountIds.contains(context.account.id.int64) {
         return true
     }
-    guard ArchiveLockSession.shared.isPasswordConfigured else {
+    // `isLockActive`, not `isPasswordConfigured`: an open Saved Messages is covered too when the password locks it alone.
+    guard ArchiveLockSession.shared.isLockActive else {
         return false
     }
     guard ArchiveLockSession.shared.isUnlocked else {
@@ -273,7 +304,7 @@ public func restoreArchivePrivacyOnBecomeActive(context: AccountContext) {
     // (passwordConfigured || unlocked), and Face ID / Touch ID for Archive unlock resigns
     // active then becomes active again — dismissing here would pop the Archive that just
     // opened after a successful biometric unlock.
-    if ArchiveLockSession.shared.isPasswordConfigured && !ArchiveLockSession.shared.isUnlocked {
+    if (ArchiveLockSession.shared.isPasswordConfigured || ArchiveLockSession.shared.isSavedMessagesLocked) && !ArchiveLockSession.shared.isUnlocked {
         dismissOpenArchiveControllers(from: archiveNavigationController(context: context), context: context)
     }
     removeArchiveLockSwitcherCover(context: context)
@@ -368,7 +399,8 @@ public func relockArchiveSessionIfLeavingArchivedSurface(
     isLeavingNavigation: Bool,
     context: AccountContext
 ) {
-    guard ArchiveLockSession.shared.isPasswordConfigured else {
+    // `isLockActive`: leaving an open Saved Messages relocks it when the password locks it alone.
+    guard ArchiveLockSession.shared.isLockActive else {
         return
     }
     guard ArchiveLockSession.shared.isUnlocked || ArchiveLockSession.shared.isRevealed else {
@@ -379,7 +411,7 @@ public func relockArchiveSessionIfLeavingArchivedSurface(
     }
     
     let apply: (Set<EnginePeer.Id>) -> Void = { archivedPeerIds in
-        guard ArchiveLockSession.shared.isPasswordConfigured else {
+        guard ArchiveLockSession.shared.isLockActive else {
             return
         }
         guard ArchiveLockSession.shared.isUnlocked || ArchiveLockSession.shared.isRevealed else {
@@ -446,7 +478,8 @@ public func bindArchiveLockSession(context: AccountContext) {
         }
         restoreArchivePrivacyOnBecomeActive(context: context)
     }
-    ArchiveLockSession.shared.bindPasswordProtection(accountId: context.account.id.int64, accountPeerId: context.account.peerId, isPasswordConfigured: archivePasswordProtectionSignal(context: context))
+    ArchiveLockSession.shared.bindPasswordProtection(accountId: context.account.id.int64, accountPeerId: context.account.peerId, isPasswordConfigured: archiveFolderLockSignal(context: context))
+    ArchiveLockSession.shared.bindSavedMessagesLock(accountId: context.account.id.int64, isLocked: savedMessagesLockSignal(context: context))
     ArchiveLockSession.shared.bindLockedPeerIds(accountId: context.account.id.int64, lockedPeerIds: archiveLockedPeerIdsSignal(context: context))
 }
 
@@ -469,6 +502,7 @@ func alignKeepArchivedUnmutedIfNeeded(context: AccountContext) {
 /// current session is locked, presents a prompt; otherwise proceeds immediately.
 public func ensureArchiveUnlocked(
     context: AccountContext,
+    forSavedMessages: Bool = false,
     present: @escaping (ViewController) -> Void,
     completion: @escaping (ArchiveUnlockResult) -> Void
 ) {
@@ -481,6 +515,11 @@ public func ensureArchiveUnlocked(
     |> deliverOnMainQueue).startStandalone(next: { preference in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
         guard migrateAndResolvePasswordProtected(context: context, settings: settings) else {
+            completion(.notProtected)
+            return
+        }
+        // The password covers only what the owner chose (Archive settings → what it locks).
+        guard forSavedMessages ? settings.locksSavedMessages : settings.locksArchive else {
             completion(.notProtected)
             return
         }
@@ -603,7 +642,9 @@ public func ensureArchivedPeerAccessible(
     |> deliverOnMainQueue).startStandalone(next: { group, preference in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
         let protected = migrateAndResolvePasswordProtected(context: context, settings: settings)
-        guard (group == .archive || peerId == context.account.peerId), protected else {
+        let isSavedMessages = peerId == context.account.peerId
+        let covered = isSavedMessages ? settings.locksSavedMessages : (group == .archive && settings.locksArchive)
+        guard covered, protected else {
             completion(.notProtected)
             return
         }
@@ -611,7 +652,7 @@ public func ensureArchivedPeerAccessible(
             completion(.unlocked)
             return
         }
-        ensureArchiveUnlocked(context: context, present: present, completion: completion)
+        ensureArchiveUnlocked(context: context, forSavedMessages: isSavedMessages, present: present, completion: completion)
     })
 }
 
@@ -979,6 +1020,45 @@ public func setAccountHidden(context: AccountContext, hiddenAccount: AccountCont
             completion(false)
         }
     )
+}
+
+/// Change what the password locks (Archive settings). Locking more asks nothing; locking less asks for the password unless
+/// the Archive is open, like removing it. At least one of the two stays locked.
+public func setArchiveLockTargets(context: AccountContext, archive: Bool, savedMessages: Bool, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {
+    let _ = (context.engine.data.get(
+        TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+    )
+    |> deliverOnMainQueue).startStandalone(next: { preference in
+        let current = preference?.get(ChatArchiveSettings.self) ?? .default
+        let updated = current.withUpdatedLockTargets(archive: archive, savedMessages: savedMessages)
+        let apply: () -> Void = {
+            let _ = updateChatArchiveSettings(engine: context.engine) { settings in
+                settings.withUpdatedLockTargets(archive: archive, savedMessages: savedMessages)
+            }.startStandalone()
+            if updated.isArchiveLocked || updated.isSavedMessagesLocked {
+                clearStaleArchiveNotifications(context: context)
+            }
+            completion(updated.locksArchive == archive && updated.locksSavedMessages == savedMessages)
+        }
+        let weakens = (current.locksArchive && !updated.locksArchive) || (current.locksSavedMessages && !updated.locksSavedMessages)
+        if !weakens || ArchiveLockSession.shared.isUnlocked || !migrateAndResolvePasswordProtected(context: context, settings: current) {
+            apply()
+            return
+        }
+        presentArchivePasswordAlert(
+            context: context,
+            title: ArchiveLockLocalizedString.enterTitle,
+            message: ArchiveLockLocalizedString.lockLessText,
+            confirmTitle: ArchiveLockLocalizedString.unlock,
+            verifyPassword: true,
+            onSuccess: {
+                apply()
+            },
+            onCancel: {
+                completion(false)
+            }
+        )
+    })
 }
 
 public func removeArchivePassword(context: AccountContext, present: @escaping (ViewController) -> Void, completion: @escaping (Bool) -> Void) {

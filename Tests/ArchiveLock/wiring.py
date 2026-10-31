@@ -107,4 +107,23 @@ for path in ["submodules/ContactListUI/Sources/ContactListNode.swift", "submodul
     assert "if !configured || unlocked {" in read(path), path + " must show an open Archive's chats"
 assert "accountPeerId: context.account.peerId, isPasswordConfigured:" in helpers, "The session must know its account to answer per-account unlock checks"
 
+# What the password locks (ChatArchiveSettings.locksArchive / locksSavedMessages).
+assert "return settings.isSavedMessagesLocked" in session_source and "return settings.isArchiveLocked" in session_source, "Notifications follow what the password locks"
+assert "if settings.isArchiveLocked {" in session_source and "settings.isSavedMessagesLocked, let peerId" in session_source, "The locked peers follow what the password locks"
+assert "isPasswordConfigured: archiveFolderLockSignal(context: context)" in helpers, "The folder's Settings × 10 presentation follows the Archive lock"
+assert "bindSavedMessagesLock(accountId:" in helpers
+assert "guard forSavedMessages ? settings.locksSavedMessages : settings.locksArchive else {" in helpers, "An unlocked target opens without the password"
+assert "let covered = isSavedMessages ? settings.locksSavedMessages : (group == .archive && settings.locksArchive)" in helpers
+lock_targets = helpers[helpers.index("public func setArchiveLockTargets("):helpers.index("public func removeArchivePassword(")]
+assert "verifyPassword: true" in lock_targets and "let weakens" in lock_targets, "Locking less needs the password"
+chat_list_node = read("submodules/ChatListUI/Sources/Node/ChatListNode.swift")
+assert chat_list_node.count("archiveFolderLockSignal(context: context)") == 2, "The Archive row follows the Archive lock only"
+settings_items = read("submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoSettingsItems.swift")
+assert "ArchiveLockSession.shared.isSavedMessagesListed" in settings_items, "Saved Messages in Settings follows its own lock"
+assert "openSettings(.support)" not in settings_items and "openSettings(.faq)" not in settings_items and "openSettings(.tips)" not in settings_items, "Ask a Question, FAQ and Features are removed from Settings"
+searchable = read("submodules/SettingsUI/Sources/Search/SettingsSearchableItems.swift")
+assert 'id: "ask-question"' not in searchable and 'id: "faq"' not in searchable and 'id: "features"' not in searchable, "and from Settings search"
+assert "forSavedMessages: true" in searchable
+assert "setArchiveLockTargets(context: context" in archive_settings, "Archive settings choose what the password locks"
+
 print("Archive lock entry points, recovery, biometrics, cooldown clamp, notification staging and hidden accounts: passed")

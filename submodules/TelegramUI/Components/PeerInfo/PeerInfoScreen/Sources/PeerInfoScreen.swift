@@ -2559,7 +2559,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             screenData,
             self.forceIsContactPromise.get(),
             reactionSourceMessage,
-            ArchiveLockSession.shared.revealedSignal
+            combineLatest(ArchiveLockSession.shared.revealedSignal, ArchiveLockSession.shared.savedMessagesListedSignal)
         ).startStrict(next: { [weak self] data, forceIsContact, reactionSourceMessage, _ in
             guard let strongSelf = self else {
                 return

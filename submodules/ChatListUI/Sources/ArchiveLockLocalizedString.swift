@@ -46,6 +46,11 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.LostReset": "Reset Password",
             "ArchiveLock.LostReason": "Reset the Archive password",
             "ArchiveLock.HiddenAccountsHeader": "HIDDEN ACCOUNTS",
+            "ArchiveLock.LockTargetsHeader": "WHAT THE PASSWORD LOCKS",
+            "ArchiveLock.LockTargetArchive": "Archive",
+            "ArchiveLock.LockTargetSavedMessages": "Saved Messages",
+            "ArchiveLock.LockTargetsFooter": "Locked items are hidden until you tap Settings 10 times and open only with the password. At least one stays locked.",
+            "ArchiveLock.LockLessText": "Enter the password to lock less",
             "ArchiveLock.HiddenAccountsFooter": "Chosen accounts disappear from the account list, and their notifications and calls are hidden. To open one, tap Settings 10 times on this account, then tap the account and enter this Archive password. Everything is hidden again when the app goes to the background.",
             "ArchiveLock.HiddenAccountEnterText": "Enter the Archive password to open the hidden account",
             "ArchiveLock.ShowAccountText": "Enter the Archive password to show this account in the account list again",
@@ -86,6 +91,11 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.LostReset": "Сбросить пароль",
             "ArchiveLock.LostReason": "Сброс пароля архива",
             "ArchiveLock.HiddenAccountsHeader": "СКРЫТЫЕ АККАУНТЫ",
+            "ArchiveLock.LockTargetsHeader": "ЧТО БЛОКИРОВАТЬ",
+            "ArchiveLock.LockTargetArchive": "Архив",
+            "ArchiveLock.LockTargetSavedMessages": "Избранное",
+            "ArchiveLock.LockTargetsFooter": "Заблокированное скрыто, пока не нажмёте «Настройки» 10 раз, и открывается только по паролю. Хотя бы одно остаётся заблокированным.",
+            "ArchiveLock.LockLessText": "Введите пароль, чтобы блокировать меньше",
             "ArchiveLock.HiddenAccountsFooter": "Выбранных аккаунтов нет в списке аккаунтов, их уведомления и звонки скрыты. Чтобы открыть такой аккаунт, нажмите «Настройки» 10 раз на этом аккаунте, затем нажмите на нужный аккаунт и введите этот пароль архива. При сворачивании приложения всё снова скрывается.",
             "ArchiveLock.HiddenAccountEnterText": "Введите пароль архива, чтобы открыть скрытый аккаунт",
             "ArchiveLock.ShowAccountText": "Введите пароль архива, чтобы снова показывать этот аккаунт в списке аккаунтов",
@@ -126,6 +136,11 @@ public enum ArchiveLockLocalizedString {
     public static var lockNow: String { string(forKey: "ArchiveLock.LockNow") }
     public static var footer: String { string(forKey: "ArchiveLock.Footer") }
     public static var hiddenAccountsHeader: String { string(forKey: "ArchiveLock.HiddenAccountsHeader") }
+    public static var lockTargetsHeader: String { string(forKey: "ArchiveLock.LockTargetsHeader") }
+    public static var lockTargetArchive: String { string(forKey: "ArchiveLock.LockTargetArchive") }
+    public static var lockTargetSavedMessages: String { string(forKey: "ArchiveLock.LockTargetSavedMessages") }
+    public static var lockTargetsFooter: String { string(forKey: "ArchiveLock.LockTargetsFooter") }
+    public static var lockLessText: String { string(forKey: "ArchiveLock.LockLessText") }
     public static var hiddenAccountsFooter: String { string(forKey: "ArchiveLock.HiddenAccountsFooter") }
     public static var hiddenAccountEnterText: String { string(forKey: "ArchiveLock.HiddenAccountEnterText") }
     public static var showAccountText: String { string(forKey: "ArchiveLock.ShowAccountText") }
