@@ -2338,6 +2338,14 @@ public final class WebAppController: ViewController, AttachmentContainable {
                 ]
                 self.webView?.sendEvent(name: "phone_requested", data: data.string)
             }
+            // BananaGram → Security: a mini app asking for the number is how a login to the account starts.
+            if context.sharedContext.immediateForkExtrasSettings.securityBlockPhoneSharing {
+                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                let text = ForkPresentationLanguage.prefersRussianStrings ? "Отправка своего номера запрещена в BananaGram → Безопасность. Номер просят, чтобы начать вход в ваш аккаунт." : "Sharing your number is blocked in BananaGram → Security. The number is asked for to start a login to your account."
+                self.controller?.present(textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+                sendEvent(false)
+                return
+            }
             
             let _ = (self.context.engine.data.get(
                 TelegramEngine.EngineData.Item.Peer.Peer(id: self.context.account.peerId),
@@ -4140,6 +4148,34 @@ public final class WebAppController: ViewController, AttachmentContainable {
         
         self.navigationBar?.setBackdropAlpha(0.0, transition: .immediate)
         self.updateTabBarAlpha(1.0, .immediate)
+        self.presentMiniAppSecurityWarningIfNeeded()
+    }
+
+    /// BananaGram → Security: the first time a mini app opens (per account and bot), say never to enter a Telegram code,
+    /// the cloud password or the number in it. "The chat has moved, enter the code" mini apps steal accounts that way, and
+    /// they look like part of Telegram because they open inside it.
+    private func presentMiniAppSecurityWarningIfNeeded() {
+        guard self.context.sharedContext.immediateForkExtrasSettings.securityWarnMiniApps else {
+            return
+        }
+        let key = "BananaSecurity.miniAppWarned"
+        let id = "\(self.context.account.id.int64):\(self.botId.toInt64())"
+        var warned = Set(UserDefaults.standard.stringArray(forKey: key) ?? [])
+        if warned.contains(id) {
+            return
+        }
+        warned.insert(id)
+        UserDefaults.standard.set(Array(warned), forKey: key)
+
+        let context = self.context
+        let botName = self.botName
+        Queue.mainQueue().after(0.5, {
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            let russian = ForkPresentationLanguage.prefersRussianStrings
+            let title = russian ? "Мини-приложение" : "Mini App"
+            let text = russian ? "«\(botName)» — стороннее приложение. Никогда не вводите в нём код из Telegram, облачный пароль или номер: так угоняют аккаунты." : "\"\(botName)\" is a third-party app. Never enter a Telegram code, your cloud password or your number in it: that is how accounts are stolen."
+            context.sharedContext.mainWindow?.present(textAlertController(context: context, title: title, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), on: .root)
+        })
     }
     
     public func loadExternal(url: String) {

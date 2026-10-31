@@ -3528,6 +3528,11 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                     strongSelf.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, title: nil, text: strongSelf.presentationData.strings.ScheduledMessages_BotActionUnavailable, actions: [TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                     return
                 }
+                // BananaGram → Security: a bot asking for the number is how a login to the account starts.
+                if strongSelf.context.sharedContext.immediateForkExtrasSettings.securityBlockPhoneSharing {
+                    strongSelf.presentBananaSecurityPhoneSharingBlocked()
+                    return
+                }
                 strongSelf.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, title: strongSelf.presentationData.strings.Conversation_ShareBotContactConfirmationTitle, text: strongSelf.presentationData.strings.Conversation_ShareBotContactConfirmation, actions: [TextAlertAction(type: .genericAction, title: strongSelf.presentationData.strings.Common_Cancel, action: {}), TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {
                     if let strongSelf = self {
                         let _ = (strongSelf.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: strongSelf.context.account.peerId))
@@ -8073,6 +8078,9 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         
         self.didAppear = true
         self.presentBannedChatAlertIfNeeded()
+        Queue.mainQueue().after(0.8, { [weak self] in
+            self?.presentFakeSupportWarningIfNeeded()
+        })
         
         self.chatDisplayNode.historyNode.experimentalSnapScrollToItem = false
         self.chatDisplayNode.historyNode.canReadHistory.set(self.computedCanReadHistoryPromise.get())
@@ -9484,7 +9492,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         return .single(false)
     }
     
-    func sendMessages(_ messages: [EnqueueMessage], media: Bool = false, postpone: Bool = false, commit: Bool = false) {
+    func sendMessages(_ messages: [EnqueueMessage], media: Bool = false, postpone: Bool = false, commit: Bool = false, skipLoginCodeGuard: Bool = false) {
         if case let .customChatContents(customChatContents) = self.subject {
             customChatContents.enqueueMessages(messages: messages)
             return
@@ -9492,6 +9500,53 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         
         guard let peerId = self.chatLocation.peerId else {
             return
+        }
+
+        // BananaGram → Security: a login code Telegram just sent is the account itself. Texts with a run of 5-6 digits and
+        // forwards from Telegram's service account are checked against its latest message before anything is sent.
+        if !skipLoginCodeGuard, self.context.sharedContext.immediateForkExtrasSettings.securityGuardLoginCodes {
+            let serviceId = EnginePeer.Id(namespace: Namespaces.Peer.CloudUser, id: EnginePeer.Id.Id._internalFromInt64Value(777000))
+            var texts: [String] = []
+            var forwardsServiceMessage = false
+            for message in messages {
+                switch message {
+                case let .message(text, _, _, _, _, _, _, _, _, _):
+                    if !text.isEmpty {
+                        texts.append(text)
+                    }
+                case let .forward(source, _, _, _, _):
+                    if source.peerId == serviceId {
+                        forwardsServiceMessage = true
+                    }
+                }
+            }
+            // Five digits anywhere, so a code typed with spaces or dashes between the digits is caught too.
+            let mayHoldCode = forwardsServiceMessage || texts.contains(where: { $0.filter({ $0.isNumber }).count >= 5 })
+            if mayHoldCode && peerId != serviceId {
+                let _ = (self.context.engine.data.get(TelegramEngine.EngineData.Item.Messages.TopMessage(id: serviceId))
+                |> deliverOnMainQueue).startStandalone(next: { [weak self] topMessage in
+                    guard let self else {
+                        return
+                    }
+                    var codes = Set<String>()
+                    if let topMessage, Int32(Date().timeIntervalSince1970) - topMessage.timestamp < 15 * 60 {
+                        codes = bananaSecurityLoginCodes(inServiceText: topMessage.text)
+                    }
+                    let holdsCode = !codes.isEmpty && (forwardsServiceMessage || texts.contains(where: { bananaSecurityTextContainsLoginCode($0, codes: codes) }))
+                    if holdsCode {
+                        Logger.shared.log("BananaSecurity", "kept a login code from being sent")
+                        self.present(bananaSecurityBlockedController(context: self.context, text: BananaSecurityStrings.loginCodeBlocked, openSettings: { [weak self] in
+                            guard let self else {
+                                return
+                            }
+                            self.push(bananaSecurityController(context: self.context))
+                        }), in: .window(.root))
+                        return
+                    }
+                    self.sendMessages(messages, media: media, postpone: postpone, commit: commit, skipLoginCodeGuard: true)
+                })
+                return
+            }
         }
 
         self.beginGhostReadOnInteractForSend()
@@ -10134,7 +10189,46 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         })
     }
     
+    /// BananaGram → Security: a chat with an unverified account named like Telegram's staff ("Безопасность", "Support")
+    /// warns once per account and peer. Those accounts write first and ask for the login code or a QR scan.
+    func presentFakeSupportWarningIfNeeded() {
+        guard self.context.sharedContext.immediateForkExtrasSettings.securityFlagFakeSupport, self.didAppear else {
+            return
+        }
+        guard let peer = self.presentationInterfaceState.renderedPeer?.peer, self.chatLocation.threadId == nil else {
+            return
+        }
+        let enginePeer = EnginePeer(peer)
+        guard enginePeer.id != self.context.account.peerId, bananaSecurityLooksLikeFakeSupport(peer: enginePeer) else {
+            return
+        }
+        let key = "BananaSecurity.fakeSupportWarned"
+        let id = "\(self.context.account.id.int64):\(enginePeer.id.toInt64())"
+        var warned = Set(UserDefaults.standard.stringArray(forKey: key) ?? [])
+        if warned.contains(id) {
+            return
+        }
+        warned.insert(id)
+        UserDefaults.standard.set(Array(warned), forKey: key)
+        let name = enginePeer.displayTitle(strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder)
+        self.present(textAlertController(context: self.context, updatedPresentationData: self.updatedPresentationData, title: BananaSecurityStrings.fakeSupportTitle, text: BananaSecurityStrings.fakeSupportWarning(name: name), actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), in: .window(.root))
+    }
+
+    /// BananaGram → Security forbids sending the account's own number by a button.
+    func presentBananaSecurityPhoneSharingBlocked() {
+        self.present(bananaSecurityBlockedController(context: self.context, text: BananaSecurityStrings.phoneSharingBlocked, openSettings: { [weak self] in
+            guard let self else {
+                return
+            }
+            self.push(bananaSecurityController(context: self.context))
+        }), in: .window(.root))
+    }
+
     func shareAccountContact() {
+        if self.context.sharedContext.immediateForkExtrasSettings.securityBlockPhoneSharing {
+            self.presentBananaSecurityPhoneSharingBlocked()
+            return
+        }
         let _ = (self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: self.context.account.peerId))
         |> mapToSignal { peer -> Signal<EnginePeer, NoError> in
             if let peer {

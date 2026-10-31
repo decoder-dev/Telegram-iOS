@@ -56,6 +56,9 @@ on:
       - 'submodules/TelegramUI/Sources/ForkTrackingLinks.swift'
       - 'submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift'
       - 'Tests/MessageFilters/**'
+      - 'Tests/Security/**'
+      - 'submodules/WebUI/Sources/WebAppController.swift'
+      - 'submodules/TelegramUI/Components/OpenUserGeneratedUrl/**'
       - 'submodules/TelegramUI/Sources/OpenUrl.swift'
       - '.github/workflows/client-regression.yml'
 permissions:
@@ -102,6 +105,8 @@ jobs:
       - run: python3 Tests/ClientAdditions/quality.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/MessageFilters/run.py
+        if: ${{ !cancelled() }}
+      - run: python3 Tests/Security/run.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/menu_layout.py
         if: ${{ !cancelled() }}

@@ -526,6 +526,12 @@ private func devicesSearchableItems(context: AccountContext, activeSessionsConte
                 icon: icon,
                 breadcrumbs: [strings.Settings_Devices],
                 present: { context, _, present in
+                    if context.sharedContext.immediateForkExtrasSettings.securityBlockQrLogin {
+                        present(.immediate, bananaSecurityBlockedController(context: context, text: BananaSecurityStrings.qrLoginBlocked, openSettings: {
+                            present(.push, bananaSecurityController(context: context))
+                        }))
+                        return
+                    }
                     present(.push, QrCodeScanScreen(context: context, subject: .authTransfer(activeSessionsContext: activeSessionsContext)))
                 }
             )

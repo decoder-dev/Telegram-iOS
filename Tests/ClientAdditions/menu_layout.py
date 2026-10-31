@@ -78,6 +78,7 @@ class UIDevice { enum Idiom { case phone,pad }; static let current=UIDevice(); v
 struct BananaTabBarLayout: Equatable { let hidden: Bool; let contacts: Bool; let calls: Bool; let wide: Bool; let integratedSearch: Bool; let searchOnLeft: Bool }
 enum ForkExtrasHotFlags { static func hidesTabBar(_ value: Bool,isPad: Bool) -> Bool { value && !isPad } }
 enum ForkRegexMessageFilters { static func unusablePatternCount(_ patterns: [String]) -> Int { 0 } }
+enum BananaSecurityStrings { static var title="Security" }
 """
     stubs+='enum ForkExtrasLocalizedString { static func string(forKey key: String) -> String { key }\n'+'\n'.join('static let '+name+'="'+name+'"' for name in sorted(localized))+'\n}\n'
     defs='\n'.join([declaration(source,'private enum ForkExtrasDestination:'),declaration(source,'private enum ForkExtrasSection:'),focus,entry,*[declaration(source,'private func '+name+'(') for name in ['forkVisualLabelOptions','forkStickerShapeOptions','forkDoubleTapSeekOptions','forkDoubleTapActionOptions','forkGlassTintOptions','forkGlassRimOptions','forkSendFormattingOptions','forkVideoQualityOptions','forkIntChoiceLabel']],factory])
@@ -101,7 +102,7 @@ for russian in [false,true] {
       precondition(!titled.isEmpty && !titled.contains(""),"No searchable titles: \(category)")
       if category == .tabBar { precondition(titled.contains("Calls")) }
      }
-     if category == .top { precondition(ids == [0,1,2,3,7,4,8,23,1540,5,6]) }
+     if category == .top { precondition(ids == [0,1,2,1995,3,7,4,8,23,1540,5,6]) }
      if category == .media {
       var values: [Int32:Bool]=[:]
       for entry in entries { if case let .musicPolicy(id,_,value)=entry { values[id]=value } }
