@@ -1105,6 +1105,20 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation passed"
         self.assertIn('self.serverStateLastFailureTimestamp = failedAt', src)
         self.assertIn('let delaySeconds = self.serverStateCooldown()', src)
 
+    def test_ghost_flags_have_one_direction_from_settings_to_the_mirror(self):
+        # 31 Oct audit, C-6: ForkGhostModeSettings mirrors the ghost fields of ForkExtrasSettings (read at cold launch,
+        # before the account settings arrive). Every field must reach the mirror, through one function, and nothing
+        # but the stories prompt (which writes both) may set the mirror on its own.
+        shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
+        push = shared.split('private static func pushForkExtrasToEngineStatics(', 1)[1].split('// Wait for persisted preferences', 1)[0]
+        for mirror, setting in [('suppressOutgoingActivity', 'ghostDontSendTyping'), ('suppressOnline', 'ghostDontSendOnline'), ('suppressMessageReads', 'ghostDontReadMessages'), ('suppressStoryViews', 'ghostDontReadStories'), ('goOfflineAutomatically', 'ghostGoOfflineAutomatically'), ('readOnInteract', 'ghostReadOnInteract')]:
+            self.assertIn(mirror + ': settings.' + setting, push)
+        self.assertEqual(sum(path.read_text(encoding='utf-8').count('ForkGhostModeSettings.applyPreferences(') for path in (ROOT / 'submodules').rglob('*.swift')), 1)
+        writers = [str(path.relative_to(ROOT)) for path in (ROOT / 'submodules').rglob('*.swift') if re.search(r'ForkGhostModeSettings\.(suppressOutgoingActivity|suppressOnline|suppressMessageReads|suppressStoryViews|goOfflineAutomatically|readOnInteract) = ', path.read_text(encoding='utf-8'))]
+        self.assertEqual(writers, ['submodules/TelegramUI/Components/Stories/StoryContainerScreen/Sources/OpenStories.swift'])
+        stories = read('submodules/TelegramUI/Components/Stories/StoryContainerScreen/Sources/OpenStories.swift')
+        self.assertIn('updated.ghostDontReadStories = true', stories)
+
     def test_read_on_interact_window_belongs_to_one_chat_of_one_account(self):
         # 31 Oct audit, C-7: the window opened by a send allowed reads in every chat of every account, and online for
         # every account, for its 1.5 s.
