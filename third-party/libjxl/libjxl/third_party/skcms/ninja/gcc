@@ -1,9 +1,0 @@
-cc     = gcc
-cxx    = g++
-cflags = -fdiagnostics-color -Wall -Wextra -ffp-contract=off -fstack-usage
-out    = out/gcc$mode
-
-include ninja/local
-include ninja/common
-
-disabled = (uname | grep -qv Linux)

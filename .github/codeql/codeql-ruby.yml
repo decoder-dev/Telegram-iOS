@@ -1,6 +1,0 @@
-name: "BananaGram Ruby sources"
-
-# The C/C++ configuration excludes unshipped codec tools, including the directory
-# containing loudnorm.rb. Ruby needs its own scope so committed Ruby code remains scanned.
-queries:
-  - uses: security-extended
