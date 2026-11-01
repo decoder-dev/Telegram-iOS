@@ -622,13 +622,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 CallSessionManagerImplementationVersion(version: version, supportsVideo: supportsVideo)
             },
             appData: self.regularDeviceToken.get() |> map { token in
-                let tokenEnvironment: String
-                #if DEBUG
-                tokenEnvironment = "sandbox"
-                #else
-                tokenEnvironment = "production"
-                #endif
-                
+                let tokenEnvironment = PushNotificationEnvironment.tokenEnvironment
                 let data = buildConfig.bundleData(withAppToken: token, tokenType: "apns", tokenEnvironment: tokenEnvironment, signatureDict: signatureDict)
                 if let data = data, let _ = String(data: data, encoding: .utf8) {
                 } else {

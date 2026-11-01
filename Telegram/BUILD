@@ -1710,6 +1710,9 @@ ios_extension(
 plist_fragment(
     name = "TelegramInfoPlist",
     extension = "plist",
+    defaults = {
+        "telegram_aps_environment": telegram_aps_environment,
+    },
     template = 
     """
     <key>BGTaskSchedulerPermittedIdentifiers</key>
@@ -1728,6 +1731,8 @@ plist_fragment(
     <string>{telegram_bundle_id}</string>
     <key>CFBundleName</key>
     <string>BananaGram</string>
+    <key>TelegramAPNSEnvironment</key>
+    <string>{telegram_aps_environment}</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleSignature</key>

@@ -142,6 +142,8 @@ jobs:
         if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/parallel_downloads.py
         if: ${{ !cancelled() }}
+      - run: python3 Tests/ClientAdditions/push_environment.py
+        if: ${{ !cancelled() }}
       - run: python3 Tests/ChatListSync/run.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/Customization/theme_selection.py

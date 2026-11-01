@@ -366,15 +366,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             guard let data else {
                 return nil
             }
-            let sandbox: Bool
-            #if DEBUG
-            sandbox = true
-            #else
-            sandbox = false
-            #endif
             return AuthorizationCodePushNotificationConfiguration(
                 token: hexString(data),
-                isSandbox: sandbox
+                isSandbox: PushNotificationEnvironment.isSandbox
             )
         })
                 
@@ -1976,12 +1970,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     }
     
     public func updateNotificationTokensRegistration() {
-        let sandbox: Bool
-        #if DEBUG
-        sandbox = true
-        #else
-        sandbox = false
-        #endif
+        let sandbox = PushNotificationEnvironment.isSandbox
         
         let settings = self.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.inAppNotificationSettings])
         |> map { sharedData -> (allAccounts: Bool, includeMuted: Bool) in
