@@ -19,7 +19,7 @@ final class FFMpegAudioFrameDecoder: MediaTrackFrameDecoder {
     static func playbackChannelCount(codecContext: FFMpegAVCodecContext) -> Int {
         return codecContext.channels() == 1 ? 1 : 2
     }
-    
+
     init(codecContext: FFMpegAVCodecContext, sampleRate: Int = 44100, channelCount: Int = 2) {
         self.codecContext = codecContext
         self.audioFrame = FFMpegAVFrame()
