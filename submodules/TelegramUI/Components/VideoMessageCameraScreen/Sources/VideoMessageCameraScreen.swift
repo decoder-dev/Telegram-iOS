@@ -624,10 +624,15 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
             
             self.startRecording.connect({ [weak self] _ in
                 if let self, let controller = getController() {
-                    self.startVideoRecording(pressing: !controller.scheduledLock)
-                    controller.scheduledLock = false
-                    if controller.recordingStartTime == nil {
-                        controller.recordingStartTime = CACurrentMediaTime()
+                    if controller.node.countdownEnabled && controller.node.results.isEmpty {
+                        controller.beginRecordingCountdown { [weak self, weak controller] in
+                            guard let self, let controller else { return }
+                            self.startVideoRecording(pressing: !controller.scheduledLock)
+                            controller.scheduledLock = false
+                        }
+                    } else {
+                        self.startVideoRecording(pressing: !controller.scheduledLock)
+                        controller.scheduledLock = false
                     }
                 }
             })
@@ -767,6 +772,8 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                 return
             }
             controller.lastActionTimestamp = currentTimestamp
+            controller.recordingStartGeneration += 1
+            let generation = controller.recordingStartGeneration
         
             let initialDuration = controller.node.previewState?.composition.duration.seconds ?? 0.0
             let isFirstRecording = initialDuration.isZero
@@ -779,9 +786,17 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
             
             controller.node.withReadyCamera(isFirstTime: !controller.node.cameraIsActive) { [weak self] in
                 Queue.mainQueue().after(0.15) {
-                    guard let self else {
+                    guard let self, let controller = self.getController(), !controller.isDismissed,
+                          controller.recordingStartGeneration == generation, controller.cameraState.recording != .none else {
                         return
                     }
+                    guard UIApplication.shared.applicationState == .active else {
+                        controller.cancelRecordingCountdown()
+                        controller.completion(nil, nil, nil, nil)
+                        controller.requestDismiss(animated: false)
+                        return
+                    }
+                    controller.recordingStartTime = controller.recordingStartTime ?? CACurrentMediaTime()
                     self.resultDisposable.set((camera.startRecording()
                     |> deliverOnMainQueue).startStrict(next: { [weak self] recordingData in
                         let duration = initialDuration + recordingData.duration
@@ -851,6 +866,7 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
         }
         
         func cancelVideoRecording() {
+            self.getController()?.cancelRecordingCountdown()
             if let initialBrightness = self.initialBrightness {
                 self.initialBrightness = nil
                 self.brightnessArguments = (CACurrentMediaTime(), 0.2, mainWindowScreen.brightness, initialBrightness)
@@ -1218,6 +1234,11 @@ public class VideoMessageCameraScreen: ViewController {
         private weak var controller: VideoMessageCameraScreen?
         private let context: AccountContext
         private let cameraImpl: CameraImpl
+        let recordingProfile: RoundVideoRecordingProfile
+        let encodingProfile: VideoMessageEncodingProfile
+        let countdownEnabled: Bool
+        private let focusOnTap: Bool
+        private let alwaysResetZoom: Bool
         fileprivate var camera: CameraProtocol?
         private var pinchStartTimestamp: Double?
         private let updateState: ActionSlot<CameraState>
@@ -1237,6 +1258,7 @@ public class VideoMessageCameraScreen: ViewController {
         fileprivate var mainPreviewView: CameraSimplePreviewView
         fileprivate var additionalPreviewView: CameraSimplePreviewView
         private var progressView: RecordingProgressView
+        private let countdownLabel = UILabel()
         private let loadingView: LoadingEffectView
         private let zoomControlsView = RoundVideoZoomControl()
         private var zoomPanGestureRecognizer: UIPanGestureRecognizer?
@@ -1313,11 +1335,12 @@ public class VideoMessageCameraScreen: ViewController {
             self.context = controller.context
             
             let experimentalSettings = self.context.sharedContext.immediateExperimentalUISettings
+            let captureSettings = self.context.sharedContext.immediateForkExtrasSettings
             let useModernVideoMessagePipeline = experimentalSettings.resolvedUseModernVideoMessagePipeline
             let mode: NeoCameraImpl.RoundVideoMode?
             switch useModernVideoMessagePipeline ? experimentalSettings.videoMessageCameraMode : .legacy {
             case .legacy:
-                mode = nil
+                mode = captureSettings.roundVideoRecordAt60FPS || captureSettings.roundVideoMaximumQuality ? .hdLanczos : nil
             case .vga:
                 mode = .vga
             case .hdBilinear:
@@ -1325,8 +1348,15 @@ public class VideoMessageCameraScreen: ViewController {
             case .hdLanczos:
                 mode = .hdLanczos
             }
+            self.recordingProfile = RoundVideoRecordingProfile(recordAt60FPS: mode != nil && captureSettings.roundVideoRecordAt60FPS, maximumQuality: mode != nil && captureSettings.roundVideoMaximumQuality, limitToVga: mode == .vga)
+            let encodingConfiguration = controller.context.currentAppConfiguration.with { $0.data?["round_video_encoding"] as? [String: Any] }
+            let serverLimit = (encodingConfiguration?["max_size"] as? NSNumber)?.int64Value
+            self.encodingProfile = VideoMessageEncodingProfile(maximumDimension: self.recordingProfile.outputSide, videoBitrate: self.recordingProfile.videoBitrate, audioBitrate: self.recordingProfile.audioBitrate, frameRate: self.recordingProfile.frameRate, maximumFileSize: serverLimit.flatMap { $0 > 0 ? $0 : nil } ?? VideoMessageEncodingProfile.defaultMaximumFileSize)
+            self.countdownEnabled = captureSettings.roundVideoCountdown
+            self.focusOnTap = captureSettings.roundVideoFocusOnTap
+            self.alwaysResetZoom = captureSettings.roundVideoAlwaysResetZoom
             if let mode {
-                self.cameraImpl = NeoCameraImpl(roundVideoMode: mode, log: { message in
+                self.cameraImpl = NeoCameraImpl(roundVideoMode: mode == .hdBilinear && captureSettings.roundVideoMaximumQuality ? .hdLanczos : mode, log: { message in
                     Logger.shared.log("CameraNeo", message)
                 })
             } else {
@@ -1348,7 +1378,7 @@ public class VideoMessageCameraScreen: ViewController {
             self.previewContainerContentView.clipsToBounds = true
             self.previewContainerView.addSubview(self.previewContainerContentView)
                         
-            let isDualCameraEnabled = cameraImpl.isDualCameraSupported(forRoundVideo: true)
+            let isDualCameraEnabled = self.recordingProfile.frameRate <= 30.0 && cameraImpl.isDualCameraSupported(forRoundVideo: true)
             
             self.mainPreviewView = cameraImpl.makeCameraSimplePreviewView(frame: .zero, main: true, roundVideo: true)
             self.additionalPreviewView = cameraImpl.makeCameraSimplePreviewView(frame: .zero, main: false, roundVideo: true)
@@ -1407,6 +1437,17 @@ public class VideoMessageCameraScreen: ViewController {
             self.previewContainerContentView.addSubview(self.progressView)
             self.previewContainerContentView.addSubview(self.previewBlurView)
             self.previewContainerContentView.addSubview(self.loadingView)
+            self.countdownLabel.font = Font.with(size: 76.0, design: .round, weight: .bold, traits: .monospacedNumbers)
+            self.countdownLabel.textColor = .white
+            self.countdownLabel.textAlignment = .center
+            self.countdownLabel.layer.shadowColor = UIColor.black.cgColor
+            self.countdownLabel.layer.shadowOpacity = 0.45
+            self.countdownLabel.layer.shadowRadius = 6.0
+            self.countdownLabel.layer.shadowOffset = CGSize(width: 0.0, height: 2.0)
+            self.countdownLabel.isUserInteractionEnabled = false
+            self.countdownLabel.isHidden = true
+            self.countdownLabel.accessibilityTraits = [.staticText, .updatesFrequently]
+            self.previewContainerContentView.addSubview(self.countdownLabel)
             
             self.completion.connect { [weak self] result in
                 if let self {
@@ -1453,10 +1494,18 @@ public class VideoMessageCameraScreen: ViewController {
             })
         }
         
+        func updateRecordingCountdown(_ value: Int?) {
+            self.countdownLabel.text = value.map(String.init)
+            self.countdownLabel.isHidden = value == nil
+            self.countdownLabel.isAccessibilityElement = value != nil
+        }
+
         func setupLiveUpload(filePath: String) {
             guard let controller = self.controller, controller.allowLiveUpload, self.liveUploadInterface == nil else {
                 return
             }
+            let maximumRecordingBytes = Int64(self.recordingProfile.videoBitrate + self.recordingProfile.audioBitrate) * 60 / 8
+            guard self.recordingProfile == RoundVideoRecordingProfile(), maximumRecordingBytes <= self.encodingProfile.maximumFileSize else { return }
             let liveUploadInterface = LegacyLiveUploadInterface(context: self.context)
             Queue.mainQueue().after(1.5, {
                 liveUploadInterface.setup(withFileURL: URL(fileURLWithPath: filePath))
@@ -1472,6 +1521,31 @@ public class VideoMessageCameraScreen: ViewController {
             
             let pinchGestureRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(self.handlePinch(_:)))
             self.view.addGestureRecognizer(pinchGestureRecognizer)
+            if self.focusOnTap {
+                let focusTap = UITapGestureRecognizer(target: self, action: #selector(self.handleFocusTap(_:)))
+                focusTap.cancelsTouchesInView = false
+                self.previewContainerView.addGestureRecognizer(focusTap)
+            }
+        }
+
+        @objc private func handleFocusTap(_ gesture: UITapGestureRecognizer) {
+            guard gesture.state == .ended, let camera = self.camera, self.previewState == nil, !self.animatingOut else { return }
+            let point = gesture.location(in: self.previewContainerView)
+            let bounds = self.previewContainerView.bounds
+            guard hypot(point.x - bounds.midX, point.y - bounds.midY) <= min(bounds.width, bounds.height) * 0.5 else { return }
+            let preview = self.cameraState.isDualCameraEnabled && self.cameraState.position == .front ? self.additionalPreviewView : self.mainPreviewView
+            camera.focus(at: preview.cameraPoint(for: gesture.location(in: preview)), autoFocus: true)
+
+            let indicator = UIView(frame: CGRect(x: point.x - 32.0, y: point.y - 32.0, width: 64.0, height: 64.0))
+            indicator.isUserInteractionEnabled = false
+            indicator.layer.cornerRadius = 32.0
+            indicator.layer.borderWidth = 1.5
+            indicator.layer.borderColor = UIColor.white.cgColor
+            self.previewContainerView.addSubview(indicator)
+            indicator.layer.animateScale(from: 1.3, to: 1.0, duration: 0.2)
+            indicator.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.25, delay: 0.7, removeOnCompletion: false, completion: { [weak indicator] _ in
+                indicator?.removeFromSuperview()
+            })
         }
                 
         fileprivate func setupCamera() {
@@ -1487,7 +1561,8 @@ public class VideoMessageCameraScreen: ViewController {
                     audio: true,
                     photo: false,
                     metadata: false,
-                    isRoundVideo: true
+                    isRoundVideo: true,
+                    roundVideoProfile: self.recordingProfile
                 ),
                 previewView: self.mainPreviewView,
                 secondaryPreviewView: self.additionalPreviewView
@@ -1554,7 +1629,9 @@ public class VideoMessageCameraScreen: ViewController {
                 }
                 self.isPinchZooming = false
                 // Fork (Donutgram staticRoundVideoZoom): the zoom can stay where the pinch left it.
-                if !BananaMediaTweaks.staticRoundVideoZoom {
+                if self.alwaysResetZoom {
+                    self.setDisplayedZoom(1.0, rampRate: self.previewState == nil ? 8.0 : nil, followsRamp: true)
+                } else if !BananaMediaTweaks.staticRoundVideoZoom {
                     // Back to where the pinch started, such as a lens picked with a button, not always to 1×, and the
                     // dial glides back along with the picture. A paused camera has nothing to animate, so it gets the
                     // value at once.
@@ -2259,6 +2336,7 @@ public class VideoMessageCameraScreen: ViewController {
             }
             
             self.progressView.frame = previewBounds
+            self.countdownLabel.frame = previewBounds
             self.progressView.value = CGFloat(self.cameraState.duration / 60.0)
             
             transition.setAlpha(view: self.additionalPreviewView, alpha: self.cameraState.position == .front ? 1.0 : 0.0)
@@ -2545,6 +2623,10 @@ public class VideoMessageCameraScreen: ViewController {
     }
     
     deinit {
+        self.recordingCountdownTimer?.invalidate()
+        for observer in self.countdownObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
         self.audioSessionDisposable?.dispose()
         if #available(iOS 13.0, *) {
             try? AVAudioSession.sharedInstance().setAllowHapticsAndSystemSoundsDuringRecording(false)
@@ -2564,6 +2646,17 @@ public class VideoMessageCameraScreen: ViewController {
 
     override public func loadDisplayNode() {
         self.displayNode = Node(controller: self)
+        for name in [UIApplication.willResignActiveNotification, UIApplication.didEnterBackgroundNotification] {
+            self.countdownObservers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] notification in
+                guard let self, self.isRecordingCountdownPending else { return }
+                // A camera permission prompt may resign active before the preview is ready.
+                // Actual backgrounding always cancels; an interruption cancels an active countdown.
+                guard self.recordingCountdown.isRunning || notification.name == UIApplication.didEnterBackgroundNotification else { return }
+                self.cancelRecordingCountdown()
+                self.completion(nil, nil, nil, nil)
+                self.requestDismiss(animated: false)
+            })
+        }
 
         super.displayNodeDidLoad()
 
@@ -2574,11 +2667,25 @@ public class VideoMessageCameraScreen: ViewController {
         }
     }
         
+    override public func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        let wasPending = self.isRecordingCountdownPending
+        self.cancelRecordingCountdown()
+        if wasPending {
+            self.completion(nil, nil, nil, nil)
+        }
+    }
+
     fileprivate var didSend = false
     fileprivate var lastActionTimestamp: Double?
     fileprivate var isSendingImmediately = false
     public func sendVideoRecording(silentPosting: Bool? = nil, scheduleTime: Int32? = nil, repeatPeriod: Int32? = nil, messageEffect: ChatSendMessageEffect? = nil) {
         guard !self.didSend else {
+            return
+        }
+        if self.isRecordingCountdownPending || (self.recordingStartTime == nil && self.node.results.isEmpty) {
+            self.cancelRecordingCountdown()
+            self.completion(nil, nil, nil, nil)
             return
         }
         
@@ -2648,6 +2755,11 @@ public class VideoMessageCameraScreen: ViewController {
                 }
             } else {
                 finalDuration = duration
+            }
+
+            if let attributes = try? FileManager.default.attributesOfItem(atPath: video.videoPath),
+               let fileSize = attributes[.size] as? NSNumber, fileSize.int64Value > self.node.encodingProfile.maximumFileSize {
+                hasAdjustments = true
             }
             
             let dimensions = video.dimensions
@@ -2722,7 +2834,8 @@ public class VideoMessageCameraScreen: ViewController {
                     collageTrackSamples: nil,
                     coverImageTimestamp: nil,
                     coverDimensions: nil,
-                    qualityPreset: .videoMessage
+                    qualityPreset: .videoMessage,
+                    videoMessageEncoding: self.node.encodingProfile
                 )
                 
                 var resourceAdjustments: VideoMediaResourceAdjustments? = nil
@@ -2760,7 +2873,7 @@ public class VideoMessageCameraScreen: ViewController {
                     outputDimensions = video.dimensions
                 } else {
                     resource = LocalFileVideoMediaResource(randomId: Int64.random(in: Int64.min ... Int64.max), paths: videoPaths, adjustments: resourceAdjustments)
-                    let exportConfiguration = recommendedVideoExportConfiguration(values: values, duration: duration, frameRate: 30.0)
+                    let exportConfiguration = recommendedVideoExportConfiguration(values: values, duration: duration, frameRate: Float(self.node.recordingProfile.frameRate))
                     outputDimensions = PixelDimensions(
                         width: Int32(exportConfiguration.videoSettings[AVVideoWidthKey] as? Int ?? Int(video.dimensions.width)),
                         height: Int32(exportConfiguration.videoSettings[AVVideoHeightKey] as? Int ?? Int(video.dimensions.height))
@@ -2815,6 +2928,11 @@ public class VideoMessageCameraScreen: ViewController {
         guard !self.didSend else {
             return false
         }
+        if self.isRecordingCountdownPending || (self.recordingStartTime == nil && self.node.results.isEmpty) {
+            self.cancelRecordingCountdown()
+            self.completion(nil, nil, nil, nil)
+            return false
+        }
         
         self.node.dismissAllTooltips()
         
@@ -2828,6 +2946,44 @@ public class VideoMessageCameraScreen: ViewController {
     }
 
     fileprivate var recordingStartTime: Double?
+    fileprivate var recordingStartGeneration = 0
+    private var isRecordingCountdownPending = false
+    private var recordingCountdown = RoundVideoRecordingCountdown()
+    private var recordingCountdownTimer: Foundation.Timer?
+    private var countdownObservers: [NSObjectProtocol] = []
+
+    fileprivate func beginRecordingCountdown(start: @escaping () -> Void) {
+        guard !self.isRecordingCountdownPending, !self.isDismissed, !self.didSend else { return }
+        self.isRecordingCountdownPending = true
+        self.recordingStartGeneration += 1
+        let generation = self.recordingStartGeneration
+        self.node.withReadyCamera { [weak self] in
+            guard let self, self.isRecordingCountdownPending, !self.isDismissed, self.recordingStartGeneration == generation else { return }
+            self.recordingCountdown.start(at: CACurrentMediaTime())
+            self.node.updateRecordingCountdown(3)
+            let timer = Foundation.Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+                guard let self, self.isRecordingCountdownPending, !self.isDismissed, self.recordingStartGeneration == generation,
+                      let remaining = self.recordingCountdown.remaining(at: CACurrentMediaTime()) else { return }
+                if remaining > 0 {
+                    self.node.updateRecordingCountdown(remaining)
+                } else {
+                    self.cancelRecordingCountdown()
+                    start()
+                }
+            }
+            self.recordingCountdownTimer = timer
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+
+    fileprivate func cancelRecordingCountdown() {
+        self.recordingStartGeneration += 1
+        self.isRecordingCountdownPending = false
+        self.recordingCountdown.cancel()
+        self.recordingCountdownTimer?.invalidate()
+        self.recordingCountdownTimer = nil
+        self.node.updateRecordingCountdown(nil)
+    }
     fileprivate var scheduledLock = false
     public func lockVideoRecording() {
         guard !self.didSend else {
@@ -2894,11 +3050,12 @@ public class VideoMessageCameraScreen: ViewController {
         })
     }
             
-    private var isDismissed = false
+    fileprivate var isDismissed = false
     fileprivate func requestDismiss(animated: Bool) {
         guard !self.isDismissed else {
             return
         }
+        self.cancelRecordingCountdown()
         
         self.node.dismissAllTooltips()
         

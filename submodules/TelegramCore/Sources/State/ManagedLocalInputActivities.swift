@@ -142,6 +142,9 @@ public enum ForkGhostScheduleSettings {
 /// Bool flags read on scroll / bubble-layout paths. Atomic so Postbox/UI queues never race.
 public enum ForkExtrasHotFlags {
     public struct State: Equatable {
+        public var parallelDownloads: Bool = false
+        public var hideAIButton: Bool = false
+        public var hideRichTextEditor: Bool = false
         /// Hide sponsored / recommended ads (AyuGram disableAds). Default on.
         public var hideAds: Bool = true
         public var hideBlockedMessages: Bool = false
@@ -254,9 +257,24 @@ public enum ForkExtrasHotFlags {
 
     /// Posted when "Hide the All Chats tab" changes.
     public static let hideAllChatsDidChangeNotification = Notification.Name("ForkExtrasHotFlags.hideAllChatsDidChange")
+    public static let didChangeNotification = Notification.Name("ForkExtrasHotFlags.didChange")
+
+    public static var changes: Signal<State, NoError> {
+        return Signal { subscriber in
+            let observer = NotificationCenter.default.addObserver(forName: didChangeNotification, object: nil, queue: nil) { _ in
+                subscriber.putNext(current)
+            }
+            subscriber.putNext(current)
+            return ActionDisposable { NotificationCenter.default.removeObserver(observer) }
+        }
+        |> distinctUntilChanged
+    }
 
     public static func update(_ next: State) {
         let previous = state.swap(next)
+        if previous != next {
+            NotificationCenter.default.post(name: didChangeNotification, object: nil)
+        }
         if previous.compactChatList != next.compactChatList || previous.compactMessagePreview != next.compactMessagePreview || previous.compactFolderNames != next.compactFolderNames {
             NotificationCenter.default.post(name: compactLayoutDidChangeNotification, object: nil)
         }

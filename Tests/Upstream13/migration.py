@@ -17,8 +17,9 @@ class StorageMigration(unittest.TestCase):
    self.assertEqual(a,b[:len(a)],path)
    self.assertEqual(len(b),len(set(b)),path)
  def test_api_is_official_snapshot(self):
-  for f in (ROOT/'submodules/TelegramApi/Sources').glob('Api[0-9]*.swift'):
-   self.assertEqual(f.read_bytes(),subprocess.check_output(['git','show','f1dd7a2dbd02cbbf513e75d5695d8d36d1cf5838:'+f.relative_to(ROOT).as_posix()],cwd=ROOT),f.name)
+  # Api*.swift is generated during the build now; checking a glob of those files checked nothing.
+  for path in ['submodules/TelegramApi/swift_scheme.tl', 'submodules/TelegramApi/schema.json']:
+   self.assertEqual((ROOT/path).read_bytes(),subprocess.check_output(['git','show','279f89e4d4:'+path],cwd=ROOT),path)
  def test_proxy_codable_roundtrip(self):
   compiler=shutil.which('swiftc')
   if not compiler:self.skipTest('Swift compiler unavailable; codec execution still requires CI')

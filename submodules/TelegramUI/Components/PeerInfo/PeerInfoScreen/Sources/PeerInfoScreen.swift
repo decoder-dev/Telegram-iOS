@@ -277,6 +277,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
     let navigationActionDisposable = MetaDisposable()
     let enqueueMediaMessageDisposable = MetaDisposable()
     private let openSavedMusicDisposable = MetaDisposable()
+    private var profileAppearanceDisposable: Disposable?
     
     private(set) var validLayout: (ContainerViewLayout, CGFloat)?
     /// While an expansion has the profile's views they are held still: layouts wait, and the last one is applied when
@@ -514,6 +515,21 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         self.paneContainerNode = PeerInfoPaneContainerNode(context: context, updatedPresentationData: controller.updatedPresentationData, peerId: peerId, chatLocation: chatLocation, sharedMediaFromForumTopic: sharedMediaFromForumTopic, chatLocationContextHolder: chatLocationContextHolder, isMediaOnly: self.isMediaOnly, initialPaneKey: initialPaneKey, initialStoryFolderId: switchToStoryFolder, initialGiftCollectionId: switchToGiftCollection, switchToMediaTarget: switchToMediaTarget)
         
         super.init()
+
+        self.profileAppearanceDisposable = (forkExtrasSettings(accountManager: context.sharedContext.accountManager)
+        |> distinctUntilChanged(isEqual: { lhs, rhs in
+            return lhs.streamerMode == rhs.streamerMode
+                && lhs.visualPhoneEnabled == rhs.visualPhoneEnabled
+                && lhs.visualPhoneNumber == rhs.visualPhoneNumber
+                && lhs.visualLabels == rhs.visualLabels
+                && lhs.localVerificationBadges == rhs.localVerificationBadges
+                && lhs.hidePremiumStatuses == rhs.hidePremiumStatuses
+                && lhs.hideVerification == rhs.hideVerification
+        })
+        |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+            guard let self, let (layout, navigationHeight) = self.validLayout else { return }
+            self.containerLayoutUpdated(layout: layout, navigationHeight: navigationHeight, transition: .immediate, additive: false)
+        })
         
         self.paneContainerNode.parentController = controller
         
@@ -2710,6 +2726,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
     
     deinit {
         self.dataDisposable?.dispose()
+        self.profileAppearanceDisposable?.dispose()
         self.walletStickersPreloadDisposable.dispose()
         self.hiddenMediaDisposable?.dispose()
         self.activeActionDisposable.dispose()

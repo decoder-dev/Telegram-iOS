@@ -6,6 +6,18 @@
 
 ## [Unreleased]
 
+### Added — Telegram 13.1.2 and donor features
+- Merge official Telegram 13.1.2 while retaining the fork's Archive and hidden-account restrictions in Siri.
+- Extras → Media: optional 3–2–1 countdown before recording a round video; camera, flash and zoom remain available. Cancellation and backgrounding invalidate a pending start.
+- The modern round-video camera can use an available ultra-wide lens, record at 60 FPS with 30 FPS fallback, focus by tapping, and record at up to 640×640 with higher video/audio bitrates. Enabling 60 FPS or maximum quality selects the modern camera; otherwise the previous camera choice is retained. 60 FPS disables simultaneous dual-camera capture. Camera settings apply on the next opening.
+- Long high-quality round videos are exported within the round-video size limit. Export settings are stored with each video, so changing preferences does not change a queued export. Cloud round videos retain the small-part upload format.
+- Extras → Network: optional parallel downloads with shared limits across media categories and a separate prefetch limit; an optional switch hides the proxy sponsor entry.
+- Extras: drag signed-in accounts into order without switching the current account. Locked hidden accounts stay out of the list.
+- Extras → Messages: hide the AI button or expanded-editor entry points. Extras → Profile: select a local badge, visible only in your own profile and Settings, with an explicit local-only description.
+- Composer controls and own-profile appearance refresh when their preferences change. Existing live tab-bar, folder and compact-row settings are retained.
+
+Sources: [Donutgram #123](https://github.com/kittenello/Donutgram/pull/123), [13.1.2 preparation #122](https://github.com/kittenello/Donutgram/pull/122), Swiftgram [#177](https://github.com/Swiftgram/Telegram-iOS/pull/177), [#212](https://github.com/Swiftgram/Telegram-iOS/pull/212), [#213](https://github.com/Swiftgram/Telegram-iOS/pull/213), [#214](https://github.com/Swiftgram/Telegram-iOS/pull/214), [#215](https://github.com/Swiftgram/Telegram-iOS/pull/215). The version merge comes from official upstream; feature integrations preserve this fork's privacy and recording policies.
+
 ### Fixed — Spotlight database stalls
 - Resolve contact avatars on Spotlight's queue after the database privacy snapshot is read. Device logs showed this processing holding a Postbox transaction for seconds and delaying unrelated database work.
 - Update the player build dependency `qs` to 6.16.2 to fix its denial-of-service advisory.

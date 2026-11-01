@@ -784,7 +784,7 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertIn('position: opensWithRear ? .back : .front,', screen)
         self.assertIn('BananaRoundVideoCamera.noteCameraInUse(isRear: position == .back)', screen)
         controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
-        self.assertIn('[1609, 1515, 1516, 1544, 1545, 1559, 1612]', controller)
+        self.assertIn('[1609, 2110, 2111, 2112, 2113, 2114, 2115, 1515, 1516, 1544, 1545, 1559, 1612]', controller)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertIn('BananaRoundVideoCamera.remembersLast = settings.roundVideoRemembersCamera', shared)
 
@@ -872,7 +872,7 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertIn('if BananaExactCounts.enabled {\n        return presentationStringsFormattedNumber(Int64(count), "\\u{2009}")', fmt)
         ctl = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
         self.assertIn('[1557],\n            [1558],', ctl)
-        self.assertIn('[1609, 1515, 1516, 1544, 1545, 1559, 1612],', ctl)
+        self.assertIn('[1609, 2110, 2111, 2112, 2113, 2114, 2115, 1515, 1516, 1544, 1545, 1559, 1612],', ctl)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertIn('BananaExactCounts.enabled = settings.exactCounts', shared)
         self.assertIn('BananaVoiceSendConfirmation.enabled = settings.confirmVoiceSend', shared)

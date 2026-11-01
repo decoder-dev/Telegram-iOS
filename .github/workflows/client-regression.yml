@@ -29,6 +29,21 @@ on:
       - 'submodules/TelegramCore/Sources/TelegramEngine/Wallet/Wallet.swift'
       - 'submodules/WalletContext/Sources/WalletLogger.swift'
       - 'Tests/Camera/**'
+      - 'submodules/Camera/**'
+      - 'submodules/FetchManagerImpl/**'
+      - 'submodules/ChatListUI/Sources/Node/**'
+      - 'submodules/ItemListPeerItem/**'
+      - 'submodules/AttachmentTextInputPanelNode/**'
+      - 'submodules/TelegramCore/Sources/Arena/BananaIdentityBadges.swift'
+      - 'submodules/TelegramCore/Sources/PendingMessages/PendingMessageUploadedContent.swift'
+      - 'submodules/TelegramUI/Sources/SharedAccountContext.swift'
+      - 'submodules/TelegramUI/Sources/ChatControllerOpenAttachmentMenu.swift'
+      - 'submodules/TelegramUI/Components/Chat/ChatTextInputPanelNode/**'
+      - 'submodules/TelegramUI/Components/MediaEditor/**'
+      - 'submodules/TelegramUI/Components/MessageInputPanelComponent/**'
+      - 'submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/**'
+      - 'submodules/TelegramUI/Components/Resources/FetchVideoMediaResource/**'
+      - 'submodules/TelegramUI/Components/RichTextAttachmentScreen/**'
       - 'submodules/TelegramUI/Components/VideoMessageCameraScreen/**'
       - 'submodules/TelegramUI/Sources/ChatController.swift'
       - 'submodules/TelegramUI/Sources/SpotlightContacts.swift'
@@ -114,6 +129,10 @@ jobs:
       - run: python3 Tests/Security/run.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/menu_layout.py
+        if: ${{ !cancelled() }}
+      - run: python3 Tests/ClientAdditions/donor_updates.py
+        if: ${{ !cancelled() }}
+      - run: python3 Tests/ClientAdditions/parallel_downloads.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/ChatListSync/run.py
         if: ${{ !cancelled() }}

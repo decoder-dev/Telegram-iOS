@@ -49,6 +49,8 @@ final class CameraNeo: NSObject, CameraProtocol {
     private let audioOutputIdentity = Atomic<ObjectIdentifier?>(value: nil)
 
     private var singleFramesEnabled = true
+    private var allowsVirtualBackDevice = true
+    private var usesVirtualBackDevice = false
     private var singleMediaPosition: Camera.Position
     private var recordingOrientation: AVCaptureVideoOrientation = .portrait
 
@@ -333,11 +335,11 @@ final class CameraNeo: NSObject, CameraProtocol {
                     let processor: RoundVideoFrameProcessor
                     if let current = self.frameProcessor {
                         processor = current
-                    } else if let decorationResources, let current = RoundVideoFrameProcessor(mediaQueue: self.mediaQueue, decorationResources: decorationResources, mode: self.roundVideoMode) {
+                    } else if let decorationResources, let current = RoundVideoFrameProcessor(mediaQueue: self.mediaQueue, decorationResources: decorationResources, mode: self.roundVideoMode, profile: self.configuration.roundVideoProfile) {
                         self.frameProcessor = current
                         processor = current
                     } else {
-                        guard let current = RoundVideoFrameProcessor(mediaQueue: self.mediaQueue, decorationResources: nil, mode: self.roundVideoMode) else {
+                        guard let current = RoundVideoFrameProcessor(mediaQueue: self.mediaQueue, decorationResources: nil, mode: self.roundVideoMode, profile: self.configuration.roundVideoProfile) else {
                             let _ = self.recordingActive.modify { _ in false }
                             let _ = self.recordingStopRequested.modify { _ in false }
                             if subscriberActive.swap(false) {
@@ -388,7 +390,7 @@ final class CameraNeo: NSObject, CameraProtocol {
                                         path: url.path,
                                         thumbnail: thumbnail ?? UIImage(),
                                         isMirrored: false,
-                                        dimensions: CGSize(width: RoundVideoFrameProcessor.outputWidth, height: RoundVideoFrameProcessor.outputHeight)
+                                        dimensions: CGSize(width: processor.outputWidth, height: processor.outputHeight)
                                     ),
                                     additional: nil,
                                     duration: duration,
@@ -491,8 +493,9 @@ final class CameraNeo: NSObject, CameraProtocol {
             guard let self else { subscriber.putCompletion(); return EmptyDisposable }
             self.sessionQueue.async { [weak self] in
                 if let device = self?.activeDevice {
-                    let minimum = max(1.0, device.minAvailableVideoZoomFactor)
-                    let maximum = max(minimum, min(8.0, device.maxAvailableVideoZoomFactor))
+                    let neutral = neutralZoomFactor(device)
+                    let minimum = device.minAvailableVideoZoomFactor / neutral
+                    let maximum = max(minimum, min(8.0, device.maxAvailableVideoZoomFactor / neutral))
                     subscriber.putNext(minimum ... maximum)
                 } else {
                     subscriber.putNext(1.0 ... 1.0)
@@ -509,10 +512,15 @@ final class CameraNeo: NSObject, CameraProtocol {
             self.sessionQueue.async { [weak self] in
                 var factors: [CGFloat] = [1.0]
                 if let device = self?.activeDevice {
-                    if #available(iOS 16.0, *) {
-                        factors += device.activeFormat.secondaryNativeResolutionZoomFactors.map { CGFloat($0) }
+                    let neutral = neutralZoomFactor(device)
+                    factors.append(device.minAvailableVideoZoomFactor / neutral)
+                    if #available(iOS 13.0, *), isRoundVideoVirtualDevice(device) {
+                        factors += device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat($0.doubleValue) / neutral }
                     }
-                    factors = Array(Set(factors.filter { $0.isFinite && $0 >= max(1.0, device.minAvailableVideoZoomFactor) && $0 <= min(8.0, device.maxAvailableVideoZoomFactor) })).sorted()
+                    if #available(iOS 16.0, *) {
+                        factors += device.activeFormat.secondaryNativeResolutionZoomFactors.map { CGFloat($0) / neutral }
+                    }
+                    factors = Array(Set(factors.filter { $0.isFinite && $0 >= device.minAvailableVideoZoomFactor / neutral && $0 <= min(8.0, device.maxAvailableVideoZoomFactor / neutral) })).sorted()
                 }
                 subscriber.putNext(factors)
                 subscriber.putCompletion()
@@ -526,13 +534,13 @@ final class CameraNeo: NSObject, CameraProtocol {
         if let rampRate, rampRate.isFinite, rampRate > 0 {
             self.rampZoom(zoomFactor, rate: rampRate)
         } else {
-            self.updateZoom { _ in zoomFactor }
+            self.updateZoom { device in zoomFactor * neutralZoomFactor(device) }
         }
     }
 
     func setZoomLevel(_ zoomLevel: CGFloat) {
         self.updateZoom { device in
-            return 1.0 + zoomLevel
+            return neutralZoomFactor(device) + zoomLevel
         }
     }
 
@@ -548,7 +556,7 @@ final class CameraNeo: NSObject, CameraProtocol {
                 return
             }
             self.withLockedDevice(device) { device in
-                device.ramp(toVideoZoomFactor: self.clampedZoom(zoomLevel, device: device), withRate: Float(rate))
+                device.ramp(toVideoZoomFactor: self.clampedZoom(zoomLevel * neutralZoomFactor(device), device: device), withRate: Float(rate))
             }
         }
     }
@@ -637,11 +645,21 @@ final class CameraNeo: NSObject, CameraProtocol {
         }
         let audioConfigured = !self.configuration.audio || self.configureAudio()
         self.session.commitConfiguration()
+        if !self.useMultiCam {
+            self.applyNeutralZoom(position: self.positionValue.with { $0 })
+        }
         self.configureVideoStabilization()
         if videoConfigured && self.useMultiCam {
             videoConfigured = self.configureSupportedMultiCamCosts()
         }
         self.logCaptureState(reason: "configured")
+        if !videoConfigured && self.usesVirtualBackDevice {
+            self.allowsVirtualBackDevice = false
+            self.usesVirtualBackDevice = false
+            self.tearDownSession()
+            self.configureSession()
+            return
+        }
 
         self.isConfigured = videoConfigured && audioConfigured
         let initializationStatus: CaptureInitializationStatus
@@ -686,7 +704,7 @@ final class CameraNeo: NSObject, CameraProtocol {
             return false
         }
         self.session.addInput(videoInput)
-        self.configureFrameRate(roundVideoCaptureFrameRate, device: device, input: videoInput)
+        self.configureFrameRate(self.configuration.roundVideoProfile.frameRate, device: device, input: videoInput)
 
         if addOutput {
             guard let output = self.makeVideoOutput(), self.session.canAddOutput(output) else {
@@ -729,10 +747,13 @@ final class CameraNeo: NSObject, CameraProtocol {
         }
 
         multiCamSession.addInputWithNoConnections(backInput)
+        guard multiCamSession.canAddInput(frontInput) else { return false }
         multiCamSession.addInputWithNoConnections(frontInput)
-        self.configureFrameRate(roundVideoCaptureFrameRate, device: backDevice, input: backInput)
-        self.configureFrameRate(roundVideoCaptureFrameRate, device: frontDevice, input: frontInput)
+        self.configureFrameRate(self.configuration.roundVideoProfile.frameRate, device: backDevice, input: backInput)
+        self.configureFrameRate(self.configuration.roundVideoProfile.frameRate, device: frontDevice, input: frontInput)
+        guard multiCamSession.canAddOutput(backOutput) else { return false }
         multiCamSession.addOutputWithNoConnections(backOutput)
+        guard multiCamSession.canAddOutput(frontOutput) else { return false }
         multiCamSession.addOutputWithNoConnections(frontOutput)
 
         guard self.connectVideo(
@@ -852,6 +873,14 @@ final class CameraNeo: NSObject, CameraProtocol {
     }
 
     private func makeVideoDevice(position: Camera.Position) -> AVCaptureDevice? {
+        if position == .back {
+            self.usesVirtualBackDevice = false
+            if self.configuration.isRoundVideo, self.allowsVirtualBackDevice,
+               let device = roundVideoVirtualBackDevice(requiresMultiCam: self.useMultiCam, mode: self.roundVideoMode, frameRate: self.configuration.roundVideoProfile.frameRate) {
+                self.usesVirtualBackDevice = true
+                return device
+            }
+        }
         if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) {
             return device
         }
@@ -863,7 +892,7 @@ final class CameraNeo: NSObject, CameraProtocol {
     }
 
     private func configureCaptureFormat(device: AVCaptureDevice) -> Bool {
-        guard let selectedFormat = roundVideoCaptureFormat(for: device, requiresMultiCam: self.useMultiCam, mode: self.roundVideoMode) else {
+        guard let selectedFormat = roundVideoCaptureFormat(for: device, requiresMultiCam: self.useMultiCam, mode: self.roundVideoMode, frameRate: self.configuration.roundVideoProfile.frameRate) else {
             return false
         }
         return self.applyCaptureFormat(selectedFormat, device: device)
@@ -874,8 +903,9 @@ final class CameraNeo: NSObject, CameraProtocol {
             try device.lockForConfiguration()
             defer { device.unlockForConfiguration() }
             device.activeFormat = format
+            configureRoundVideoVirtualDevice(device)
             if device.isLowLightBoostSupported {
-                device.automaticallyEnablesLowLightBoostWhenAvailable = true
+                device.automaticallyEnablesLowLightBoostWhenAvailable = self.configuration.roundVideoProfile.frameRate <= 30.0
             }
             if device.isExposureModeSupported(.continuousAutoExposure) {
                 device.exposureMode = .continuousAutoExposure
@@ -897,15 +927,15 @@ final class CameraNeo: NSObject, CameraProtocol {
         let initialProfile: RoundVideoCaptureProfile = self.roundVideoMode == .vga ? .vga : .high
         for maximumProfile in RoundVideoCaptureProfile.allCases where maximumProfile.rawValue >= initialProfile.rawValue {
             if maximumProfile != initialProfile {
-                guard let backFormat = roundVideoCaptureFormat(for: backDevice, requiresMultiCam: true, mode: self.roundVideoMode, maximumProfile: maximumProfile),
-                      let frontFormat = roundVideoCaptureFormat(for: frontDevice, requiresMultiCam: true, mode: self.roundVideoMode, maximumProfile: maximumProfile) else {
+                guard let backFormat = roundVideoCaptureFormat(for: backDevice, requiresMultiCam: true, mode: self.roundVideoMode, maximumProfile: maximumProfile, frameRate: self.configuration.roundVideoProfile.frameRate),
+                      let frontFormat = roundVideoCaptureFormat(for: frontDevice, requiresMultiCam: true, mode: self.roundVideoMode, maximumProfile: maximumProfile, frameRate: self.configuration.roundVideoProfile.frameRate) else {
                     continue
                 }
                 session.beginConfiguration()
                 let backConfigured = self.applyCaptureFormat(backFormat, device: backDevice)
                 let frontConfigured = self.applyCaptureFormat(frontFormat, device: frontDevice)
-                self.configureFrameRate(roundVideoCaptureFrameRate, device: backDevice, input: backInput)
-                self.configureFrameRate(roundVideoCaptureFrameRate, device: frontDevice, input: frontInput)
+                self.configureFrameRate(self.configuration.roundVideoProfile.frameRate, device: backDevice, input: backInput)
+                self.configureFrameRate(self.configuration.roundVideoProfile.frameRate, device: frontDevice, input: frontInput)
                 session.commitConfiguration()
                 guard backConfigured && frontConfigured else {
                     return false
@@ -924,10 +954,12 @@ final class CameraNeo: NSObject, CameraProtocol {
         guard fps.isFinite, fps > 0.0 else {
             return
         }
-        guard let range = device.activeFormat.videoSupportedFrameRateRanges.first(where: { $0.minFrameRate <= fps && $0.maxFrameRate >= fps }) else {
+        let supportsRequestedRate = device.activeFormat.videoSupportedFrameRateRanges.contains { $0.minFrameRate <= fps && $0.maxFrameRate >= fps }
+        let requestedFps = supportsRequestedRate ? fps : 30.0
+        guard let range = device.activeFormat.videoSupportedFrameRateRanges.first(where: { $0.minFrameRate <= requestedFps && $0.maxFrameRate >= requestedFps }) else {
             return
         }
-        let effectiveFps = min(range.maxFrameRate, max(range.minFrameRate, fps))
+        let effectiveFps = min(range.maxFrameRate, max(range.minFrameRate, requestedFps))
         let duration = CMTime(seconds: 1.0 / effectiveFps, preferredTimescale: 60_000)
         self.withLockedDevice(device) { device in
             if #available(iOS 18.0, *), device.activeFormat.isAutoVideoFrameRateSupported, device.isAutoVideoFrameRateEnabled {
@@ -992,8 +1024,14 @@ final class CameraNeo: NSObject, CameraProtocol {
             self.session.removeInput(singleVideoInput)
         }
         self.singleVideoInput = nil
-        let configured = self.configureSingleCameraVideo(position: position, addOutput: false)
+        var configured = self.configureSingleCameraVideo(position: position, addOutput: false)
+        if !configured && position == .back && self.usesVirtualBackDevice {
+            self.allowsVirtualBackDevice = false
+            self.usesVirtualBackDevice = false
+            configured = self.configureSingleCameraVideo(position: position, addOutput: false)
+        }
         self.session.commitConfiguration()
+        self.applyNeutralZoom(position: position)
         self.configureVideoStabilization()
         self.logCaptureState(reason: "camera switched")
 
@@ -1019,6 +1057,11 @@ final class CameraNeo: NSObject, CameraProtocol {
             self?.singleFramesEnabled = true
         }
         self.updateActiveDeviceState()
+    }
+
+    private func applyNeutralZoom(position: Camera.Position) {
+        guard position == .back, let device = self.backDevice else { return }
+        self.withLockedDevice(device) { configureRoundVideoVirtualDevice($0) }
     }
 
     private func updateActiveDeviceState() {

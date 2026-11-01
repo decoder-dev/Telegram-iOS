@@ -252,6 +252,11 @@ public func fetchVideoLibraryMediaResource(postbox: Postbox, resource: VideoLibr
                             case .completed:
                                 var value = stat()
                                 if stat(tempFile.path, &value) == 0 {
+                                    if mediaEditorValues.qualityPreset == .videoMessage, value.st_size > (mediaEditorValues.videoMessageEncoding ?? .default).maximumFileSize {
+                                        EngineTempBox.shared.dispose(tempFile)
+                                        subscriber.putError(.generic)
+                                        return
+                                    }
                                     let remuxedTempFile = TempBox.shared.tempFile(fileName: "video.mp4")
                                     if !"".isEmpty, let size = fileSize(tempFile.path), size <= 32 * 1024 * 1024, FFMpegRemuxer.remux(tempFile.path, to: remuxedTempFile.path) {
                                         TempBox.shared.dispose(tempFile)
@@ -355,6 +360,11 @@ public func fetchVideoLibraryMediaResource(postbox: Postbox, resource: VideoLibr
                             case .completed:
                                 var value = stat()
                                 if stat(tempFile.path, &value) == 0 {
+                                    if mediaEditorValues.qualityPreset == .videoMessage, value.st_size > (mediaEditorValues.videoMessageEncoding ?? .default).maximumFileSize {
+                                        EngineTempBox.shared.dispose(tempFile)
+                                        subscriber.putError(.generic)
+                                        return
+                                    }
                                     let remuxedTempFile = TempBox.shared.tempFile(fileName: "video.mp4")
                                     if !"".isEmpty, let size = fileSize(tempFile.path), size <= 32 * 1024 * 1024, FFMpegRemuxer.remux(tempFile.path, to: remuxedTempFile.path) {
                                         TempBox.shared.dispose(tempFile)
@@ -561,6 +571,11 @@ public func fetchLocalFileVideoMediaResource(postbox: Postbox, resource: LocalFi
                 case .completed:
                     var value = stat()
                     if stat(tempFile.path, &value) == 0 {
+                        if mediaEditorValues.qualityPreset == .videoMessage, value.st_size > (mediaEditorValues.videoMessageEncoding ?? .default).maximumFileSize {
+                            EngineTempBox.shared.dispose(tempFile)
+                            subscriber.putError(.generic)
+                            return
+                        }
                         let remuxedTempFile = TempBox.shared.tempFile(fileName: "video.mp4")
                         if !"".isEmpty, let size = fileSize(tempFile.path), size <= 32 * 1024 * 1024, FFMpegRemuxer.remux(tempFile.path, to: remuxedTempFile.path) {
                             TempBox.shared.dispose(tempFile)

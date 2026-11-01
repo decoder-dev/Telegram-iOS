@@ -377,6 +377,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     private var richTextCheckboxAccumulators: [MessageId: InstantPage] = [:]
     private var richTextCheckboxDebounceTimers: [MessageId: SwiftSignalKit.Timer] = [:]
     private var richTextCheckboxCompletionObserver: Disposable?
+    private var composerSettingsDisposable: Disposable?
     private let richTextCheckboxDebounceInterval: Double = 0.35
 
     var resolveUrlDisposable: MetaDisposable?
@@ -764,6 +765,14 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         self.moreBarButton.isUserInteractionEnabled = true
         
         super.init(context: context, navigationBarPresentationData: navigationBarPresentationData)
+
+        self.composerSettingsDisposable = (ForkExtrasHotFlags.changes
+        |> map { [$0.hideAIButton, $0.hideRichTextEditor] }
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+            guard let self, self.isNodeLoaded else { return }
+            self.updateChatPresentationInterfaceState(transition: .immediate, interactive: false, force: true, { $0 })
+        })
         
         self._hasGlassStyle = true
         
@@ -7239,6 +7248,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }
 
         self.richTextCheckboxCompletionObserver?.dispose()
+        self.composerSettingsDisposable?.dispose()
         for (_, timer) in self.richTextCheckboxDebounceTimers {
             timer.invalidate()
         }

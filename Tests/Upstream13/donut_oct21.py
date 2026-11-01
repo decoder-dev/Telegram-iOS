@@ -121,7 +121,7 @@ class RoundVideoAudio(unittest.TestCase):
     def test_bit_rate_comes_from_the_encoder_not_a_fixed_64k(self):
         helper = read('submodules/Camera/CameraNeo/Sources/RoundVideoAudioSettings.swift')
         self.assertIn('kAudioConverterApplicableEncodeBitRates', helper)
-        self.assertIn('func roundVideoAudioBitRate(applicable: [ClosedRange<Int>]) -> Int?', helper)
+        self.assertIn('func roundVideoAudioBitRate(applicable: [ClosedRange<Int>], preferred: Int = roundVideoPreferredAudioBitRate) -> Int?', helper)
         self.assertIn('func roundVideoAudioSettings(', helper)
         recorder = read('submodules/Camera/CameraNeo/Sources/VideoRecorder.swift')
         self.assertIn('roundVideoAudioSettings(formatDescription: formatDescription', recorder)

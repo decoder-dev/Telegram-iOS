@@ -554,6 +554,17 @@ func infoItems(
                 }
             }
         }
+        if isMyProfile, user.id == context.account.peerId, !BananaIdentityBadges.hidesVerification {
+            let badge = BananaLocalVerificationBadges.badge(accountId: context.account.id.int64)
+            if let fileId = badge.iconFileId {
+                let prefix = NSMutableAttributedString(string: "  ")
+                prefix.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: fileId, file: nil), range: NSMakeRange(0, 1))
+                let text = ForkPresentationLanguage.prefersRussianStrings
+                    ? "\(badge.title): локальный значок, выбранный вами. Видите только вы; это не подтверждение Telegram или организации."
+                    : "\(badge.title): a local badge you selected. Only you see it; it is not verification by Telegram or an organization."
+                items[currentPeerInfoSection]!.append(PeerInfoScreenCommentItem(id: 9005, text: text, attributedPrefix: prefix, useAccentLinkColor: false))
+            }
+        }
     } else if case let .channel(channel) = data.peer {
         let ItemUsername = 1
         let ItemUsernameInfo = 2

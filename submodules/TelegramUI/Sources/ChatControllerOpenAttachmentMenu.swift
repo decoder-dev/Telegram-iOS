@@ -451,7 +451,9 @@ extension ChatControllerImpl {
                         }
                         return false
                     }) ?? buttons.endIndex
-                    buttons.insert(.richText, at: firstBotIndex)
+                    if !ForkExtrasHotFlags.current.hideRichTextEditor {
+                        buttons.insert(.richText, at: firstBotIndex)
+                    }
                 }
                 
                 guard let initialButton = initialButton else {

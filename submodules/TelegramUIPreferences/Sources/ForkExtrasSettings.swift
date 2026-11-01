@@ -15,6 +15,16 @@ public enum ForkTranscriptionBackend: String, Codable {
 
 /// Extra fork features (Ghost Mode, instant lock, notification filters, etc.).
 public struct ForkExtrasSettings: Codable, Equatable {
+    public var parallelDownloads: Bool = false
+    public var hideAIButton: Bool = false
+    public var hideRichTextEditor: Bool = false
+    public var hideProxySponsor: Bool = false
+    public var localVerificationBadges: [Int64: Int32] = [:]
+    public var roundVideoCountdown: Bool = false
+    public var roundVideoRecordAt60FPS: Bool = false
+    public var roundVideoMaximumQuality: Bool = false
+    public var roundVideoFocusOnTap: Bool = false
+    public var roundVideoAlwaysResetZoom: Bool = false
     /// Legacy single Ghost Mode toggle. Still encoded for older builds; granular flags are source of truth.
     /// When true in old prefs (no granular keys), it seeds dont-read / dont-online / dont-typing.
     /// AyuGram: Don't Read Messages — suppress read receipts / seen reactions while browsing.
@@ -669,6 +679,16 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: StringCodingKey.self)
+        self.parallelDownloads = try container.decodeIfPresent(Bool.self, forKey: "parallelDownloads") ?? false
+        self.hideAIButton = try container.decodeIfPresent(Bool.self, forKey: "hideAIButton") ?? false
+        self.hideRichTextEditor = try container.decodeIfPresent(Bool.self, forKey: "hideRichTextEditor") ?? false
+        self.hideProxySponsor = try container.decodeIfPresent(Bool.self, forKey: "hideProxySponsor") ?? false
+        self.localVerificationBadges = try container.decodeIfPresent([Int64: Int32].self, forKey: "localVerificationBadges") ?? [:]
+        self.roundVideoCountdown = try container.decodeIfPresent(Bool.self, forKey: "roundVideoCountdown") ?? false
+        self.roundVideoRecordAt60FPS = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRecordAt60FPS") ?? false
+        self.roundVideoMaximumQuality = try container.decodeIfPresent(Bool.self, forKey: "roundVideoMaximumQuality") ?? false
+        self.roundVideoFocusOnTap = try container.decodeIfPresent(Bool.self, forKey: "roundVideoFocusOnTap") ?? false
+        self.roundVideoAlwaysResetZoom = try container.decodeIfPresent(Bool.self, forKey: "roundVideoAlwaysResetZoom") ?? false
         self.wideTabBar = try container.decodeIfPresent(Bool.self, forKey: "wideTabBar") ?? false
         self.integratedTabSearch = try container.decodeIfPresent(Bool.self, forKey: "integratedTabSearch") ?? false
         self.tabSearchOnLeft = try container.decodeIfPresent(Bool.self, forKey: "tabSearchOnLeft") ?? false
@@ -865,6 +885,16 @@ public struct ForkExtrasSettings: Codable, Equatable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: StringCodingKey.self)
+        try container.encode(self.parallelDownloads, forKey: "parallelDownloads")
+        try container.encode(self.hideAIButton, forKey: "hideAIButton")
+        try container.encode(self.hideRichTextEditor, forKey: "hideRichTextEditor")
+        try container.encode(self.hideProxySponsor, forKey: "hideProxySponsor")
+        try container.encode(self.localVerificationBadges, forKey: "localVerificationBadges")
+        try container.encode(self.roundVideoCountdown, forKey: "roundVideoCountdown")
+        try container.encode(self.roundVideoRecordAt60FPS, forKey: "roundVideoRecordAt60FPS")
+        try container.encode(self.roundVideoMaximumQuality, forKey: "roundVideoMaximumQuality")
+        try container.encode(self.roundVideoFocusOnTap, forKey: "roundVideoFocusOnTap")
+        try container.encode(self.roundVideoAlwaysResetZoom, forKey: "roundVideoAlwaysResetZoom")
         // Legacy: true when full Ghost Mode (5 flags including stories + go-offline) is on.
         try container.encode(self.wideTabBar, forKey: "wideTabBar")
         try container.encode(self.integratedTabSearch, forKey: "integratedTabSearch")

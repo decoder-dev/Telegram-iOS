@@ -42,6 +42,7 @@ public enum Camera {
         public let preferLowerFramerate: Bool
         public let reportAudioLevel: Bool
         public let isRoundVideo: Bool
+        public let roundVideoProfile: RoundVideoRecordingProfile
 
         public init(
             preset: Preset,
@@ -53,7 +54,8 @@ public enum Camera {
             preferWide: Bool = false,
             preferLowerFramerate: Bool = false,
             reportAudioLevel: Bool = false,
-            isRoundVideo: Bool = false
+            isRoundVideo: Bool = false,
+            roundVideoProfile: RoundVideoRecordingProfile = RoundVideoRecordingProfile()
         ) {
             self.preset = preset
             self.position = position
@@ -65,6 +67,7 @@ public enum Camera {
             self.preferLowerFramerate = preferLowerFramerate
             self.reportAudioLevel = reportAudioLevel
             self.isRoundVideo = isRoundVideo
+            self.roundVideoProfile = roundVideoProfile
         }
     }
 

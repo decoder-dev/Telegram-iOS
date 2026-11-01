@@ -737,6 +737,11 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             if !BananaIdentityBadges.hidesVerification, let verificationIconFileId = peer.verificationIconFileId {
                 verifiedIcon = .emojiStatus(PeerEmojiStatus(content: .emoji(fileId: verificationIconFileId), expirationDate: nil))
             }
+            if peer.id == self.context.account.peerId, self.isSettings || self.isMyProfile,
+               !BananaIdentityBadges.hidesVerification,
+               let fileId = BananaLocalVerificationBadges.badge(accountId: self.context.account.id.int64).iconFileId {
+                verifiedIcon = .emojiStatus(PeerEmojiStatus(content: .emoji(fileId: fileId), expirationDate: nil))
+            }
         }
         
         var isForum = false

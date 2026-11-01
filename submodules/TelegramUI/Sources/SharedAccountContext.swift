@@ -879,6 +879,14 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                         self.managedAccountDisposables.set(nil, forKey: id)
                     }
                 }
+                // Reordering changes existing records; no account is added or removed.
+                for index in self.activeAccountsValue!.accounts.indices {
+                    let accountId = self.activeAccountsValue!.accounts[index].0
+                    if let sortIndex = records[accountId]?.sortIndex, self.activeAccountsValue!.accounts[index].2 != sortIndex {
+                        self.activeAccountsValue!.accounts[index].2 = sortIndex
+                        hadUpdates = true
+                    }
+                }
                 var primary: AccountContext?
                 if let primaryId = primaryId {
                     if let index = self.activeAccountsValue?.accounts.firstIndex(where: { $0.0 == primaryId }) {
@@ -1348,13 +1356,14 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkExpireTtlSettings.enabled = settings.expireTtlButton
         ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
         BananaVisualLabels.update(settings.visualLabels)
+        BananaLocalVerificationBadges.update(settings.localVerificationBadges)
         ForkRemovePingsSettings.enabled = settings.removePings
         ForkTelegramStatisticsSettings.enabled = settings.sendTelegramStatistics
         ForkGhostScheduleSettings.enabled = settings.ghostScheduleMessages
         ForkGhostSilentSendSettings.enabled = settings.ghostSendWithoutSound
         ForkStoryCreationSettings.disabled = settings.disableStoryCreation
         ForkChannelPostReactionsSettings.hidden = settings.hideChannelPostReactions
-        ForkExtrasHotFlags.update(ForkExtrasHotFlags.State(
+        var hotFlags = ForkExtrasHotFlags.State(
             hideAds: settings.hideAds,
             hideBlockedMessages: settings.hideBlockedMessages,
             hideReactionsBar: settings.hideReactionsBar,
@@ -1385,7 +1394,11 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             downloadTikTok: settings.downloadTikTok,
             downloadYouTubeShorts: settings.downloadYouTubeShorts,
             signDownloadedMedia: settings.signDownloadedMedia
-        ))
+        )
+        hotFlags.parallelDownloads = settings.parallelDownloads
+        hotFlags.hideAIButton = settings.hideAIButton
+        hotFlags.hideRichTextEditor = settings.hideRichTextEditor
+        ForkExtrasHotFlags.update(hotFlags)
         ForkRegexMessageFilters.apply(
             enabled: settings.regexMessageFiltersEnabled,
             caseInsensitive: settings.regexMessageFiltersCaseInsensitive,
@@ -1989,7 +2002,13 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         self.registeredNotificationTokensDisposable.set((combineLatest(
             queue: .mainQueue(),
             settings,
-            self.activeAccountContexts,
+            self.activeAccountContexts
+            |> distinctUntilChanged(isEqual: { lhs, rhs in
+                // Sort order does not change which accounts need push registrations.
+                return lhs.primary === rhs.primary && lhs.currentAuth === rhs.currentAuth
+                    && Dictionary(uniqueKeysWithValues: lhs.accounts.map { ($0.0, ObjectIdentifier($0.1)) })
+                        == Dictionary(uniqueKeysWithValues: rhs.accounts.map { ($0.0, ObjectIdentifier($0.1)) })
+            }),
             updatedApsToken
         )
         |> mapToSignal { settings, activeAccountsAndInfo, apsNotificationToken -> Signal<(Bool, Data?), NoError> in

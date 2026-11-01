@@ -565,6 +565,7 @@ private enum ForkExtrasLocalizedString {
 private enum ForkExtrasDestination: Equatable {
     case proxy
     case security
+    case accountOrder
 }
 
 private final class ForkExtrasControllerArguments {
@@ -721,14 +722,14 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1607, 1510, 1513, 1517],
             [1825, 1826, 1827, 1828],
             [85, 86, 87],
-            [1850, 1851, 1852, 1853],
+            [1850, 2101, 2102, 1851, 1852, 1853],
             [1910, 1911],
             [1960, 1962, 1964]
         ]),
         (.media, [
             [1608, 80, 84],
             [83],
-            [1609, 1515, 1516, 1544, 1545, 1559, 1612],
+            [1609, 2110, 2111, 2112, 2113, 2114, 2115, 1515, 1516, 1544, 1545, 1559, 1612],
             [1613, 1554, 1555, 1556, 1614, 1982],
             [1750, 1751, 1752, 1753, 1754, 1755, 1756, 2021, 1757, 1758],
             [1860, 1861, 1862, 1863, 1864, 1865],
@@ -737,7 +738,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         ]),
         (.profile, [
             [55, 56, 1551, 1714, 2020, 1552, 1543, 58],
-            [1739, 1731, 1732, 1730, 1733, 1734, 1980, 1981],
+            [1739, 1731, 1732, 1730, 1733, 1734, 1980, 1981, 2106],
             [1740, 1736, 1737, 1738],
             [1603, 1500, 1501, 1541, 2022, 57],
             [1604, 140, 141]
@@ -801,7 +802,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case let .destination(_, _, destination):
             switch destination {
             case .proxy: return ForkExtrasSection.proxy.rawValue
-            case .security: return ForkExtrasSection.hub.rawValue
+            case .security, .accountOrder: return ForkExtrasSection.hub.rawValue
             }
         case .audioHeader, .musicPolicy: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
@@ -874,6 +875,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     /// disappear (the regex filter rows) get inserted next to stale copies and are drawn twice.
     private static let positionOverrides: [Int32: Double] = [
         1995: 2.5,     // Security follows Privacy on the Extras hub.
+        2100: 2.7,
+        2105: 137.5,
+        2103: 144.3,
+        2104: 144.5,
         7: 3.3,        // Tab bar follows Chat list and folders.
         8: 4.3,        // Calls and audio follows Messages and composer.
         23: 4.6,       // Profile and effects follows Calls and audio.
@@ -929,6 +934,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             switch destination {
             case .proxy: icon = PresentationResourcesSettings.proxy
             case .security: icon = PresentationResourcesSettings.security
+            case .accountOrder: icon = PresentationResourcesSettings.security
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openDestination(destination)
@@ -1119,6 +1125,12 @@ private func forkVisualLabelOptions(russian: Bool) -> [(String, Int32)] {
     return [(russian ? "Без метки" : "None", 0), ("SCAM", 1), ("FAKE", 2), ("SUPPORT", 3), ("BOT", 4)]
 }
 
+private func forkLocalVerificationOptions(russian: Bool) -> [(String, Int32)] {
+    return BananaLocalVerificationBadge.allCases.map { badge in
+        (badge == .none ? (russian ? "Выключено" : "Off") : badge.title, badge.rawValue)
+    }
+}
+
 private func forkStickerShapeOptions(russian: Bool) -> [(String, Int32)] {
     return [
         (russian ? "Обычная" : "Default", 0),
@@ -1195,7 +1207,7 @@ private func forkIntChoiceLabel(_ options: [(String, Int32)], _ value: Int32) ->
     return options.first(where: { $0.1 == value })?.0 ?? ""
 }
 
-private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, mediaInputSettings: MediaInputSettings, focus: ForkExtrasControllerFocus, accountPeerId: Int64? = nil) -> [ForkExtrasEntry] {
+private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, mediaInputSettings: MediaInputSettings, focus: ForkExtrasControllerFocus, accountPeerId: Int64? = nil, accountRecordId: Int64? = nil) -> [ForkExtrasEntry] {
     let category = focus.resolvedCategory
     if category == .top {
         return [
@@ -1204,6 +1216,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .hubPrivacy,
             // Security: switches against the ways accounts are stolen (BananaSecurityController).
             .destination(1995, BananaSecurityStrings.title, .security),
+            .destination(2100, ForkPresentationLanguage.prefersRussianStrings ? "Порядок аккаунтов" : "Account Order", .accountOrder),
             .hubChatList,
             .hubTabBar,
             .hubMessages,
@@ -1393,6 +1406,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .transcriptionBackend(settings.transcriptionBackend),
             .settingFooter(87, .translation, ForkExtrasLocalizedString.translationFooter),
             .designHeader(1850, russian ? "Ввод" : "Input"),
+            .appearanceToggle(2101, russian ? "Скрыть кнопку AI" : "Hide AI button", settings.hideAIButton, \.hideAIButton),
+            .appearanceToggle(2102, russian ? "Скрыть разворачивание редактора" : "Hide expanded editor", settings.hideRichTextEditor, \.hideRichTextEditor),
             .intChoice(1851, russian ? "Формат по умолчанию" : "Default formatting", forkIntChoiceLabel(forkSendFormattingOptions(russian: russian), settings.defaultSendFormatting)),
             .appearanceToggle(1852, russian ? "Упоминание долгим нажатием на аватар" : "Mention by long-pressing an avatar", settings.avatarLongPressMention, \.avatarLongPressMention),
             .designFooter(1853, russian ? "Формат применяется к обычному тексту отправляемых сообщений; ваше форматирование, код, цитаты и эмодзи остаются как есть. Долгое нажатие на аватар в чате вставляет упоминание с полным именем вместо меню." : "The format is added to the plain text of messages you send; your own formatting, code, quotes and emoji stay as they are. A long press on an avatar in a chat inserts a mention with the full name instead of opening the menu."),
@@ -1404,6 +1419,12 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingFooter(84, .calls, ForkExtrasLocalizedString.forceBuiltInMicFooter + "\n\n" + ForkExtrasLocalizedString.callsFooter),
             .settingToggle(83, .calls, ForkExtrasLocalizedString.forceBuiltInMic, settings.forceBuiltInMic, \.forceBuiltInMic),
             .designHeader(1609, russian ? "Голосовые и кружки" : "Voice and round videos"),
+            .appearanceToggle(2110, russian ? "Отсчёт перед записью кружка" : "Round video countdown", settings.roundVideoCountdown, \.roundVideoCountdown),
+            .appearanceToggle(2111, russian ? "Записывать кружки в 60 FPS" : "Record round videos at 60 FPS", settings.roundVideoRecordAt60FPS, \.roundVideoRecordAt60FPS),
+            .appearanceToggle(2112, russian ? "Максимальное качество кружков" : "Maximum round video quality", settings.roundVideoMaximumQuality, \.roundVideoMaximumQuality),
+            .appearanceToggle(2113, russian ? "Фокус кружка по нажатию" : "Tap to focus round videos", settings.roundVideoFocusOnTap, \.roundVideoFocusOnTap),
+            .appearanceToggle(2114, russian ? "Сбрасывать зум после жеста" : "Reset zoom after pinching", settings.roundVideoAlwaysResetZoom, \.roundVideoAlwaysResetZoom),
+            .designFooter(2115, russian ? "60 FPS работают на поддерживаемых камерах и отключают одновременную съёмку двумя камерами. Максимальное качество использует до 640p; длинная запись будет сжата перед отправкой. Параметры применяются при следующем открытии камеры." : "60 FPS requires a supported camera and disables simultaneous dual-camera capture. Maximum quality uses up to 640p; long recordings are compressed before sending. Changes apply the next time you open the camera."),
             .appearanceToggle(1515, russian ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
             .appearanceToggle(1516, russian ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
             .designHeader(1613, russian ? "Ссылки TikTok и Shorts" : "TikTok and Shorts links"),
@@ -1462,6 +1483,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .visualPhoneNumber(settings.visualPhoneNumber),
             .appearanceToggle(1980, russian ? "Не открывать звёзды после продажи подарка" : "Keep the current screen after selling a gift", settings.disableGiftStarsRedirect, \.disableGiftStarsRedirect),
             .intChoice(1981, russian ? "Визуальная метка (только у вас)" : "Visual label (only visible to you)", forkIntChoiceLabel(forkVisualLabelOptions(russian: russian), settings.visualLabels[accountPeerId ?? 0] ?? 0)),
+            .intChoice(2106, russian ? "Локальный значок верификации" : "Local verification badge", forkIntChoiceLabel(forkLocalVerificationOptions(russian: russian), accountRecordId.flatMap { settings.localVerificationBadges[$0] } ?? 0)),
             .designFooter(1738, russian ? "Меняется только номер, показанный в вашем профиле на этом устройстве. Настоящий номер не меняется." : "Only the number shown in your own profile on this device changes. Your real number stays the same."),
             .designHeader(1603, russian ? "Эффекты" : "Effects"),
             .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
@@ -1512,9 +1534,12 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         entries.append(.regexFiltersFooter(settings.regexMessageFiltersEnabled ? ForkRegexMessageFilters.unusablePatternCount(settings.regexMessageFilterPatterns) : 0))
     case .network:
         entries = [
+            .settingToggle(2105, .proxy, russian ? "Скрыть спонсора прокси" : "Hide proxy sponsor", settings.hideProxySponsor, \.hideProxySponsor),
             .destination(138, ForkPresentationLanguage.prefersRussianStrings ? "Прокси и подключение" : "Proxies and connection", .proxy),
 
             .settingToggle(144, .downloads, ForkExtrasLocalizedString.downloadSpeedBoost, settings.downloadSpeedBoost, \.downloadSpeedBoost),
+            .settingToggle(2103, .downloads, russian ? "Параллельные загрузки" : "Parallel downloads", settings.parallelDownloads, \.parallelDownloads),
+            .settingFooter(2104, .downloads, russian ? "Несколько выбранных вами файлов загружаются одновременно. Общая скорость зависит от соединения; предзагрузка остаётся ограниченной." : "Download several files you selected at once. They share your connection; prefetch remains limited."),
             .settingFooter(145, .downloads, ForkExtrasLocalizedString.downloadSpeedBoostFooter),
             .settingToggle(146, .backgroundConnection, ForkExtrasLocalizedString.keepAliveInBackground, settings.keepAliveInBackground, \.keepAliveInBackground),
             .settingFooter(149, .backgroundConnection, ForkExtrasLocalizedString.keepAliveInBackgroundFooter),
@@ -1806,6 +1831,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             switch destination {
             case .proxy: pushControllerImpl?(context.sharedContext.makeProxySettingsController(context: context))
             case .security: pushControllerImpl?(bananaSecurityController(context: context))
+            case .accountOrder: pushControllerImpl?(accountOrderController(context: context))
             }
         },
         updateMusicPolicy: { id, value in
@@ -1834,6 +1860,11 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated[keyPath: keyPath] = value
+                if value && keyPath == \ForkExtrasSettings.roundVideoAlwaysResetZoom {
+                    updated.staticRoundVideoZoom = false
+                } else if value && keyPath == \ForkExtrasSettings.staticRoundVideoZoom {
+                    updated.roundVideoAlwaysResetZoom = false
+                }
                 return updated
             }.start())
         },
@@ -1876,6 +1907,20 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
         },
         openIntChoice: { id in
             let russian = ForkPresentationLanguage.prefersRussianStrings
+            if id == 2106 {
+                presentPicker(title: russian ? "Локальный значок (виден только вам)" : "Local badge (only visible to you)", options: forkLocalVerificationOptions(russian: russian).map { option in
+                    (option.0, {
+                        updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                            var updated = current
+                            let accountId = context.account.id.int64
+                            if option.1 == 0 { updated.localVerificationBadges.removeValue(forKey: accountId) }
+                            else { updated.localVerificationBadges[accountId] = option.1 }
+                            return updated
+                        }.start())
+                    })
+                })
+                return
+            }
             if id == 1981 {
                 presentPicker(title: russian ? "Визуальная метка" : "Visual label", options: forkVisualLabelOptions(russian: russian).map { option in
                     (option.0, {
@@ -1953,7 +1998,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
     |> deliverOnMainQueue
     |> map { presentationData, settings, sharedData -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let proxySettings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
-        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy, showCallsTab: (sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? .defaultSettings).showTab, mediaInputSettings: sharedData.entries[ApplicationSpecificSharedDataKeys.mediaInputSettings]?.get(MediaInputSettings.self) ?? .defaultSettings, focus: focus, accountPeerId: context.account.peerId.toInt64())
+        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy, showCallsTab: (sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? .defaultSettings).showTab, mediaInputSettings: sharedData.entries[ApplicationSpecificSharedDataKeys.mediaInputSettings]?.get(MediaInputSettings.self) ?? .defaultSettings, focus: focus, accountPeerId: context.account.peerId.toInt64(), accountRecordId: context.account.id.int64)
         let focusedSection: ItemListSectionId?
         switch focus {
         case .messageSaving:

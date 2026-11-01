@@ -120,6 +120,8 @@ private final class FetchManagerStatusContext {
 
 private final class FetchManagerCategoryContext {
     private let postbox: Postbox
+    private let occupiedSlots: () -> [DownloadCandidate<FetchManagerLocationEntryId>]
+    private var settingsDisposable: Disposable?
     private let storeManager: DownloadedMediaStoreManager?
     private let entryCompleted: (FetchManagerLocationEntryId) -> Void
     private let activeEntriesUpdated: () -> Void
@@ -157,11 +159,35 @@ private final class FetchManagerCategoryContext {
         return false
     }
     
-    init(postbox: Postbox, storeManager: DownloadedMediaStoreManager?, entryCompleted: @escaping (FetchManagerLocationEntryId) -> Void, activeEntriesUpdated: @escaping () -> Void) {
+    init(postbox: Postbox, storeManager: DownloadedMediaStoreManager?, occupiedSlots: @escaping () -> [DownloadCandidate<FetchManagerLocationEntryId>], entryCompleted: @escaping (FetchManagerLocationEntryId) -> Void, activeEntriesUpdated: @escaping () -> Void) {
         self.postbox = postbox
+        self.occupiedSlots = occupiedSlots
         self.storeManager = storeManager
         self.entryCompleted = entryCompleted
         self.activeEntriesUpdated = activeEntriesUpdated
+        self.settingsDisposable = (ForkExtrasHotFlags.changes
+        |> map { $0.parallelDownloads }
+        |> distinctUntilChanged
+        |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+            guard let self else { return }
+            let _ = self.updateActiveDownloads()
+            self.activeEntriesUpdated()
+        })
+    }
+
+    deinit {
+        self.settingsDisposable?.dispose()
+    }
+
+    private func candidate(for entry: FetchManagerLocationEntry) -> DownloadCandidate<FetchManagerLocationEntryId> {
+        let resource = entry.resourceReference.resource
+        return DownloadCandidate(id: entry.id, datacenterId: (resource as? TelegramMultipartFetchableResource)?.datacenterId ?? 0, size: resource.size, userInitiated: entry.userInitiated)
+    }
+
+    func activeDownloadCandidates() -> [DownloadCandidate<FetchManagerLocationEntryId>] {
+        return self.activeContexts.keys.compactMap { id in
+            return self.entries[id].map(self.candidate(for:))
+        }
     }
     
     func getActiveEntries() -> [FetchManagerLocationEntry] {
@@ -219,7 +245,7 @@ private final class FetchManagerCategoryContext {
         var activeContextsUpdated = false
         let _ = activeContextsUpdated
         
-        if self.maybeFindAndActivateNewTopEntry() {
+        if self.updateActiveDownloads() {
             activeContextsUpdated = true
         }
         
@@ -259,7 +285,7 @@ private final class FetchManagerCategoryContext {
                     activeContext.disposable?.dispose()
                     let postbox = self.postbox
                     Logger.shared.log("FetchManager", "[\(entry.id.location)] Begin fetching \(entry.resourceReference.resource.id.stringRepresentation) ranges: \(String(describing: parsedRanges))")
-                    
+
                     var userLocation: MediaResourceUserLocation = .other
                     switch entry.id.location {
                     case let .chat(peerId):
@@ -324,7 +350,7 @@ private final class FetchManagerCategoryContext {
         self.activeEntriesUpdated()
     }
     
-    func maybeFindAndActivateNewTopEntry() -> Bool {
+    func updateActiveDownloads() -> Bool {
         if self.topEntryIdAndPriority == nil && !self.entries.isEmpty {
             var topEntryIdAndPriority: (FetchManagerLocationEntryId, FetchManagerPriorityKey)?
             for (id, entry) in self.entries {
@@ -347,133 +373,129 @@ private final class FetchManagerCategoryContext {
             self.topEntryIdAndPriority = topEntryIdAndPriority
         }
         
-        if let topEntryId = self.topEntryIdAndPriority?.0 {
-            if let entry = self.entries[topEntryId] {
-                let ranges = entry.combinedRanges
+        if ForkExtrasHotFlags.current.parallelDownloads {
+            let ordered = self.entries.values.filter { !$0.isPaused && $0.priorityKey != nil }.sorted {
+                if $0.priorityKey == $1.priorityKey { return $0.episode < $1.episode }
+                return $0.priorityKey! < $1.priorityKey!
+            }
+            let ids = DownloadConcurrencyPolicy.additionalIds(candidates: ordered.map(self.candidate(for:)), active: self.occupiedSlots())
+            var started = false
+            for id in ids {
+                if self.activateEntry(id) { started = true }
+            }
+            return started
+        }
+        guard let topId = self.topEntryIdAndPriority?.0 else { return false }
+        // Turning concurrency off lets existing transfers finish before admitting another one.
+        guard self.activeContexts[topId] != nil || self.activeContexts.isEmpty else { return false }
+        return self.activateEntry(topId)
+    }
                 
-                let parsedRanges: [(Range<Int64>, MediaBoxFetchPriority)]?
+    private func activateEntry(_ topEntryId: FetchManagerLocationEntryId) -> Bool {
+        if let entry = self.entries[topEntryId] {
+            let ranges = entry.combinedRanges
                 
-                var count = 0
-                var isCompleteRange = false
-                var isVideoPreload = false
-                for range in ranges.ranges {
-                    count += 1
-                    if range.lowerBound == 0 && range.upperBound == Int64.max {
-                        isCompleteRange = true
-                    }
+            let parsedRanges: [(Range<Int64>, MediaBoxFetchPriority)]?
+
+            var count = 0
+            var isCompleteRange = false
+            var isVideoPreload = false
+            for range in ranges.ranges {
+                count += 1
+                if range.lowerBound == 0 && range.upperBound == Int64.max {
+                    isCompleteRange = true
                 }
-                
-                if count == 2, let range = ranges.ranges.first, range.lowerBound == 0 && range.upperBound == 2 * 1024 * 1024 {
-                    isVideoPreload = true
-                }
-                
-                if count == 1 && isCompleteRange && !"".isEmpty {
-                    parsedRanges = nil
-                } else {
-                    var resultRanges: [(Range<Int64>, MediaBoxFetchPriority)] = []
-                    for range in ranges.ranges {
-                        resultRanges.append((range, .default))
-                    }
-                    parsedRanges = resultRanges
-                }
-                
-                let activeContext: FetchManagerActiveContext
-                var restart = false
-                if let current = self.activeContexts[topEntryId] {
-                    activeContext = current
-                    restart = activeContext.ranges != ranges
-                } else {
-                    activeContext = FetchManagerActiveContext(userInitiated: entry.userInitiated)
-                    self.activeContexts[topEntryId] = activeContext
-                    restart = true
-                }
-                
-                if restart {
-                    activeContext.ranges = ranges
-                    
-                    var userLocation: MediaResourceUserLocation = .other
-                    switch entry.id.location {
-                    case let .chat(peerId):
-                        userLocation = .peer(peerId)
-                    }
-                    var userContentType: MediaResourceUserContentType = .other
-                    switch entry.statsCategory {
-                    case .image:
-                        userContentType = .image
-                    case .video:
-                        userContentType = .video
-                    case .audio:
-                        userContentType = .audio
-                    case .file:
-                        userContentType = .file
-                    default:
-                        userContentType = .other
-                    }
-                    
-                    let entryCompleted = self.entryCompleted
-                    let storeManager = self.storeManager
-                    activeContext.disposable?.dispose()
-                    if isVideoPreload {
-                        activeContext.disposable = (preloadVideoResource(postbox: self.postbox, userLocation: userLocation, userContentType: userContentType, resourceReference: entry.resourceReference, duration: 4.0)
-                        |> castError(FetchResourceError.self)
-                        |> map { _ -> FetchResourceSourceType in }
-                        |> then(.single(.local))
-                        |> deliverOnMainQueue).start(next: { _ in
-                            entryCompleted(topEntryId)
-                        })
-                    } else if ranges.isEmpty {
-                    } else {
-                        let postbox = self.postbox
-                        Logger.shared.log("FetchManager", "[\(entry.id.location)] Begin fetching \(entry.resourceReference.resource.id.stringRepresentation) ranges: \(String(describing: parsedRanges))")
-                        
-                        var userLocation: MediaResourceUserLocation = .other
-                        switch entry.id.location {
-                        case let .chat(peerId):
-                            userLocation = .peer(peerId)
-                        }
-                        var userContentType: MediaResourceUserContentType = .other
-                        switch entry.statsCategory {
-                        case .image:
-                            userContentType = .image
-                        case .video:
-                            userContentType = .video
-                        case .audio:
-                            userContentType = .audio
-                        case .file:
-                            userContentType = .file
-                        default:
-                            userContentType = .other
-                        }
-                        
-                        activeContext.disposable = (fetchedMediaResource(mediaBox: postbox.mediaBox, userLocation: userLocation, userContentType: userContentType, reference: entry.resourceReference, ranges: parsedRanges, statsCategory: entry.statsCategory, reportResultStatus: true, continueInBackground: entry.userInitiated)
-                        |> mapToSignal { type -> Signal<FetchResourceSourceType, FetchResourceError> in
-                            if filterDownloadStatsEntry(entry: entry), case let .message(message, _) = entry.mediaReference, let messageId = message.id, case .remote = type {
-                                let _ = addRecentDownloadItem(postbox: postbox, item: RecentDownloadItem(messageId: messageId, resourceId: entry.resourceReference.resource.id.stringRepresentation, timestamp: Int32(Date().timeIntervalSince1970), isSeen: false)).start()
-                            }
-                            
-                            if let storeManager = storeManager, let mediaReference = entry.mediaReference, case .remote = type, let peerId = entry.storeToDownloadsPeerId {
-                                return storeDownloadedMedia(storeManager: storeManager, media: mediaReference, peerId: peerId)
-                                |> castError(FetchResourceError.self)
-                                |> mapToSignal { _ -> Signal<FetchResourceSourceType, FetchResourceError> in
-                                }
-                                |> then(.single(type))
-                            }
-                            return .single(type)
-                        }
-                        |> retry(2.0, maxDelay: 60.0, onQueue: .mainQueue())
-                        |> deliverOnMainQueue).start(next: { _ in
-                            entryCompleted(topEntryId)
-                        })
-                    }
-                    return true
-                } else {
-                    return false
-                }
+            }
+
+            if count == 2, let range = ranges.ranges.first, range.lowerBound == 0 && range.upperBound == 2 * 1024 * 1024 {
+                isVideoPreload = true
+            }
+
+            if count == 1 && isCompleteRange && !"".isEmpty {
+                parsedRanges = nil
             } else {
-                assertionFailure()
+                var resultRanges: [(Range<Int64>, MediaBoxFetchPriority)] = []
+                for range in ranges.ranges {
+                    resultRanges.append((range, .default))
+                }
+                parsedRanges = resultRanges
+            }
+
+            let activeContext: FetchManagerActiveContext
+            var restart = false
+            if let current = self.activeContexts[topEntryId] {
+                activeContext = current
+                restart = activeContext.ranges != ranges
+            } else {
+                activeContext = FetchManagerActiveContext(userInitiated: entry.userInitiated)
+                self.activeContexts[topEntryId] = activeContext
+                restart = true
+            }
+
+            if restart {
+                activeContext.ranges = ranges
+
+                var userLocation: MediaResourceUserLocation = .other
+                switch entry.id.location {
+                case let .chat(peerId):
+                    userLocation = .peer(peerId)
+                }
+                var userContentType: MediaResourceUserContentType = .other
+                switch entry.statsCategory {
+                case .image:
+                    userContentType = .image
+                case .video:
+                    userContentType = .video
+                case .audio:
+                    userContentType = .audio
+                case .file:
+                    userContentType = .file
+                default:
+                    userContentType = .other
+                }
+                
+                let entryCompleted = self.entryCompleted
+                let storeManager = self.storeManager
+                activeContext.disposable?.dispose()
+                if isVideoPreload {
+                    activeContext.disposable = (preloadVideoResource(postbox: self.postbox, userLocation: userLocation, userContentType: userContentType, resourceReference: entry.resourceReference, duration: 4.0)
+                    |> castError(FetchResourceError.self)
+                    |> map { _ -> FetchResourceSourceType in }
+                    |> then(.single(.local))
+                    |> deliverOnMainQueue).start(next: { _ in
+                        entryCompleted(topEntryId)
+                    })
+                } else if ranges.isEmpty {
+                } else {
+                    let postbox = self.postbox
+                    Logger.shared.log("FetchManager", "[\(entry.id.location)] Begin fetching \(entry.resourceReference.resource.id.stringRepresentation) ranges: \(String(describing: parsedRanges))")
+                    
+                    activeContext.disposable = (fetchedMediaResource(mediaBox: postbox.mediaBox, userLocation: userLocation, userContentType: userContentType, reference: entry.resourceReference, ranges: parsedRanges, statsCategory: entry.statsCategory, reportResultStatus: true, continueInBackground: entry.userInitiated)
+                    |> mapToSignal { type -> Signal<FetchResourceSourceType, FetchResourceError> in
+                        if filterDownloadStatsEntry(entry: entry), case let .message(message, _) = entry.mediaReference, let messageId = message.id, case .remote = type {
+                            let _ = addRecentDownloadItem(postbox: postbox, item: RecentDownloadItem(messageId: messageId, resourceId: entry.resourceReference.resource.id.stringRepresentation, timestamp: Int32(Date().timeIntervalSince1970), isSeen: false)).start()
+                        }
+                        
+                        if let storeManager = storeManager, let mediaReference = entry.mediaReference, case .remote = type, let peerId = entry.storeToDownloadsPeerId {
+                            return storeDownloadedMedia(storeManager: storeManager, media: mediaReference, peerId: peerId)
+                            |> castError(FetchResourceError.self)
+                            |> mapToSignal { _ -> Signal<FetchResourceSourceType, FetchResourceError> in
+                            }
+                            |> then(.single(type))
+                        }
+                        return .single(type)
+                    }
+                    |> retry(2.0, maxDelay: 60.0, onQueue: .mainQueue())
+                    |> deliverOnMainQueue).start(next: { _ in
+                        entryCompleted(topEntryId)
+                    })
+                }
+                return true
+            } else {
                 return false
             }
         } else {
+            assertionFailure()
             return false
         }
     }
@@ -541,7 +563,7 @@ private final class FetchManagerCategoryContext {
             self.topEntryIdAndPriority = nil
         }
         
-        if self.maybeFindAndActivateNewTopEntry() {
+        if self.updateActiveDownloads() {
             activeContextsUpdated = true
         }
         
@@ -588,7 +610,7 @@ private final class FetchManagerCategoryContext {
                 }
             }
             
-            let _ = self.maybeFindAndActivateNewTopEntry()
+            let _ = self.updateActiveDownloads()
             self.activeEntriesUpdated()
             
             return entry.isPaused
@@ -753,7 +775,9 @@ public final class FetchManagerImpl: FetchManager {
             context = current
         } else {
             let queue = self.queue
-            context = FetchManagerCategoryContext(postbox: self.postbox, storeManager: self.storeManager, entryCompleted: { [weak self] id in
+            context = FetchManagerCategoryContext(postbox: self.postbox, storeManager: self.storeManager, occupiedSlots: { [weak self] in
+                return self?.categoryContexts.values.flatMap { $0.activeDownloadCandidates() } ?? []
+            }, entryCompleted: { [weak self] id in
                 queue.async {
                     guard let strongSelf = self else {
                         return
@@ -769,6 +793,12 @@ public final class FetchManagerImpl: FetchManager {
                     }
                     var hasActiveUserInitiatedEntries = false
                     var activeEntries: [FetchManagerEntrySummary] = []
+                    if ForkExtrasHotFlags.current.parallelDownloads {
+                        // A slot released by one category may unblock another category.
+                        for context in strongSelf.categoryContexts.values {
+                            let _ = context.updateActiveDownloads()
+                        }
+                    }
                     for (_, context) in strongSelf.categoryContexts {
                         if context.hasActiveUserInitiatedEntries {
                             hasActiveUserInitiatedEntries = true

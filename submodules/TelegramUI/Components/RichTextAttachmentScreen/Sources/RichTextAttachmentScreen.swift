@@ -2329,6 +2329,8 @@ final class RichTextAttachmentScreenComponent: Component {
             
             // The bottom row spans iPhone Duo's side strip; it keeps clear only of a corner block at the bottom.
             let bottomRowInsets = environment.bottomEdgeSideInsets()
+            let aiButtonIsHidden = ForkExtrasHotFlags.current.hideAIButton
+            let actionBarLeadingWidth = aiButtonIsHidden ? 0.0 : aiButtonSize.width + actionBarSpacing
             let actionBarSize = self.actionBar.update(
                 transition: transition,
                 component: AnyComponent(RichTextActionBarComponent(
@@ -2337,13 +2339,14 @@ final class RichTextAttachmentScreenComponent: Component {
                     actions: barActions
                 )),
                 environment: {},
-                containerSize: CGSize(width: availableSize.width - sideInset * 2.0 - bottomRowInsets.left - bottomRowInsets.right - actionBarSpacing * 2.0 - aiButtonSize.width - sendButtonSize.width, height: 44.0)
+                containerSize: CGSize(width: availableSize.width - sideInset * 2.0 - bottomRowInsets.left - bottomRowInsets.right - actionBarLeadingWidth - actionBarSpacing - sendButtonSize.width, height: 44.0)
             )
             
             var bottomInset = max(environment.inputHeight, emojiPanelHeight, environment.safeInsets.bottom)
             
             let aiButtonFrame = CGRect(origin: CGPoint(x: sideInset + bottomRowInsets.left, y: availableSize.height - bottomInset - 6.0 - aiButtonSize.height), size: aiButtonSize)
             if let aiButtonView = self.aiButton.view {
+                aiButtonView.isHidden = aiButtonIsHidden
                 if aiButtonView.superview == nil {
                     self.addSubview(aiButtonView)
                 }
@@ -2365,7 +2368,7 @@ final class RichTextAttachmentScreenComponent: Component {
             transition.setPosition(view: self.sendButtonExtractedContainer.contentView, position: CGPoint(x: sendButtonFrame.width * 0.5, y: sendButtonFrame.height * 0.5))
             transition.setBounds(view: self.sendButtonExtractedContainer.contentView, bounds: CGRect(origin: CGPoint(), size: sendButtonFrame.size))
             
-            let actionBarFrame = CGRect(origin: CGPoint(x: sideInset + bottomRowInsets.left + aiButtonSize.width + actionBarSpacing, y: availableSize.height - bottomInset - 6.0 - actionBarSize.height), size: actionBarSize)
+            let actionBarFrame = CGRect(origin: CGPoint(x: sideInset + bottomRowInsets.left + actionBarLeadingWidth, y: availableSize.height - bottomInset - 6.0 - actionBarSize.height), size: actionBarSize)
             if let actionBarView = self.actionBar.view {
                 if actionBarView.superview == nil {
                     self.addSubview(actionBarView)

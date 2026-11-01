@@ -68,7 +68,10 @@ final class VideoRecordingStatistics {
     var gpu = Timing()
     var renderCallbackWall = Timing()
 
-    init(mode: NeoCameraImpl.RoundVideoMode, usesMultiCam: Bool, log: ((String) -> Void)?) {
+    private let profile: RoundVideoRecordingProfile
+
+    init(mode: NeoCameraImpl.RoundVideoMode, usesMultiCam: Bool, log: ((String) -> Void)?, profile: RoundVideoRecordingProfile = RoundVideoRecordingProfile()) {
+        self.profile = profile
         self.mode = mode
         self.usesMultiCam = usesMultiCam
         self.log = log
@@ -111,8 +114,8 @@ final class VideoRecordingStatistics {
         fields["device"] = String(describing: DeviceModel.current)
         fields["iOS"] = UIDevice.current.systemVersion
         fields["thermalStart"] = self.thermalStart
-        fields["output"] = "\(RoundVideoFrameProcessor.outputWidth)x\(RoundVideoFrameProcessor.outputHeight)"
-        fields["targetFps"] = roundVideoCaptureFrameRate
+        fields["output"] = "\(self.profile.outputSide)x\(self.profile.outputSide)"
+        fields["targetFps"] = self.profile.frameRate
         fields["inputFormats"] = self.inputFormats.map { "\($0.position == Camera.Position.front.rawValue ? "front" : "back"):\($0.width)x\($0.height)" }.sorted()
         fields["receivedActiveFrames"] = self.activeFramesReceived
         fields["writtenFrames"] = self.framesWritten
@@ -268,7 +271,7 @@ final class VideoRecorder {
     ) {
         self.mediaQueue = mediaQueue
         self.processor = processor
-        self.statistics = VideoRecordingStatistics(mode: mode, usesMultiCam: usesMultiCam, log: log)
+        self.statistics = VideoRecordingStatistics(mode: mode, usesMultiCam: usesMultiCam, log: log, profile: processor.profile)
         self.url = url
         self.hasAudio = hasAudio
         self.activePosition = initialPosition
@@ -622,14 +625,15 @@ final class VideoRecorder {
         assetWriter.shouldOptimizeForNetworkUse = false
 
         let compressionProperties: [String: Any] = [
-            AVVideoAverageBitRateKey: 1_200_000,
+            AVVideoAverageBitRateKey: self.processor.profile.videoBitrate,
+            AVVideoExpectedSourceFrameRateKey: Int(self.processor.profile.frameRate),
             AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
             AVVideoH264EntropyModeKey: AVVideoH264EntropyModeCABAC
         ]
         let videoSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.h264,
-            AVVideoWidthKey: RoundVideoFrameProcessor.outputWidth,
-            AVVideoHeightKey: RoundVideoFrameProcessor.outputHeight,
+            AVVideoWidthKey: self.processor.outputWidth,
+            AVVideoHeightKey: self.processor.outputHeight,
             AVVideoCompressionPropertiesKey: compressionProperties,
             AVVideoColorPropertiesKey: RoundVideoFrameProcessor.videoColorProperties(from: firstVideoFrame.source)
         ]
@@ -648,8 +652,8 @@ final class VideoRecorder {
 
         let sourcePixelBufferAttributes: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-            kCVPixelBufferWidthKey as String: RoundVideoFrameProcessor.outputWidth,
-            kCVPixelBufferHeightKey as String: RoundVideoFrameProcessor.outputHeight,
+            kCVPixelBufferWidthKey as String: self.processor.outputWidth,
+            kCVPixelBufferHeightKey as String: self.processor.outputHeight,
             kCVPixelBufferMetalCompatibilityKey as String: true,
             kCVPixelBufferIOSurfacePropertiesKey as String: [:] as NSDictionary
         ]
@@ -671,7 +675,7 @@ final class VideoRecorder {
             return
         }
 
-        guard let audioSettings = roundVideoAudioSettings(formatDescription: formatDescription, canApply: { settings in
+        guard let audioSettings = roundVideoAudioSettings(formatDescription: formatDescription, preferredBitRate: self.processor.profile.audioBitrate, canApply: { settings in
             return assetWriter.canApply(outputSettings: settings, forMediaType: .audio)
         }) else {
             self.fail(.audioInitializationError)

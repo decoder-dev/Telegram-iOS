@@ -72,15 +72,15 @@ func roundVideoApplicableAudioBitRates(sampleRate: Double, channels: UInt32) -> 
 }
 
 // The preferred bit rate if the encoder accepts it, otherwise the highest accepted one below it.
-func roundVideoAudioBitRate(applicable: [ClosedRange<Int>]) -> Int? {
-    if applicable.contains(where: { $0.contains(roundVideoPreferredAudioBitRate) }) {
-        return roundVideoPreferredAudioBitRate
+func roundVideoAudioBitRate(applicable: [ClosedRange<Int>], preferred: Int = roundVideoPreferredAudioBitRate) -> Int? {
+    if applicable.contains(where: { $0.contains(preferred) }) {
+        return preferred
     }
     return applicable.compactMap { range -> Int? in
-        guard range.lowerBound <= roundVideoPreferredAudioBitRate else {
+        guard range.lowerBound <= preferred else {
             return nil
         }
-        return min(range.upperBound, roundVideoPreferredAudioBitRate)
+        return min(range.upperBound, preferred)
     }.max()
 }
 
@@ -89,6 +89,7 @@ func roundVideoAudioBitRate(applicable: [ClosedRange<Int>]) -> Int? {
 // lists none, it is left to the encoder.
 func roundVideoAudioSettings(
     formatDescription: CMFormatDescription,
+    preferredBitRate: Int = roundVideoPreferredAudioBitRate,
     canApply: ([String: Any]) -> Bool
 ) -> [String: Any]? {
     var settings: [String: Any] = [
@@ -101,7 +102,7 @@ func roundVideoAudioSettings(
         settings[AVNumberOfChannelsKey] = channels
 
         let applicable = roundVideoApplicableAudioBitRates(sampleRate: sampleRate, channels: channels)
-        if let bitRate = roundVideoAudioBitRate(applicable: applicable) {
+        if let bitRate = roundVideoAudioBitRate(applicable: applicable, preferred: preferredBitRate) {
             settings[AVEncoderBitRateKey] = bitRate
         }
     }

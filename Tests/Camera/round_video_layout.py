@@ -5,6 +5,7 @@ import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[2]
 source = (root / 'submodules/TelegramUI/Components/VideoMessageCameraScreen/Sources/VideoMessageCameraLayout.swift').read_text()
+source = source.replace('import CoreGraphics', '#if canImport(CoreGraphics)\nimport CoreGraphics\n#endif')
 fixture = source + r'''
 var cases = 0
 for width: CGFloat in [320, 375, 393, 402, 430, 768, 1024] {

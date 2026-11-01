@@ -1355,9 +1355,10 @@ private func uploadedMediaFileContent(network: Network, postbox: Postbox, auxili
         } else {
             fileReference = .standalone(media: file)
         }
+        let isCloudRoundVideo = file.isInstantVideo && peerId.namespace != Namespaces.Peer.SecretChat
         let upload: Signal<MultipartUploadResult?, PendingMessageUploadError> = .single(nil)
         |> then(
-            messageMediaPreuploadManager.upload(network: network, postbox: postbox, source: .resource(fileReference.resourceReference(file.resource)), encrypt: peerId.namespace == Namespaces.Peer.SecretChat, tag: TelegramMediaResourceFetchTag(statsCategory: statsCategoryForFileWithAttributes(file.attributes), userContentType: nil), hintFileSize: hintSize, hintFileIsLarge: hintFileIsLarge, forceNoBigParts: forceNoBigParts)
+            messageMediaPreuploadManager.upload(network: network, postbox: postbox, source: .resource(fileReference.resourceReference(file.resource)), encrypt: peerId.namespace == Namespaces.Peer.SecretChat, tag: TelegramMediaResourceFetchTag(statsCategory: statsCategoryForFileWithAttributes(file.attributes), userContentType: nil), hintFileSize: hintSize, hintFileIsLarge: hintFileIsLarge, forceNoBigParts: forceNoBigParts || isCloudRoundVideo, useLargerParts: isCloudRoundVideo)
             |> mapError { _ -> PendingMessageUploadError in return .generic }
             |> map(Optional.init)
         )

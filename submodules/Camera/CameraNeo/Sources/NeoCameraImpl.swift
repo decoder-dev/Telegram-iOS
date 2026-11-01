@@ -14,10 +14,12 @@ enum RoundVideoCaptureProfile: Int, CaseIterable {
     case medium
     case vga
 
-    init?(width: Int32, height: Int32, position: AVCaptureDevice.Position) {
+    init?(width: Int32, height: Int32, position: AVCaptureDevice.Position, frameRate: Double = 30.0) {
         switch (position, width, height) {
         case (.back, 1920, 1080), (.front, 1920, 1440): self = .high
         case (.back, 1280, 720), (.front, 1280, 960): self = .medium
+        case (.front, 1920, 1080) where frameRate > 30.0: self = .high
+        case (.front, 1280, 720) where frameRate > 30.0: self = .medium
         case (_, 640, 480): self = .vga
         default: return nil
         }
@@ -37,7 +39,8 @@ private func selectRoundVideoCaptureFormat(
     requiresMultiCam: Bool,
     preferStabilization: Bool,
     preferMediumProfile: Bool,
-    maximumProfile: RoundVideoCaptureProfile = .high
+    maximumProfile: RoundVideoCaptureProfile = .high,
+    frameRate: Double = 30.0
 ) -> Int? {
     let eligible = candidates.indices.filter { index in
         let candidate = candidates[index]
@@ -46,7 +49,7 @@ private func selectRoundVideoCaptureFormat(
         }
         return candidate.isNV12
             && (!requiresMultiCam || candidate.supportsMultiCam)
-            && candidate.frameRateRanges.contains(where: { $0.contains(roundVideoCaptureFrameRate) })
+            && candidate.frameRateRanges.contains(where: { $0.contains(frameRate) })
     }
     return eligible.min { lhsIndex, rhsIndex in
         let lhs = candidates[lhsIndex]
@@ -83,7 +86,8 @@ func roundVideoCaptureFormat(
     for device: AVCaptureDevice,
     requiresMultiCam: Bool,
     mode: NeoCameraImpl.RoundVideoMode,
-    maximumProfile: RoundVideoCaptureProfile = .high
+    maximumProfile: RoundVideoCaptureProfile = .high,
+    frameRate: Double = 30.0
 ) -> AVCaptureDevice.Format? {
     let formats = device.formats
     let candidates = formats.map { format -> RoundVideoCaptureFormatCandidate in
@@ -96,7 +100,7 @@ func roundVideoCaptureFormat(
             supportsMultiCam = false
         }
         return RoundVideoCaptureFormatCandidate(
-            profile: RoundVideoCaptureProfile(width: dimensions.width, height: dimensions.height, position: device.position),
+            profile: RoundVideoCaptureProfile(width: dimensions.width, height: dimensions.height, position: device.position, frameRate: frameRate),
             isNV12: subtype == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange || subtype == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
             frameRateRanges: format.videoSupportedFrameRateRanges.map { $0.minFrameRate ... $0.maxFrameRate },
             supportsMultiCam: supportsMultiCam,
@@ -108,7 +112,15 @@ func roundVideoCaptureFormat(
         requiresMultiCam: requiresMultiCam,
         preferStabilization: mode != .vga && device.position == .back,
         preferMediumProfile: device.position == .front,
-        maximumProfile: mode == .vga ? .vga : maximumProfile
+        maximumProfile: mode == .vga ? .vga : maximumProfile,
+        frameRate: frameRate
+    ) ?? selectRoundVideoCaptureFormat(
+        candidates,
+        requiresMultiCam: requiresMultiCam,
+        preferStabilization: mode != .vga && device.position == .back,
+        preferMediumProfile: device.position == .front,
+        maximumProfile: mode == .vga ? .vga : maximumProfile,
+        frameRate: 30.0
     ) else {
         return nil
     }
@@ -186,7 +198,7 @@ public final class NeoCameraImpl: CameraImpl {
             configuration: configuration,
             previewView: cameraPreviewView,
             secondaryPreviewView: cameraSecondaryPreviewView,
-            useMultiCam: configuration.isDualEnabled && self.isDualCameraSupported(forRoundVideo: configuration.isRoundVideo),
+            useMultiCam: configuration.isDualEnabled && (!configuration.isRoundVideo || configuration.roundVideoProfile.frameRate <= 30.0) && self.isDualCameraSupported(forRoundVideo: configuration.isRoundVideo),
             roundVideoMode: self.roundVideoMode,
             log: self.log
         )

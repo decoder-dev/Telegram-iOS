@@ -49,3 +49,39 @@ public enum BananaVisualLabels {
         return labels.with { BananaVisualLabel(rawValue: $0[accountId] ?? 0) ?? .none }
     }
 }
+
+public enum BananaLocalVerificationBadge: Int32, CaseIterable {
+    case none = 0, major, hold, developer
+
+    public var title: String {
+        switch self {
+        case .none: return ""
+        case .major: return "Major"
+        case .hold: return "Hold"
+        case .developer: return "Developer"
+        }
+    }
+
+    public var iconFileId: Int64? {
+        switch self {
+        case .none: return nil
+        case .major: return 5909078961467431777
+        case .hold: return 5913729775393840687
+        case .developer: return 5800995289124838177
+        }
+    }
+}
+
+/// Decorations keyed by account record, including separate records on test or custom servers.
+/// Renderers must additionally restrict these to that account's own profile or Settings header.
+public enum BananaLocalVerificationBadges {
+    private static let values = Atomic<[Int64: Int32]>(value: [:])
+
+    public static func update(_ badges: [Int64: Int32]) {
+        let _ = values.swap(badges)
+    }
+
+    public static func badge(accountId: Int64) -> BananaLocalVerificationBadge {
+        return values.with { BananaLocalVerificationBadge(rawValue: $0[accountId] ?? 0) ?? .none }
+    }
+}

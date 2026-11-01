@@ -81,7 +81,8 @@ enum ForkRegexMessageFilters { static func unusablePatternCount(_ patterns: [Str
 enum BananaSecurityStrings { static var title="Security" }
 """
     stubs+='enum ForkExtrasLocalizedString { static func string(forKey key: String) -> String { key }\n'+'\n'.join('static let '+name+'="'+name+'"' for name in sorted(localized))+'\n}\n'
-    defs='\n'.join([declaration(source,'private enum ForkExtrasDestination:'),declaration(source,'private enum ForkExtrasSection:'),focus,entry,*[declaration(source,'private func '+name+'(') for name in ['forkVisualLabelOptions','forkStickerShapeOptions','forkDoubleTapSeekOptions','forkDoubleTapActionOptions','forkGlassTintOptions','forkGlassRimOptions','forkSendFormattingOptions','forkVideoQualityOptions','forkIntChoiceLabel']],factory])
+    badge=declaration(read('submodules/TelegramCore/Sources/Arena/BananaIdentityBadges.swift'),'public enum BananaLocalVerificationBadge:')
+    defs='\n'.join([badge,declaration(source,'private enum ForkExtrasDestination:'),declaration(source,'private enum ForkExtrasSection:'),focus,entry,*[declaration(source,'private func '+name+'(') for name in ['forkVisualLabelOptions','forkLocalVerificationOptions','forkStickerShapeOptions','forkDoubleTapSeekOptions','forkDoubleTapActionOptions','forkGlassTintOptions','forkGlassRimOptions','forkSendFormattingOptions','forkVideoQualityOptions','forkIntChoiceLabel']],factory])
     tests=r"""
 for russian in [false,true] {
  ForkPresentationLanguage.prefersRussianStrings=russian
@@ -102,7 +103,7 @@ for russian in [false,true] {
       precondition(!titled.isEmpty && !titled.contains(""),"No searchable titles: \(category)")
       if category == .tabBar { precondition(titled.contains("Calls")) }
      }
-     if category == .top { precondition(ids == [0,1,2,1995,3,7,4,8,23,1540,5,6]) }
+     if category == .top { precondition(ids == [0,1,2,1995,2100,3,7,4,8,23,1540,5,6]) }
      if category == .media {
       var values: [Int32:Bool]=[:]
       for entry in entries { if case let .musicPolicy(id,_,value)=entry { values[id]=value } }

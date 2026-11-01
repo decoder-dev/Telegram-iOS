@@ -610,7 +610,7 @@ struct ChatListContactPeer {
     }
 }
 
-func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, omitArchiveFolder: Bool = false, forceArchiveCollapsed: Bool = false, redactArchiveFolderContents: Bool = false) -> (entries: [ChatListNodeEntry], loading: Bool) {
+func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, omitArchiveFolder: Bool = false, forceArchiveCollapsed: Bool = false, redactArchiveFolderContents: Bool = false, hideProxySponsor: Bool = false) -> (entries: [ChatListNodeEntry], loading: Bool) {
     let hideSavedMessages = redactArchiveFolderContents
     let savedMessagesPeer = hideSavedMessages ? nil : savedMessagesPeer
     let foundPeers = hideSavedMessages ? foundPeers.filter { $0.0.id != accountPeerId } : foundPeers
@@ -663,6 +663,9 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
     }
     
     let filteredAdditionalItemEntries = view.additionalItems.filter { item -> Bool in
+        if hideProxySponsor, case .proxy = item.promoInfo.content {
+            return false
+        }
         return item.item.renderedPeer.peerId != state.hiddenPsaPeerId
     }
     
