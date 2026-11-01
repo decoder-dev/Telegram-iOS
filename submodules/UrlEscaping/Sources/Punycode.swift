@@ -42,8 +42,6 @@ public class Punycode {
 
     /// RFC 3492 specific
     private let delimiter: Character = "-"
-    private let lowercase: ClosedRange<Character> = "a"..."z"
-    private let digits: ClosedRange<Character> = "0"..."9"
     private let lettersBase: UInt32 = Character("a").unicodeScalars.first!.value
     private let digitsBase: UInt32 = Character("0").unicodeScalars.first!.value
 
@@ -68,11 +66,17 @@ public class Punycode {
 
     /// Maps a punycode character to index
     private func punycodeIndex(for character: Character) -> Int? {
-        if lowercase.contains(character) {
-            return Int(character.unicodeScalars.first!.value - lettersBase)
-        } else if digits.contains(character) {
-            return Int(character.unicodeScalars.first!.value - digitsBase) + 26 /// count of lowercase letters range
-        } else {
+        guard character.unicodeScalars.count == 1, let scalar = character.unicodeScalars.first else {
+            return nil
+        }
+        switch scalar.value {
+        case 97 ... 122:
+            return Int(scalar.value - lettersBase)
+        case 65 ... 90:
+            return Int(scalar.value - 65)
+        case 48 ... 57:
+            return Int(scalar.value - digitsBase) + 26
+        default:
             return nil
         }
     }
@@ -100,6 +104,7 @@ public class Punycode {
 
         let delimiterPosition: Substring.Index = punycode.lastIndex(of: delimiter) ?? punycode.startIndex
         if delimiterPosition > punycode.startIndex {
+            guard punycode[..<delimiterPosition].unicodeScalars.allSatisfy({ $0.isASCII }) else { return nil }
             output.append(contentsOf: punycode[..<delimiterPosition])
             inputPosition = punycode.index(after: delimiterPosition)
         }
@@ -113,16 +118,20 @@ public class Punycode {
                 guard let digit: Int = punycodeIndex(for: character) else {
                     return nil    /// Failing on badly formatted punycode
                 }
+                guard digit <= (Int.max - i) / w else { return nil }
                 i += digit * w
                 let t = k <= bias ? tMin : (k >= bias + tMax ? tMax : k - bias)
                 if digit < t {
                     break
                 }
+                guard !punycodeInput.isEmpty, w <= Int.max / (base - t) else { return nil }
                 w *= base - t
                 k += base
             } while !punycodeInput.isEmpty
             bias = adaptBias(i - oldI, output.count + 1, oldI == 0)
-            n += i / (output.count + 1)
+            let increment = i / (output.count + 1)
+            guard increment <= 0x10FFFF - n else { return nil }
+            n += increment
             i %= (output.count + 1)
             guard n >= 0x80, let scalar = UnicodeScalar(n) else {
                 return nil

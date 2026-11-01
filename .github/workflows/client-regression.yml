@@ -5,6 +5,7 @@ on:
     paths:
       - 'submodules/TelegramVLESS/**'
       - 'submodules/MTWebSocketTransport/**'
+      - 'submodules/UrlEscaping/**'
       - 'submodules/WebProxyTransport/Sources/WebProxyManager.swift'
       - 'submodules/TelegramCore/Sources/Network/ProxyServersStatuses.swift'
       - 'submodules/TelegramCore/Sources/Network/NetworkFrameworkTcpConnectionInterface.swift'
@@ -130,6 +131,8 @@ jobs:
       - run: python3 Tests/MessageFilters/run.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/Security/run.py
+        if: ${{ !cancelled() }}
+      - run: python3 Tests/Security/url_codec.py
         if: ${{ !cancelled() }}
       - run: python3 Tests/ClientAdditions/menu_layout.py
         if: ${{ !cancelled() }}

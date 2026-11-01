@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed — stability audit
+- Malformed Punycode hostnames no longer overflow integer arithmetic or accept truncated encoded integers. ASCII prefixes are validated and encoded digits accept either letter case.
 - Reject invalid WebSocket datacenter identifiers without overflowing while normalizing their sign; invalid identifiers produce no gateway or front endpoints.
 - When an active prefetch becomes a manual download, report its current user-initiated state instead of the stale value captured when it started.
 - Compile the donor regression fixture with the CoreGraphics overlay on Apple platforms. Run the existing WebSocket transport test suites in release and client CI.
