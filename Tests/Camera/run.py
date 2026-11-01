@@ -45,4 +45,43 @@ print("Picker confirmation/cancellation gates passed")
         path.write_text(fixture, encoding='utf-8')
         subprocess.run(['swift', str(path)], check=True)
 
+picker = (root / 'submodules/MediaPickerUI/Sources/MediaPickerScreen.swift').read_text()
+dismissal = picker[picker.index('    public override func dismiss(completion:'):]
+dismissal = dismissal[:dismissal.index('        super.dismiss(completion: completion)')]
+camera_start = dismissal.index('        if let camera')
+camera_teardown = dismissal[camera_start:]
+fixture = '''
+final class Camera {
+    var invalidations = 0
+    func stopCapture(invalidate: Bool) { precondition(invalidate); invalidations += 1 }
+}
+final class Preview { var isEnabled = true }
+final class Node {
+    var modernCamera: Camera?
+    var modernCameraView: Preview?
+}
+final class Picker {
+    let controllerNode = Node()
+    func dismissCamera() {
+''' + camera_teardown + '''
+    }
+}
+for hasCamera in [false, true] {
+    for hasPreview in [false, true] {
+        let picker = Picker()
+        let camera = Camera(), preview = Preview()
+        picker.controllerNode.modernCamera = hasCamera ? camera : nil
+        picker.controllerNode.modernCameraView = hasPreview ? preview : nil
+        picker.dismissCamera()
+        precondition(camera.invalidations == (hasCamera ? 1 : 0))
+        precondition(preview.isEnabled == !(hasCamera && hasPreview))
+    }
+}
+print("Media picker dismissal: camera invalidation, disabled preview and missing-camera cases passed")
+'''
+with tempfile.TemporaryDirectory(prefix='picker-dismissal-') as directory:
+    path = pathlib.Path(directory) / 'main.swift'
+    path.write_text(fixture)
+    subprocess.run(['swift', str(path)], check=True, timeout=120)
+
 subprocess.run([sys.executable, str(root / 'Tests/Camera/permissions.py')], check=True)

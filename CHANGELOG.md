@@ -7,6 +7,7 @@
 ## [Unreleased]
 
 ### Fixed — stability audit
+- Media picker dismissal stops its actual camera and disables the preview. Remove a stale upstream teardown branch for a legacy view that the picker no longer owns, which blocked compilation.
 - The general video-message quality preset reads its default dimensions from the encoding profile; a stale reference to the removed export constant no longer blocks the app build.
 - Malformed Punycode hostnames no longer overflow integer arithmetic or accept truncated encoded integers. ASCII prefixes are validated and encoded digits accept either letter case.
 - Punycode counts Unicode scalars rather than graphemes, avoiding an infinite loop on CRLF input and preserving mixed ASCII/non-ASCII round trips.

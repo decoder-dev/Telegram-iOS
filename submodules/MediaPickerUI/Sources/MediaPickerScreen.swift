@@ -3031,11 +3031,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             }
         }
         
-        if let cameraView = self.controllerNode.cameraView {
-            if let previewView = cameraView.previewView(), previewView.isDescendant(of: cameraView) {
-                cameraView.stopPreview()
-            }
-        } else if let camera = self.controllerNode.modernCamera {
+        if let camera = self.controllerNode.modernCamera {
             if let cameraView = self.controllerNode.modernCameraView {
                 cameraView.isEnabled = false
             }
