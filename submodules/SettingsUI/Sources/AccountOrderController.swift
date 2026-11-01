@@ -121,21 +121,29 @@ private func accountsWithAppliedOrder(_ accounts: [(AccountContext, EnginePeer)]
 /// Numbers every record, not only the listed ones: accounts with equal numbers would swap between launches.
 private func updateAccountOrder(accountManager: AccountManager<TelegramAccountManagerTypes>, currentId: AccountRecordId, orderedIds: [AccountRecordId]) -> Signal<Void, NoError> {
     return accountManager.transaction { transaction -> Void in
-        let records = transaction.getRecords().map { record -> (AccountRecordId, Int32) in
-            let order = record.attributes.compactMap { attribute -> Int32? in
-                if case let .sortOrder(value) = attribute { return value.order }
-                return nil
-            }.first ?? 0
-            return (record.id, order)
-        }.sorted { lhs, rhs in
-            return lhs.1 == rhs.1 ? lhs.0 < rhs.0 : lhs.1 < rhs.1
+        var records: [(id: AccountRecordId, order: Int32)] = []
+        for record in transaction.getRecords() {
+            var order: Int32 = 0
+            for attribute in record.attributes {
+                if case let .sortOrder(value) = attribute {
+                    order = value.order
+                    break
+                }
+            }
+            records.append((id: record.id, order: order))
+        }
+        records.sort { lhs, rhs in
+            if lhs.order == rhs.order {
+                return lhs.id < rhs.id
+            }
+            return lhs.order < rhs.order
         }
         // Without a stored current id the first account is treated as current. Do not restore an account logged out during the drag.
-        if transaction.getCurrent() == nil, records.contains(where: { $0.0 == currentId }) {
+        if transaction.getCurrent() == nil, records.contains(where: { $0.id == currentId }) {
             transaction.setCurrentId(currentId)
         }
         // Hidden or newly added accounts keep their relative order after the visible accounts.
-        let ids = accountIdsApplyingOrder(existing: records.map { $0.0 }, requested: orderedIds)
+        let ids = accountIdsApplyingOrder(existing: records.map { $0.id }, requested: orderedIds)
         for (order, id) in ids.enumerated() {
             transaction.updateRecord(id, { record in
                 guard let record else {
