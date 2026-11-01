@@ -16,8 +16,8 @@ UIView<TGPhotoToolbarViewProtocol> *TGPhotoToolbarViewMake(id<TGPhotoPaintSticke
             return toolbarView;
     }
 
-    NSAssert(TGPhotoToolbarViewFactoryBlockStorage != nil, @"TGPhotoToolbarViewRegisterFactory must run before creating a photo toolbar (import LegacyMediaPickerUI)");
+    NSCAssert(TGPhotoToolbarViewFactoryBlockStorage != nil, @"TGPhotoToolbarViewRegisterFactory must run before creating a photo toolbar (import LegacyMediaPickerUI)");
     UIView<TGPhotoToolbarViewProtocol> *toolbarView = TGPhotoToolbarViewFactoryBlockStorage(backButton, doneButton, solidBackground, hasSendStarsButton);
-    NSAssert(toolbarView != nil, @"TGPhotoToolbarViewFactory returned nil");
+    NSCAssert(toolbarView != nil, @"TGPhotoToolbarViewFactory returned nil");
     return toolbarView;
 }
