@@ -14,6 +14,8 @@ class SimulatorQAWorkflow(unittest.TestCase):
     def test_builds_isolated_simulator_app_and_captures_evidence(self):
         self.assertIn('--configuration=debug_sim_arm64', WORKFLOW)
         self.assertIn('--disableExtensions', WORKFLOW)
+        self.assertIn('shasum -a 256 -c -', WORKFLOW)
+        self.assertIn('LibXray.xcframework/ios-arm64-simulator', WORKFLOW)
         self.assertIn('--ui-test', WORKFLOW)
         self.assertIn('welcome-light.png', WORKFLOW)
         self.assertIn('welcome-dark.png', WORKFLOW)
