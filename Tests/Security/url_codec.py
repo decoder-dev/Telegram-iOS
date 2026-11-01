@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-values = ['bücher', 'пример', '例子', 'mañana', '日本語', '☃', '😀', 'e\u0301', 'ABC', 'a-b']
+values = ['bücher', 'пример', '例子', 'mañana', '日本語', '☃', '😀', 'e\u0301', 'ABC', 'a-b', '\r\n', 'a\r\nb', '\r\né', 'abc\r\n😀']
 generator = random.Random(3492)
 alphabet = list('abc-') + ['é', 'я', '中', '😀', '\u0301']
 values += [''.join(generator.choice(alphabet) for _ in range(generator.randint(1, 20))) for _ in range(200)]

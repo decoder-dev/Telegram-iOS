@@ -77,6 +77,8 @@ jobs:
           python3 Tests/Upstream13/own_features.py
           python3 Tests/Upstream13/audio_rich_text.py
           python3 -m unittest discover -s Tests/Upstream13 -p 'donut*.py'
+          python3 -m unittest discover -s Tests/Upstream13 -p 'regram*.py'
+          python3 -m unittest Tests.Upstream13.madgram_features Tests.Upstream13.whitegram_features Tests.Upstream13.glass_bubbles Tests.Upstream13.share_link_guard
           python3 Tests/Upstream13/sticker_settings.py
           python3 Tests/Upstream13/queued_reads.py
           python3 Tests/Customization/greeting_live.py

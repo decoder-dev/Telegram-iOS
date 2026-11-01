@@ -30,7 +30,7 @@ class RegramInputMedia(unittest.TestCase):
         c = read(CONTROLLER)
         ids = [int(i) for i in re.findall(r'\.(?:appearanceToggle|intChoice|designHeader|designFooter)\((18[5-9]\d)', c)]
         self.assertEqual(sorted(ids), list(range(1850, 1854)) + list(range(1860, 1866)))
-        self.assertIn('[1850, 1851, 1852, 1853]', c)
+        self.assertIn('[1850, 2101, 2102, 1851, 1852, 1853]', c)
         self.assertIn('[1860, 1861, 1862, 1863, 1864, 1865]', c)
         for key in ('1851', '1864'):
             self.assertIn('case %s:' % key, c)

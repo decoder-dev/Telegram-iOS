@@ -99,13 +99,13 @@ public class Punycode {
         var n: Int = initialN
         var i: Int = 0
         var bias: Int = initialBias
-        var output: [Character] = []
+        var output: [UnicodeScalar] = []
         var inputPosition = punycode.startIndex
 
         let delimiterPosition: Substring.Index = punycode.lastIndex(of: delimiter) ?? punycode.startIndex
         if delimiterPosition > punycode.startIndex {
             guard punycode[..<delimiterPosition].unicodeScalars.allSatisfy({ $0.isASCII }) else { return nil }
-            output.append(contentsOf: punycode[..<delimiterPosition])
+            output.append(contentsOf: punycode[..<delimiterPosition].unicodeScalars)
             inputPosition = punycode.index(after: delimiterPosition)
         }
         var punycodeInput: Substring = punycode[inputPosition..<punycode.endIndex]
@@ -136,11 +136,11 @@ public class Punycode {
             guard n >= 0x80, let scalar = UnicodeScalar(n) else {
                 return nil
             }
-            output.insert(Character(scalar), at: i)
+            output.insert(scalar, at: i)
             i += 1
         }
 
-        return String(output)
+        return String(String.UnicodeScalarView(output))
     }
 
     /// Encodes string to punycode (RFC 3492)
@@ -160,7 +160,7 @@ public class Punycode {
                 return nil /// Encountered a scalar out of acceptable range
             }
         }
-        var handled: Int = output.count
+        var handled: Int = output.unicodeScalars.count
         let basic: Int = handled
         if basic > 0 {
             output.append(delimiter)
