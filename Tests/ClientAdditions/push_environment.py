@@ -13,7 +13,7 @@ plist_start = TELEGRAM_BUILD.index('name = "TelegramInfoPlist"')
 info_plist = TELEGRAM_BUILD[plist_start:]
 assert '<key>TelegramAPNSEnvironment</key>' in info_plist
 assert '<string>{telegram_aps_environment}</string>' in info_plist
-assert '"telegram_aps_environment": telegram_aps_environment' in info_plist
+assert 'telegram_aps_environment = telegram_aps_environment' in info_plist
 assert 'PushNotificationEnvironment.tokenEnvironment' in (ROOT / 'submodules/TelegramUI/Sources/AppDelegate.swift').read_text()
 assert 'PushNotificationEnvironment.isSandbox' in (ROOT / 'submodules/TelegramUI/Sources/SharedAccountContext.swift').read_text()
 
