@@ -1402,7 +1402,7 @@ public class Account {
         
         self.stateManager = AccountStateManager(accountPeerId: self.peerId, accountManager: accountManager, postbox: self.postbox, network: self.network, callSessionManager: self.callSessionManager, addIsContactUpdates: { [weak self] updates in
             self?.contactSyncManager?.addIsContactUpdates(updates)
-        }, shouldKeepOnlinePresence: self.shouldKeepOnlinePresence.get(), peerInputActivityManager: self.peerInputActivityManager, auxiliaryMethods: auxiliaryMethods)
+        }, shouldKeepOnlinePresence: self.shouldKeepOnlinePresence.get(), peerInputActivityManager: self.peerInputActivityManager, auxiliaryMethods: auxiliaryMethods, ignoresShortSentMessages: supplementary)
         
         self.viewTracker = AccountViewTracker(account: self)
         self.viewTracker.resetPeerHoleManagement = { [weak self] peerId in
@@ -2104,7 +2104,8 @@ public func standaloneStateManager(
                                         },
                                         shouldKeepOnlinePresence: .single(false),
                                         peerInputActivityManager: nil,
-                                        auxiliaryMethods: auxiliaryMethods
+                                        auxiliaryMethods: auxiliaryMethods,
+                                        ignoresShortSentMessages: true
                                     )
                                 }
                             }
