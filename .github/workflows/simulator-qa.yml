@@ -1,0 +1,134 @@
+name: Simulator QA evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-ios-simulator-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    name: First-launch screenshots and video
+    runs-on: macos-26
+    timeout-minutes: 240
+    env:
+      BAZEL_USER_ROOT: /private/var/tmp/_bazel_telegram_ios_qa
+      BAZEL_CACHE_DIR: ${{ github.workspace }}/.telegram-bazel-qa-cache
+      BAZEL_REPO_CACHE: /private/var/tmp/telegram-bazel-qa-repo-cache
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Fix submodule URLs for forks
+        run: |
+          git config --file=.gitmodules submodule.submodules/rlottie/rlottie.url \
+            https://github.com/TelegramMessenger/rlottie.git
+          git config --file=.gitmodules submodule.submodules/TgVoipWebrtc/tgcalls.url \
+            https://github.com/TelegramMessenger/tgcalls.git
+          git submodule sync --recursive
+
+      - name: Checkout submodules
+        run: git submodule update --init --recursive --depth 1 --jobs 8
+
+      - name: Restore Bazel simulator cache
+        id: bazel-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ env.BAZEL_CACHE_DIR }}
+            ${{ env.BAZEL_REPO_CACHE }}
+          key: bazel-warm-simulator-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}
+          restore-keys: |
+            bazel-warm-simulator-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-
+
+      - name: Build Telegram for iOS Simulator
+        run: |
+          set -euo pipefail
+          mkdir -p "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE" qa-artifacts
+          python3 -u build-system/Make/Make.py \
+            --overrideXcodeVersion \
+            --bazelUserRoot="$BAZEL_USER_ROOT" \
+            --cacheDir="$BAZEL_CACHE_DIR" \
+            build \
+            --configurationPath=build-system/sideload-configuration.json \
+            --codesigningInformationPath=build-system/fake-codesigning \
+            --buildNumber=10000 \
+            --configuration=debug_sim_arm64 \
+            --disableExtensions \
+            2>&1 | tee qa-artifacts/simulator-build.log
+
+      - name: Select and boot an iPhone simulator
+        run: |
+          set -euo pipefail
+          RUNTIME="$(xcrun simctl list runtimes -j | jq -r '[.runtimes[] | select(.isAvailable and (.name | startswith("iOS")))] | last | .identifier')"
+          test -n "$RUNTIME" && test "$RUNTIME" != "null"
+          DEVICE_TYPE="$(xcrun simctl list devicetypes -j | jq -r '[.devicetypes[] | select(.name == "iPhone 17")] | last | .identifier // empty')"
+          if [ -z "$DEVICE_TYPE" ]; then
+            DEVICE_TYPE="$(xcrun simctl list devicetypes -j | jq -r '[.devicetypes[] | select(.name | test("^iPhone (1[6-9]|2[0-9])"))] | sort_by(.name) | last | .identifier // empty')"
+          fi
+          test -n "$DEVICE_TYPE" && test "$DEVICE_TYPE" != "null"
+          UDID="$(xcrun simctl list devices -j | jq -r --arg runtime "$RUNTIME" --arg type "$DEVICE_TYPE" '(.devices[$runtime] // []) | map(select(.isAvailable and .deviceTypeIdentifier == $type)) | last | .udid // empty')"
+          if [ -z "$UDID" ]; then
+            UDID="$(xcrun simctl create Telegram-QA "$DEVICE_TYPE" "$RUNTIME")"
+          fi
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+
+      - name: Install and capture first-launch screens
+        run: |
+          set -euo pipefail
+          APP="$(find -L bazel-bin/Telegram -type d -name 'Telegram.app' -print -quit)"
+          test -n "$APP" && test -d "$APP"
+          BUNDLE_ID="$(jq -r .bundle_id build-system/sideload-configuration.json)"
+          echo "Simulator app: $APP"
+          echo "Bundle id: $BUNDLE_ID"
+          echo "Runtime: $(xcrun simctl list devices -j | jq -r --arg udid "$UDID" '[.devices[][] | select(.udid == $udid) | .name] | first')"
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl ui "$UDID" appearance light
+          xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test
+          sleep 8
+          xcrun simctl io "$UDID" screenshot qa-artifacts/welcome-light.png
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID"
+          xcrun simctl ui "$UDID" appearance dark
+          xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test
+          sleep 8
+          xcrun simctl io "$UDID" screenshot qa-artifacts/welcome-dark.png
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID"
+          xcrun simctl io "$UDID" recordVideo --codec h264 --force qa-artifacts/first-launch.mp4 &
+          VIDEO_PID=$!
+          sleep 2
+          xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test
+          sleep 15
+          kill -INT "$VIDEO_PID" || true
+          wait "$VIDEO_PID" || true
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          test -s qa-artifacts/welcome-light.png
+          test -s qa-artifacts/welcome-dark.png
+          test -s qa-artifacts/first-launch.mp4
+
+      - name: Save Bazel simulator cache
+        if: ${{ !cancelled() && steps.bazel-cache.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.BAZEL_CACHE_DIR }}
+            ${{ env.BAZEL_REPO_CACHE }}
+          key: bazel-warm-simulator-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}
+
+      - name: Upload simulator QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-ios-simulator-qa-${{ github.run_number }}
+          path: qa-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
