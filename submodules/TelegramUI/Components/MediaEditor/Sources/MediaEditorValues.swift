@@ -165,7 +165,7 @@ public enum MediaQualityPreset: Int32 {
         case .compressedVeryHigh:
             return 1920.0
         case .videoMessage:
-            return VideoMessageExportSettings.maximumDimension
+            return CGFloat(VideoMessageEncodingProfile.default.maximumDimension)
         case .profileLow:
             return 720.0
         case .profile, .profileHigh, .profileVeryHigh:

@@ -51,6 +51,7 @@ let roundVideoPreferredAudioBitRate = 64_000
 fixture += '\n'.join([
     read(camera + 'Sources/RoundVideoRecordingProfile.swift'),
     read(editor + 'VideoMessageEncodingProfile.swift'),
+    declaration(read(editor + 'MediaEditorValues.swift'), 'public enum MediaQualityPreset:'),
     read(screen + 'RoundVideoRecordingCountdown.swift'),
     declaration(capture, 'enum RoundVideoCaptureProfile:'),
     declaration(capture, 'struct RoundVideoCaptureFormatCandidate'),
@@ -68,6 +69,7 @@ func selectedCameraMode(experimentalSettings: ExperimentalCameraSettings, captur
 }
 '''
 checks = r'''
+precondition(MediaQualityPreset.videoMessage.maximumDimensions == CGFloat(VideoMessageEncodingProfile.default.maximumDimension))
 // Defaults preserve existing installations and settings survive a round trip.
 var preferences = try JSONDecoder().decode(ForkExtrasSettings.self, from: Data("{}".utf8))
 precondition(!preferences.parallelDownloads && !preferences.hideAIButton && !preferences.hideRichTextEditor)
