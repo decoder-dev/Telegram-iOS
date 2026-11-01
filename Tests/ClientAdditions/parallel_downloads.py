@@ -5,7 +5,30 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 policy = (ROOT / 'submodules/FetchManagerImpl/Sources/DownloadConcurrencyPolicy.swift').read_text()
+manager = (ROOT / 'submodules/FetchManagerImpl/Sources/FetchManagerImpl.swift').read_text()
+start = manager.index('    var hasActiveUserInitiatedEntries: Bool {')
+active_status = manager[start:manager.index('    init(postbox:', start)]
 checks = '''
+final class Entry { var userInitiated = false }
+final class ActiveContext { let userInitiated = false }
+final class Category {
+    var entries: [Int: Entry] = [:]
+    var activeContexts: [Int: ActiveContext] = [:]
+''' + active_status + '''
+}
+let category = Category()
+let entry = Entry()
+category.entries[1] = entry
+category.activeContexts[1] = ActiveContext()
+precondition(!category.hasActiveUserInitiatedEntries)
+// An explicit download may reuse an already running prefetch.
+entry.userInitiated = true
+precondition(category.hasActiveUserInitiatedEntries)
+category.entries.removeValue(forKey: 1)
+precondition(!category.hasActiveUserInitiatedEntries)
+category.entries[1] = entry
+category.activeContexts.removeAll()
+precondition(!category.hasActiveUserInitiatedEntries)
 func download(_ id: Int, dc: Int = 1, size: Int64? = 1024, user: Bool = true) -> DownloadCandidate<Int> {
     DownloadCandidate(id: id, datacenterId: dc, size: size, userInitiated: user)
 }

@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'submodules/TelegramVLESS/**'
+      - 'submodules/MTWebSocketTransport/**'
       - 'submodules/WebProxyTransport/Sources/WebProxyManager.swift'
       - 'submodules/TelegramCore/Sources/Network/ProxyServersStatuses.swift'
       - 'submodules/TelegramCore/Sources/Network/NetworkFrameworkTcpConnectionInterface.swift'
@@ -107,6 +108,8 @@ jobs:
       - name: Safe tracking-link cleanup
         run: python3 Tests/ForkRefinements/run.py
       - run: swift test --package-path submodules/TelegramVLESS
+        if: ${{ !cancelled() }}
+      - run: swift test --package-path submodules/MTWebSocketTransport --configuration release
         if: ${{ !cancelled() }}
       - run: python3 Tests/ManagedProxy/run.py
         if: ${{ !cancelled() }}

@@ -12,10 +12,8 @@ public enum WebSocketDatacenter {
     /// DC 203 (an extra Telegram IP outside the mainline 1-5 set) folds to DC 2's hostnames, as it does
     /// for the WS endpoint in tg-ws-proxy.
     public static func hostnames(datacenterId: Int, isMedia: Bool) -> [String] {
-        var dc = abs(datacenterId)
-        if dc == 203 {
-            dc = 2
-        }
+        let dc = foldedDatacenterId(datacenterId)
+        guard dc != 0 else { return [] }
         let base = "kws\(dc).web.telegram.org"
         let alternate = "kws\(dc)-1.web.telegram.org"
         return isMedia ? [alternate, base] : [base, alternate]
@@ -26,6 +24,7 @@ public enum WebSocketDatacenter {
     }
 
     public static func foldedDatacenterId(_ datacenterId: Int) -> Int {
+        guard datacenterId != Int.min else { return 0 }
         var dc = abs(datacenterId)
         if dc == 203 {
             dc = 2
@@ -131,6 +130,7 @@ public enum WebSocketEndpointPlanner {
 
     private static func frontCandidates(datacenterId: Int, isTestingEnvironment: Bool, templates: [WebSocketFrontTemplate]) -> [WebSocketEndpointCandidate] {
         let dc = WebSocketDatacenter.foldedDatacenterId(datacenterId)
+        guard dc != 0 else { return [] }
         var result: [WebSocketEndpointCandidate] = []
         for template in templates {
             let host = expand(template.host, dc: dc)

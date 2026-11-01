@@ -76,13 +76,8 @@ private final class FetchManagerLocationEntry {
 }
 
 private final class FetchManagerActiveContext {
-    let userInitiated: Bool
     var ranges = RangeSet<Int64>()
     var disposable: Disposable?
-    
-    init(userInitiated: Bool) {
-        self.userInitiated = userInitiated
-    }
 }
 
 private final class FetchManagerStatusContext {
@@ -151,8 +146,8 @@ private final class FetchManagerCategoryContext {
     private var statusContexts: [FetchManagerLocationEntryId: FetchManagerStatusContext] = [:]
     
     var hasActiveUserInitiatedEntries: Bool {
-        for (_, context) in self.activeContexts {
-            if context.userInitiated {
+        for id in self.activeContexts.keys {
+            if self.entries[id]?.userInitiated == true {
                 return true
             }
         }
@@ -427,7 +422,7 @@ private final class FetchManagerCategoryContext {
                 activeContext = current
                 restart = activeContext.ranges != ranges
             } else {
-                activeContext = FetchManagerActiveContext(userInitiated: entry.userInitiated)
+                activeContext = FetchManagerActiveContext()
                 self.activeContexts[topEntryId] = activeContext
                 restart = true
             }

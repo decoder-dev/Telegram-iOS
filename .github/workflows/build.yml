@@ -101,6 +101,8 @@ jobs:
           /tmp/mtinput-tests
       - name: MTProto timer and reconnection regression tests
         run: bash Tests/MTConnection/run.sh
+      - name: WebSocket transport regression tests
+        run: swift test --package-path submodules/MTWebSocketTransport --configuration release
       - name: VLESS parser, configuration and lifecycle tests
         run: swift test --package-path submodules/TelegramVLESS
       - name: Archive session and account isolation tests

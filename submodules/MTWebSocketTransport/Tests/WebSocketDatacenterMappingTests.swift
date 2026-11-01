@@ -27,6 +27,15 @@ final class WebSocketDatacenterMappingTests: XCTestCase {
         XCTAssertEqual(WebSocketDatacenter.hostnames(datacenterId: -2, isMedia: false), WebSocketDatacenter.hostnames(datacenterId: 2, isMedia: false))
     }
 
+    func testInvalidDatacenterIdsHaveNoEndpoints() {
+        let config = WebSocketEndpointPlanConfig(fronts: [WebSocketFrontTemplate(host: "worker.example.com", pathTemplate: "/dc/{dc}/apiws")])
+        for id in [Int.min, 0] {
+            XCTAssertTrue(WebSocketDatacenter.hostnames(datacenterId: id, isMedia: false).isEmpty)
+            XCTAssertEqual(WebSocketDatacenter.foldedDatacenterId(id), 0)
+            XCTAssertTrue(WebSocketEndpointPlanner.candidates(datacenterId: id, isMedia: false, isTestingEnvironment: false, config: config).isEmpty)
+        }
+    }
+
     func testProductionPath() {
         XCTAssertEqual(WebSocketDatacenter.path(isTestingEnvironment: false), "/apiws")
     }
