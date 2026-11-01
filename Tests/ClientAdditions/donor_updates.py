@@ -28,6 +28,9 @@ for module in ['TelegramCore', 'SwiftSignalKit', 'Postbox']:
     settings = settings.replace('import ' + module + '\n', '')
 fixture = '''
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 enum AVCaptureDevice { enum Position { case front, back } }
 enum ForkPresentationLanguage { static let prefersRussianStrings = false }
 enum NeoCameraImpl { enum RoundVideoMode { case vga, hdBilinear, hdLanczos } }
