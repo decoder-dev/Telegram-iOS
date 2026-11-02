@@ -242,6 +242,18 @@ public func makePresentationTheme(cloudTheme: TelegramTheme, baseTheme: Telegram
     return customizePresentationTheme(defaultTheme, editing: true, accentColor: UIColor(argb: settings.accentColor), outgoingAccentColor: settings.outgoingAccentColor.flatMap { UIColor(argb: $0) }, backgroundColors: [], bubbleColors: settings.messageColors, animateBubbleColors: settings.animateMessageColors, wallpaper: settings.wallpaper)
 }
 
+func shouldPreserveLiquidDefaults(reference: PresentationBuiltinThemeReference, hasAccent: Bool, hasOutgoingAccent: Bool, hasBubbleColors: Bool) -> Bool {
+    guard !hasAccent, !hasOutgoingAccent, !hasBubbleColors else {
+        return false
+    }
+    switch reference {
+    case .dayClassic, .day, .night:
+        return true
+    default:
+        return false
+    }
+}
+
 public func makePresentationTheme(mediaBox: MediaBox, themeReference: PresentationThemeReference, baseTheme: TelegramBaseTheme? = nil, extendingThemeReference: PresentationThemeReference? = nil, accentColor: UIColor? = nil, outgoingAccentColor: UIColor? = nil, backgroundColors: [UInt32] = [], bubbleColors: [UInt32] = [], animateBubbleColors: Bool? = nil, wallpaper: TelegramWallpaper? = nil, baseColor: PresentationThemeBaseColor? = nil, serviceBackgroundColor: UIColor? = nil, preview: Bool = false) -> PresentationTheme? {
     var accentColor = accentColor
     if accentColor == .clear {
@@ -251,7 +263,8 @@ public func makePresentationTheme(mediaBox: MediaBox, themeReference: Presentati
     switch themeReference {
         case let .builtin(reference):
             let defaultTheme = makeDefaultPresentationTheme(reference: reference, extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, preview: preview)
-            theme = customizePresentationTheme(defaultTheme, editing: true, accentColor: accentColor, outgoingAccentColor: outgoingAccentColor, backgroundColors: backgroundColors, bubbleColors: bubbleColors, animateBubbleColors: animateBubbleColors, wallpaper: wallpaper, baseColor: baseColor)
+            let preserveDefaults = shouldPreserveLiquidDefaults(reference: reference, hasAccent: accentColor != nil, hasOutgoingAccent: outgoingAccentColor != nil, hasBubbleColors: !bubbleColors.isEmpty)
+            theme = customizePresentationTheme(defaultTheme, editing: !preserveDefaults, accentColor: accentColor, outgoingAccentColor: outgoingAccentColor, backgroundColors: backgroundColors, bubbleColors: bubbleColors, animateBubbleColors: animateBubbleColors, wallpaper: wallpaper, baseColor: baseColor)
         case let .local(info):
             if let path = mediaBox.completedResourcePath(info.resource), let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedRead), let loadedTheme = makePresentationTheme(data: data, themeReference: themeReference, resolvedWallpaper: info.resolvedWallpaper) {
                 theme = customizePresentationTheme(loadedTheme, editing: false, accentColor: accentColor, outgoingAccentColor: outgoingAccentColor, backgroundColors: backgroundColors, bubbleColors: bubbleColors, animateBubbleColors: animateBubbleColors, wallpaper: wallpaper)

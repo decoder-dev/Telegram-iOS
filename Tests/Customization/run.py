@@ -6,6 +6,9 @@ root = pathlib.Path(__file__).resolve().parents[2]
 source = (root / 'submodules/TelegramPresentationData/Sources/PresentationData.swift').read_text(encoding='utf-8')
 begin = source.index('public func higChatBubbleCorners(')
 end = source.index('\n}', begin) + 2
+theme_source = (root / 'submodules/TelegramPresentationData/Sources/MakePresentationTheme.swift').read_text(encoding='utf-8')
+policy_begin = theme_source.index('func shouldPreserveLiquidDefaults(')
+policy_end = theme_source.index('\n}', policy_begin) + 2
 fixture = '''import Foundation
 public struct PresentationChatBubbleSettings {
     var mainRadius: Int32
@@ -17,6 +20,9 @@ public struct PresentationChatBubbleCorners {
     var auxiliaryRadius: CGFloat
     var mergeBubbleCorners: Bool
     var hasTails: Bool
+}
+enum PresentationBuiltinThemeReference: CaseIterable {
+    case dayClassic, day, night, nightAccent, bananaGramCream, bananaGramGraphite, bananaGramHalloween
 }
 '''
 tests = '''
@@ -35,8 +41,20 @@ for radius: Int32 in [Int32.min, -1, 0, 4, 30, Int32.max] {
     precondition(corners.mergeBubbleCorners)
 }
 print("Saved bubble geometry and boundary values: passed")
+for reference in PresentationBuiltinThemeReference.allCases {
+    for hasAccent in [false, true] {
+        for hasOutgoingAccent in [false, true] {
+            for hasBubbleColors in [false, true] {
+                let classic = reference == .dayClassic || reference == .day || reference == .night
+                let expected = classic && !hasAccent && !hasOutgoingAccent && !hasBubbleColors
+                precondition(shouldPreserveLiquidDefaults(reference: reference, hasAccent: hasAccent, hasOutgoingAccent: hasOutgoingAccent, hasBubbleColors: hasBubbleColors) == expected)
+            }
+        }
+    }
+}
+print("Liquid defaults and explicit colour choices: 56 combinations passed")
 '''
 with tempfile.TemporaryDirectory(prefix='telegram-customization-') as tmp:
     file = pathlib.Path(tmp) / 'main.swift'
-    file.write_text(fixture + source[begin:end] + tests, encoding='utf-8')
+    file.write_text(fixture + source[begin:end] + '\n' + theme_source[policy_begin:policy_end] + tests, encoding='utf-8')
     subprocess.run(['swift', str(file)], check=True)
