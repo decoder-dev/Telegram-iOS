@@ -67,6 +67,49 @@ final class LiquidThemeTests: XCTestCase {
         XCTAssertEqual(theme.chat.message.outgoing.bubble.withoutWallpaper.fill.first?.rgb, 0x0069DF)
     }
 
+    func testStartupThemeUsesTheSamePaletteAsClassicWhite() throws {
+        let theme = try self.theme(.dayClassic)
+        XCTAssertEqual(defaultPresentationTheme.list.plainBackgroundColor, theme.list.plainBackgroundColor)
+        XCTAssertEqual(defaultPresentationTheme.chat.message.incoming.primaryTextColor, theme.chat.message.incoming.primaryTextColor)
+        XCTAssertEqual(defaultPresentationTheme.chat.message.outgoing.bubble.withoutWallpaper.fill, theme.chat.message.outgoing.bubble.withoutWallpaper.fill)
+    }
+
+    func testCustomThemeBasesDoNotInheritLiquidColors() {
+        let reference = PresentationThemeReference.local(PresentationLocalTheme(title: "Imported", resource: LocalFileMediaResource(fileId: 42), resolvedWallpaper: nil))
+        for builtin: PresentationBuiltinThemeReference in [.dayClassic, .day, .night] {
+            let stock = builtin == .night
+                ? makeDefaultDarkPresentationTheme(extendingThemeReference: reference, preview: false)
+                : makeDefaultDayPresentationTheme(extendingThemeReference: reference, serviceBackgroundColor: nil, day: builtin == .day, preview: false)
+            let theme = makeDefaultPresentationTheme(reference: builtin, extendingThemeReference: reference, serviceBackgroundColor: nil)
+            XCTAssertEqual(theme.list.itemPrimaryTextColor, stock.list.itemPrimaryTextColor)
+            XCTAssertEqual(theme.chatList.backgroundColor, stock.chatList.backgroundColor)
+            XCTAssertEqual(theme.chat.message.outgoing.bubble.withoutWallpaper.fill, stock.chat.message.outgoing.bubble.withoutWallpaper.fill)
+            XCTAssertEqual(theme.chat.defaultWallpaper, stock.chat.defaultWallpaper)
+        }
+    }
+
+    func testCloudSettingsPreserveStockFallbacksAndExplicitColors() throws {
+        let settings = TelegramThemeSettings(baseTheme: .day, accentColor: 0xFF137249, outgoingAccentColor: nil, messageColors: [0xFCE9AF], animateMessageColors: false, wallpaper: .color(0x17384B))
+        let stock = makeDefaultDayPresentationTheme(serviceBackgroundColor: nil, day: true, preview: false)
+        let expected = customizePresentationTheme(stock, editing: true, accentColor: UIColor(argb: settings.accentColor), outgoingAccentColor: nil, backgroundColors: [], bubbleColors: settings.messageColors, animateBubbleColors: false, wallpaper: settings.wallpaper)
+        let theme = try XCTUnwrap(makePresentationTheme(settings: settings))
+        XCTAssertEqual(theme.list.itemPrimaryTextColor, expected.list.itemPrimaryTextColor)
+        XCTAssertEqual(theme.chatList.backgroundColor, expected.chatList.backgroundColor)
+        XCTAssertEqual(theme.list.itemAccentColor.rgb, 0x137249)
+        XCTAssertEqual(theme.chat.message.outgoing.bubble.withoutWallpaper.fill.first?.rgb, 0xFCE9AF)
+        XCTAssertEqual(theme.chat.defaultWallpaper, settings.wallpaper)
+    }
+
+    func testImportedThemeOmissionsUseStockFallbacks() throws {
+        let stock = makeDefaultDayPresentationTheme(serviceBackgroundColor: defaultServiceBackgroundColor, day: true, preview: false)
+        let encoded = try XCTUnwrap(encodePresentationTheme(stock))
+        let header = encoded.split(separator: "\n").filter { $0.hasPrefix("name:") || $0.hasPrefix("basedOn:") }.joined(separator: "\n")
+        let theme = try XCTUnwrap(makePresentationTheme(data: Data(header.utf8)))
+        XCTAssertEqual(theme.list.itemPrimaryTextColor, stock.list.itemPrimaryTextColor)
+        XCTAssertEqual(theme.chatList.backgroundColor, stock.chatList.backgroundColor)
+        XCTAssertEqual(theme.chat.message.outgoing.bubble.withoutWallpaper.fill, stock.chat.message.outgoing.bubble.withoutWallpaper.fill)
+    }
+
     func testBrandedThemesKeepTheirPalettes() throws {
         let cream = try self.theme(.bananaGramCream)
         let graphite = try self.theme(.bananaGramGraphite)

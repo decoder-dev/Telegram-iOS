@@ -6,14 +6,22 @@ import TelegramUIPreferences
 import TelegramCore
 
 public func makeDefaultPresentationTheme(reference: PresentationBuiltinThemeReference, extendingThemeReference: PresentationThemeReference? = nil, serviceBackgroundColor: UIColor?, preview: Bool = false) -> PresentationTheme {
+    let theme = makeBasePresentationTheme(reference: reference, extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, preview: preview)
+    guard shouldPreserveLiquidDefaults(reference: reference, hasAccent: false, hasOutgoingAccent: false, hasBubbleColors: false, hasExtendingTheme: extendingThemeReference != nil) else {
+        return theme
+    }
+    return makeLiquidPresentationTheme(theme)
+}
+
+func makeBasePresentationTheme(reference: PresentationBuiltinThemeReference, extendingThemeReference: PresentationThemeReference? = nil, serviceBackgroundColor: UIColor?, preview: Bool = false) -> PresentationTheme {
     let theme: PresentationTheme
     switch reference {
         case .dayClassic:
-            theme = makeLiquidPresentationTheme(makeDefaultDayPresentationTheme(extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, day: false, preview: preview))
+            theme = makeDefaultDayPresentationTheme(extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, day: false, preview: preview)
         case .day:
-            theme = makeLiquidPresentationTheme(makeDefaultDayPresentationTheme(extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, day: true, preview: preview))
+            theme = makeDefaultDayPresentationTheme(extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, day: true, preview: preview)
         case .night:
-            theme = makeLiquidPresentationTheme(makeDefaultDarkPresentationTheme(extendingThemeReference: extendingThemeReference, preview: preview))
+            theme = makeDefaultDarkPresentationTheme(extendingThemeReference: extendingThemeReference, preview: preview)
         case .nightAccent:
             theme = makeDefaultDarkTintedPresentationTheme(extendingThemeReference: extendingThemeReference, preview: preview)
         case .bananaGramCream:
@@ -183,7 +191,7 @@ public func customizePresentationTheme(_ theme: PresentationTheme, editing: Bool
 }
 
 public func makePresentationTheme(settings: TelegramThemeSettings, title: String? = nil, serviceBackgroundColor: UIColor? = nil) -> PresentationTheme? {
-    let defaultTheme = makeDefaultPresentationTheme(reference: PresentationBuiltinThemeReference(baseTheme: settings.baseTheme), extendingThemeReference: nil, serviceBackgroundColor: serviceBackgroundColor, preview: false)
+    let defaultTheme = makeBasePresentationTheme(reference: PresentationBuiltinThemeReference(baseTheme: settings.baseTheme), extendingThemeReference: nil, serviceBackgroundColor: serviceBackgroundColor, preview: false)
     return customizePresentationTheme(defaultTheme, editing: true, title: title, accentColor: UIColor(argb: settings.accentColor), outgoingAccentColor: settings.outgoingAccentColor.flatMap { UIColor(argb: $0) }, backgroundColors: [], bubbleColors: settings.messageColors, animateBubbleColors: settings.animateMessageColors, wallpaper: settings.wallpaper)
 }
 
@@ -199,7 +207,7 @@ public func makePresentationTheme(cloudTheme: TelegramTheme, dark: Bool = false)
     guard let settings else {
         return nil
     }
-    let defaultTheme = makeDefaultPresentationTheme(reference: PresentationBuiltinThemeReference(baseTheme: settings.baseTheme), extendingThemeReference: .cloud(PresentationCloudTheme(theme: cloudTheme, resolvedWallpaper: nil, creatorAccountId: nil)), serviceBackgroundColor: nil, preview: false)
+    let defaultTheme = makeBasePresentationTheme(reference: PresentationBuiltinThemeReference(baseTheme: settings.baseTheme), extendingThemeReference: .cloud(PresentationCloudTheme(theme: cloudTheme, resolvedWallpaper: nil, creatorAccountId: nil)), serviceBackgroundColor: nil, preview: false)
     return customizePresentationTheme(defaultTheme, editing: true, accentColor: UIColor(argb: settings.accentColor), outgoingAccentColor: settings.outgoingAccentColor.flatMap { UIColor(argb: $0) }, backgroundColors: [], bubbleColors: settings.messageColors, animateBubbleColors: settings.animateMessageColors, wallpaper: settings.wallpaper)
 }
 
@@ -218,7 +226,7 @@ public func makePresentationTheme(chatTheme: ChatTheme, dark: Bool = false) -> P
     guard let settings else {
         return nil
     }
-    let defaultTheme = makeDefaultPresentationTheme(reference: PresentationBuiltinThemeReference(baseTheme: settings.baseTheme), serviceBackgroundColor: nil, preview: false)
+    let defaultTheme = makeBasePresentationTheme(reference: PresentationBuiltinThemeReference(baseTheme: settings.baseTheme), serviceBackgroundColor: nil, preview: false)
     let theme = customizePresentationTheme(defaultTheme, editing: false, accentColor: UIColor(rgb: settings.accentColor), outgoingAccentColor: settings.outgoingAccentColor.flatMap { UIColor(rgb: $0) }, backgroundColors: [], bubbleColors: settings.messageColors, animateBubbleColors: settings.animateMessageColors, wallpaper: settings.wallpaper)
     if case let .gift(starGiftValue, _) = chatTheme {
         theme.starGift = starGiftValue
@@ -238,12 +246,12 @@ public func makePresentationTheme(cloudTheme: TelegramTheme, baseTheme: Telegram
     guard let settings = settings else {
         return nil
     }
-    let defaultTheme = makeDefaultPresentationTheme(reference: PresentationBuiltinThemeReference(baseTheme: settings.baseTheme), extendingThemeReference: nil, serviceBackgroundColor: nil, preview: false)
+    let defaultTheme = makeBasePresentationTheme(reference: PresentationBuiltinThemeReference(baseTheme: settings.baseTheme), extendingThemeReference: nil, serviceBackgroundColor: nil, preview: false)
     return customizePresentationTheme(defaultTheme, editing: true, accentColor: UIColor(argb: settings.accentColor), outgoingAccentColor: settings.outgoingAccentColor.flatMap { UIColor(argb: $0) }, backgroundColors: [], bubbleColors: settings.messageColors, animateBubbleColors: settings.animateMessageColors, wallpaper: settings.wallpaper)
 }
 
-func shouldPreserveLiquidDefaults(reference: PresentationBuiltinThemeReference, hasAccent: Bool, hasOutgoingAccent: Bool, hasBubbleColors: Bool) -> Bool {
-    guard !hasAccent, !hasOutgoingAccent, !hasBubbleColors else {
+func shouldPreserveLiquidDefaults(reference: PresentationBuiltinThemeReference, hasAccent: Bool, hasOutgoingAccent: Bool, hasBubbleColors: Bool, hasExtendingTheme: Bool = false) -> Bool {
+    guard !hasAccent, !hasOutgoingAccent, !hasBubbleColors, !hasExtendingTheme else {
         return false
     }
     switch reference {
@@ -263,7 +271,7 @@ public func makePresentationTheme(mediaBox: MediaBox, themeReference: Presentati
     switch themeReference {
         case let .builtin(reference):
             let defaultTheme = makeDefaultPresentationTheme(reference: reference, extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, preview: preview)
-            let preserveDefaults = shouldPreserveLiquidDefaults(reference: reference, hasAccent: accentColor != nil, hasOutgoingAccent: outgoingAccentColor != nil, hasBubbleColors: !bubbleColors.isEmpty)
+            let preserveDefaults = shouldPreserveLiquidDefaults(reference: reference, hasAccent: accentColor != nil, hasOutgoingAccent: outgoingAccentColor != nil, hasBubbleColors: !bubbleColors.isEmpty, hasExtendingTheme: extendingThemeReference != nil)
             let customizedTheme = customizePresentationTheme(defaultTheme, editing: !preserveDefaults, accentColor: accentColor, outgoingAccentColor: outgoingAccentColor, backgroundColors: backgroundColors, bubbleColors: bubbleColors, animateBubbleColors: animateBubbleColors, wallpaper: wallpaper, baseColor: baseColor)
             theme = preserveDefaults ? makeLiquidPresentationTheme(customizedTheme, updateWallpaper: false) : customizedTheme
         case let .local(info):

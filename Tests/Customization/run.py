@@ -47,13 +47,15 @@ for reference in PresentationBuiltinThemeReference.allCases {
         for hasOutgoingAccent in [false, true] {
             for hasBubbleColors in [false, true] {
                 let classic = reference == .dayClassic || reference == .day || reference == .night
-                let expected = classic && !hasAccent && !hasOutgoingAccent && !hasBubbleColors
-                precondition(shouldPreserveLiquidDefaults(reference: reference, hasAccent: hasAccent, hasOutgoingAccent: hasOutgoingAccent, hasBubbleColors: hasBubbleColors) == expected)
+                for hasExtendingTheme in [false, true] {
+                    let expected = classic && !hasAccent && !hasOutgoingAccent && !hasBubbleColors && !hasExtendingTheme
+                    precondition(shouldPreserveLiquidDefaults(reference: reference, hasAccent: hasAccent, hasOutgoingAccent: hasOutgoingAccent, hasBubbleColors: hasBubbleColors, hasExtendingTheme: hasExtendingTheme) == expected)
+                }
             }
         }
     }
 }
-print("Liquid defaults and explicit colour choices: 56 combinations passed")
+print("Liquid defaults, explicit colours and custom themes: 112 combinations passed")
 '''
 with tempfile.TemporaryDirectory(prefix='telegram-customization-') as tmp:
     file = pathlib.Path(tmp) / 'main.swift'

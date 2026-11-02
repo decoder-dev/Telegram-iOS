@@ -2109,7 +2109,7 @@ extension PresentationTheme: Codable {
         let index: Int64
         if let decoder = decoder as? PresentationThemeDecoding {
             let serviceBackgroundColor = decoder.serviceBackgroundColor ?? defaultServiceBackgroundColor
-            decoder.referenceTheme = makeDefaultPresentationTheme(reference: referenceTheme, serviceBackgroundColor: serviceBackgroundColor)
+            decoder.referenceTheme = makeBasePresentationTheme(reference: referenceTheme, serviceBackgroundColor: serviceBackgroundColor)
             index = decoder.reference?.index ?? Int64.random(in: Int64.min ... Int64.max)
         } else {
             index = Int64.random(in: Int64.min ... Int64.max)
