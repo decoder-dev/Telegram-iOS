@@ -1,0 +1,335 @@
+{
+  "scope": "Static text on flat prototype surfaces; does not measure native glass over arbitrary content.",
+  "results": [
+    {
+      "theme": "light",
+      "screen": "02_chats",
+      "selector": ".row-heading strong",
+      "pseudo": null,
+      "foreground": "rgb(23, 23, 25)",
+      "background": [
+        255.0,
+        255.0,
+        255.0
+      ],
+      "ratio": 17.9,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "light",
+      "screen": "02_chats",
+      "selector": ".row-preview p",
+      "pseudo": null,
+      "foreground": "rgb(100, 100, 108)",
+      "background": [
+        255.0,
+        255.0,
+        255.0
+      ],
+      "ratio": 5.86,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "light",
+      "screen": "02_chats",
+      "selector": ".badge",
+      "pseudo": null,
+      "foreground": "rgb(255, 255, 255)",
+      "background": [
+        0.0,
+        105.0,
+        223.0
+      ],
+      "ratio": 5.14,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "light",
+      "screen": "02_chats",
+      "selector": ".avatar",
+      "pseudo": null,
+      "foreground": "rgb(255, 255, 255)",
+      "background": [
+        115.0,
+        120.0,
+        169.0
+      ],
+      "ratio": 4.21,
+      "minimum": 4.5,
+      "status": "FAIL"
+    },
+    {
+      "theme": "light",
+      "screen": "02_chats",
+      "selector": ".search-box input",
+      "pseudo": "::placeholder",
+      "foreground": "rgb(100, 100, 108)",
+      "background": [
+        242.0,
+        242.0,
+        247.0
+      ],
+      "ratio": 5.25,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "light",
+      "screen": "03_chat",
+      "selector": ".message:not(.out) .bubble",
+      "pseudo": null,
+      "foreground": "rgb(23, 23, 25)",
+      "background": [
+        233.0,
+        233.0,
+        235.0
+      ],
+      "ratio": 14.77,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "light",
+      "screen": "03_chat",
+      "selector": ".message.out .bubble",
+      "pseudo": null,
+      "foreground": "rgb(255, 255, 255)",
+      "background": [
+        0.0,
+        105.0,
+        223.0
+      ],
+      "ratio": 5.14,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "light",
+      "screen": "03_chat",
+      "selector": ".day",
+      "pseudo": null,
+      "foreground": "rgb(100, 100, 108)",
+      "background": [
+        255.0,
+        255.0,
+        255.0
+      ],
+      "ratio": 5.86,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "light",
+      "screen": "03_chat",
+      "selector": "#message-input",
+      "pseudo": "::placeholder",
+      "foreground": "rgb(100, 100, 108)",
+      "background": [
+        255.0,
+        255.0,
+        255.0
+      ],
+      "ratio": 5.86,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "light",
+      "screen": "24_settings",
+      "selector": ".settings-row .row-name",
+      "pseudo": null,
+      "foreground": "rgb(23, 23, 25)",
+      "background": [
+        255.0,
+        255.0,
+        255.0
+      ],
+      "ratio": 17.9,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "light",
+      "screen": "24_settings",
+      "selector": ".settings-profile small",
+      "pseudo": null,
+      "foreground": "rgb(100, 100, 108)",
+      "background": [
+        255.0,
+        255.0,
+        255.0
+      ],
+      "ratio": 5.86,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "dark",
+      "screen": "02_chats",
+      "selector": ".row-heading strong",
+      "pseudo": null,
+      "foreground": "rgb(245, 245, 247)",
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ratio": 19.29,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "dark",
+      "screen": "02_chats",
+      "selector": ".row-preview p",
+      "pseudo": null,
+      "foreground": "rgb(174, 175, 183)",
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ratio": 9.62,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "dark",
+      "screen": "02_chats",
+      "selector": ".badge",
+      "pseudo": null,
+      "foreground": "rgb(255, 255, 255)",
+      "background": [
+        89.0,
+        165.0,
+        255.0
+      ],
+      "ratio": 2.55,
+      "minimum": 4.5,
+      "status": "FAIL"
+    },
+    {
+      "theme": "dark",
+      "screen": "02_chats",
+      "selector": ".avatar",
+      "pseudo": null,
+      "foreground": "rgb(255, 255, 255)",
+      "background": [
+        115.0,
+        120.0,
+        169.0
+      ],
+      "ratio": 4.21,
+      "minimum": 4.5,
+      "status": "FAIL"
+    },
+    {
+      "theme": "dark",
+      "screen": "02_chats",
+      "selector": ".search-box input",
+      "pseudo": "::placeholder",
+      "foreground": "rgb(174, 175, 183)",
+      "background": [
+        28.0,
+        28.0,
+        30.0
+      ],
+      "ratio": 7.79,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "dark",
+      "screen": "03_chat",
+      "selector": ".message:not(.out) .bubble",
+      "pseudo": null,
+      "foreground": "rgb(245, 245, 247)",
+      "background": [
+        44.0,
+        44.0,
+        46.0
+      ],
+      "ratio": 12.8,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "dark",
+      "screen": "03_chat",
+      "selector": ".message.out .bubble",
+      "pseudo": null,
+      "foreground": "rgb(255, 255, 255)",
+      "background": [
+        8.0,
+        101.0,
+        202.0
+      ],
+      "ratio": 5.64,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "dark",
+      "screen": "03_chat",
+      "selector": ".day",
+      "pseudo": null,
+      "foreground": "rgb(174, 175, 183)",
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "ratio": 9.62,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "dark",
+      "screen": "03_chat",
+      "selector": "#message-input",
+      "pseudo": "::placeholder",
+      "foreground": "rgb(174, 175, 183)",
+      "background": [
+        37.0,
+        37.0,
+        39.0
+      ],
+      "ratio": 7.01,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "dark",
+      "screen": "24_settings",
+      "selector": ".settings-row .row-name",
+      "pseudo": null,
+      "foreground": "rgb(245, 245, 247)",
+      "background": [
+        37.0,
+        37.0,
+        39.0
+      ],
+      "ratio": 14.05,
+      "minimum": 4.5,
+      "status": "PASS"
+    },
+    {
+      "theme": "dark",
+      "screen": "24_settings",
+      "selector": ".settings-profile small",
+      "pseudo": null,
+      "foreground": "rgb(174, 175, 183)",
+      "background": [
+        37.0,
+        37.0,
+        39.0
+      ],
+      "ratio": 7.01,
+      "minimum": 4.5,
+      "status": "PASS"
+    }
+  ]
+}

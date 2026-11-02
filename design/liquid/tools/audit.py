@@ -83,6 +83,7 @@ def audit():
     tracked = subprocess.check_output(["git", "ls-tree", "-r", "--name-only", BASELINE["source_commit"]], cwd=REPO, text=True).splitlines()
     sources = [path for path in tracked if path.endswith(".swift")]
     mappings, inventory, checks = [], [], []
+    progress = json.loads((ROOT / 'research/progress.json').read_text()) if (ROOT / 'research/progress.json').exists() else {}
     for screen in catalog:
         screen_id = screen["id"]
         suffix, symbol = ANCHORS[int(screen_id[:2])]
@@ -94,7 +95,7 @@ def audit():
             declaration = re.compile(r"\b(?:class|struct|enum|func|extension)\s+" + re.escape(symbol) + r"\b")
             line = next((i for i, text in enumerate(source.splitlines(), 1) if declaration.search(text)), 0)
         mappings.append(dict(screen_id=screen_id, file=path, symbol=symbol, line=line or "", source_commit=BASELINE["source_commit"], evidence="DECLARATION_FOUND" if line else "CANDIDATE", runtime="NOT_RUN"))
-        inventory.append(dict(screen_id=screen_id, title=screen["title"], design="IMPORTED_REVIEW_PENDING", light_svg=f"reference/FIGMA_EDITABLE_SVG/light/{screen_id}.svg", dark_svg=f"reference/FIGMA_EDITABLE_SVG/dark/{screen_id}.svg", native="NOT_RUN", approval="PENDING"))
+        inventory.append(dict(screen_id=screen_id, title=screen["title"], design=progress.get(screen_id,'IMPORTED_REVIEW_PENDING'), light_svg=f"reference/FIGMA_EDITABLE_SVG/light/{screen_id}.svg", dark_svg=f"reference/FIGMA_EDITABLE_SVG/dark/{screen_id}.svg", prototype=f"prototype/index.html#screen={screen_id}", native="NOT_RUN", approval="PENDING"))
         for theme in ["light", "dark"]:
             svg = ROOT / f"reference/FIGMA_EDITABLE_SVG/{theme}/{screen_id}.svg"
             doc = ET.parse(svg).getroot()

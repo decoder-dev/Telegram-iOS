@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BananaGram · Liquid design review</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="catalogue.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <aside class="catalogue" aria-label="Каталог сцен">
+    <p class="eyebrow">DECODER-DEV / DESIGN LAB</p>
+    <h1>BananaGram<span>Liquid</span></h1>
+    <p class="intro">Дизайн на проверяемой основе. Локальный прототип, синтетические данные.</p>
+    <label class="filter-label" for="catalogue-search">Найти сцену</label>
+    <input id="catalogue-search" type="search" placeholder="Название или ID">
+    <nav id="catalogue"></nav>
+  </aside>
+  <main class="workspace">
+    <header class="review-bar">
+      <div><p class="eyebrow">ВЕТКА LIQUID · MODE A</p><h2 id="scene-title"></h2></div>
+      <div class="theme-control" aria-label="Тема макета">
+        <button id="light" type="button">Светлая</button>
+        <button id="dark" type="button">Тёмная</button>
+      </div>
+    </header>
+    <div class="stage">
+      <section class="device" aria-label="Интерактивный макет BananaGram">
+        <div class="status-bar" aria-hidden="true"><span>9:41</span><span class="island"></span><span class="status-icons"><svg viewBox="0 0 18 12"><path d="M1 12V8h3v4M6 12V5h3v7M11 12V2h3v10M16 12V0h2v12" fill="currentColor"/></svg><svg viewBox="0 0 25 12"><rect x=".5" y=".5" width="21" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="2.5" y="2.5" width="17" height="7" rx="1" fill="currentColor"/><path d="M23 4v4" stroke="currentColor" stroke-width="2"/></svg></span></div>
+        <div id="screen" class="screen"></div>
+        <div class="home-indicator" aria-hidden="true"></div>
+      </section>
+      <aside class="inspector" aria-label="Статус и проверка сцены">
+        <span id="scene-status" class="status"></span>
+        <h3>Сценарий</h3><p id="scene-description"></p>
+        <p class="note">SIMULATED · Данные остаются в памяти вкладки. Запросов в Telegram нет.</p>
+        <button id="back" type="button">Назад по сценарию</button>
+        <button id="reset" type="button">Сбросить демонстрацию</button>
+        <label class="check"><input id="large-text" type="checkbox"> Крупный текст</label>
+        <label class="check"><input id="opaque" type="checkbox"> Без прозрачности</label>
+        <label class="check"><input id="reduce-motion" type="checkbox"> Меньше движения</label>
+        <label class="check"><input id="bubble-tails" type="checkbox" checked> Хвостики пузырьков · дизайн-вариант</label>
+        <div id="source-links"></div>
+        <h3>Границы проверки</h3>
+        <p class="note">HTML не проверяет UIKit, VoiceOver, Face ID и MTProto. SF Pro здесь зависит от установленных системных шрифтов. Иконки — редактируемые векторные кандидаты, ещё не утверждённые SF Symbols.</p>
+      </aside>
+    </div>
+    <p id="announcement" class="announcement" role="status" aria-live="polite"></p>
+  </main>
+  <dialog id="sheet" aria-labelledby="sheet-title"></dialog>
+</body>
+</html>

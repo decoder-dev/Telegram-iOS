@@ -1,0 +1,549 @@
+{
+  "browser": "156.0.8078.4",
+  "elapsed_seconds": 9.59,
+  "results": [
+    {
+      "name": "send / history / edit / reply",
+      "status": "PASS"
+    },
+    {
+      "name": "message text cannot inject HTML",
+      "status": "PASS"
+    },
+    {
+      "name": "draft survives theme and navigation",
+      "status": "PASS"
+    },
+    {
+      "name": "settings switch survives theme and navigation",
+      "status": "PASS"
+    },
+    {
+      "name": "chat search and empty results",
+      "status": "PASS"
+    },
+    {
+      "name": "attachment sheet Escape and demo send",
+      "status": "PASS"
+    },
+    {
+      "name": "reaction and confirmed deletion",
+      "status": "PASS"
+    },
+    {
+      "name": "demo vault guards direct route and synthetic visibility event",
+      "status": "PASS"
+    },
+    {
+      "name": "reset clears demonstration state",
+      "status": "PASS"
+    },
+    {
+      "name": "select and archive chats in local state",
+      "status": "PASS"
+    },
+    {
+      "name": "private conversations keep separate messages",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 01_auth_phone / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 02_chats / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 03_chat / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 04_attachments / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 05_topics / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 06_profile / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 07_call_audio / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 08_gallery / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 09_story / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 10_appearance / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 11_proxy_detail / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 12_vault / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 13_auth_code / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 14_search / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 15_archive / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 16_channel / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 17_group_chat / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 18_reactions / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 19_stickers / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 20_photo_view / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 21_voice_record / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 22_shared_media / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 23_call_history / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 24_settings / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 25_proxies / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 26_hidden_accounts / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 27_vault_locked / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 28_accounts / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 29_miniapp / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 30_poll / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 31_premium / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 32_storage / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 33_notifications / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 34_video_call / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 35_edit_profile / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 36_new_message / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 37_extras_root / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 38_extras_messages / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 39_extras_media / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 40_extras_network / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 41_extras_security / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 42_archive_settings / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 43_archive_scope / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 44_proxy_add / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 45_proxy_connection / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 46_privacy_security / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 47_sessions / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 48_chat_style / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 49_story_editor / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 50_context_menu / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 51_call_settings / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 52_search_filters / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 53_saved_protected / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 54_appearance_preview / light",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 01_auth_phone / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 02_chats / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 03_chat / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 04_attachments / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 05_topics / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 06_profile / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 07_call_audio / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 08_gallery / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 09_story / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 10_appearance / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 11_proxy_detail / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 12_vault / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 13_auth_code / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 14_search / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 15_archive / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 16_channel / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 17_group_chat / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 18_reactions / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 19_stickers / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 20_photo_view / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 21_voice_record / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 22_shared_media / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 23_call_history / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 24_settings / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 25_proxies / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 26_hidden_accounts / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 27_vault_locked / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 28_accounts / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 29_miniapp / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 30_poll / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 31_premium / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 32_storage / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 33_notifications / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 34_video_call / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 35_edit_profile / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 36_new_message / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 37_extras_root / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 38_extras_messages / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 39_extras_media / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 40_extras_network / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 41_extras_security / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 42_archive_settings / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 43_archive_scope / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 44_proxy_add / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 45_proxy_connection / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 46_privacy_security / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 47_sessions / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 48_chat_style / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 49_story_editor / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 50_context_menu / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 51_call_settings / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 52_search_filters / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 53_saved_protected / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "route and asset: 54_appearance_preview / dark",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 02_chats / light / large=False",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 02_chats / light / large=True",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 02_chats / dark / large=False",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 02_chats / dark / large=True",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 03_chat / light / large=False",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 03_chat / light / large=True",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 03_chat / dark / large=False",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 03_chat / dark / large=True",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 24_settings / light / large=False",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 24_settings / light / large=True",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 24_settings / dark / large=False",
+      "status": "PASS"
+    },
+    {
+      "name": "capture layout: 24_settings / dark / large=True",
+      "status": "PASS"
+    },
+    {
+      "name": "opaque and reduced motion controls",
+      "status": "PASS"
+    },
+    {
+      "name": "narrow viewport: 360px",
+      "status": "PASS"
+    },
+    {
+      "name": "narrow viewport: 390px",
+      "status": "PASS"
+    },
+    {
+      "name": "browser JavaScript errors",
+      "status": "PASS"
+    }
+  ],
+  "native": "NOT_RUN",
+  "visual_acceptance": "PENDING",
+  "note": "Route checks validate loading, not visual design or native behavior."
+}
