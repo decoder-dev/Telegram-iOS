@@ -1,0 +1,58 @@
+[
+  {
+    "x": 6,
+    "y": 51,
+    "w": 54,
+    "h": 51,
+    "to": "24_settings",
+    "label": "Назад"
+  },
+  {
+    "x": 22,
+    "y": 137,
+    "w": 350,
+    "h": 80,
+    "to": "45_proxy_connection",
+    "label": "Состояние прокси"
+  },
+  {
+    "x": 20,
+    "y": 267,
+    "w": 353,
+    "h": 54,
+    "to": "11_proxy_detail",
+    "label": "VLESS · Frankfurt"
+  },
+  {
+    "x": 20,
+    "y": 321,
+    "w": 353,
+    "h": 54,
+    "to": "11_proxy_detail",
+    "label": "MTProto · Warsaw"
+  },
+  {
+    "x": 20,
+    "y": 375,
+    "w": 353,
+    "h": 54,
+    "to": "11_proxy_detail",
+    "label": "WEB · Amsterdam"
+  },
+  {
+    "x": 20,
+    "y": 500,
+    "w": 353,
+    "h": 54,
+    "to": "44_proxy_add",
+    "label": "Добавить прокси"
+  },
+  {
+    "x": 20,
+    "y": 554,
+    "w": 353,
+    "h": 54,
+    "to": "40_extras_network",
+    "label": "Автопереключение"
+  }
+]

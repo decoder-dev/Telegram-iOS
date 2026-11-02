@@ -1,0 +1,591 @@
+{
+  "asset_checks": [
+    {
+      "check": "assets:light:01_auth_phone",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:01_auth_phone",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:02_chats",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:02_chats",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:03_chat",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:03_chat",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:04_attachments",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:04_attachments",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:05_topics",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:05_topics",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:06_profile",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:06_profile",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:07_call_audio",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:07_call_audio",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:08_gallery",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:08_gallery",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:09_story",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:09_story",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:10_appearance",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:10_appearance",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:11_proxy_detail",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:11_proxy_detail",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:12_vault",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:12_vault",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:13_auth_code",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:13_auth_code",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:14_search",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:14_search",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:15_archive",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:15_archive",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:16_channel",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:16_channel",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:17_group_chat",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:17_group_chat",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:18_reactions",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:18_reactions",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:19_stickers",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:19_stickers",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:20_photo_view",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:20_photo_view",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:21_voice_record",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:21_voice_record",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:22_shared_media",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:22_shared_media",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:23_call_history",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:23_call_history",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:24_settings",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:24_settings",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:25_proxies",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:25_proxies",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:26_hidden_accounts",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:26_hidden_accounts",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:27_vault_locked",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:27_vault_locked",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:28_accounts",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:28_accounts",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:29_miniapp",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:29_miniapp",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:30_poll",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:30_poll",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:31_premium",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:31_premium",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:32_storage",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:32_storage",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:33_notifications",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:33_notifications",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:34_video_call",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:34_video_call",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:35_edit_profile",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:35_edit_profile",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:36_new_message",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:36_new_message",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:37_extras_root",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:37_extras_root",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:38_extras_messages",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:38_extras_messages",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:39_extras_media",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:39_extras_media",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:40_extras_network",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:40_extras_network",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:41_extras_security",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:41_extras_security",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:42_archive_settings",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:42_archive_settings",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:43_archive_scope",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:43_archive_scope",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:44_proxy_add",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:44_proxy_add",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:45_proxy_connection",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:45_proxy_connection",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:46_privacy_security",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:46_privacy_security",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:47_sessions",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:47_sessions",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:48_chat_style",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:48_chat_style",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:49_story_editor",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:49_story_editor",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:50_context_menu",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:50_context_menu",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:51_call_settings",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:51_call_settings",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:52_search_filters",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:52_search_filters",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:53_saved_protected",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:53_saved_protected",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:light:54_appearance_preview",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    },
+    {
+      "check": "assets:dark:54_appearance_preview",
+      "status": "PASS",
+      "scope": "file integrity and dimensions only"
+    }
+  ],
+  "inherited_hotspot_issues": [
+    {
+      "screen": "02_chats",
+      "index": 1,
+      "label": "Поиск по чатам",
+      "issues": [
+        "target below 44pt"
+      ]
+    },
+    {
+      "screen": "02_chats",
+      "index": 2,
+      "label": "Архив",
+      "issues": [
+        "target below 44pt"
+      ]
+    },
+    {
+      "screen": "03_chat",
+      "index": 2,
+      "label": "Звонок",
+      "issues": [
+        "target below 44pt"
+      ]
+    },
+    {
+      "screen": "09_story",
+      "index": 0,
+      "label": "Закрыть историю",
+      "issues": [
+        "target below 44pt"
+      ]
+    },
+    {
+      "screen": "17_group_chat",
+      "index": 1,
+      "label": "Звонок",
+      "issues": [
+        "target below 44pt"
+      ]
+    }
+  ],
+  "mapped_declarations": 54,
+  "total_scenes": 54,
+  "native": "NOT_RUN",
+  "figma": "BLOCKED",
+  "visual": "NOT_REVIEWED"
+}

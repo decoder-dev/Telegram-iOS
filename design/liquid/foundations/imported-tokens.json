@@ -1,0 +1,71 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "name": "BananaGram Glass UI — agent handoff",
+  "version": "4.0.0",
+  "source": "01_VISUAL_SOURCE/FIGMA_EDITABLE_SVG",
+  "status": "Visual prototype guidance; semantic iOS colors must adapt dynamically",
+  "color": {
+    "light": {
+      "background": "#FFFFFF",
+      "groupedBackground": "#F2F2F7",
+      "primaryText": "#111111",
+      "secondaryText": "#66666D",
+      "separator": "#DCDCE0",
+      "accent": "#007AFF",
+      "incomingBubble": "#E9E9EB",
+      "outgoingBubble": "#007AFF",
+      "destructive": "#FF3B30",
+      "success": "#30D158"
+    },
+    "dark": {
+      "background": "#000000",
+      "groupedBackground": "#1C1C1E",
+      "primaryText": "#FFFFFF",
+      "secondaryText": "#98989F",
+      "separator": "#3A3A3C",
+      "accent": "#0A84FF",
+      "incomingBubble": "#2C2C2E",
+      "outgoingBubble": "#0A84FF",
+      "destructive": "#FF453A",
+      "success": "#30D158"
+    }
+  },
+  "typography": {
+    "family": "SF Pro (system; fallback Inter in SVG)",
+    "largeTitle": 34,
+    "title": 28,
+    "headline": 17,
+    "body": 17,
+    "subheadline": 15,
+    "footnote": 13,
+    "caption": 11
+  },
+  "spacing": {
+    "xxs": 2,
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 20,
+    "xxl": 24
+  },
+  "radii": {
+    "settingsGroup": 15,
+    "incomingBubble": 18,
+    "outgoingBubble": 18,
+    "composer": 21,
+    "actionPill": 20
+  },
+  "frame": {
+    "widthPt": 393,
+    "heightPt": 852,
+    "exportScale": 3,
+    "pngWidthPx": 1179,
+    "pngHeightPx": 2556
+  },
+  "usage": [
+    "Do not hardcode in production when a dynamic system semantic color exists",
+    "Avoid glass behind text-heavy surfaces",
+    "Text in source SVGs remains editable"
+  ]
+}

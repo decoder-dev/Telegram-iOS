@@ -1,0 +1,55 @@
+screen_id,title,design,light_svg,dark_svg,native,approval
+01_auth_phone,Авторизация · Номер телефона,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/01_auth_phone.svg,reference/FIGMA_EDITABLE_SVG/dark/01_auth_phone.svg,NOT_RUN,PENDING
+02_chats,Сообщения · Все чаты,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/02_chats.svg,reference/FIGMA_EDITABLE_SVG/dark/02_chats.svg,NOT_RUN,PENDING
+03_chat,Личная переписка,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/03_chat.svg,reference/FIGMA_EDITABLE_SVG/dark/03_chat.svg,NOT_RUN,PENDING
+04_attachments,Вложения · Панель выбора,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/04_attachments.svg,reference/FIGMA_EDITABLE_SVG/dark/04_attachments.svg,NOT_RUN,PENDING
+05_topics,Сообщество · Темы,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/05_topics.svg,reference/FIGMA_EDITABLE_SVG/dark/05_topics.svg,NOT_RUN,PENDING
+06_profile,Профиль контакта,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/06_profile.svg,reference/FIGMA_EDITABLE_SVG/dark/06_profile.svg,NOT_RUN,PENDING
+07_call_audio,Голосовой звонок,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/07_call_audio.svg,reference/FIGMA_EDITABLE_SVG/dark/07_call_audio.svg,NOT_RUN,PENDING
+08_gallery,Медиа · Галерея,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/08_gallery.svg,reference/FIGMA_EDITABLE_SVG/dark/08_gallery.svg,NOT_RUN,PENDING
+09_story,История · Просмотр,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/09_story.svg,reference/FIGMA_EDITABLE_SVG/dark/09_story.svg,NOT_RUN,PENDING
+10_appearance,Оформление,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/10_appearance.svg,reference/FIGMA_EDITABLE_SVG/dark/10_appearance.svg,NOT_RUN,PENDING
+11_proxy_detail,Сеть · VLESS,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/11_proxy_detail.svg,reference/FIGMA_EDITABLE_SVG/dark/11_proxy_detail.svg,NOT_RUN,PENDING
+12_vault,Защищённый архив,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/12_vault.svg,reference/FIGMA_EDITABLE_SVG/dark/12_vault.svg,NOT_RUN,PENDING
+13_auth_code,Вход · Код подтверждения,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/13_auth_code.svg,reference/FIGMA_EDITABLE_SVG/dark/13_auth_code.svg,NOT_RUN,PENDING
+14_search,Глобальный поиск,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/14_search.svg,reference/FIGMA_EDITABLE_SVG/dark/14_search.svg,NOT_RUN,PENDING
+15_archive,Архив чатов,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/15_archive.svg,reference/FIGMA_EDITABLE_SVG/dark/15_archive.svg,NOT_RUN,PENDING
+16_channel,Канал · Лента,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/16_channel.svg,reference/FIGMA_EDITABLE_SVG/dark/16_channel.svg,NOT_RUN,PENDING
+17_group_chat,Групповой чат,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/17_group_chat.svg,reference/FIGMA_EDITABLE_SVG/dark/17_group_chat.svg,NOT_RUN,PENDING
+18_reactions,Реакции · Контекстное меню,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/18_reactions.svg,reference/FIGMA_EDITABLE_SVG/dark/18_reactions.svg,NOT_RUN,PENDING
+19_stickers,Стикеры и GIF,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/19_stickers.svg,reference/FIGMA_EDITABLE_SVG/dark/19_stickers.svg,NOT_RUN,PENDING
+20_photo_view,Просмотр фотографии,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/20_photo_view.svg,reference/FIGMA_EDITABLE_SVG/dark/20_photo_view.svg,NOT_RUN,PENDING
+21_voice_record,Запись голосового,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/21_voice_record.svg,reference/FIGMA_EDITABLE_SVG/dark/21_voice_record.svg,NOT_RUN,PENDING
+22_shared_media,Общие медиа,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/22_shared_media.svg,reference/FIGMA_EDITABLE_SVG/dark/22_shared_media.svg,NOT_RUN,PENDING
+23_call_history,История звонков,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/23_call_history.svg,reference/FIGMA_EDITABLE_SVG/dark/23_call_history.svg,NOT_RUN,PENDING
+24_settings,Настройки,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/24_settings.svg,reference/FIGMA_EDITABLE_SVG/dark/24_settings.svg,NOT_RUN,PENDING
+25_proxies,Прокси · Список,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/25_proxies.svg,reference/FIGMA_EDITABLE_SVG/dark/25_proxies.svg,NOT_RUN,PENDING
+26_hidden_accounts,Скрытые аккаунты,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/26_hidden_accounts.svg,reference/FIGMA_EDITABLE_SVG/dark/26_hidden_accounts.svg,NOT_RUN,PENDING
+27_vault_locked,Архив · Блокировка,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/27_vault_locked.svg,reference/FIGMA_EDITABLE_SVG/dark/27_vault_locked.svg,NOT_RUN,PENDING
+28_accounts,Переключение аккаунтов,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/28_accounts.svg,reference/FIGMA_EDITABLE_SVG/dark/28_accounts.svg,NOT_RUN,PENDING
+29_miniapp,Mini App,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/29_miniapp.svg,reference/FIGMA_EDITABLE_SVG/dark/29_miniapp.svg,NOT_RUN,PENDING
+30_poll,Опрос · Результаты,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/30_poll.svg,reference/FIGMA_EDITABLE_SVG/dark/30_poll.svg,NOT_RUN,PENDING
+31_premium,Telegram Premium,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/31_premium.svg,reference/FIGMA_EDITABLE_SVG/dark/31_premium.svg,NOT_RUN,PENDING
+32_storage,Данные и хранилище,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/32_storage.svg,reference/FIGMA_EDITABLE_SVG/dark/32_storage.svg,NOT_RUN,PENDING
+33_notifications,Уведомления,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/33_notifications.svg,reference/FIGMA_EDITABLE_SVG/dark/33_notifications.svg,NOT_RUN,PENDING
+34_video_call,Видеозвонок,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/34_video_call.svg,reference/FIGMA_EDITABLE_SVG/dark/34_video_call.svg,NOT_RUN,PENDING
+35_edit_profile,Редактирование профиля,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/35_edit_profile.svg,reference/FIGMA_EDITABLE_SVG/dark/35_edit_profile.svg,NOT_RUN,PENDING
+36_new_message,Новое сообщение,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/36_new_message.svg,reference/FIGMA_EDITABLE_SVG/dark/36_new_message.svg,NOT_RUN,PENDING
+37_extras_root,BananaGram · Дополнительно,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/37_extras_root.svg,reference/FIGMA_EDITABLE_SVG/dark/37_extras_root.svg,NOT_RUN,PENDING
+38_extras_messages,BananaGram · Сообщения,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/38_extras_messages.svg,reference/FIGMA_EDITABLE_SVG/dark/38_extras_messages.svg,NOT_RUN,PENDING
+39_extras_media,BananaGram · Медиа,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/39_extras_media.svg,reference/FIGMA_EDITABLE_SVG/dark/39_extras_media.svg,NOT_RUN,PENDING
+40_extras_network,BananaGram · Сеть,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/40_extras_network.svg,reference/FIGMA_EDITABLE_SVG/dark/40_extras_network.svg,NOT_RUN,PENDING
+41_extras_security,BananaGram · Защита,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/41_extras_security.svg,reference/FIGMA_EDITABLE_SVG/dark/41_extras_security.svg,NOT_RUN,PENDING
+42_archive_settings,Пароль архива,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/42_archive_settings.svg,reference/FIGMA_EDITABLE_SVG/dark/42_archive_settings.svg,NOT_RUN,PENDING
+43_archive_scope,Что защищать паролем,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/43_archive_scope.svg,reference/FIGMA_EDITABLE_SVG/dark/43_archive_scope.svg,NOT_RUN,PENDING
+44_proxy_add,Добавить прокси,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/44_proxy_add.svg,reference/FIGMA_EDITABLE_SVG/dark/44_proxy_add.svg,NOT_RUN,PENDING
+45_proxy_connection,Подключение прокси,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/45_proxy_connection.svg,reference/FIGMA_EDITABLE_SVG/dark/45_proxy_connection.svg,NOT_RUN,PENDING
+46_privacy_security,Конфиденциальность,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/46_privacy_security.svg,reference/FIGMA_EDITABLE_SVG/dark/46_privacy_security.svg,NOT_RUN,PENDING
+47_sessions,Устройства,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/47_sessions.svg,reference/FIGMA_EDITABLE_SVG/dark/47_sessions.svg,NOT_RUN,PENDING
+48_chat_style,Вид сообщений,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/48_chat_style.svg,reference/FIGMA_EDITABLE_SVG/dark/48_chat_style.svg,NOT_RUN,PENDING
+49_story_editor,Редактор истории,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/49_story_editor.svg,reference/FIGMA_EDITABLE_SVG/dark/49_story_editor.svg,NOT_RUN,PENDING
+50_context_menu,Действия с сообщением,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/50_context_menu.svg,reference/FIGMA_EDITABLE_SVG/dark/50_context_menu.svg,NOT_RUN,PENDING
+51_call_settings,Настройки звонков,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/51_call_settings.svg,reference/FIGMA_EDITABLE_SVG/dark/51_call_settings.svg,NOT_RUN,PENDING
+52_search_filters,Фильтры поиска,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/52_search_filters.svg,reference/FIGMA_EDITABLE_SVG/dark/52_search_filters.svg,NOT_RUN,PENDING
+53_saved_protected,Защищённое Избранное,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/53_saved_protected.svg,reference/FIGMA_EDITABLE_SVG/dark/53_saved_protected.svg,NOT_RUN,PENDING
+54_appearance_preview,Предпросмотр оформления,IMPORTED_REVIEW_PENDING,reference/FIGMA_EDITABLE_SVG/light/54_appearance_preview.svg,reference/FIGMA_EDITABLE_SVG/dark/54_appearance_preview.svg,NOT_RUN,PENDING

@@ -1,0 +1,26 @@
+{
+  "source_commit": "6f8d479c19ec5448722f440662f3a57550fae78d",
+  "branch": "liquid",
+  "date": "2026-11-02",
+  "mode": "DESIGN_PROTOTYPE_HANDOFF",
+  "inputs": [
+    {
+      "name": "handoff-v4.0.1.zip",
+      "sha256": "42672e7dba9b7b9f3c5cea268a1836ca1d73ac154f67b624462069e292229399"
+    },
+    {
+      "name": "MASTER_PROMPT_TZ.md",
+      "sha256": "5992ee94375d38fd8c376f15980608d90a15a30bfca41e70793470eaa882bd3d"
+    }
+  ],
+  "native_source_modified": false,
+  "native_tests": "BLOCKED: Linux host; Xcode and iOS Simulator unavailable",
+  "figma": "BLOCKED: Starter MCP tool limit; session 060a9f12-f9d2-4487-9ad5-57f10be5dbd0",
+  "versions": {
+    "app": "13.1.2",
+    "xcode": "26.6",
+    "deploy_xcode": "26.2",
+    "bazel": "9.2.0:dd466352a3e4d3581b8898740ee1ff208866ccbe25f8d367c5dcb950219587e6",
+    "macos": "26"
+  }
+}
