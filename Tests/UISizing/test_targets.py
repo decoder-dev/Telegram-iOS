@@ -1,6 +1,8 @@
 """Check effective hit sizes, not decorative icon sizes, from production constants."""
 import pathlib
 import re
+import subprocess
+import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -32,9 +34,27 @@ class TouchTargets(unittest.TestCase):
 
     def test_join_call(self):
         text = source('submodules/CallListUI/Sources/CallListGroupCallItem.swift')
-        top, _, bottom, _ = slop(text, 'self.joinButtonNode')
-        height = float(re.search(r'let joinButtonSize = CGSize\(.*?height: ([\d.]+)\)', text)[1])
-        self.assertGreaterEqual(height - top - bottom, 44)
+        button = re.search(r'^\s*let joinButtonSize = .*$', text, re.MULTILINE)[0]
+        expansion = re.search(r'^\s*let verticalSlop = .*$', text, re.MULTILINE)[0]
+        metrics = source('submodules/TelegramPresentationData/Sources/PresentationLayoutMetrics.swift')
+        fixture = metrics + '''
+struct LabelLayout { let size: CGSize }
+for width: CGFloat in [0, 24, 120, 200] {
+    for height: CGFloat in [0, 18, 32, 72, 120] {
+        let joinTitleLayout = LabelLayout(size: CGSize(width: width, height: height))
+'''
+        fixture += button + '\n' + expansion
+        fixture += '''
+        precondition(joinButtonSize.width >= 44)
+        precondition(joinButtonSize.height + verticalSlop * 2 >= 44)
+        precondition(joinButtonSize.height >= joinTitleLayout.size.height + 12)
+    }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix='call-targets-') as directory:
+            path = pathlib.Path(directory) / 'main.swift'
+            path.write_text(fixture)
+            subprocess.run(['swift', str(path)], check=True)
 
     def test_playback_speed(self):
         text = source('submodules/TelegramUI/Sources/OverlayAudioPlayerControlsNode.swift')

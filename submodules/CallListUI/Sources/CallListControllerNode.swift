@@ -258,12 +258,14 @@ final class CallListControllerNode: ASDisplayNode {
     private let listNode: ListView
     private let leftOverlayNode: ASDisplayNode
     private let rightOverlayNode: ASDisplayNode
+    private let emptyScrollNode: ASScrollNode
     private let emptyTextNode: ImmediateTextNode
     private let emptyAnimationNode: AnimatedStickerNode
     private var emptyAnimationSize = CGSize()
     private let emptyButtonNode: HighlightTrackingButtonNode
     private let emptyButtonIconNode: ASImageNode
     private let emptyButtonTextNode: ImmediateTextNode
+    private var emptyAnimationReduceMotion: Bool?
     
     private let edgeEffectView: EdgeEffectView
     
@@ -308,22 +310,29 @@ final class CallListControllerNode: ASDisplayNode {
         self.rightOverlayNode = ASDisplayNode()
         self.rightOverlayNode.backgroundColor = self.presentationData.theme.list.blocksBackgroundColor
         
+        self.emptyScrollNode = ASScrollNode()
+        self.emptyScrollNode.isHidden = true
+
         self.emptyTextNode = ImmediateTextNode()
-        self.emptyTextNode.alpha = 0.0
         self.emptyTextNode.isUserInteractionEnabled = false
         self.emptyTextNode.displaysAsynchronously = false
         self.emptyTextNode.textAlignment = .center
-        self.emptyTextNode.maximumNumberOfLines = 3
+        self.emptyTextNode.maximumNumberOfLines = 0
+        self.emptyTextNode.isAccessibilityElement = true
         
         self.emptyAnimationNode = DefaultAnimatedStickerNodeImpl(lottieSettings: self.context.lottieRenderingSettings)
-        self.emptyAnimationNode.alpha = 0.0
         self.emptyAnimationNode.isUserInteractionEnabled = false
         
         self.emptyButtonNode = HighlightTrackingButtonNode()
         self.emptyButtonNode.isUserInteractionEnabled = false
+        self.emptyButtonNode.isAccessibilityElement = true
+        self.emptyButtonNode.accessibilityTraits = .button
         
         self.emptyButtonTextNode = ImmediateTextNode()
         self.emptyButtonTextNode.isUserInteractionEnabled = false
+        self.emptyButtonTextNode.maximumNumberOfLines = 0
+        self.emptyButtonTextNode.textAlignment = .center
+        self.emptyButtonTextNode.isAccessibilityElement = false
         
         self.emptyButtonIconNode = ASImageNode()
         self.emptyButtonIconNode.displaysAsynchronously = false
@@ -338,11 +347,15 @@ final class CallListControllerNode: ASDisplayNode {
         })
         
         self.addSubnode(self.listNode)
-        self.addSubnode(self.emptyTextNode)
-        self.addSubnode(self.emptyAnimationNode)
-        self.addSubnode(self.emptyButtonTextNode)
-        self.addSubnode(self.emptyButtonIconNode)
-        self.addSubnode(self.emptyButtonNode)
+        self.addSubnode(self.emptyScrollNode)
+        self.emptyScrollNode.addSubnode(self.emptyTextNode)
+        self.emptyScrollNode.addSubnode(self.emptyAnimationNode)
+        self.emptyScrollNode.addSubnode(self.emptyButtonNode)
+        self.emptyButtonNode.addSubnode(self.emptyButtonTextNode)
+        self.emptyButtonNode.addSubnode(self.emptyButtonIconNode)
+        self.emptyScrollNode.view.contentInsetAdjustmentBehavior = .never
+        self.emptyScrollNode.view.scrollsToTop = false
+        self.emptyScrollNode.view.alwaysBounceVertical = false
         
         self.view.addSubview(self.edgeEffectView)
                 
@@ -355,7 +368,6 @@ final class CallListControllerNode: ASDisplayNode {
                 self.listNode.backgroundColor = presentationData.theme.list.blocksBackgroundColor
         }
         
-        self.emptyAnimationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: "CallsPlaceholder"), width: 256, height: 256, playbackMode: .loop, mode: .direct(cachePathPrefix: nil))
         self.emptyAnimationSize = CGSize(width: 148.0, height: 148.0)
         
         self.emptyButtonIconNode.image = generateTintedImage(image: UIImage(bundleImageName: "Call List/CallIcon"), color: presentationData.theme.list.itemAccentColor)
@@ -694,7 +706,7 @@ final class CallListControllerNode: ASDisplayNode {
         
         self.emptyStateDisposable.set((combineLatest(emptySignal, typeSignal, self.statePromise.get()) |> deliverOnMainQueue).startStrict(next: { [weak self] isEmpty, type, state in
             if let strongSelf = self {
-                strongSelf.updateEmptyPlaceholder(theme: state.presentationData.theme, strings: state.presentationData.strings, type: type, isHidden: !isEmpty)
+                strongSelf.updateEmptyPlaceholder(presentationData: state.presentationData, type: type, isHidden: !isEmpty)
             }
         }))
         
@@ -729,7 +741,7 @@ final class CallListControllerNode: ASDisplayNode {
     }
     
     func updateThemeAndStrings(presentationData: PresentationData) {
-        if presentationData.theme !== self.currentState.presentationData.theme || presentationData.strings !== self.currentState.presentationData.strings {
+        if presentationData.theme !== self.currentState.presentationData.theme || presentationData.strings !== self.currentState.presentationData.strings || presentationData.listsFontSize != self.presentationData.listsFontSize || presentationData.reduceMotion != self.presentationData.reduceMotion {
             self.presentationData = presentationData
             
             self.leftOverlayNode.backgroundColor = presentationData.theme.list.blocksBackgroundColor
@@ -749,7 +761,7 @@ final class CallListControllerNode: ASDisplayNode {
                 sideColumnView.update(size: appliedSideColumn.frame.size, theme: presentationData.theme, strings: presentationData.strings, transition: .immediate)
             }
             
-            self.updateEmptyPlaceholder(theme: presentationData.theme, strings: presentationData.strings, type: self.currentLocationAndType.scope, isHidden: self.emptyTextNode.alpha.isZero)
+            self.updateEmptyPlaceholder(presentationData: ItemListPresentationData(presentationData), type: self.currentLocationAndType.scope, isHidden: self.emptyScrollNode.isHidden)
             
             self.updateState {
                 return $0.withUpdatedPresentationData(presentationData: ItemListPresentationData(presentationData), dateTimeFormat: presentationData.dateTimeFormat, disableAnimations: true)
@@ -763,67 +775,46 @@ final class CallListControllerNode: ASDisplayNode {
         }
     }
     
-    private let textFont = Font.regular(16.0)
-    private let buttonFont = Font.regular(17.0)
-    
-    func updateEmptyPlaceholder(theme: PresentationTheme, strings: PresentationStrings, type: EngineCallList.Scope, isHidden: Bool) {
-        let alpha: CGFloat = isHidden ? 0.0 : 1.0
-        let previousAlpha = self.emptyTextNode.alpha
-        self.emptyTextNode.alpha = alpha
-        self.emptyTextNode.layer.animateAlpha(from: previousAlpha, to: alpha, duration: 0.25)
-        
-        if previousAlpha.isZero && !alpha.isZero {
-            self.emptyAnimationNode.visibility = true
-        }
-        self.emptyAnimationNode.alpha = alpha
-        self.emptyAnimationNode.layer.animateAlpha(from: previousAlpha, to: alpha, duration: 0.25, completion: { [weak self] _ in
-            if let strongSelf = self {
-                if !previousAlpha.isZero && strongSelf.emptyAnimationNode.alpha.isZero {
-                    strongSelf.emptyAnimationNode.visibility = false
-                }
-            }
-        })
-        
-        self.emptyButtonIconNode.alpha = alpha
-        self.emptyButtonIconNode.layer.animateAlpha(from: previousAlpha, to: alpha, duration: 0.25)
-        self.emptyButtonTextNode.alpha = alpha
-        self.emptyButtonTextNode.layer.animateAlpha(from: previousAlpha, to: alpha, duration: 0.25)
+    func updateEmptyPlaceholder(presentationData: ItemListPresentationData, type: EngineCallList.Scope, isHidden: Bool) {
+        let wasHidden = self.emptyScrollNode.isHidden
+        self.emptyScrollNode.isHidden = isHidden
         self.emptyButtonNode.isUserInteractionEnabled = !isHidden
-        
-        self.listNode.alpha = 1.0 - alpha
-        self.listNode.layer.animateAlpha(from: 1.0 - previousAlpha, to: 1.0 - alpha, duration: 0.25)
-        
-        if !isHidden {
-            let type = self.currentLocationAndType.scope
-            let emptyText: String
-            let buttonText = strings.Calls_StartNewCall
-            if type == .missed {
-                emptyText = strings.Calls_NoMissedCallsPlacehoder
+        self.emptyButtonNode.isAccessibilityElement = !isHidden
+        self.listNode.alpha = isHidden ? 1.0 : 0.0
+        self.listNode.isUserInteractionEnabled = isHidden
+        self.listNode.view.accessibilityElementsHidden = !isHidden
+        if wasHidden != isHidden && !self.presentationData.reduceMotion {
+            if isHidden {
+                self.listNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
             } else {
-                emptyText = strings.Calls_NoVoiceAndVideoCallsPlaceholder
+                self.emptyScrollNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
             }
-            let color: UIColor
-            
-            switch self.mode {
-            case .tab:
-                self.backgroundColor = theme.chatList.backgroundColor
-                self.listNode.backgroundColor = theme.chatList.backgroundColor
-                color = theme.list.freeTextColor
-            case .navigation:
-                self.backgroundColor = theme.list.blocksBackgroundColor
-                self.listNode.backgroundColor = theme.list.blocksBackgroundColor
-                color = theme.list.freeTextColor
-            }
-            
-            self.emptyTextNode.attributedText = NSAttributedString(string: emptyText, font: textFont, textColor: color, paragraphAlignment: .center)
-            self.emptyButtonTextNode.attributedText = NSAttributedString(string: buttonText, font: buttonFont, textColor: theme.list.itemAccentColor, paragraphAlignment: .center)
-            
-            if let layout = self.containerLayout {
-                self.updateLayout(layout.0, navigationBarHeight: layout.1, transition: .immediate)
-            }
+        }
+
+        if self.emptyAnimationReduceMotion != self.presentationData.reduceMotion {
+            self.emptyAnimationReduceMotion = self.presentationData.reduceMotion
+            let playback: AnimatedStickerPlaybackMode = self.presentationData.reduceMotion ? .still(.start) : .loop
+            self.emptyAnimationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: "CallsPlaceholder"), width: 256, height: 256, playbackMode: playback, mode: .direct(cachePathPrefix: nil))
+        }
+        if isHidden {
+            self.emptyAnimationNode.visibility = false
+            return
+        }
+
+        let strings = presentationData.strings
+        let theme = presentationData.theme
+        let emptyText = type == .missed ? strings.Calls_NoMissedCallsPlacehoder : strings.Calls_NoVoiceAndVideoCallsPlaceholder
+        let fontSize = presentationData.fontSize.itemListBaseFontSize
+        self.emptyTextNode.attributedText = NSAttributedString(string: emptyText, font: Font.regular(floor(fontSize * 16.0 / 17.0)), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
+        self.emptyTextNode.accessibilityLabel = emptyText
+        self.emptyButtonTextNode.attributedText = NSAttributedString(string: strings.Calls_StartNewCall, font: Font.regular(fontSize), textColor: theme.list.itemAccentColor, paragraphAlignment: .center)
+        self.emptyButtonNode.accessibilityLabel = strings.Calls_StartNewCall
+
+        if let layout = self.containerLayout {
+            self.updateLayout(layout.0, navigationBarHeight: layout.1, transition: .immediate)
         }
     }
-    
+
     func updateState(_ f: (CallListNodeState) -> CallListNodeState) {
         let state = f(self.currentState)
         if state != self.currentState {
@@ -921,7 +912,9 @@ final class CallListControllerNode: ASDisplayNode {
     }
     
     @objc private func emptyButtonPressed() {
-        self.startNewCall?()
+        if !self.emptyScrollNode.isHidden {
+            self.startNewCall?()
+        }
     }
     
     func updateLayout(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -933,35 +926,29 @@ final class CallListControllerNode: ASDisplayNode {
             insets.top += 64.0
         }
         
-        let size = layout.size
-        // In the band between the side insets when they differ (iPhone Duo's side strip); equal insets keep the full width.
-        let contentMinX: CGFloat = insets.left != insets.right ? insets.left : 0.0
-        let contentWidth: CGFloat = insets.left != insets.right ? size.width - insets.left - insets.right : size.width
-        let contentRect = CGRect(origin: CGPoint(x: contentMinX, y: insets.top), size: CGSize(width: contentWidth, height: size.height - insets.top - insets.bottom))
-
-        let sideInset: CGFloat = 64.0
-        
-        let emptyAnimationHeight = self.emptyAnimationSize.height
-        let emptyAnimationSpacing: CGFloat = 13.0
-        let emptyTextSpacing: CGFloat = 23.0
-        let emptyTextSize = self.emptyTextNode.updateLayout(CGSize(width: contentRect.width - sideInset * 2.0, height: size.height))
-        let emptyButtonSize = self.emptyButtonTextNode.updateLayout(CGSize(width: contentRect.width - sideInset * 2.0, height: size.height))
-        let emptyTotalHeight = emptyAnimationHeight + emptyAnimationSpacing + emptyTextSize.height + emptyTextSpacing + emptyButtonSize.height
-        let emptyAnimationY = contentRect.minY + floorToScreenPixels((contentRect.height - emptyTotalHeight) / 2.0)
-        
-        let textTransition = ContainedViewLayoutTransition.immediate
-        textTransition.updateFrame(node: self.emptyAnimationNode, frame: CGRect(origin: CGPoint(x: contentRect.minX + (contentRect.width - self.emptyAnimationSize.width) / 2.0, y: emptyAnimationY), size: self.emptyAnimationSize))
-        textTransition.updateFrame(node: self.emptyTextNode, frame: CGRect(origin: CGPoint(x: contentRect.minX + (contentRect.width - emptyTextSize.width) / 2.0, y: emptyAnimationY + emptyAnimationHeight + emptyAnimationSpacing), size: emptyTextSize))
-        
-        let emptyButtonSpacing: CGFloat = 14.0
-        let emptyButtonIconSize = (self.emptyButtonIconNode.image?.size ?? CGSize())
-        let emptyButtonWidth = emptyButtonIconSize.width + emptyButtonSpacing + emptyButtonSize.width
-        let emptyButtonX = contentRect.minX + floor(contentRect.width - emptyButtonWidth) / 2.0
-        textTransition.updateFrame(node: self.emptyButtonIconNode, frame: CGRect(origin: CGPoint(x: emptyButtonX, y: emptyAnimationY + emptyAnimationHeight + emptyAnimationSpacing + emptyTextSize.height + emptyTextSpacing), size: emptyButtonIconSize))
-        textTransition.updateFrame(node: self.emptyButtonTextNode, frame: CGRect(origin: CGPoint(x: emptyButtonX + emptyButtonIconSize.width + emptyButtonSpacing, y: emptyAnimationY + emptyAnimationHeight + emptyAnimationSpacing + emptyTextSize.height + emptyTextSpacing + 4.0), size: emptyButtonSize))
-        
-        textTransition.updateFrame(node: self.emptyButtonNode, frame: CGRect(origin: CGPoint(x: emptyButtonX, y: emptyAnimationY + emptyAnimationHeight + emptyAnimationSpacing + emptyTextSize.height + emptyTextSpacing), size: CGSize(width: emptyButtonWidth, height: 44.0)))
-        
+        let contentRect = CGRect(x: insets.left, y: insets.top, width: max(1.0, layout.size.width - insets.left - insets.right), height: max(1.0, layout.size.height - insets.top - insets.bottom))
+        self.emptyScrollNode.frame = contentRect
+        let sideInset: CGFloat = 24.0
+        let contentWidth = max(1.0, contentRect.width - sideInset * 2.0)
+        let textSize = self.emptyTextNode.updateLayout(CGSize(width: contentWidth, height: .greatestFiniteMagnitude))
+        let iconSize = self.emptyButtonIconNode.image?.size ?? .zero
+        let iconSpacing: CGFloat = iconSize.width.isZero ? 0.0 : 12.0
+        let buttonTextSize = self.emptyButtonTextNode.updateLayout(CGSize(width: max(1.0, contentWidth - iconSize.width - iconSpacing), height: .greatestFiniteMagnitude))
+        let buttonContentSize = CGSize(width: iconSize.width + iconSpacing + buttonTextSize.width, height: max(iconSize.height, buttonTextSize.height))
+        let emptyLayout = CallListEmptyStateLayout(viewport: contentRect.size, illustrationSize: self.emptyAnimationSize, textSize: textSize, buttonContentSize: buttonContentSize)
+        self.emptyScrollNode.view.contentSize = emptyLayout.contentSize
+        self.emptyScrollNode.view.isScrollEnabled = emptyLayout.contentSize.height > contentRect.height
+        self.emptyScrollNode.view.showsVerticalScrollIndicator = self.emptyScrollNode.view.isScrollEnabled
+        let offset = self.emptyScrollNode.view.contentOffset.y
+        self.emptyScrollNode.view.contentOffset = CGPoint(x: 0.0, y: max(0.0, min(offset, emptyLayout.contentSize.height - contentRect.height)))
+        self.emptyTextNode.frame = emptyLayout.textFrame
+        self.emptyAnimationNode.frame = emptyLayout.illustrationFrame
+        self.emptyAnimationNode.isHidden = !emptyLayout.showsIllustration
+        self.emptyAnimationNode.visibility = !self.emptyScrollNode.isHidden && emptyLayout.showsIllustration
+        self.emptyButtonNode.frame = emptyLayout.buttonFrame
+        let buttonContentX = floor((emptyLayout.buttonFrame.width - buttonContentSize.width) * 0.5)
+        self.emptyButtonIconNode.frame = CGRect(origin: CGPoint(x: buttonContentX, y: floor((emptyLayout.buttonFrame.height - iconSize.height) * 0.5)), size: iconSize)
+        self.emptyButtonTextNode.frame = CGRect(origin: CGPoint(x: buttonContentX + iconSize.width + iconSpacing, y: floor((emptyLayout.buttonFrame.height - buttonTextSize.height) * 0.5)), size: buttonTextSize)
         self.emptyAnimationNode.updateLayout(size: self.emptyAnimationSize)
     }
     

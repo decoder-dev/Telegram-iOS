@@ -344,14 +344,17 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             
             titleAttributedString = NSAttributedString(string: item.peer.compactDisplayTitle, font: titleFont, textColor: titleColor)
             
-            let (joinTitleLayout, joinTitleApply) = makeJoinTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.VoiceChat_PanelJoin.uppercased(), font: Font.semibold(15.0), textColor: item.presentationData.theme.list.itemCheckColors.foregroundColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: 200.0, height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-            let joinButtonSize = CGSize(width: joinTitleLayout.size.width + 20.0, height: 28.0)
+            let usesLargeText = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+            let joinFont = Font.semibold(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
+            let joinTextWidth = max(1.0, min(200.0, (params.width - leftInset - rightInset) * 0.4 - 20.0))
+            let (joinTitleLayout, joinTitleApply) = makeJoinTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.VoiceChat_PanelJoin.uppercased(), font: joinFont, textColor: item.presentationData.theme.list.itemCheckColors.foregroundColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: joinTextWidth, height: CGFloat.infinity), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
+            let joinButtonSize = CGSize(width: max(44.0, joinTitleLayout.size.width + 20.0), height: max(28.0, joinTitleLayout.size.height + 12.0))
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - joinButtonSize.width - 8.0 - (item.editing ? -30.0 : 10.0)), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: usesLargeText ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(1.0, params.width - leftInset - rightInset - joinButtonSize.width - 8.0), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let verticalInset: CGFloat = 11.0
             
-            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, titleLayout.size.height + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
+            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, max(titleLayout.size.height, joinButtonSize.height) + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
             let contentSize = nodeLayout.contentSize
             
@@ -435,12 +438,16 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
                             transition.updateFrameAdditive(node: strongSelf.indicatorNode, frame: CGRect(origin: CGPoint(x: avatarFrame.minX - callListTypeIconSlotSpacing - callListTypeIconSlotWidth + floor((callListTypeIconSlotWidth - indicatorSize) / 2.0), y: floor(avatarFrame.midY - indicatorSize / 2.0)), size: CGSize(width: indicatorSize, height: indicatorSize)))
                             
                             let _ = titleApply()
-                            transition.updateFrameAdditive(node: strongSelf.titleNode, frame: CGRect(origin: CGPoint(x: revealOffset + leftInset, y: verticalInset), size: titleLayout.size))
+                            transition.updateFrameAdditive(node: strongSelf.titleNode, frame: CGRect(origin: CGPoint(x: revealOffset + leftInset, y: floor((contentSize.height - titleLayout.size.height) * 0.5)), size: titleLayout.size))
                             
-                            let joinButtonFrame = CGRect(origin: CGPoint(x: revealOffset + params.width - rightInset - joinButtonSize.width, y: floor((contentSize.height - 28.0) / 2.0)), size: joinButtonSize)
+                            let joinButtonFrame = CGRect(origin: CGPoint(x: revealOffset + params.width - rightInset - joinButtonSize.width, y: floor((contentSize.height - joinButtonSize.height) / 2.0)), size: joinButtonSize)
                             transition.updateFrameAdditive(node: strongSelf.joinButtonNode, frame: joinButtonFrame)
                             
                             transition.updateAlpha(node: strongSelf.joinButtonNode, alpha: item.isActive ? 0.0 : 1.0)
+                            let verticalSlop = max(0.0, (PresentationLayoutMetrics.minimumInteractiveSize - joinButtonSize.height) * 0.5)
+                            strongSelf.joinButtonNode.hitTestSlop = UIEdgeInsets(top: -verticalSlop, left: 0.0, bottom: -verticalSlop, right: 0.0)
+                            strongSelf.joinButtonNode.isEnabled = !item.isActive
+                            strongSelf.joinButtonNode.isAccessibilityElement = !item.isActive
                             
                             if let image = updatedJoinBackground {
                                 strongSelf.joinBackgroundNode.image = image
@@ -503,7 +510,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
     }
     
     @objc private func joinPressed() {
-        if let item = self.layoutParams?.0 {
+        if let item = self.layoutParams?.0, !item.isActive {
             item.interaction.openGroupCall(item.peer.id)
         }
     }

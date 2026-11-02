@@ -258,7 +258,6 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
         self.typeIconNode.displaysAsynchronously = false
         
         self.infoButtonNode = HighlightableButtonNode()
-        self.infoButtonNode.hitTestSlop = UIEdgeInsets(top: -6.0, left: -6.0, bottom: -6.0, right: -10.0)
         
         self.accessibilityArea = AccessibilityAreaNode()
         
@@ -319,6 +318,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             let titleFont = Font.medium(item.presentationData.fontSize.itemListBaseFontSize)
             let statusFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 14.0 / 17.0))
             let dateFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
+            let stacksDate = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
             let avatarDiameter = min(44.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 44.0 / 17.0))
             let multipleAvatarDiameter = min(30.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 30.0 / 17.0))
             // Matches the chat list, which dropped this inset: a 16 pt card here left white
@@ -518,7 +518,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             let timestamp = Int32(CFAbsoluteTimeGetCurrent() + NSTimeIntervalSince1970)
             let dateText = stringForRelativeTimestamp(strings: item.presentationData.strings, relativeTimestamp: item.topMessage.timestamp, relativeTo: timestamp, dateTimeFormat: item.dateTimeFormat)
             
-            let (dateLayout, dateApply) = makeDateLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: dateText, font: dateFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - rightInset), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (dateLayout, dateApply) = makeDateLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: dateText, font: dateFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: stacksDate ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: max(1.0, params.width - leftInset - dateRightInset), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let premiumConfiguration = PremiumConfiguration.with(appConfiguration: item.context.currentAppConfiguration.with { $0 })
             var currentCredibilityIconImage: UIImage?
@@ -539,11 +539,13 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                 additionalTitleInset += 3.0 + currentCredibilityIconImage.size.width
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - additionalTitleInset - leftInset - dateRightInset - dateLayout.size.width - (item.editing ? -30.0 : 10.0)), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let dateColumnWidth: CGFloat = stacksDate ? 0.0 : dateLayout.size.width + (item.editing ? -30.0 : 10.0)
+            let textWidth = max(1.0, params.width - leftInset - dateRightInset - dateColumnWidth)
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: stacksDate ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(1.0, textWidth - additionalTitleInset), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
-            let (statusLayout, statusApply) = makeStatusLayout(TextNodeLayoutArguments(attributedString: statusAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - dateRightInset - dateLayout.size.width - (item.editing ? -30.0 : 10.0)), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (statusLayout, statusApply) = makeStatusLayout(TextNodeLayoutArguments(attributedString: statusAttributedString, backgroundColor: nil, maximumNumberOfLines: stacksDate ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: textWidth, height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
-            let titleSpacing: CGFloat = -1.0
+            let titleSpacing: CGFloat = 2.0
             let verticalInset: CGFloat
             switch item.systemStyle {
             case .glass:
@@ -552,7 +554,8 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                 verticalInset = 6.0
             }
             
-            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, titleLayout.size.height + titleSpacing + statusLayout.size.height + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
+            let textHeight = titleLayout.size.height + titleSpacing + statusLayout.size.height + (stacksDate ? dateLayout.size.height + 4.0 : 0.0)
+            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, textHeight + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
             let infoIcon = PresentationResourcesCallList.infoButton(item.presentationData.theme)
 
@@ -728,7 +731,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                             }
                             
                             let _ = titleApply()
-                            let titleFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset, y: verticalInset), size: titleLayout.size)
+                            let titleFrame = CGRect(origin: CGPoint(x: revealOffset + leftInset, y: floorToScreenPixels((contentSize.height - textHeight) * 0.5)), size: titleLayout.size)
                             transition.updateFrameAdditive(node: strongSelf.titleNode, frame: titleFrame)
                             
                             let _ = statusApply()
@@ -753,7 +756,8 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                             }
                             
                             let _ = dateApply()
-                            transition.updateFrameAdditive(node: strongSelf.dateNode, frame: CGRect(origin: CGPoint(x: editingOffset + revealOffset + params.width - dateRightInset - dateLayout.size.width, y: floor((nodeLayout.contentSize.height - dateLayout.size.height) / 2.0) + 2.0), size: dateLayout.size))
+                            let dateOrigin = stacksDate ? CGPoint(x: revealOffset + leftInset, y: strongSelf.statusNode.frame.maxY + 4.0) : CGPoint(x: editingOffset + revealOffset + params.width - dateRightInset - dateLayout.size.width, y: floor((nodeLayout.contentSize.height - dateLayout.size.height) / 2.0) + 2.0)
+                            transition.updateFrameAdditive(node: strongSelf.dateNode, frame: CGRect(origin: dateOrigin, size: dateLayout.size))
                             
                             if let typeIcon = typeIcon {
                                 if strongSelf.typeIconNode.image !== typeIcon {
@@ -767,12 +771,17 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                             strongSelf.typeIconNode.isHidden = typeIcon == nil
                             
                             if let infoIcon = infoIcon {
+                                let horizontalSlop = max(0.0, (PresentationLayoutMetrics.minimumInteractiveSize - infoIcon.size.width) * 0.5)
+                                let verticalSlop = max(0.0, (PresentationLayoutMetrics.minimumInteractiveSize - infoIcon.size.height) * 0.5)
+                                strongSelf.infoButtonNode.hitTestSlop = UIEdgeInsets(top: -verticalSlop, left: -horizontalSlop, bottom: -verticalSlop, right: -horizontalSlop)
                                 if updatedInfoIcon {
                                     strongSelf.infoButtonNode.setImage(infoIcon, for: [])
                                 }
                                 transition.updateFrameAdditive(node: strongSelf.infoButtonNode, frame: CGRect(origin: CGPoint(x: revealOffset + params.width - infoIconRightInset - infoIcon.size.width, y: floor((nodeLayout.contentSize.height - infoIcon.size.height) / 2.0)), size: infoIcon.size))
                             }
                             transition.updateAlpha(node: strongSelf.infoButtonNode, alpha: item.editing ? 0.0 : 1.0)
+                            strongSelf.infoButtonNode.isEnabled = !item.editing
+                            strongSelf.infoButtonNode.isAccessibilityElement = !item.editing
                             
                             var topHighlightInset: CGFloat = (first || !nodeLayout.insets.top.isZero) ? 0.0 : separatorHeight
                             topHighlightInset -= nodeLayout.insets.top
@@ -792,7 +801,8 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                             strongSelf.updateLayout(size: nodeLayout.contentSize, leftInset: params.leftInset, rightInset: params.rightInset)
                             
                             strongSelf.accessibilityArea.accessibilityLabel = titleAttributedString?.string
-                            strongSelf.accessibilityArea.accessibilityValue = statusAccessibilityString
+                            strongSelf.accessibilityArea.accessibilityValue = [statusAccessibilityString, dateText].filter { !$0.isEmpty }.joined(separator: ". ")
+                            strongSelf.accessibilityArea.accessibilityTraits = .button
                             strongSelf.accessibilityArea.frame = CGRect(origin: CGPoint(), size: nodeLayout.contentSize)
                             
                             strongSelf.infoButtonNode.accessibilityLabel = item.presentationData.strings.Conversation_Info
@@ -832,7 +842,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
     }
     
     @objc func infoPressed() {
-        if let item = self.layoutParams?.0 {
+        if let item = self.layoutParams?.0, !item.editing {
             item.interaction.openInfo(item.topMessage.id.peerId, item.messages)
         }
     }
@@ -893,7 +903,9 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             
             transition.updateFrameAdditive(node: self.statusNode, frame: CGRect(origin: CGPoint(x: revealOffset + leftInset, y: self.statusNode.frame.minY), size: self.statusNode.bounds.size))
             
-            transition.updateFrameAdditive(node: self.dateNode, frame: CGRect(origin: CGPoint(x: editingOffset + revealOffset + self.bounds.size.width - dateRightInset - self.dateNode.bounds.size.width, y: self.dateNode.frame.minY), size: self.dateNode.bounds.size))
+            let stacksDate = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+            let dateX = stacksDate ? revealOffset + leftInset : editingOffset + revealOffset + self.bounds.size.width - dateRightInset - self.dateNode.bounds.size.width
+            transition.updateFrameAdditive(node: self.dateNode, frame: CGRect(origin: CGPoint(x: dateX, y: self.dateNode.frame.minY), size: self.dateNode.bounds.size))
             
             // Same reserved-slot rule as the layout closure: centred in the slot, never clamped.
             let typeIconSize = self.typeIconNode.image?.size ?? self.typeIconNode.frame.size
