@@ -94,11 +94,11 @@ public class ActionSheetTextNode: ActionSheetItemNode {
             self.label.attributedText = NSAttributedString(string: item.title, font: defaultFont, textColor: self.theme.secondaryTextColor, paragraphAlignment: .center)
         }
         
-        self.accessibilityArea.accessibilityLabel = item.title
+        self.accessibilityArea.accessibilityLabel = self.label.attributedText?.string
     }
     
     public override func updateLayout(constrainedSize: CGSize, transition: ContainedViewLayoutTransition) -> CGSize {
-        let labelSize = self.label.updateLayout(CGSize(width: max(1.0, constrainedSize.width - 20.0), height: constrainedSize.height))
+        let labelSize = self.label.updateLayout(CGSize(width: max(1.0, constrainedSize.width - 32.0), height: .greatestFiniteMagnitude))
         let size = CGSize(width: constrainedSize.width, height: max(57.0, labelSize.height + 32.0))
        
         self.label.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - labelSize.width) / 2.0), y: floorToScreenPixels((size.height - labelSize.height) / 2.0)), size: labelSize)

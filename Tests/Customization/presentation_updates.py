@@ -7,6 +7,7 @@ import tempfile
 root = pathlib.Path(__file__).resolve().parents[2]
 controllers = [
     'CallListUI/Sources/CallListController.swift',
+    'ChatListUI/Sources/ChatListController.swift',
     'ContactListUI/Sources/ContactsController.swift',
     'ContactListUI/Sources/ContactsControllerNode.swift',
 ]
@@ -34,7 +35,7 @@ fixture += '''
 let theme = Identity()
 let strings = Identity()
 let original = Data(theme: theme, strings: strings, listsFontSize: 17, reduceMotion: false)
-for updates in [updates0, updates1, updates2] {
+for updates in [updates0, updates1, updates2, updates3] {
     precondition(!updates(original, original))
     precondition(updates(original, Data(theme: theme, strings: strings, listsFontSize: 23, reduceMotion: false)))
     precondition(updates(original, Data(theme: theme, strings: strings, listsFontSize: 17, reduceMotion: true)))

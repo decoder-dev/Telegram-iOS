@@ -143,7 +143,7 @@ public final class TextAlertContentActionNode: HighlightableButtonNode {
     }
     
     @objc func pressed() {
-        self.action.action()
+        self.performAction()
     }
     
     override public func layout() {

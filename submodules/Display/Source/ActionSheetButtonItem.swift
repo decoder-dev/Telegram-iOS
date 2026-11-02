@@ -87,12 +87,16 @@ public class ActionSheetButtonNode: ActionSheetItemNode {
         
         self.button.addTarget(self, action: #selector(self.buttonPressed), for: .touchUpInside)
         self.accessibilityArea.activate = { [weak self] in
-            self?.buttonPressed()
+            guard let self, self.item?.enabled == true else {
+                return false
+            }
+            self.buttonPressed()
             return true
         }
     }
     
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
+        let highlighted = highlighted && self.item?.enabled == true
         self.highlightedUpdated(highlighted)
         if highlighted {
             self.backgroundNode.backgroundColor = self.theme.effectiveItemHighlightedBackgroundColor
@@ -159,7 +163,7 @@ public class ActionSheetButtonNode: ActionSheetItemNode {
     }
     
     public override func updateLayout(constrainedSize: CGSize, transition: ContainedViewLayoutTransition) -> CGSize {
-        let labelSize = self.label.updateLayout(CGSize(width: max(1.0, constrainedSize.width - 32.0), height: constrainedSize.height))
+        let labelSize = self.label.updateLayout(CGSize(width: max(1.0, constrainedSize.width - 32.0), height: .greatestFiniteMagnitude))
         let size = CGSize(width: constrainedSize.width, height: max(57.0, labelSize.height + 28.0))
         
         self.button.frame = CGRect(origin: CGPoint(), size: size)
@@ -172,7 +176,7 @@ public class ActionSheetButtonNode: ActionSheetItemNode {
     }
     
     @objc func buttonPressed() {
-        if let item = self.item {
+        if let item = self.item, item.enabled {
             item.action()
         }
     }
