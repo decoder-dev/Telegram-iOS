@@ -654,7 +654,7 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
             } else if let membersCount = membersCount {
                 var membersPart = presentationData.strings.VoiceChat_Status_Members(membersCount)
                 if membersPart.contains("[") && membersPart.contains("]") {
-                    if let startIndex = membersPart.firstIndex(of: "["), let endIndex = membersPart.firstIndex(of: "]") {
+                    if let startIndex = membersPart.firstIndex(of: "["), let endIndex = membersPart.firstIndex(of: "]"), startIndex <= endIndex {
                         membersPart.removeSubrange(startIndex ... endIndex)
                     }
                 } else {
@@ -662,6 +662,7 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
                 }
                 
                 let rawTextAndRanges = presentationData.strings.VoiceChat_Status_MembersFormat("\(membersCount)", membersPart)
+                let rawTextUTF16 = rawTextAndRanges.string as NSString
 
                 var textIndex = 0
                 var latestIndex = 0
@@ -673,14 +674,14 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
                         lowerSegmentIndex = min(lowerSegmentIndex, latestIndex)
                     } else {
                         if latestIndex < range.lowerBound {
-                            let part = String(rawTextAndRanges.string[rawTextAndRanges.string.index(rawTextAndRanges.string.startIndex, offsetBy: latestIndex) ..< rawTextAndRanges.string.index(rawTextAndRanges.string.startIndex, offsetBy: range.lowerBound)])
+                            let part = rawTextUTF16.substring(with: NSRange(location: latestIndex, length: range.lowerBound - latestIndex))
                             segments.append(.text(textIndex, NSAttributedString(string: part, font: textFont, textColor: textColor)))
                             textIndex += 1
                         }
                     }
                     latestIndex = range.upperBound
                     
-                    let part = String(rawTextAndRanges.string[rawTextAndRanges.string.index(rawTextAndRanges.string.startIndex, offsetBy: lowerSegmentIndex) ..< rawTextAndRanges.string.index(rawTextAndRanges.string.startIndex, offsetBy: range.upperBound)])
+                    let part = rawTextUTF16.substring(with: NSRange(location: lowerSegmentIndex, length: range.upperBound - lowerSegmentIndex))
                     if index == 0 {
                         segments.append(.number(Int(membersCount), NSAttributedString(string: part, font: textFont, textColor: textColor)))
                     } else {
@@ -688,8 +689,8 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
                         textIndex += 1
                     }
                 }
-                if latestIndex < rawTextAndRanges.string.count {
-                    let part = String(rawTextAndRanges.string[rawTextAndRanges.string.index(rawTextAndRanges.string.startIndex, offsetBy: latestIndex)...])
+                if latestIndex < rawTextUTF16.length {
+                    let part = rawTextUTF16.substring(from: latestIndex)
                     segments.append(.text(textIndex, NSAttributedString(string: part, font: textFont, textColor: textColor)))
                     textIndex += 1
                 }

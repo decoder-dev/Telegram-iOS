@@ -360,7 +360,7 @@ public final class ChatTitleView: UIView, NavigationBarTitleView {
                             }
                             
                             if commentsPart.contains("[") && commentsPart.contains("]") {
-                                if let startIndex = commentsPart.firstIndex(of: "["), let endIndex = commentsPart.firstIndex(of: "]") {
+                                if let startIndex = commentsPart.firstIndex(of: "["), let endIndex = commentsPart.firstIndex(of: "]"), startIndex <= endIndex {
                                     commentsPart.removeSubrange(startIndex ... endIndex)
                                 }
                             } else {
@@ -376,6 +376,7 @@ public final class ChatTitleView: UIView, NavigationBarTitleView {
                             }
 
                             let rawText = rawTextAndRanges.string
+                            let rawTextUTF16 = rawText as NSString
 
                             var textIndex = 0
                             var latestIndex = 0
@@ -388,14 +389,14 @@ public final class ChatTitleView: UIView, NavigationBarTitleView {
                                     lowerSegmentIndex = min(lowerSegmentIndex, latestIndex)
                                 } else {
                                     if latestIndex < range.lowerBound {
-                                        let part = String(rawText[rawText.index(rawText.startIndex, offsetBy: latestIndex) ..< rawText.index(rawText.startIndex, offsetBy: range.lowerBound)])
+                                        let part = rawTextUTF16.substring(with: NSRange(location: latestIndex, length: range.lowerBound - latestIndex))
                                         segments.append(.text(textIndex, NSAttributedString(string: part, font: textFont, textColor: textColor)))
                                         textIndex += 1
                                     }
                                 }
                                 latestIndex = range.upperBound
                                 
-                                let part = String(rawText[rawText.index(rawText.startIndex, offsetBy: lowerSegmentIndex) ..< rawText.index(rawText.startIndex, offsetBy: min(rawText.count, range.upperBound))])
+                                let part = rawTextUTF16.substring(with: NSRange(location: lowerSegmentIndex, length: min(rawTextUTF16.length, range.upperBound) - lowerSegmentIndex))
                                 if index == 0 {
                                     segments.append(.number(count, NSAttributedString(string: part, font: textFont, textColor: textColor)))
                                 } else {
@@ -403,8 +404,8 @@ public final class ChatTitleView: UIView, NavigationBarTitleView {
                                     textIndex += 1
                                 }
                             }
-                            if latestIndex < rawText.count {
-                                let part = String(rawText[rawText.index(rawText.startIndex, offsetBy: latestIndex)...])
+                            if latestIndex < rawTextUTF16.length {
+                                let part = rawTextUTF16.substring(from: latestIndex)
                                 segments.append(.text(textIndex, NSAttributedString(string: part, font: textFont, textColor: textColor)))
                                 textIndex += 1
                             }
