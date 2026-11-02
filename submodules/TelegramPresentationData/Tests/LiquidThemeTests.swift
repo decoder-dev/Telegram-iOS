@@ -43,7 +43,7 @@ final class LiquidThemeTests: XCTestCase {
 
     func testReactionAndPollForegroundsRemainOpaqueAfterCustomization() throws {
         for reference: PresentationBuiltinThemeReference in [.dayClassic, .day, .night] {
-            let theme = try self.theme(reference)
+            let theme = try self.theme(reference, wallpaper: .color(0x17384B))
             let expected: UInt32 = theme.overallDarkAppearance ? 0x081523 : 0xFFFFFF
             for colors in [theme.chat.message.incoming, theme.chat.message.outgoing] {
                 XCTAssertEqual(colors.bubble.withWallpaper.reactionActiveForeground.rgb, expected)
@@ -74,5 +74,21 @@ final class LiquidThemeTests: XCTestCase {
         XCTAssertEqual(cream.list.itemPrimaryTextColor.rgb, 0x3A3430)
         XCTAssertEqual(graphite.list.itemPrimaryTextColor.rgb, 0xEFEBE0)
         XCTAssertEqual(halloween.list.itemPrimaryTextColor.rgb, 0xF8F0E8)
+    }
+
+    func testNavigationPreservesSeparateControlTitleAndBadgeRoles() throws {
+        for reference: PresentationBuiltinThemeReference in [.dayClassic, .day, .night, .bananaGramCream, .bananaGramGraphite, .bananaGramHalloween] {
+            let theme = try self.theme(reference)
+            let colors = theme.rootController.navigationBar
+            let navigation = NavigationBarTheme(rootControllerTheme: theme)
+            XCTAssertEqual(navigation.buttonColor.rgb, colors.buttonColor.rgb)
+            XCTAssertEqual(navigation.disabledButtonColor, colors.disabledButtonColor)
+            XCTAssertEqual(navigation.primaryTextColor.rgb, colors.primaryTextColor.rgb)
+            XCTAssertEqual(navigation.badgeBackgroundColor.rgb, colors.badgeBackgroundColor.rgb)
+            XCTAssertEqual(navigation.badgeTextColor.rgb, colors.badgeTextColor.rgb)
+            let hiddenBadge = NavigationBarTheme(rootControllerTheme: theme, hideBadge: true)
+            XCTAssertEqual(hiddenBadge.badgeBackgroundColor.alpha, 0.0)
+            XCTAssertEqual(hiddenBadge.badgeTextColor.alpha, 0.0)
+        }
     }
 }

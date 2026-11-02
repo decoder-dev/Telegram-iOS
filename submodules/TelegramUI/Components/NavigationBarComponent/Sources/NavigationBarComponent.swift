@@ -1095,12 +1095,12 @@ public final class NavigationBarComponent: Component {
                     badgeNode = current
                 } else {
                     badgeTransition = badgeTransition.withAnimation(.none)
-                    badgeNode = NavigationBarBadgeNode(fillColor: component.theme.buttonColor, strokeColor: component.theme.buttonColor, textColor: component.theme.badgeTextColor)
+                    badgeNode = NavigationBarBadgeNode(fillColor: component.theme.badgeBackgroundColor, strokeColor: component.theme.badgeBackgroundColor, textColor: component.theme.badgeTextColor)
                     badgeNode.isUserInteractionEnabled = false
                     self.columnBadgeNode = badgeNode
                     self.sideColumnView.addSubnode(badgeNode)
                 }
-                badgeNode.updateTheme(fillColor: component.theme.buttonColor, strokeColor: component.theme.buttonColor, textColor: component.theme.badgeTextColor)
+                badgeNode.updateTheme(fillColor: component.theme.badgeBackgroundColor, strokeColor: component.theme.badgeBackgroundColor, textColor: component.theme.badgeTextColor)
                 badgeNode.text = badge
                 let badgeSize = badgeNode.measure(CGSize(width: 200.0, height: 100.0))
                 badgeTransition.setFrame(view: badgeNode.view, frame: CGRect(origin: CGPoint(x: backFrame.maxX - badgeSize.width + 4.0, y: backFrame.minY - 4.0), size: badgeSize))

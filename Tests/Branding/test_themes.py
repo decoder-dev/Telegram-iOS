@@ -16,9 +16,8 @@ def luminance(rgb):
     return sum(a * b for a, b in zip(linear, (0.2126, 0.7152, 0.0722)))
 
 class ThemeTests(unittest.TestCase):
-    def test_primary_controls_and_chat_title_use_the_foreground(self):
-        # The glass bars draw the chat title and their buttons with panelControlColor; the stock themes use full-strength
-        # white / black there, so a dimmed value turns the nickname grey.
+    def test_composer_controls_use_the_primary_foreground(self):
+        # Composer controls keep the strong foreground. Navigation controls have their own accent role.
         source = legacy_palette_source()
         body = source.split('private func makeBananaGramTheme', 1)[1].split('return PresentationTheme(', 1)[0]
         self.assertIn('panelControlColor: foreground', body)

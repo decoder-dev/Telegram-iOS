@@ -761,7 +761,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false, glassStyle: .default)
         }
         
-        self.moreBarButton = MoreHeaderButton(color: self.presentationData.theme.chat.inputPanel.panelControlColor)
+        self.moreBarButton = MoreHeaderButton(color: self.presentationData.theme.rootController.navigationBar.buttonColor)
         self.moreBarButton.isUserInteractionEnabled = true
         
         super.init(context: context, navigationBarPresentationData: navigationBarPresentationData)
@@ -7474,7 +7474,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         
         self.navigationBar?.updatePresentationData(NavigationBarPresentationData(theme: navigationBarTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)), transition: .immediate)
         
-        self.moreBarButton.updateColor(color: presentationTheme.chat.inputPanel.panelControlColor)
+        self.moreBarButton.updateColor(color: presentationTheme.rootController.navigationBar.buttonColor)
     }
     
     /// The chat's pinned list: `.unresolved` until it has answered, i.e. the history has loaded and the `.pinned`
