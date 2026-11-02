@@ -53,5 +53,5 @@ print("Permission layout: \\(cases) viewport/text/optional-content combinations 
 '''
 with tempfile.TemporaryDirectory(prefix='liquid-permission-layout-') as directory:
     path = pathlib.Path(directory) / 'main.swift'
-    path.write_text(source + checks)
+    path.write_text('#if canImport(CoreGraphics)\nimport CoreGraphics\n#endif\n' + source + checks)
     subprocess.run(['swift', str(path)], check=True, cwd=root)
