@@ -140,5 +140,12 @@ private func isPublicIPv6(_ bytes: [UInt8]) -> Bool {
     if Array(bytes.prefix(12)).allSatisfy({ $0 == 0 }) {                    // ::a.b.c.d (deprecated)
         return isPublicIPv4(Array(bytes.suffix(4)))
     }
+    // RFC 6052 well-known NAT64 prefix. On an IPv6-only network the last four bytes
+    // are translated to IPv4, so 64:ff9b::7f00:1 is loopback and 64:ff9b::a9fe:a9fe is
+    // the link-local metadata address.
+    let nat64: [UInt8] = [0x00, 0x64, 0xff, 0x9b, 0, 0, 0, 0, 0, 0, 0, 0]
+    if Array(bytes.prefix(12)) == nat64 {
+        return isPublicIPv4(Array(bytes.suffix(4)))
+    }
     return true
 }

@@ -55,6 +55,32 @@ public func canonicalExternalUrl(from url: String) -> URL? {
 
 private let telegramLinkHosts = ["t.me", "telegram.me", "telegram.dog"]
 
+/// Foundation keeps the case of a scheme and the case and a trailing root dot of a host
+/// (`HTTPS://T.ME.` → scheme `HTTPS`, host `T.ME.`). Link checks compare the lowercased host
+/// with that one dot removed. Subdomains are left intact (`durov.t.me` stays `durov.t.me`).
+public func normalizedLinkHost(_ host: String) -> String {
+    var host = host.lowercased()
+    if host.hasSuffix(".") {
+        host.removeLast()
+    }
+    return host
+}
+
+/// Exact t.me / telegram.me / telegram.dog host, after `normalizedLinkHost`. Subdomains are not exact:
+/// `username.t.me` is a Telegram link (`isTelegramLinkUrl`) but not one of these three hosts.
+public func isExactTelegramMeHost(_ host: String) -> Bool {
+    return telegramLinkHosts.contains(normalizedLinkHost(host))
+}
+
+public func isTelegramDeepLinkScheme(_ scheme: String?) -> Bool {
+    return scheme?.lowercased() == "tg"
+}
+
+public func isWebUrlScheme(_ scheme: String?) -> Bool {
+    let scheme = scheme?.lowercased()
+    return scheme == "http" || scheme == "https"
+}
+
 /// Whether `url` opens inside Telegram: a `tg:` link, or a web link on t.me, telegram.me or telegram.dog,
 /// subdomains included (`username.t.me`). The address is parsed as the external-URL opener parses it, so a link
 /// written without a scheme (`t.me/durov`) counts too, and one whose login part hides another host does not.
@@ -63,13 +89,11 @@ public func isTelegramLinkUrl(_ url: String) -> Bool {
         return true
     }
     guard let parsedUrl = canonicalExternalUrl(from: url),
-          let scheme = parsedUrl.scheme?.lowercased(), scheme == "http" || scheme == "https",
-          var host = parsedUrl.host?.lowercased() else {
+          isWebUrlScheme(parsedUrl.scheme),
+          let rawHost = parsedUrl.host else {
         return false
     }
-    if host.hasSuffix(".") {
-        host.removeLast()
-    }
+    let host = normalizedLinkHost(rawHost)
     return telegramLinkHosts.contains(where: { host == $0 || host.hasSuffix("." + $0) })
 }
 

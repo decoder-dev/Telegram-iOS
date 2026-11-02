@@ -8,6 +8,7 @@ import TelegramUIPreferences
 import TelegramNotices
 import AccountContext
 import WalletContext
+import UrlWhitelist
 
 private let baseTelegramMePaths = [
     "telegram.me",
@@ -32,7 +33,7 @@ public func isTelegramWebShortLink(_ url: String) -> Bool {
     if !urlWithScheme.contains("://") {
         urlWithScheme = "https://\(urlWithScheme)"
     }
-    guard let parsedUrl = URL(string: urlWithScheme), let host = parsedUrl.host?.lowercased() else {
+    guard let parsedUrl = URL(string: urlWithScheme), let host = parsedUrl.host.map(normalizedLinkHost) else {
         return false
     }
     if let scheme = parsedUrl.scheme?.lowercased(), scheme != "http" && scheme != "https" {
@@ -240,8 +241,10 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
         }
         if !pathComponents.isEmpty && !pathComponents[0].isEmpty {
             let peerName: String = pathComponents[0]
+            // Command segments are case-insensitive. The peer name keeps the case the link was written with.
+            let command = peerName.lowercased()
             
-            if query.hasPrefix("tonsite/") {
+            if query.lowercased().hasPrefix("tonsite/") {
                 return .externalUrl(url: "tonsite://" + String(query[query.index(query.startIndex, offsetBy: "tonsite/".count)...]))
             }
             
@@ -517,30 +520,30 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                 }
                 return .peer(.name(peerName), nil)
             } else if pathComponents.count == 2 || pathComponents.count == 3 || pathComponents.count == 4 {
-                if pathComponents[0] == "addstickers" {
+                if command == "addstickers" {
                     return .stickerPack(name: pathComponents[1], type: .stickers)
-                } else if pathComponents[0] == "addemoji" {
+                } else if command == "addemoji" {
                     return .stickerPack(name: pathComponents[1], type: .emoji)
-                } else if pathComponents[0] == "invoice" {
+                } else if command == "invoice" {
                     return .invoice(pathComponents[1])
-                } else if pathComponents[0] == "joinchat" || pathComponents[0] == "joinchannel" {
+                } else if command == "joinchat" || command == "joinchannel" {
                     return .join(pathComponents[1])
-                } else if pathComponents[0] == "call" {
+                } else if command == "call" {
                     var callHash = pathComponents[1]
                     if callHash.hasPrefix("+") {
                         callHash = String(callHash.dropFirst())
                     }
                     return .joinCall(callHash)
-                } else if pathComponents[0] == "setlanguage" {
+                } else if command == "setlanguage" {
                     return .localization(pathComponents[1])
-                } else if pathComponents[0] == "login" {
+                } else if command == "login" {
                     if let code = Int(pathComponents[1]) {
                         return .confirmationCode(code)
                     }
-                } else if peerName == "contact" {
+                } else if command == "contact" {
                     let noPaidMessagesToken = components.queryItems?.first(where: { $0.name == "free" })?.value
                     return .contactToken(pathComponents[1], noPaidMessagesToken.flatMap { $0.isEmpty ? nil : $0 })
-                } else if pathComponents[0] == "share" && pathComponents[1] == "url" {
+                } else if command == "share" && pathComponents[1].lowercased() == "url" {
                     if let queryItems = components.queryItems {
                         var url: String?
                         var text: String?
@@ -559,7 +562,7 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                         }
                     }
                     return nil
-                } else if pathComponents[0] == "bg" {
+                } else if command == "bg" {
                     let component = pathComponents[1]
                     let parameter: WallpaperUrlParameter
                     if [6, 8].contains(component.count), component.rangeOfCharacter(from: CharacterSet(charactersIn: "0123456789abcdefABCDEF").inverted) == nil, let color = UIColor(hexString: component) {
@@ -654,19 +657,19 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                         parameter = .slug(component, options, colors, intensity, rotation)
                     }
                     return .wallpaper(parameter)
-                } else if pathComponents[0] == "addtheme" {
+                } else if command == "addtheme" {
                     return .theme(pathComponents[1])
-                } else if pathComponents[0] == "nft" {
+                } else if command == "nft" {
                     return .collectible(slug: pathComponents[1])
-                } else if pathComponents[0] == "auction" {
+                } else if command == "auction" {
                     return .auction(slug: pathComponents[1])
-                } else if pathComponents[0] == "addlist" || pathComponents[0] == "folder" || pathComponents[0] == "list" {
+                } else if command == "addlist" || command == "folder" || command == "list" {
                     return .chatFolder(slug: pathComponents[1])
-                } else if pathComponents[0] == "boost", pathComponents.count == 2 {
+                } else if command == "boost", pathComponents.count == 2 {
                     return .peer(.name(pathComponents[1]), .boost)
-                } else if pathComponents[0] == "giftcode", pathComponents.count == 2 {
+                } else if command == "giftcode", pathComponents.count == 2 {
                     return .premiumGiftCode(slug: pathComponents[1])
-                } else if pathComponents.count >= 2 && pathComponents[0] == "newbot" {
+                } else if pathComponents.count >= 2 && command == "newbot" {
                     let parentBot = pathComponents[1]
                     var username: String?
                     if pathComponents.count >= 3 {
@@ -681,11 +684,11 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                         }
                     }
                     return .createBot(parentBot: parentBot, username: username, title: title)
-                } else if pathComponents.count >= 2 && pathComponents[0] == "addstyle" {
+                } else if pathComponents.count >= 2 && command == "addstyle" {
                     return .textStyle(slug: pathComponents[1])
-                } else if pathComponents[0] == "m" {
+                } else if command == "m" {
                     return .messageLink(slug: pathComponents[1])
-                } else if pathComponents.count == 3 && pathComponents[0] == "c" {
+                } else if pathComponents.count == 3 && command == "c" {
                     if let channelId = Int64(pathComponents[1]), let messageId = Int32(pathComponents[2]), channelId > 0 {
                         var threadId: Int32?
                         var subject: ParsedInternalUrl.UrlMessageSubject?
@@ -715,21 +718,21 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                     } else {
                         return nil
                     }
-                } else if pathComponents.count >= 3 && pathComponents[1] == "s" {
-                    if pathComponents[2] == "live" {
+                } else if pathComponents.count >= 3 && pathComponents[1].lowercased() == "s" {
+                    if pathComponents[2].lowercased() == "live" {
                         return .peer(.name(pathComponents[0]), .story(.live))
                     } else if let storyId = Int32(pathComponents[2]) {
                         return .peer(.name(pathComponents[0]), .story(.id(storyId)))
                     } else {
                         return nil
                     }
-                } else if pathComponents.count >= 3 && pathComponents[1] == "c" {
+                } else if pathComponents.count >= 3 && pathComponents[1].lowercased() == "c" {
                     if let collectionId = Int64(pathComponents[2]) {
                         return .peer(.name(pathComponents[0]), .giftCollection(collectionId))
                     } else {
                         return nil
                     }
-                } else if pathComponents.count == 4 && pathComponents[0] == "c" {
+                } else if pathComponents.count == 4 && command == "c" {
                     if let channelId = Int64(pathComponents[1]),  let threadId = Int32(pathComponents[2]), let messageId = Int32(pathComponents[3]), channelId > 0 {
                         var subject: ParsedInternalUrl.UrlMessageSubject?
                         if let queryItems = components.queryItems {
@@ -754,7 +757,7 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                     } else {
                         return nil
                     }
-                } else if pathComponents.count == 2 && pathComponents[0] == "c" {
+                } else if pathComponents.count == 2 && command == "c" {
                     if let channelId = Int64(pathComponents[1]), channelId > 0 {
                         var threadId: Int32?
                         var boost: Bool = false
@@ -785,7 +788,7 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                     } else {
                         return nil
                     }
-                } else if pathComponents.count >= 3 && pathComponents[1] == "a" {
+                } else if pathComponents.count >= 3 && pathComponents[1].lowercased() == "a" {
                     if let folderId = Int64(pathComponents[2]) {
                         return .peer(.name(pathComponents[0]), .storyFolder(folderId))
                     } else {
@@ -1564,7 +1567,7 @@ public func parseProxyUrl(sharedContext: SharedAccountContext, url: String) -> (
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), isTelegramDeepLinkScheme(parsedUrl.scheme), let host = parsedUrl.host.map(normalizedLinkHost), let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .proxy(host, port, username, password, secret) = internalUrl {
             return (host, port, username, password, secret)
         }
@@ -1585,7 +1588,7 @@ public func parseStickerPackUrl(sharedContext: SharedAccountContext, url: String
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), isTelegramDeepLinkScheme(parsedUrl.scheme), let host = parsedUrl.host.map(normalizedLinkHost), let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .stickerPack(name, _) = internalUrl {
             return name
         }
@@ -1606,7 +1609,7 @@ public func parseWallpaperUrl(sharedContext: SharedAccountContext, url: String) 
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), isTelegramDeepLinkScheme(parsedUrl.scheme), let host = parsedUrl.host.map(normalizedLinkHost), let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .wallpaper(wallpaper) = internalUrl {
             return wallpaper
         }
@@ -1627,7 +1630,7 @@ public func parseAdUrl(sharedContext: SharedAccountContext, context: AccountCont
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), isTelegramDeepLinkScheme(parsedUrl.scheme), let host = parsedUrl.host.map(normalizedLinkHost), let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: context, query: host + "?" + query), case .peer = internalUrl {
             return internalUrl
         }
@@ -1841,8 +1844,22 @@ private func hTmeParseDuration(_ durationStr: String) -> Int {
         let hours = intValue(hoursRange)
         let minutes = intValue(minutesRange)
         let seconds = intValue(secondsRange)
-        
-        return hours * 3600 + minutes * 60 + seconds
+
+        // A link can carry an unbounded digit run (`?t=2562047788015216h`). `*` on Int traps,
+        // so a timecode that does not fit is the same "no duration" result as a string Int cannot parse.
+        var total = 0
+        for (value, factor) in [(hours, 3600), (minutes, 60), (seconds, 1)] {
+            let (product, productOverflow) = value.multipliedReportingOverflow(by: factor)
+            if productOverflow {
+                return 0
+            }
+            let (sum, sumOverflow) = total.addingReportingOverflow(product)
+            if sumOverflow {
+                return 0
+            }
+            total = sum
+        }
+        return total
     }
     
     // If the string didn't match the pattern, parse it as a positive integer

@@ -2,6 +2,7 @@
 account would otherwise be given away."""
 import pathlib
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -82,6 +83,81 @@ class Wiring(unittest.TestCase):
         screen = read("submodules/SettingsUI/Sources/BananaSecurityController.swift")
         self.assertIn("twoStepVerificationConfiguration()", screen)
         self.assertIn("recentSessionsController(context: context", screen)
+
+    def test_telegram_link_host_and_scheme_are_normalized(self):
+        opener = read("submodules/TelegramUI/Sources/OpenUrl.swift")
+        self.assertIn("isExactTelegramMeHost(host)", opener)
+        self.assertNotIn("telegramMeHosts.contains", opener)
+        self.assertIn("isTelegramDeepLinkScheme(scheme)", opener)
+        self.assertIn("isTelegramDeepLinkScheme(url.scheme)", opener)
+        self.assertIn("isWebUrlScheme(scheme)", opener)
+        self.assertIn("normalizedLinkHost", opener)
+        delegate = read("submodules/TelegramUI/Sources/AppDelegate.swift")
+        self.assertIn('parsed.scheme?.lowercased() == "tg"', delegate)
+        handling = read("submodules/UrlHandling/Sources/UrlHandling.swift")
+        self.assertIn("parsedUrl.host.map(normalizedLinkHost)", handling)
+        self.assertIn("isTelegramDeepLinkScheme(parsedUrl.scheme)", handling)
+        self.assertIn("let command = peerName.lowercased()", handling)
+        subprocess.run([sys.executable, str(root / "Tests/Security/link_hosts.py")], check=True, timeout=180)
+
+    def test_bot_media_rejects_nat64_to_a_private_address(self):
+        source = read("submodules/WebUI/Sources/WebAppUtils.swift")
+        helpers = extract(source, "private func parseCanonicalIPv4", "private func isPublicIPv6")
+        helpers += source[source.index("private func isPublicIPv6"):]
+        fixture = "import Foundation\n" + helpers + r'''
+func v4(_ text: String) -> Bool { isPublicIPv4(parseCanonicalIPv4(text)!) }
+precondition(!v4("127.0.0.1"))
+precondition(!v4("10.1.2.3"))
+precondition(!v4("172.16.0.1"))
+precondition(!v4("192.168.0.1"))
+precondition(!v4("169.254.169.254"))
+precondition(!v4("100.64.0.1"))
+precondition(!v4("0.0.0.0"))
+precondition(!v4("224.0.0.1"))
+precondition(v4("1.1.1.1"))
+precondition(v4("172.32.0.1"))
+precondition(parseCanonicalIPv4("0177.0.0.1") == nil)
+precondition(parseCanonicalIPv4("127.0.0.1.") == nil)
+
+let loopback: [UInt8] = [UInt8](repeating: 0, count: 15) + [1]
+precondition(!isPublicIPv6(loopback))
+let mapped: [UInt8] = [UInt8](repeating: 0, count: 10) + [0xff, 0xff, 127, 0, 0, 1]
+precondition(!isPublicIPv6(mapped))
+var nat64: [UInt8] = [0x00, 0x64, 0xff, 0x9b] + [UInt8](repeating: 0, count: 8) + [127, 0, 0, 1]
+precondition(!isPublicIPv6(nat64), "NAT64 to loopback")
+nat64[12] = 169; nat64[13] = 254; nat64[14] = 169; nat64[15] = 254
+precondition(!isPublicIPv6(nat64), "NAT64 to link-local metadata")
+nat64[12] = 1; nat64[13] = 1; nat64[14] = 1; nat64[15] = 1
+precondition(isPublicIPv6(nat64), "NAT64 to a public address stays allowed")
+let publicV6: [UInt8] = [UInt8](repeating: 0x20, count: 16)
+precondition(isPublicIPv6(publicV6))
+print("Bot media address check: private IPv4, mapped IPv4 and NAT64")
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "main.swift"
+            path.write_text(fixture, encoding="utf-8")
+            binary = pathlib.Path(directory) / "media"
+            subprocess.run(["swiftc", "-warnings-as-errors", str(path), "-o", str(binary)], check=True, timeout=180)
+            subprocess.run([str(binary)], check=True, timeout=30)
+
+    def test_timecode_overflow_does_not_trap(self):
+        source = read("submodules/UrlHandling/Sources/UrlHandling.swift")
+        parser = source[source.index("private func hTmeParseDuration("):]
+        fixture = "import Foundation\n" + parser + r'''
+precondition(hTmeParseDuration("1h2m3s") == 3723)
+precondition(hTmeParseDuration("90") == 90)
+precondition(hTmeParseDuration("2562047788015216h") == 0)
+precondition(hTmeParseDuration("2562047788015215h60m") == 0)
+precondition(hTmeParseDuration("999999999999999999h") == 0)
+precondition(hTmeParseDuration("") == 0)
+print("Timecode parser: ordinary values and overflowing digit runs")
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "main.swift"
+            path.write_text(fixture, encoding="utf-8")
+            binary = pathlib.Path(directory) / "duration"
+            subprocess.run(["swiftc", "-warnings-as-errors", "-O", str(path), "-o", str(binary)], check=True, timeout=180)
+            subprocess.run([str(binary)], check=True, timeout=30)
 
     def test_fake_support_predicate(self):
         screen = read("submodules/SettingsUI/Sources/BananaSecurityController.swift")

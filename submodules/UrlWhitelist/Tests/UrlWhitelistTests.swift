@@ -114,6 +114,33 @@ final class UrlWhitelistTests: XCTestCase {
     // `parseUrl`'s flag also picks a shared-links list title: a concealed link is titled with its whole
     // address, any other with its host. A link with a login part must keep its real host there, so the
     // login-part check belongs to the open confirmation, not to `parseUrl`.
+    // Foundation keeps host case and one trailing dot. The opener and `isTelegramLinkUrl` must agree
+    // on t.me / telegram.me / telegram.dog after that normalization, and must not treat a look-alike
+    // suffix (`t.me.evil.org`) or a non-exact subdomain as one of those three hosts.
+    func testTelegramHostComparisonIgnoresCaseAndOneTrailingDot() {
+        XCTAssertEqual(normalizedLinkHost("T.ME."), "t.me")
+        XCTAssertEqual(normalizedLinkHost("Telegram.DOG"), "telegram.dog")
+        XCTAssertEqual(normalizedLinkHost("t.me.."), "t.me.")
+        XCTAssertTrue(isExactTelegramMeHost("T.ME"))
+        XCTAssertTrue(isExactTelegramMeHost("t.me."))
+        XCTAssertTrue(isExactTelegramMeHost("Telegram.me"))
+        XCTAssertFalse(isExactTelegramMeHost("durov.t.me"))
+        XCTAssertFalse(isExactTelegramMeHost("t.me.evil.org"))
+        XCTAssertFalse(isExactTelegramMeHost("nottelegram.me"))
+
+        XCTAssertTrue(isTelegramLinkUrl("HTTPS://T.ME/durov"))
+        XCTAssertTrue(isTelegramLinkUrl("https://t.me./durov"))
+        XCTAssertTrue(isTelegramLinkUrl("https://durov.t.me/start"))
+        XCTAssertTrue(isTelegramLinkUrl("TG://resolve?domain=durov"))
+        XCTAssertFalse(isTelegramLinkUrl("https://t.me.evil.org/durov"))
+        XCTAssertFalse(isTelegramLinkUrl("https://nottelegram.me/durov"))
+
+        XCTAssertTrue(isTelegramDeepLinkScheme("TG"))
+        XCTAssertFalse(isTelegramDeepLinkScheme("https"))
+        XCTAssertTrue(isWebUrlScheme("HTTPS"))
+        XCTAssertFalse(isWebUrlScheme("tg"))
+    }
+
     func testParseUrlKeepsTheRealHostForALinkWithALoginPart() {
         let url = "https://telegram.org\u{2215}test\u{2215}@evil.org"
         let (displayUrl, concealed) = parseUrl(url: url, wasConcealed: false)

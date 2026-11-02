@@ -52,7 +52,7 @@ public func parseProxyUrl(sharedContext: SharedAccountContext, url: URL) -> Prox
 }
 
 public func isOAuthUrl(_ url: URL) -> Bool {
-    guard let query = url.query, let params = QueryParameters(query), ["oauth", "resolve"].contains(url.host) else {
+    guard let query = url.query, let params = QueryParameters(query), let host = url.host.map(normalizedLinkHost), ["oauth", "resolve"].contains(host) else {
         return false
     }
     
@@ -61,7 +61,7 @@ public func isOAuthUrl(_ url: URL) -> Bool {
     let token = params["token"]
     
     var valid = false
-    if url.host == "resolve" {
+    if host == "resolve" {
         if domain == "oauth", let _ = startApp {
             valid = true
         }
@@ -75,7 +75,7 @@ public func isOAuthUrl(_ url: URL) -> Bool {
 }
 
 public func parseSecureIdUrl(_ url: URL) -> ParsedSecureIdUrl? {
-    guard let query = url.query, let params = QueryParameters(query), ["passport", "resolve"].contains(url.host) else {
+    guard let query = url.query, let params = QueryParameters(query), let host = url.host.map(normalizedLinkHost), ["passport", "resolve"].contains(host) else {
         return nil
     }
     
@@ -94,7 +94,7 @@ public func parseSecureIdUrl(_ url: URL) -> ParsedSecureIdUrl? {
     }
     
     let valid: Bool
-    if url.host == "resolve" {
+    if host == "resolve" {
         if domain == "telegrampassport" {
             valid = true
         } else {
@@ -128,8 +128,8 @@ public func parseConfirmationCodeUrl(sharedContext: SharedAccountContext, url: U
             return code
         }
     }
-    if url.scheme == "tg" {
-        if let host = url.host, let query = url.query, let parsedUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query) {
+    if isTelegramDeepLinkScheme(url.scheme) {
+        if let host = url.host.map(normalizedLinkHost), let query = url.query, let parsedUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query) {
             switch parsedUrl {
             case let .confirmationCode(code):
                 return code
@@ -243,7 +243,6 @@ private func makeInternalUrlHandler(
 }
 
 private let internetSchemes: [String] = ["http", "https"]
-private let telegramMeHosts: [String] = ["t.me", "telegram.me", "telegram.dog"]
 
 private func handleInternetUrl(
     parsedUrl: URL,
@@ -263,7 +262,7 @@ private func handleInternetUrl(
     }
     
     if isInternetUrl {
-        if let host = parsedUrl.host, telegramMeHosts.contains(host) {
+        if let host = parsedUrl.host, isExactTelegramMeHost(host) {
             handleInternalUrl(parsedUrl.absoluteString)
         } else {
             let settings = combineLatest(
@@ -563,15 +562,15 @@ private func openCheckedExternalUrl(context: AccountContext, urlContext: OpenURL
     )
     
     let continueHandling: () -> Void = {
-        if let scheme = parsedUrl.scheme, (scheme == "tg" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
-            if parsedUrl.host == "tonsite" {
+        if let scheme = parsedUrl.scheme, (isTelegramDeepLinkScheme(scheme) || scheme.lowercased() == context.sharedContext.applicationBindings.appSpecificScheme.lowercased()) {
+            if parsedUrl.host?.lowercased() == "tonsite" {
                 if let value = URL(string: "tonsite:/" + parsedUrl.path) {
                     parsedUrl = value
                 }
             }
         }
         
-        if let scheme = parsedUrl.scheme, (scheme == "tg" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
+        if let scheme = parsedUrl.scheme, (isTelegramDeepLinkScheme(scheme) || scheme.lowercased() == context.sharedContext.applicationBindings.appSpecificScheme.lowercased()) {
             var convertedUrl: String?
             let host = parsedUrl.host?.lowercased() ?? ""
             if host == "debug", parsedUrl.path == "/crash_reports" {
@@ -1207,8 +1206,8 @@ private func openCheckedExternalUrl(context: AccountContext, urlContext: OpenURL
         )
     }
     
-    if let scheme = parsedUrl.scheme, internetSchemes.contains(scheme) {
-        if let host = parsedUrl.host, telegramMeHosts.contains(host) {
+    if let scheme = parsedUrl.scheme, isWebUrlScheme(scheme) {
+        if let host = parsedUrl.host, isExactTelegramMeHost(host) {
             continueHandling()
         } else {
             if isTelegramWebShortLink(parsedUrl.absoluteString) {

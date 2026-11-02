@@ -320,13 +320,17 @@ final class ChatbotSetupScreenComponent: Component {
                     }
                     
                     var cleanQuery = query
-                    if let url = URL(string: cleanQuery), url.host == "t.me" {
-                        if url.pathComponents.count > 1 {
-                            cleanQuery = url.pathComponents[1]
+                    // Foundation keeps host case and a trailing dot (`HTTPS://T.ME./bot` → host `T.ME.`).
+                    for candidate in [URL(string: cleanQuery), URL(string: "https://\(cleanQuery)")] {
+                        guard let url = candidate, var host = url.host?.lowercased() else {
+                            continue
                         }
-                    } else if let url = URL(string: "https://\(cleanQuery)"), url.host == "t.me" {
-                        if url.pathComponents.count > 1 {
+                        if host.hasSuffix(".") {
+                            host.removeLast()
+                        }
+                        if (host == "t.me" || host == "telegram.me" || host == "telegram.dog"), url.pathComponents.count > 1 {
                             cleanQuery = url.pathComponents[1]
+                            break
                         }
                     }
                     

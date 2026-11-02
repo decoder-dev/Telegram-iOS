@@ -886,7 +886,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 if parsed.scheme == nil || parsed.scheme!.isEmpty {
                     parsedUrl = URL(string: "https://\(url)")
                 }
-                if parsed.scheme == "tg" {
+                if parsed.scheme?.lowercased() == "tg" {
                     return
                 }
             }
@@ -1667,9 +1667,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         })
         
         if let url = launchOptions?[.url] {
-            if let url = url as? URL, url.scheme == "tg" || url.scheme == "ton" || url.scheme == buildConfig.appSpecificUrlScheme || WalletContext.isTonConnectUrl(url.absoluteString) {
-                self.openUrlWhenReady(url: url, external: true)
-            } else if let urlString = url as? String, urlString.lowercased().hasPrefix("tg:") || urlString.lowercased().hasPrefix("ton:") || urlString.lowercased().hasPrefix("\(buildConfig.appSpecificUrlScheme):") || WalletContext.isTonConnectUrl(urlString), let url = URL(string: urlString) {
+            if let url = url as? URL {
+                let scheme = url.scheme?.lowercased()
+                if scheme == "tg" || scheme == "ton" || scheme == buildConfig.appSpecificUrlScheme.lowercased() || WalletContext.isTonConnectUrl(url.absoluteString) {
+                    self.openUrlWhenReady(url: url, external: true)
+                }
+            } else if let urlString = url as? String, urlString.lowercased().hasPrefix("tg:") || urlString.lowercased().hasPrefix("ton:") || urlString.lowercased().hasPrefix("\(buildConfig.appSpecificUrlScheme.lowercased()):") || WalletContext.isTonConnectUrl(urlString), let url = URL(string: urlString) {
                 self.openUrlWhenReady(url: url, external: true)
             }
         }
@@ -1942,8 +1945,13 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
 
         for context in connectionOptions.urlContexts {
             let url = context.url
-            if let buildConfig = self.buildConfig, url.scheme == "tg" || url.scheme == "ton" || url.scheme == buildConfig.appSpecificUrlScheme || WalletContext.isTonConnectUrl(url.absoluteString) {
-                self.openUrlWhenReady(url: url, external: true)
+            if let buildConfig = self.buildConfig {
+                let scheme = url.scheme?.lowercased()
+                if scheme == "tg" || scheme == "ton" || scheme == buildConfig.appSpecificUrlScheme.lowercased() || WalletContext.isTonConnectUrl(url.absoluteString) {
+                    self.openUrlWhenReady(url: url, external: true)
+                } else {
+                    self.handleOpenURL(url)
+                }
             } else {
                 self.handleOpenURL(url)
             }
