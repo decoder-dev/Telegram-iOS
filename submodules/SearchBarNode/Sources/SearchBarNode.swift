@@ -14,19 +14,19 @@ import EmojiStatusComponent
 import ComponentDisplayAdapters
 
 private func generateLoupeIcon(color: UIColor) -> UIImage? {
-    return generateTintedImage(image: UIImage(bundleImageName: "Components/Search Bar/Loupe"), color: color)
+    return generateTintedImage(image: UIImage(systemName: "magnifyingglass", withConfiguration: UIImage.SymbolConfiguration(pointSize: 15.0, weight: .regular)) ?? UIImage(bundleImageName: "Components/Search Bar/Loupe"), color: color)
 }
 
 private func generateHashtagIcon(color: UIColor) -> UIImage? {
-    return generateTintedImage(image: UIImage(bundleImageName: "Components/Search Bar/Hashtag"), color: color)
+    return generateTintedImage(image: UIImage(systemName: "number", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17.0, weight: .regular)) ?? UIImage(bundleImageName: "Components/Search Bar/Hashtag"), color: color)
 }
 
 private func generateCashtagIcon(color: UIColor) -> UIImage? {
-    return generateTintedImage(image: UIImage(bundleImageName: "Components/Search Bar/Cashtag"), color: color)
+    return generateTintedImage(image: UIImage(systemName: "dollarsign", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17.0, weight: .regular)) ?? UIImage(bundleImageName: "Components/Search Bar/Cashtag"), color: color)
 }
 
 private func generateClearIcon(color: UIColor) -> UIImage? {
-    return generateTintedImage(image: UIImage(bundleImageName: "Components/Search Bar/Clear"), color: color)
+    return generateTintedImage(image: UIImage(systemName: "xmark.circle.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17.0, weight: .regular)) ?? UIImage(bundleImageName: "Components/Search Bar/Clear"), color: color)
 }
 
 private func generateBackground(foregroundColor: UIColor, diameter: CGFloat) -> UIImage? {
@@ -1061,7 +1061,6 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
         self.clearButton.displaysAsynchronously = false
         
         self.cancelButton = HighlightableButtonNode(pointerStyle: .default)
-        self.cancelButton.hitTestSlop = UIEdgeInsets(top: -8.0, left: -8.0, bottom: -8.0, right: -8.0)
         self.cancelButton.displaysAsynchronously = false
         
         super.init()
@@ -1178,7 +1177,8 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
         case .legacy, .modern:
             verticalOffset = boundingSize.height - 82.0
         }
-        let cancelButtonSize = self.cancelButton.measure(CGSize(width: 100.0, height: CGFloat.infinity))
+        let cancelLabelSize = self.cancelButton.measure(CGSize(width: 100.0, height: CGFloat.infinity))
+        let cancelButtonSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, cancelLabelSize.width), height: max(PresentationLayoutMetrics.minimumInteractiveSize, cancelLabelSize.height))
         transition.updateFrame(node: self.cancelButton, frame: CGRect(origin: CGPoint(x: contentFrame.maxX - 10.0 - cancelButtonSize.width, y: verticalOffset + textBackgroundHeight + floorToScreenPixels((textBackgroundHeight - cancelButtonSize.height) / 2.0)), size: cancelButtonSize))
         
         let searchPlaceholderFrame = CGRect(origin: CGPoint(x: leftInset + 16.0, y: 0.0), size: CGSize(width: max(0.0, boundingSize.width - 16.0 * 2.0 - leftInset - rightInset), height: 44.0))
@@ -1192,9 +1192,9 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
         }
         transition.updateFrame(node: self.textBackgroundNode, frame: textBackgroundFrame)
         
-        var textFrame = CGRect(origin: CGPoint(x: 0.0, y: textBackgroundFrame.minY), size: CGSize(width: max(1.0, textBackgroundFrame.size.width - 24.0 - 27.0), height: textBackgroundFrame.size.height))
+        var textFrame = CGRect(origin: CGPoint(x: 0.0, y: textBackgroundFrame.minY), size: CGSize(width: max(1.0, textBackgroundFrame.size.width - 24.0 - PresentationLayoutMetrics.minimumInteractiveSize), height: textBackgroundFrame.size.height))
         if case .inlineNavigation = self.fieldStyle {
-            textFrame.size.width = boundingSize.width - 27.0
+            textFrame.size.width = max(1.0, boundingSize.width - PresentationLayoutMetrics.minimumInteractiveSize)
             textBackgroundFrame.size.width = boundingSize.width
         } else {
             textFrame.origin.x = textBackgroundFrame.minX + 24.0
@@ -1211,6 +1211,9 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
         }
         
         let clearSize = self.clearButton.measure(CGSize(width: 100.0, height: 100.0))
+        let clearHorizontalInset = max(0.0, (PresentationLayoutMetrics.minimumInteractiveSize - clearSize.width) * 0.5)
+        let clearVerticalInset = max(0.0, (PresentationLayoutMetrics.minimumInteractiveSize - clearSize.height) * 0.5)
+        self.clearButton.hitTestSlop = UIEdgeInsets(top: -clearVerticalInset, left: -clearHorizontalInset, bottom: -clearVerticalInset, right: -clearHorizontalInset)
         transition.updateFrame(node: self.clearButton, frame: CGRect(origin: CGPoint(x: textBackgroundFrame.maxX - 6.0 - clearSize.width, y: textBackgroundFrame.minY + floor((textBackgroundFrame.size.height - clearSize.height) / 2.0)), size: clearSize))
         
         self.textField.frame = textFrame
@@ -1551,9 +1554,9 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
                 textBackgroundFrame.size.width -= padding
             }
             
-            var textFrame = CGRect(origin: CGPoint(x: 0.0, y: textBackgroundFrame.minY), size: CGSize(width: max(1.0, textBackgroundFrame.size.width - 24.0 - 27.0), height: textBackgroundFrame.size.height))
+            var textFrame = CGRect(origin: CGPoint(x: 0.0, y: textBackgroundFrame.minY), size: CGSize(width: max(1.0, textBackgroundFrame.size.width - 24.0 - PresentationLayoutMetrics.minimumInteractiveSize), height: textBackgroundFrame.size.height))
             if case .inlineNavigation = self.fieldStyle {
-                textFrame.size.width = sourceFrame.width - 27.0
+                textFrame.size.width = max(1.0, sourceFrame.width - PresentationLayoutMetrics.minimumInteractiveSize)
                 textBackgroundFrame.size.width = sourceFrame.width
             } else {
                 textFrame.origin.x = textBackgroundFrame.minX + 24.0
@@ -1646,6 +1649,8 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
         transition.updateAlpha(node: self.clearButton.imageNode, alpha: clearIsHidden ? 0.0 : 1.0)
         transition.updateTransformScale(node: self.clearButton, scale: clearIsHidden ? 0.2 : 1.0)
         self.clearButton.isUserInteractionEnabled = !clearIsHidden
+        self.clearButton.isEnabled = !clearIsHidden
+        self.clearButton.isAccessibilityElement = !clearIsHidden
     }
     
     @objc private func cancelPressed() {
