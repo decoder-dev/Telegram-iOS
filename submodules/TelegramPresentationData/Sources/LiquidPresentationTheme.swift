@@ -47,7 +47,7 @@ private func liquidBubble(_ bubble: PresentationThemeBubbleColor, fill: UIColor,
     return bubble.withUpdated(withWallpaper: update(bubble.withWallpaper), withoutWallpaper: update(bubble.withoutWallpaper))
 }
 
-func makeLiquidPresentationTheme(_ theme: PresentationTheme) -> PresentationTheme {
+func makeLiquidPresentationTheme(_ theme: PresentationTheme, updateWallpaper: Bool = true) -> PresentationTheme {
     let dark = theme.overallDarkAppearance
     let palette = LiquidPalette(dark: dark)
     let highlighted = palette.background.mixedWith(palette.primaryText, alpha: 0.08)
@@ -146,7 +146,7 @@ func makeLiquidPresentationTheme(_ theme: PresentationTheme) -> PresentationThem
     let incomingBubble = liquidBubble(incoming.bubble, fill: palette.incoming, palette: palette)
     let outgoingBubble = liquidBubble(outgoing.bubble, fill: palette.outgoing, palette: palette)
     let chat = theme.chat.withUpdated(
-        defaultWallpaper: .color(palette.background.rgb),
+        defaultWallpaper: updateWallpaper ? .color(palette.background.rgb) : nil,
         message: theme.chat.message.withUpdated(
             incoming: incoming.withUpdated(
                 bubble: incomingBubble,

@@ -421,6 +421,29 @@ jobs:
             --outputBuildArtifactsPath=build/artifacts \
             2>&1 | tee release-build.log
 
+      - name: Native Liquid theme tests
+        run: |
+          set -euo pipefail
+          xcrun simctl list runtimes
+          python3 -u build-system/Make/Make.py \
+            --overrideXcodeVersion \
+            --bazelUserRoot="$BAZEL_USER_ROOT" \
+            --cacheDir="$BAZEL_CACHE_DIR" \
+            test \
+            --configurationPath=build-system/ci-configuration.json \
+            --codesigningInformationPath=build-system/fake-codesigning \
+            --target //submodules/TelegramPresentationData:LiquidThemeTests \
+            2>&1 | tee liquid-theme-tests.log
+
+      - name: Upload Liquid test log
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: liquid-theme-test-log
+          path: liquid-theme-tests.log
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Save Bazel cache
         if: ${{ !cancelled() && steps.bazel-cache.outcome == 'success' }}
         uses: actions/cache/save@v4
