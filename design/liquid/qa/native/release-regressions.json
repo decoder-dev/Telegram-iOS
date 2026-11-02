@@ -8,7 +8,9 @@
     "seconds": 9.7,
     "log": "release-regressions/01.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "c555a73317d06492e5fc8776b7bd99677baa88bf77f0d7255e045058cff6e62a",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -19,7 +21,9 @@
     "seconds": 0.36,
     "log": "release-regressions/02.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "74c522b68ca96777137b8a19391c0a7d5bed75ae286efcba29dc3c6995c83ce7",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -30,7 +34,9 @@
     "seconds": 2.18,
     "log": "release-regressions/03.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "4970c418ca1315eb035099a80718cd068961b91a30983710a3d03773af5967b3",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -41,7 +47,9 @@
     "seconds": 0.64,
     "log": "release-regressions/04.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "55b5f5c47a7006c7a9a2fcbf57958742a9ad82d11bc38d7ba93ba9ccc687a207",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -58,7 +66,9 @@
     "seconds": 6.75,
     "log": "release-regressions/05.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "b3941bf4d9133b908b54b4d6ae0341c48de4604aa09077075606f5d53ccec00b",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -75,7 +85,9 @@
     "seconds": 0.07,
     "log": "release-regressions/06.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "fe4c2285d3a771d0215f2832f7a44b6d1debe0aa571fb39e14777efca139e958",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -91,7 +103,9 @@
     "seconds": 0.05,
     "log": "release-regressions/07.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "234428f1fa84ee205325caea0a9e1283851f14879eefa55e59d7ae1e1af6a8df",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -102,7 +116,9 @@
     "seconds": 0.04,
     "log": "release-regressions/08.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "24adda79e21044fef19cdc7f0606a9cd7770fc9a99c705a8622ee923c13bce5d",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -113,7 +129,9 @@
     "seconds": 0.36,
     "log": "release-regressions/09.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "c76884c4fba414bfabf0e0ce4f2c42675484d349f6df321c1dc3b5f878fc0e50",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -124,7 +142,9 @@
     "seconds": 0.36,
     "log": "release-regressions/10.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "bd9570f895ebe5deda33b1b52d2be3284bb05ddcc34f1c0bcba2d086c32921e6",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -135,7 +155,9 @@
     "seconds": 0.24,
     "log": "release-regressions/11.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "e83d239678a4097a427aa48a5951129c9886106fbdd7732532efc7c5edb49fab",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -146,7 +168,9 @@
     "seconds": 0.45,
     "log": "release-regressions/12.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "7211f78257bfa2fd90023a64dacfcc58951c0c7a476adeb1af3f4fc896c9d71b",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -157,7 +181,9 @@
     "seconds": 0.3,
     "log": "release-regressions/13.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "b534ca885d91ccf3738a9a97b498dae67bfa416ed3efbd0f3ab63442b9bdf74a",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -168,7 +194,9 @@
     "seconds": 0.8,
     "log": "release-regressions/14.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "5006145cb93abe7c46b442551b5a1a0e5ad81a9e3eac5431f8af663a3c7ca2d7",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -179,7 +207,9 @@
     "seconds": 0.15,
     "log": "release-regressions/15.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "89fb326ac718b69a4912b08c65814f16192a0f95492a2fafdf5477d887d01c87",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -194,7 +224,9 @@
     "seconds": 0.05,
     "log": "release-regressions/16.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "ba524a15bb40d1ddce6d9b36078e7d0bd46741a27def15ab633207f6f232510d",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -209,7 +241,9 @@
     "seconds": 0.13,
     "log": "release-regressions/17.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "3558674f7845010a473a0f83a7ca6afe389a14e580ca052720a7f019c0d699bb",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -220,7 +254,9 @@
     "seconds": 2.57,
     "log": "release-regressions/18.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "9e44965300f6bb3bcdfb90421bd18a7ef816e0069a3fa7f39c1260d70edf52b5",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -231,7 +267,9 @@
     "seconds": 0.81,
     "log": "release-regressions/19.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "ff4958d12cf5b4a7363e67d91da6460c5c5f2fcfc9a2159613e76a83a47724bb",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -242,7 +280,9 @@
     "seconds": 0.62,
     "log": "release-regressions/20.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "545848324ccab71b98010ee20aa69605c3c4ac03ae66116aef7285b22e75fe98",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -253,7 +293,9 @@
     "seconds": 0.24,
     "log": "release-regressions/21.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "601ad355436a720ad91dad4dcf063adf9a63e90aca8f8dc996ff2fd510c6b804",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -264,7 +306,9 @@
     "seconds": 0.19,
     "log": "release-regressions/22.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "69916f3236950258d7adb6944040a35a7b3d8f8792a2350a6c038a2b672d95a5",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -275,7 +319,9 @@
     "seconds": 0.24,
     "log": "release-regressions/23.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "74a796a61910945b03ace4b83d4cb745e9aa0048b31e17f2a38a4be14001a5bd",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -286,7 +332,9 @@
     "seconds": 0.66,
     "log": "release-regressions/24.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "ad25128e5c14d5f12646ccd108ec7a9e0655e01beb61f8ffcef5f562c8d3bf11",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -297,7 +345,9 @@
     "seconds": 0.02,
     "log": "release-regressions/25.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "2c709bde0eee2283e902f6a599d5516c596c70b987b58cf2db2b7c94ab92a5e3",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -312,7 +362,9 @@
     "seconds": 0.04,
     "log": "release-regressions/26.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "c6b9b1f09add0403cc07e90bfdf272129b1ddfa2f8f7675ea8218862f2516371",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -323,7 +375,9 @@
     "seconds": 0.54,
     "log": "release-regressions/27.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "018424dd5ccdf5075a7e86e1ffabb4c0a6b9be39b8895c62eff68cf55ecf0b64",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -334,7 +388,9 @@
     "seconds": 2.2,
     "log": "release-regressions/28.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "49bc81f06b94ea0202ac02647f1ba595235c6eba38f449b0aee88bb0921917a3",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -345,7 +401,9 @@
     "seconds": 0.17,
     "log": "release-regressions/29.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "575f7695c9a633948900683412d055e91a75e14504c987ded00b5292661c7f52",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -356,7 +414,9 @@
     "seconds": 0.02,
     "log": "release-regressions/30.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "b929a92606d9e7da49b412806b9bcad040841ca95385cf180a49a6ca6ce7ff6f",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -367,7 +427,9 @@
     "seconds": 0.32,
     "log": "release-regressions/31.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "31efe8aa21c9d1c7a9e072e622a2470b8d41baed2cc1ed88d383c25ac96e2f16",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -378,7 +440,9 @@
     "seconds": 2.01,
     "log": "release-regressions/32.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "acd4a4a2545841b735a5ba0c45df943d62576420ac1184deda083a6c808bd8cd",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -389,7 +453,9 @@
     "seconds": 2.19,
     "log": "release-regressions/33.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "a8ab4440dfc72bc6e834fe221533b0e9113a6c308023280da630f8d82b3631bc",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -400,7 +466,9 @@
     "seconds": 0.36,
     "log": "release-regressions/34.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "0d4fd3192815fc5e76b00a88ee46bbdf74d354aded00f1f5aea1c97a18d66ebc",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -411,7 +479,9 @@
     "seconds": 0.29,
     "log": "release-regressions/35.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "c95a117a3d255a08f561c5438ad7d145ad27c4468509a21f4107e6e04e1cd6ef",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -422,7 +492,9 @@
     "seconds": 0.36,
     "log": "release-regressions/36.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "c3a43dd0e3458ab810ac5b84c97c317c99fdd84dd6aa4f71bcd268666ad57ddd",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -433,7 +505,9 @@
     "seconds": 0.72,
     "log": "release-regressions/37.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "a6283084e30c1d46af6b5f639fb11dae8081d67e0e01e7c944034261aad211a2",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -444,7 +518,9 @@
     "seconds": 0.34,
     "log": "release-regressions/38.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "40ca8fbeeb62568d1f9613262db2625fa1b6386ed159bd7117f2e920b1455090",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -455,7 +531,9 @@
     "seconds": 0.78,
     "log": "release-regressions/39.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "8c49a8b1a48a06a4e5a2942d094defd07bef4c7215edffdf40789cc02f55df41",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -466,7 +544,9 @@
     "seconds": 0.04,
     "log": "release-regressions/40.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "fb184ea57734512b1f088f9181209901b9cd46df3eb7eaa2500ea9e48dde20b5",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -477,7 +557,9 @@
     "seconds": 3.66,
     "log": "release-regressions/41.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "7871b8704b7086a74d2ef899b540868735e7f75c89a01a1a4ef525c9968c850a",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -488,7 +570,9 @@
     "seconds": 1.25,
     "log": "release-regressions/42.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "764620ce29d0b0ae274edaf99672521708fb8c0a51bf985de2ca87a51864837f",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -499,7 +583,9 @@
     "seconds": 0.29,
     "log": "release-regressions/43.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "cbc802f98fe9fdb55dbc2af0838b391f3f19eaca8846c1bb0553c4427c6fcc4b",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -510,7 +596,9 @@
     "seconds": 0.25,
     "log": "release-regressions/44.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "5bce551a32594dea7542a05c0e6ce32d610feea1776ac7718b803f7532219517",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -521,7 +609,9 @@
     "seconds": 0.32,
     "log": "release-regressions/45.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "ac7e94f0ab5a5dc6f9693bff300f965dff4060e6731ceaa6ceeb7d83fbee9749",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -532,7 +622,9 @@
     "seconds": 0.76,
     "log": "release-regressions/46.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "9458f4dd3dced82b180c56915c8173f02b52829dc34591bba3f2e53c109edeef",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -543,7 +635,9 @@
     "seconds": 1.9,
     "log": "release-regressions/47.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "9c804a4e83e10abaa57465dc5c2a6459eaf234609c5f4fb1181ea486a7be4a4f",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -554,7 +648,9 @@
     "seconds": 1.24,
     "log": "release-regressions/48.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "846a9f6b5c4247ee810e8a0398dbe702ea05948df6de7649e709f9cf5d5a7baf",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -569,7 +665,9 @@
     "seconds": 0.41,
     "log": "release-regressions/49.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "0fc68e15e0cf812eaba9775f4ce2b46ff8cf34d3a3d5ad47b383f987e3d064a1",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -580,7 +678,9 @@
     "seconds": 0.59,
     "log": "release-regressions/50.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "240312ceb0369b260f4ddf301df76060828a97c5de08b91c3edb7c095746e3ec",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -591,7 +691,9 @@
     "seconds": 2.23,
     "log": "release-regressions/51.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "ce515b8ba27e17fa7ac8cdd0543724d1f3b404298a130e519a150e42c5a8e672",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -602,7 +704,9 @@
     "seconds": 0.21,
     "log": "release-regressions/52.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "3d165b217210c9a0b2866c23c816354d7888b79d93839c4f126e18b0647ca8df",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -613,7 +717,9 @@
     "seconds": 0.91,
     "log": "release-regressions/53.log",
     "source_commit": "186b357a3e",
-    "status": "FAIL_ON_LINUX"
+    "status": "FAIL_ON_LINUX",
+    "raw_log_sha256": "00aa696479ae88ecbb985ccef54eae36a6fd71e0dab2e18f1472674d9b330e55",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   },
   {
     "command": [
@@ -624,6 +730,8 @@
     "seconds": 0.98,
     "log": "release-regressions/54.log",
     "source_commit": "186b357a3e",
-    "status": "PASS"
+    "status": "PASS",
+    "raw_log_sha256": "d0a73ef6358678c9782dd204567bea6a06aa67476d5514b7290ce77cfd92c608",
+    "log_normalization": "Trailing whitespace removed; diagnostic content preserved"
   }
 ]

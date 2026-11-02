@@ -88,4 +88,3 @@ runs:
         fi
         xcrun -f metal
         xcrun metal -v
-

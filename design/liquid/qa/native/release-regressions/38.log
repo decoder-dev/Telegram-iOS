@@ -4,7 +4,7 @@ Ran 8 tests in 0.013s
 
 OK
 /tmp/banana-additions-r6dyyf8i/main.swift:3:8: error: no such module 'CoreGraphics'
-  1 | 
+  1 |
   2 | import Foundation
   3 | import CoreGraphics
     |        `- error: no such module 'CoreGraphics'

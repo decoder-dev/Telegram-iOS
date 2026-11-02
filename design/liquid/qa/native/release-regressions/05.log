@@ -40,7 +40,7 @@ r14 0x00007433e12df077  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ···�
 r15 0x00005f0e0b1e6c19  0c 03 e1 33 74 00 00 00 00 00 00 00 00 00 00 b0  ··á3t··········°
 rip 0x00007433e0d0b8cf  0f 0b 48 83 ec 08 48 8d 05 74 4d 30 00 48 8d 3d  ··H·ì·H··tM0·H·=
 
-rflags 0x0000000000010202  
+rflags 0x0000000000010202
 
 cs 0x0033  fs 0x0000  gs 0x0000
 
@@ -59,8 +59,8 @@ E................banned chat archive checks passed
    2 | import CoreFoundation
    3 | import CryptoKit
      |        `- error: no such module 'CryptoKit'
-   4 | 
-   5 | 
+   4 |
+   5 |
 E...............................
 ======================================================================
 ERROR: test_bot_download_status_lifecycle_and_redirects (donut_oct13.DonutAdaptation.test_bot_download_status_lifecycle_and_redirects)

@@ -1,5 +1,5 @@
 {
-  "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
+  "source_commit": "71fe9d593fa63678469d430f7cbc0001b98f2645",
   "base_commit": "6f8d479c19ec5448722f440662f3a57550fae78d",
   "branch": "liquid",
   "host": "Linux x86_64",
@@ -23,7 +23,7 @@
         "-p",
         "test_*.py"
       ],
-      "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
+      "source_commit": "71fe9d593fa63678469d430f7cbc0001b98f2645",
       "exit_code": 0,
       "status": "PASS",
       "seconds": 0.51,
@@ -37,7 +37,7 @@
         "unittest",
         "Tests.Upstream13.glass_bubbles"
       ],
-      "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
+      "source_commit": "71fe9d593fa63678469d430f7cbc0001b98f2645",
       "exit_code": 0,
       "status": "PASS",
       "seconds": 0.05,
@@ -49,10 +49,10 @@
         "python3",
         "Tests/Customization/run.py"
       ],
-      "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
+      "source_commit": "71fe9d593fa63678469d430f7cbc0001b98f2645",
       "exit_code": 0,
       "status": "PASS",
-      "seconds": 3.14,
+      "seconds": 3.48,
       "log": "customization.log"
     },
     {
@@ -67,7 +67,7 @@
         "-p",
         "test_*.py"
       ],
-      "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
+      "source_commit": "71fe9d593fa63678469d430f7cbc0001b98f2645",
       "exit_code": 0,
       "status": "PASS",
       "seconds": 0.05,
@@ -85,16 +85,16 @@
         "-p",
         "test_*.py"
       ],
-      "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
+      "source_commit": "71fe9d593fa63678469d430f7cbc0001b98f2645",
       "exit_code": 0,
       "status": "PASS",
-      "seconds": 0.28,
+      "seconds": 0.27,
       "log": "ui-sizing.log"
     }
   ],
   "swift_syntax": {
     "status": "PASS",
-    "files": 83,
+    "files": 90,
     "report": "swift-syntax.json",
     "limitation": "Syntax only; UIKit imports, API availability and Swift types are not checked"
   },
@@ -109,11 +109,12 @@
       "os_unfair_lock unavailable in SwiftSignalKit on Linux",
       "UserDefaults Int64 values bridge to Int under Swift Corelibs; two assertion failures were investigated and attributed to this platform difference"
     ],
-    "checks_disabled": false
+    "checks_disabled": false,
+    "log_normalization": "Trailing spaces removed; original SHA-256 recorded per command in release-regressions.json"
   },
   "native_tests": {
     "status": "NOT_RUN",
-    "prepared_methods": 40,
+    "prepared_methods": 41,
     "files": [
       {
         "file": "submodules/AuthorizationUI/Tests/AuthorizationFormTests.swift",
@@ -127,7 +128,7 @@
       },
       {
         "file": "submodules/Display/Tests/AlertActionStateTests.swift",
-        "test_methods": 4,
+        "test_methods": 5,
         "status": "NOT_RUN"
       },
       {
@@ -199,13 +200,28 @@
     "Media/stories/calls/mini apps and protected-state interaction coverage",
     "Sheet/alert font scaling policy with manual preferences and live system changes"
   ],
-  "publication": {
+  "previous_snapshot": {
+    "source_base": "b285884816512198693e08a2c4f36859de286c86",
+    "note": "The former local Swift-unavailable blocker is resolved by the signed user-local Swift toolchain; UIKit validation remains unavailable"
+  },
+  "this_validation_pass": {
     "push_performed": false,
     "ci_dispatched": false,
     "release_published": false
   },
-  "previous_snapshot": {
-    "source_base": "b285884816512198693e08a2c4f36859de286c86",
-    "note": "The former local Swift-unavailable blocker is resolved by the signed user-local Swift toolchain; UIKit validation remains unavailable"
+  "source_groups_changed": [
+    "Shared search",
+    "Settings actions and choices",
+    "Call history and empty state",
+    "Contacts and limited access",
+    "Action sheets and alerts",
+    "Permissions",
+    "Media picker placeholders",
+    "Location picker placeholders"
+  ],
+  "whitespace_check": {
+    "status": "PASS",
+    "command": "git diff --check main",
+    "note": "Recorded before this metadata-only checkpoint"
   }
 }

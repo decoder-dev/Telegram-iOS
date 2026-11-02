@@ -13,3 +13,5 @@ Call empty state: 192 viewport/text/button combinations passed
 Presentation updates: font/motion/theme/language delivery and contact merge reuse passed
 Alert actions: touch, keyboard and VoiceOver activation preserve disabled state
 Permission layout: 800 viewport/text/optional-content combinations passed
+Sheet groups: 75 height/count/tall-group combinations passed
+Media placeholder: settings/boost/camera gates, content reuse and restriction priority passed

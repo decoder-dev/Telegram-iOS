@@ -5,7 +5,7 @@ WebSocket connect coalescing across candidate gaps and terminal close: passed
   1 | import Foundation
   2 | import Darwin
     |        `- error: no such module 'Darwin'
-  3 | 
+  3 |
   4 | // Monotonic elapsed time including device sleep. systemUptime excludes sleep and
 Traceback (most recent call last):
   File "/home/filosof/Telegram-iOS/Tests/NetworkRecovery/run.py", line 155, in <module>
