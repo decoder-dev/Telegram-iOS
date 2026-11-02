@@ -54,6 +54,30 @@ public func smartInvertColorsEnabled() -> Bool {
     }
 }
 
+public func systemBodyFontSize() -> Signal<CGFloat, NoError> {
+    return Signal { subscriber in
+        subscriber.putNext(UIFont.preferredFont(forTextStyle: .body).pointSize)
+
+        let observer = NotificationCenter.default.addObserver(forName: UIContentSizeCategory.didChangeNotification, object: nil, queue: .main, using: { notification in
+            let font: UIFont
+            if let rawCategory = notification.userInfo?[UIContentSizeCategory.newValueUserInfoKey] as? String {
+                let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(rawValue: rawCategory))
+                font = UIFont.preferredFont(forTextStyle: .body, compatibleWith: traits)
+            } else {
+                font = UIFont.preferredFont(forTextStyle: .body)
+            }
+            subscriber.putNext(font.pointSize)
+        })
+        return ActionDisposable {
+            Queue.mainQueue().async {
+                NotificationCenter.default.removeObserver(observer)
+            }
+        }
+    }
+    |> runOn(Queue.mainQueue())
+    |> distinctUntilChanged
+}
+
 public func isReduceMotionEnabled() -> Signal<Bool, NoError> {
     return Signal { subscriber in
         subscriber.putNext(UIAccessibility.isReduceMotionEnabled)

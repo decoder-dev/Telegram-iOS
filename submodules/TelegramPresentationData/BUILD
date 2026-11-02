@@ -33,10 +33,14 @@ swift_library(
 swift_library(
     name = "LiquidThemeTestsLib",
     testonly = True,
-    srcs = ["Tests/LiquidThemeTests.swift"],
+    srcs = [
+        "Tests/LiquidThemeTests.swift",
+        "Tests/SystemTextSizeTests.swift",
+    ],
     deps = [
         ":TelegramPresentationData",
         "//submodules/Display:Display",
+        "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/Postbox:Postbox",
         "//submodules/TelegramCore:TelegramCore",
         "//submodules/TelegramUIPreferences:TelegramUIPreferences",
