@@ -52,6 +52,18 @@ class LiquidContrastTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 self.assert_contrast(0xFFFFFF, self.palette['outgoing'][mode])
 
+    def test_quiz_result_icons(self):
+        for mode in (0, 1):
+            for fill in ('link', 'positive', 'destructive'):
+                with self.subTest(mode=mode, fill=fill):
+                    self.assert_contrast(self.palette['onAccent'][mode], self.palette[fill][mode])
+
+    def test_success_labels(self):
+        for mode in (0, 1):
+            for surface in ('background', 'surface', 'incoming'):
+                with self.subTest(mode=mode, surface=surface):
+                    self.assert_contrast(self.palette['positive'][mode], self.palette[surface][mode])
+
     def test_destructive_labels_and_incoming_scam_warning(self):
         for mode in (0, 1):
             for surface in ('background', 'surface', 'incoming'):

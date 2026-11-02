@@ -15,6 +15,7 @@ private struct LiquidPalette {
     let incoming: UIColor
     let outgoing: UIColor
     let destructive: UIColor
+    let positive: UIColor
 
     init(dark: Bool) {
         self.background = UIColor(rgb: dark ? 0x000000 : 0xFFFFFF)
@@ -29,6 +30,7 @@ private struct LiquidPalette {
         self.incoming = UIColor(rgb: dark ? 0x2C2C2E : 0xE9E9EB)
         self.outgoing = UIColor(rgb: dark ? 0x0865CA : 0x0069DF)
         self.destructive = UIColor(rgb: dark ? 0xFF756E : 0xC52B24)
+        self.positive = UIColor(rgb: dark ? 0x6BDD8B : 0x08782F)
     }
 }
 
@@ -77,6 +79,7 @@ func makeLiquidPresentationTheme(_ theme: PresentationTheme, updateWallpaper: Bo
         sectionHeaderTextColor: palette.secondaryText,
         freeTextColor: palette.secondaryText,
         freeTextErrorColor: palette.destructive,
+        freeTextSuccessColor: palette.positive,
         itemCheckColors: theme.list.itemCheckColors.withUpdated(fillColor: palette.accent, foregroundColor: palette.onAccent),
         freeInputField: inputField,
         freePlainInputField: inputField,
@@ -159,7 +162,7 @@ func makeLiquidPresentationTheme(_ theme: PresentationTheme, updateWallpaper: Bo
                 fileTitleColor: palette.primaryText,
                 fileDescriptionColor: palette.secondaryText,
                 fileDurationColor: palette.secondaryText,
-                polls: incoming.polls.withUpdated(radioButton: palette.link, radioProgress: palette.link, bar: palette.link, barIconForeground: palette.onAccent)
+                polls: incoming.polls.withUpdated(radioButton: palette.link, radioProgress: palette.link, bar: palette.link, barIconForeground: palette.onAccent, barPositive: palette.positive, barNegative: palette.destructive)
             ),
             outgoing: outgoing.withUpdated(
                 bubble: outgoingBubble,
@@ -192,13 +195,64 @@ func makeLiquidPresentationTheme(_ theme: PresentationTheme, updateWallpaper: Bo
             primaryTextColor: palette.primaryText,
             secondaryTextColor: palette.secondaryText
         ),
+        inputMediaPanel: theme.chat.inputMediaPanel.withUpdated(
+            panelSeparatorColor: palette.separator,
+            panelIconColor: palette.secondaryText,
+            panelHighlightedIconBackgroundColor: selected,
+            panelHighlightedIconColor: palette.accent,
+            stickersBackgroundColor: palette.surface,
+            stickersSectionTextColor: palette.secondaryText,
+            stickersSearchBackgroundColor: palette.groupedBackground,
+            stickersSearchPlaceholderColor: palette.secondaryText,
+            stickersSearchPrimaryColor: palette.primaryText,
+            stickersSearchControlColor: palette.secondaryText,
+            gifsBackgroundColor: palette.surface,
+            backgroundColor: palette.surface
+        ),
+        inputButtonPanel: theme.chat.inputButtonPanel.withUpdated(
+            panelSeparatorColor: palette.separator,
+            panelBackgroundColor: palette.background,
+            buttonFillColor: palette.groupedBackground,
+            buttonStrokeColor: palette.separator,
+            buttonHighlightedFillColor: highlighted,
+            buttonTextColor: palette.primaryText
+        ),
         historyNavigation: theme.chat.historyNavigation.withUpdated(fillColor: palette.surface, strokeColor: palette.separator, foregroundColor: palette.secondaryText, badgeBackgroundColor: palette.accent, badgeTextColor: palette.onAccent)
     )
     return PresentationTheme(
         name: theme.name, index: theme.index, referenceTheme: theme.referenceTheme, overallDarkAppearance: dark,
         intro: theme.intro, passcode: theme.passcode, rootController: root, list: list, chatList: chatList, chat: chat,
-        actionSheet: theme.actionSheet.withUpdated(standardActionTextColor: palette.accent, destructiveActionTextColor: palette.destructive, primaryTextColor: palette.primaryText, secondaryTextColor: palette.secondaryText),
-        contextMenu: theme.contextMenu.withUpdated(primaryColor: palette.primaryText, secondaryColor: palette.secondaryText, destructiveColor: palette.destructive),
+        actionSheet: theme.actionSheet.withUpdated(
+            opaqueItemBackgroundColor: palette.surface,
+            itemBackgroundColor: palette.surface,
+            opaqueItemHighlightedBackgroundColor: highlighted,
+            itemHighlightedBackgroundColor: highlighted,
+            opaqueItemSeparatorColor: palette.separator,
+            standardActionTextColor: palette.accent,
+            destructiveActionTextColor: palette.destructive,
+            primaryTextColor: palette.primaryText,
+            secondaryTextColor: palette.secondaryText,
+            controlAccentColor: palette.accent,
+            inputBackgroundColor: palette.groupedBackground,
+            inputHollowBackgroundColor: palette.groupedBackground,
+            inputBorderColor: palette.separator,
+            inputPlaceholderColor: palette.secondaryText,
+            inputTextColor: palette.primaryText,
+            inputClearButtonColor: palette.secondaryText,
+            checkContentColor: palette.onAccent
+        ),
+        contextMenu: theme.contextMenu.withUpdated(
+            backgroundColor: palette.surface,
+            itemSeparatorColor: palette.separator,
+            sectionSeparatorColor: palette.groupedBackground,
+            itemBackgroundColor: palette.surface,
+            itemHighlightedBackgroundColor: highlighted,
+            primaryColor: palette.primaryText,
+            secondaryColor: palette.secondaryText,
+            destructiveColor: palette.destructive,
+            badgeFillColor: palette.accent,
+            badgeForegroundColor: palette.onAccent
+        ),
         inAppNotification: theme.inAppNotification, chart: theme.chart
     )
 }

@@ -91,4 +91,61 @@ final class LiquidThemeTests: XCTestCase {
             XCTAssertEqual(hiddenBadge.badgeTextColor.alpha, 0.0)
         }
     }
+
+    func testSecondaryComposerAndMenusShareContentSurfaces() throws {
+        let wallpapers: [TelegramWallpaper?] = [nil, .color(0x17384B)]
+        for reference: PresentationBuiltinThemeReference in [.dayClassic, .day, .night] {
+            for wallpaper in wallpapers {
+                let theme = try self.theme(reference, wallpaper: wallpaper)
+                let list = theme.list
+                let media = theme.chat.inputMediaPanel
+                XCTAssertEqual(media.backgroundColor, list.itemBlocksBackgroundColor)
+                XCTAssertEqual(media.stickersBackgroundColor, media.gifsBackgroundColor)
+                XCTAssertEqual(media.stickersSearchPrimaryColor, list.itemPrimaryTextColor)
+                XCTAssertEqual(media.stickersSearchPlaceholderColor, list.itemSecondaryTextColor)
+                XCTAssertEqual(theme.chat.inputButtonPanel.buttonTextColor, list.itemPrimaryTextColor)
+                XCTAssertEqual(theme.actionSheet.inputTextColor, list.itemPrimaryTextColor)
+                XCTAssertEqual(theme.actionSheet.inputPlaceholderColor, list.itemSecondaryTextColor)
+                XCTAssertEqual(theme.actionSheet.itemBackgroundColor, list.itemBlocksBackgroundColor)
+                XCTAssertEqual(theme.contextMenu.itemBackgroundColor, list.itemBlocksBackgroundColor)
+                XCTAssertEqual(theme.contextMenu.primaryColor, list.itemPrimaryTextColor)
+                XCTAssertEqual(theme.contextMenu.badgeFillColor, list.itemCheckColors.fillColor)
+                XCTAssertEqual(theme.contextMenu.badgeForegroundColor, list.itemCheckColors.foregroundColor)
+            }
+        }
+    }
+
+    func testQuizMarksRemainLegibleForEveryResult() throws {
+        let wallpapers: [TelegramWallpaper?] = [nil, .color(0x17384B)]
+        for reference: PresentationBuiltinThemeReference in [.dayClassic, .day, .night] {
+            for wallpaper in wallpapers {
+                let theme = try self.theme(reference, wallpaper: wallpaper)
+                for colors in [theme.chat.message.incoming.polls, theme.chat.message.outgoing.polls] {
+                    XCTAssertEqual(colors.barIconForeground.alpha, 1.0)
+                    for fill in [colors.bar, colors.barPositive, colors.barNegative] {
+                        XCTAssertGreaterThanOrEqual(self.contrast(colors.barIconForeground, fill), 4.5)
+                    }
+                }
+            }
+        }
+    }
+
+    private func contrast(_ first: UIColor, _ second: UIColor) -> CGFloat {
+        func luminance(_ color: UIColor) -> CGFloat {
+            var red: CGFloat = 0.0
+            var green: CGFloat = 0.0
+            var blue: CGFloat = 0.0
+            var alpha: CGFloat = 0.0
+            XCTAssertTrue(color.getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+            XCTAssertEqual(alpha, 1.0)
+            func linear(_ value: CGFloat) -> CGFloat {
+                return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+            }
+            return linear(red) * 0.2126 + linear(green) * 0.7152 + linear(blue) * 0.0722
+        }
+        let firstValue = luminance(first)
+        let secondValue = luminance(second)
+        return (max(firstValue, secondValue) + 0.05) / (min(firstValue, secondValue) + 0.05)
+    }
+
 }
