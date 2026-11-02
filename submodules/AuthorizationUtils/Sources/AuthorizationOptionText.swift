@@ -6,8 +6,7 @@ import TelegramPresentationData
 import TextFormat
 import Markdown
 
-public func authorizationCurrentOptionText(_ type: SentAuthorizationCodeType, phoneNumber: String, email: String?, strings: PresentationStrings, primaryColor: UIColor, accentColor: UIColor) -> NSAttributedString {
-    let fontSize: CGFloat = 17.0
+public func authorizationCurrentOptionText(_ type: SentAuthorizationCodeType, phoneNumber: String, email: String?, strings: PresentationStrings, primaryColor: UIColor, accentColor: UIColor, fontSize: CGFloat = 17.0) -> NSAttributedString {
     let body = MarkdownAttributeSet(font: Font.regular(fontSize), textColor: primaryColor)
     let bold = MarkdownAttributeSet(font: Font.semibold(fontSize), textColor: primaryColor)
     let attributes = MarkdownAttributes(body: body, bold: bold, link: body, linkAttribute: { _ in nil })
@@ -56,8 +55,8 @@ public func authorizationCurrentOptionText(_ type: SentAuthorizationCodeType, ph
     }
 }
 
-public func authorizationNextOptionText(currentType: SentAuthorizationCodeType, nextType: AuthorizationCodeNextType?, previousCodeType: SentAuthorizationCodeType? = nil, timeout: Int32?, strings: PresentationStrings, primaryColor: UIColor, accentColor: UIColor) -> (NSAttributedString, Bool) {
-    let font = Font.regular(16.0)
+public func authorizationNextOptionText(currentType: SentAuthorizationCodeType, nextType: AuthorizationCodeNextType?, previousCodeType: SentAuthorizationCodeType? = nil, timeout: Int32?, strings: PresentationStrings, primaryColor: UIColor, accentColor: UIColor, fontSize: CGFloat = 16.0) -> (NSAttributedString, Bool) {
+    let font = Font.regular(fontSize)
     
     if let previousCodeType {
         switch previousCodeType {

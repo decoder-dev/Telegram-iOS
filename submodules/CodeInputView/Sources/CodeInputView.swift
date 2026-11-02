@@ -78,7 +78,7 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
             let previousText = self.text
             self.text = text
             
-            if animated && previousText.isEmpty != text.isEmpty {
+            if animated && !UIAccessibility.isReduceMotionEnabled && previousText.isEmpty != text.isEmpty {
                 if !text.isEmpty {
                     self.textNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.25)
                     self.textNode.layer.animateSpring(from: NSValue(cgPoint: CGPoint(x: 0.0, y: size.height * 0.35)), to: NSValue(cgPoint: CGPoint()), keyPath: "position", duration: 0.4, damping: 70.0, additive: true)

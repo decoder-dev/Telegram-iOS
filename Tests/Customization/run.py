@@ -65,3 +65,4 @@ with tempfile.TemporaryDirectory(prefix='telegram-customization-') as tmp:
 subprocess.run([sys.executable, str(root / 'Tests/Customization/header_scroll.py')], check=True)
 subprocess.run([sys.executable, str(root / 'Tests/Customization/authorization_layout.py')], check=True)
 subprocess.run([sys.executable, str(root / 'Tests/Customization/auth_text_edit.py')], check=True)
+subprocess.run([sys.executable, str(root / 'Tests/Customization/auth_code_submission.py')], check=True)
