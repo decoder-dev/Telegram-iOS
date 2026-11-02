@@ -253,7 +253,20 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
             var rightInset: CGFloat = 16.0 + params.rightInset
             
             if item.clearType.hasButton {
-                rightInset += 32.0
+                rightInset += PresentationLayoutMetrics.minimumInteractiveSize
+            }
+            let contentWidth = max(1.0, params.width - leftInset - rightInset)
+            let isPrefix = item.type == .username || item.title.string.isSingleEmoji
+            let stacksTitle = !item.title.string.isEmpty && !isPrefix && item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+            let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.label ?? "", font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: max(1.0, contentWidth * 0.45), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let labelInset = labelLayout.size.width.isZero ? 0.0 : labelLayout.size.width + 8.0
+            let titleWidth: CGFloat
+            if stacksTitle {
+                titleWidth = max(1.0, params.width - leftInset - 16.0 - params.rightInset)
+            } else if isPrefix {
+                titleWidth = max(1.0, contentWidth - 32.0)
+            } else {
+                titleWidth = max(1.0, contentWidth - labelInset - item.spacing - 80.0)
             }
             
             let titleString = NSMutableAttributedString(attributedString: item.title)
@@ -262,16 +275,14 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
             }
             titleString.addAttributes([NSAttributedString.Key.font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize)], range: NSMakeRange(0, titleString.length))
             
-            let titleArguments = TextNodeLayoutArguments(attributedString: titleString, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - 32.0 - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets())
+            let titleArguments = TextNodeLayoutArguments(attributedString: titleString, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: titleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets())
             
             let (titleLayoutAndApply) = item.context == nil ? makeTitleLayout(titleArguments) : nil
             let (titleWithEntitiesLayoutAndApply) = item.context != nil ? makeTitleWithEntitiesLayout(titleArguments) : nil
             
             let titleLayout: TextNodeLayout = (titleWithEntitiesLayoutAndApply?.0 ?? titleLayoutAndApply?.0)!
             
-            let (measureTitleLayout, measureTitleSizeApply) = makeMeasureTitleSizeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: "A", font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize)), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - 32.0 - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-            
-            let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.label ?? "", font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - 32.0 - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (measureTitleLayout, measureTitleSizeApply) = makeMeasureTitleSizeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: "A", font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize)), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let separatorHeight = UIScreenPixel
             let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
@@ -284,7 +295,19 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
                 verticalInset = 11.0
             }
             
-            let contentSize = CGSize(width: params.width, height: max(titleLayout.size.height, measureTitleLayout.size.height) + verticalInset * 2.0)
+            let fieldHeight: CGFloat
+            let fieldY: CGFloat
+            let rowHeight: CGFloat
+            if stacksTitle {
+                fieldHeight = max(PresentationLayoutMetrics.minimumInteractiveSize, max(measureTitleLayout.size.height, labelLayout.size.height) + 16.0)
+                fieldY = verticalInset + titleLayout.size.height + 8.0
+                rowHeight = fieldY + fieldHeight + 8.0
+            } else {
+                rowHeight = max(PresentationLayoutMetrics.minimumInteractiveSize, max(titleLayout.size.height, max(measureTitleLayout.size.height, labelLayout.size.height)) + verticalInset * 2.0)
+                fieldY = 0.0
+                fieldHeight = rowHeight
+            }
+            let contentSize = CGSize(width: params.width, height: rowHeight)
             let insets = itemListNeighborsGroupedInsets(neighbors, params)
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
@@ -307,7 +330,9 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
                     }
                     
                     if fontUpdated {
-                        strongSelf.textNode.textField.typingAttributes = [NSAttributedString.Key.font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize)]
+                        let font = Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
+                        strongSelf.textNode.textField.typingAttributes = [NSAttributedString.Key.font: font]
+                        strongSelf.textNode.textField.font = font
                     }
                     
                     if styleUpdated {
@@ -327,7 +352,7 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
                     } else if let titleApply = titleLayoutAndApply?.1 {
                         let _ = titleApply()
                     }
-                    strongSelf.titleNode.textNode.frame = CGRect(origin: CGPoint(x: leftInset, y: floor((layout.contentSize.height - titleLayout.size.height) / 2.0)), size: titleLayout.size)
+                    strongSelf.titleNode.textNode.frame = CGRect(origin: CGPoint(x: leftInset, y: stacksTitle ? verticalInset : floor((layout.contentSize.height - titleLayout.size.height) / 2.0)), size: titleLayout.size)
                     
                     let _ = measureTitleSizeApply()
                     let _ = labelApply()
@@ -398,9 +423,10 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
                         strongSelf.textNode.textField.text = item.text
                     }
                     
-                    strongSelf.textNode.frame = CGRect(origin: CGPoint(x: leftInset + titleLayout.size.width + item.spacing, y: 0.0), size: CGSize(width: max(1.0, params.width - (leftInset + rightInset + titleLayout.size.width + item.spacing)), height: layout.contentSize.height - 2.0))
+                    let fieldX = leftInset + (stacksTitle ? 0.0 : titleLayout.size.width + item.spacing)
+                    strongSelf.textNode.frame = CGRect(origin: CGPoint(x: fieldX, y: fieldY), size: CGSize(width: max(1.0, params.width - rightInset - labelInset - fieldX), height: fieldHeight - 2.0))
                     
-                    strongSelf.labelNode.frame = CGRect(origin: CGPoint(x: layoutSize.width - rightInset - labelLayout.size.width, y: floorToScreenPixels((layout.contentSize.height - labelLayout.size.height) / 2.0)), size: labelLayout.size)
+                    strongSelf.labelNode.frame = CGRect(origin: CGPoint(x: layoutSize.width - rightInset - labelLayout.size.width, y: fieldY + floorToScreenPixels((fieldHeight - labelLayout.size.height) / 2.0)), size: labelLayout.size)
                     
                     switch item.alignment {
                         case .default:
@@ -413,10 +439,10 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
                         strongSelf.clearIconNode.image = image
                     }
                     
-                    let buttonSize = CGSize(width: 38.0, height: layout.contentSize.height)
-                    strongSelf.clearButtonNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - buttonSize.width, y: 0.0), size: buttonSize)
+                    let buttonSize = CGSize(width: PresentationLayoutMetrics.minimumInteractiveSize, height: fieldHeight)
+                    strongSelf.clearButtonNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - buttonSize.width, y: fieldY), size: buttonSize)
                     if let image = strongSelf.clearIconNode.image {
-                        strongSelf.clearIconNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - buttonSize.width + floor((buttonSize.width - image.size.width) / 2.0), y: floor((layout.contentSize.height - image.size.height) / 2.0)), size: image.size)
+                        strongSelf.clearIconNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - buttonSize.width + floor((buttonSize.width - image.size.width) / 2.0), y: fieldY + floor((fieldHeight - image.size.height) / 2.0)), size: image.size)
                     }
                     
                     strongSelf.updateClearButtonVisibility()
@@ -469,6 +495,8 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
                     
                     strongSelf.textNode.isUserInteractionEnabled = item.enabled
                     strongSelf.textNode.alpha = item.enabled ? 1.0 : 0.4
+                    strongSelf.textNode.textField.accessibilityLabel = !item.title.string.isEmpty && (!isPrefix || item.placeholder.isEmpty) ? item.title.string : item.placeholder
+                    strongSelf.titleNode.textNode.isAccessibilityElement = false
                     
                     strongSelf.clearButtonNode.accessibilityLabel = item.presentationData.strings.VoiceOver_Editing_ClearText
                 }
@@ -481,17 +509,20 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
             return
         }
         let isHidden: Bool
+        let isEmpty = self.textNode.textField.text?.isEmpty ?? true
         switch item.clearType {
             case .none:
                 isHidden = true
             case .always:
-                isHidden = item.text.isEmpty
+                isHidden = isEmpty || !item.enabled
             case .onFocus:
-                isHidden = !self.textNode.textField.isFirstResponder || item.text.isEmpty
+                isHidden = !self.textNode.textField.isFirstResponder || isEmpty || !item.enabled
         }
         self.clearIconNode.isHidden = isHidden
         self.clearButtonNode.isHidden = isHidden
-        self.clearButtonNode.isAccessibilityElement = isHidden
+        self.clearButtonNode.isAccessibilityElement = !isHidden
+        self.clearButtonNode.isEnabled = !isHidden
+        self.clearButtonNode.accessibilityTraits = [.button]
     }
     
     override public func animateInsertion(_ currentTimestamp: Double, duration: Double, options: ListViewItemAnimationOptions) {
@@ -507,13 +538,20 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
     }
     
     @objc private func clearButtonPressed() {
+        guard let item = self.item, item.enabled, item.clearType.hasButton, !(self.textNode.textField.text ?? "").isEmpty else {
+            return
+        }
         self.textNode.textField.text = ""
-        self.textUpdated("")
-        self.item?.cleared?()
+        self.updateClearButtonVisibility()
+        item.textUpdated("")
+        item.cleared?()
     }
     
     private func textUpdated(_ text: String) {
-        self.item?.textUpdated(text)
+        self.updateClearButtonVisibility()
+        if let item = self.item, item.enabled {
+            item.textUpdated(text)
+        }
     }
     
     public func focus() {
@@ -527,8 +565,15 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
     }
     
     @objc public func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        guard self.item?.enabled == true else {
+            return false
+        }
+        let currentText = textField.text ?? ""
+        guard let replacementRange = Range(range, in: currentText) else {
+            return false
+        }
         if let item = self.item {
-            let newText = ((textField.text ?? "") as NSString).replacingCharacters(in: range, with: string)
+            let newText = currentText.replacingCharacters(in: replacementRange, with: string)
             if !item.shouldUpdateText(newText) {
                 return false
             }
@@ -547,15 +592,24 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
             let result = processPaste(string)
             if result != string {
                 var text = textField.text ?? ""
-                text.replaceSubrange(text.index(text.startIndex, offsetBy: range.lowerBound) ..< text.index(text.startIndex, offsetBy: range.upperBound), with: result)
+                guard let textRange = Range(range, in: text) else {
+                    return false
+                }
+                var caretPrefix = String(text[..<textRange.lowerBound]) + result
+                text.replaceSubrange(textRange, with: result)
                 textField.text = text
                 if case .username = item.type {
                     text = text.folding(options: .diacriticInsensitive, locale: .current).replacingOccurrences(of: " ", with: "_")
+                    caretPrefix = caretPrefix.folding(options: .diacriticInsensitive, locale: .current).replacingOccurrences(of: " ", with: "_")
                     textField.text = text
                 }
-                if let startPosition = textField.position(from: textField.beginningOfDocument, offset: range.lowerBound + result.count) {
+                if let startPosition = textField.position(from: textField.beginningOfDocument, offset: caretPrefix.utf16.count) {
                     let selectionRange = textField.textRange(from: startPosition, to: startPosition)
-                    DispatchQueue.main.async {
+                    let expectedText = text
+                    DispatchQueue.main.async { [weak textField] in
+                        guard let textField, textField.text == expectedText else {
+                            return
+                        }
                         textField.selectedTextRange = selectionRange
                     }
                 }
@@ -583,11 +637,19 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
             
             if cleanString != string {
                 var text = textField.text ?? ""
-                text.replaceSubrange(text.index(text.startIndex, offsetBy: range.lowerBound) ..< text.index(text.startIndex, offsetBy: range.upperBound), with: cleanString)
+                guard let textRange = Range(range, in: text) else {
+                    return false
+                }
+                let caretPrefix = String(text[..<textRange.lowerBound]) + cleanString
+                text.replaceSubrange(textRange, with: cleanString)
                 textField.text = text
-                if let startPosition = textField.position(from: textField.beginningOfDocument, offset: range.lowerBound + cleanString.count) {
+                if let startPosition = textField.position(from: textField.beginningOfDocument, offset: caretPrefix.utf16.count) {
                     let selectionRange = textField.textRange(from: startPosition, to: startPosition)
-                    DispatchQueue.main.async {
+                    let expectedText = text
+                    DispatchQueue.main.async { [weak textField] in
+                        guard let textField, textField.text == expectedText else {
+                            return
+                        }
                         textField.selectedTextRange = selectionRange
                     }
                 }
@@ -600,7 +662,9 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
     }
     
     @objc public func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        self.item?.action()
+        if let item = self.item, item.enabled {
+            item.action()
+        }
         return false
     }
     

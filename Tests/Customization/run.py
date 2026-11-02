@@ -66,3 +66,4 @@ subprocess.run([sys.executable, str(root / 'Tests/Customization/header_scroll.py
 subprocess.run([sys.executable, str(root / 'Tests/Customization/authorization_layout.py')], check=True)
 subprocess.run([sys.executable, str(root / 'Tests/Customization/auth_text_edit.py')], check=True)
 subprocess.run([sys.executable, str(root / 'Tests/Customization/auth_code_submission.py')], check=True)
+subprocess.run([sys.executable, str(root / 'Tests/Customization/settings_input_edit.py')], check=True)
