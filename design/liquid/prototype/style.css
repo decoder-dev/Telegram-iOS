@@ -1274,3 +1274,6 @@ dialog .destructive {
 .show-tails .message.group-end .bubble,.show-tails .message.out.group-end .bubble {
     border-radius: 18px;
 }
+.home-indicator {
+    z-index: 4;
+}
