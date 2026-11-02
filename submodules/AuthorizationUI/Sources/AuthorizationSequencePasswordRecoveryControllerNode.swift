@@ -8,6 +8,8 @@ import AuthorizationUtils
 final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let strings: PresentationStrings
     private let theme: PresentationTheme
+    private let formNode = AuthorizationFormNode()
+    private var emailPattern: String = ""
     
     private let titleNode: ASTextNode
     private let noticeNode: ASTextNode
@@ -28,6 +30,7 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
     var inProgress: Bool = false {
         didSet {
             self.codeField.alpha = self.inProgress ? 0.6 : 1.0
+            self.noAccessNode.isUserInteractionEnabled = !self.inProgress
         }
     }
     
@@ -48,6 +51,7 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
         
         self.noAccessNode = HighlightableButtonNode()
         self.noAccessNode.displaysAsynchronously = false
+        self.noAccessNode.titleNode.maximumNumberOfLines = 0
         
         self.codeSeparatorNode = ASDisplayNode()
         self.codeSeparatorNode.isLayerBacked = true
@@ -62,6 +66,10 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
         self.codeField.textField.keyboardAppearance = self.theme.rootController.keyboardColor.keyboardAppearance
         self.codeField.textField.disableAutomaticKeyboardHandling = [.forward, .backward]
         self.codeField.textField.tintColor = self.theme.list.itemAccentColor
+        self.codeField.textField.textContentType = .oneTimeCode
+        self.codeField.textField.autocorrectionType = .no
+        self.codeField.textField.autocapitalizationType = .none
+        self.codeField.textField.accessibilityLabel = self.strings.TwoStepAuth_RecoveryCode
         
         super.init()
         
@@ -73,17 +81,32 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
         
         self.codeField.textField.delegate = self
         
-        self.addSubnode(self.codeSeparatorNode)
-        self.addSubnode(self.codeField)
-        self.addSubnode(self.titleNode)
-        self.addSubnode(self.noAccessNode)
-        self.addSubnode(self.noticeNode)
+        self.addSubnode(self.formNode)
+        self.formNode.addSubnode(self.codeSeparatorNode)
+        self.formNode.addSubnode(self.codeField)
+        self.formNode.addSubnode(self.titleNode)
+        self.formNode.addSubnode(self.noAccessNode)
+        self.formNode.addSubnode(self.noticeNode)
+        self.titleNode.isAccessibilityElement = true
+        self.titleNode.accessibilityTraits = [.header]
+        self.noticeNode.isAccessibilityElement = true
+        self.noAccessNode.accessibilityTraits = [.button]
+        self.formNode.requestLayout = { [weak self] in
+            guard let self, let (layout, navigationHeight) = self.layoutArguments else {
+                return
+            }
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
+        }
         
         self.noAccessNode.addTarget(self, action: #selector(self.noAccessPressed), forControlEvents: .touchUpInside)
     }
     
     func updateData(emailPattern: String) {
+        self.emailPattern = emailPattern
         self.noAccessNode.setAttributedTitle(NSAttributedString(string: self.strings.TwoStepAuth_RecoveryEmailUnavailable(emailPattern).string, font: Font.regular(16.0), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
+        if let (layout, navigationHeight) = self.layoutArguments {
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
+        }
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -92,33 +115,38 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
         var insets = layout.insets(options: [.input])
         insets.top = navigationBarHeight
         
-        if max(layout.size.width, layout.size.height) > 1023.0 {
-            self.titleNode.attributedText = NSAttributedString(string: self.strings.TwoStepAuth_RecoveryTitle, font: Font.light(40.0), textColor: self.theme.list.itemPrimaryTextColor)
-        } else {
-            self.titleNode.attributedText = NSAttributedString(string: self.strings.TwoStepAuth_RecoveryTitle, font: Font.light(30.0), textColor: self.theme.list.itemPrimaryTextColor)
-        }
+        self.titleNode.attributedText = NSAttributedString(string: self.strings.TwoStepAuth_RecoveryTitle, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.noticeNode.attributedText = NSAttributedString(string: self.strings.TwoStepAuth_RecoveryCodeHelp, font: UIFont.preferredFont(forTextStyle: .body), textColor: self.theme.list.itemSecondaryTextColor, paragraphAlignment: .center)
+        let actionTitle = self.strings.TwoStepAuth_RecoveryEmailUnavailable(self.emailPattern).string
+        self.noAccessNode.setAttributedTitle(NSAttributedString(string: actionTitle, font: UIFont.preferredFont(forTextStyle: .body), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
+        self.noAccessNode.accessibilityLabel = actionTitle
+        let fieldFont = UIFont.preferredFont(forTextStyle: .title3)
+        self.codeField.textField.font = fieldFont
+        self.codeField.textField.attributedPlaceholder = NSAttributedString(string: self.strings.TwoStepAuth_RecoveryCode, font: fieldFont, textColor: self.theme.list.itemPlaceholderTextColor)
         
         // iPhone Duo: beside a side strip the content keeps to the band between the side insets. With equal
         // insets (every other phone) it keeps the full width.
         let insetsDiffer = layout.safeInsets.left != layout.safeInsets.right
         let bandMinX: CGFloat = insetsDiffer ? layout.safeInsets.left : 0.0
         let bandWidth: CGFloat = insetsDiffer ? layout.size.width - layout.safeInsets.left - layout.safeInsets.right : layout.size.width
+        let contentWidth = max(1.0, min(430.0, bandWidth) - 48.0)
         
-        let titleSize = self.titleNode.measure(CGSize(width: bandWidth, height: CGFloat.greatestFiniteMagnitude))
+        let titleSize = self.titleNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
         
-        let noticeSize = self.noticeNode.measure(CGSize(width: bandWidth - 28.0, height: CGFloat.greatestFiniteMagnitude))
-        let noAccessSize = self.noAccessNode.measure(CGSize(width: bandWidth, height: CGFloat.greatestFiniteMagnitude))
+        let noticeSize = self.noticeNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+        var noAccessSize = self.noAccessNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+        noAccessSize.height = max(44.0, noAccessSize.height + 16.0)
         
         var items: [AuthorizationLayoutItem] = []
         items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.noticeNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
-        items.append(AuthorizationLayoutItem(node: self.codeField, size: CGSize(width: bandWidth - 88.0, height: 44.0), spacingBefore: AuthorizationLayoutItemSpacing(weight: 32.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        items.append(AuthorizationLayoutItem(node: self.codeSeparatorNode, size: CGSize(width: bandWidth - 88.0, height: UIScreenPixel), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        items.append(AuthorizationLayoutItem(node: self.codeField, size: CGSize(width: contentWidth, height: max(44.0, ceil(fieldFont.lineHeight) + 16.0)), spacingBefore: AuthorizationLayoutItemSpacing(weight: 32.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        items.append(AuthorizationLayoutItem(node: self.codeSeparatorNode, size: CGSize(width: contentWidth, height: UIScreenPixel), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
         items.append(AuthorizationLayoutItem(node: self.noAccessNode, size: noAccessSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 48.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
-        let _ = layoutAuthorizationItems(bounds: CGRect(origin: CGPoint(x: bandMinX, y: insets.top), size: CGSize(width: bandWidth, height: layout.size.height - insets.top - insets.bottom - 20.0)), items: items, transition: transition, failIfDoesNotFit: false)
+        self.formNode.update(bounds: CGRect(x: bandMinX, y: insets.top, width: bandWidth, height: layout.size.height - insets.top - insets.bottom - 20.0), items: items, focusedNode: self.codeField.textField.isFirstResponder ? self.codeField : nil, transition: transition)
     }
     
     func activateInput() {
@@ -134,11 +162,16 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        self.recoverWithCode?(self.currentCode)
+        if !self.inProgress {
+            self.recoverWithCode?(self.currentCode)
+        }
         return false
     }
     
     @objc func noAccessPressed() {
+        guard !self.inProgress else {
+            return
+        }
         self.noAccess?()
     }
 }

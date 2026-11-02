@@ -189,7 +189,9 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
     private var progressNode: ASImageNode?
     private var badgeNode: BadgeNode?
     
-    private let buttonHeight: CGFloat
+    private let minimumButtonHeight: CGFloat
+    private var buttonHeight: CGFloat
+    private var usesAdaptiveTypography = false
     public let buttonCornerRadius: CGFloat
     
     public var pressed: (() -> Void)?
@@ -355,6 +357,7 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
         self.font = font
         self.fontSize = fontSize
         self.buttonHeight = height
+        self.minimumButtonHeight = height
         self.buttonCornerRadius = cornerRadius
         self.title = title
         self.isShimmering = isShimmering
@@ -697,9 +700,38 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
     public func updateLayout(width: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
         return self.updateLayout(width: width, previousSubtitle: self.subtitle, transition: transition)
     }
+
+    public func updateLayout(width: CGFloat, fontSize: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
+        self.fontSize = fontSize
+        self.usesAdaptiveTypography = true
+        self.titleNode.maximumNumberOfLines = 0
+        self.titleNode.textAlignment = .center
+        self.titleNode.attributedText = NSAttributedString(string: self.title ?? "", font: self.font == .bold ? Font.semibold(fontSize) : Font.regular(fontSize), textColor: self.isEnabled ? self.theme.foregroundColor : (self.theme.disabledForegroundColor ?? self.theme.foregroundColor))
+        return self.updateLayout(width: width, previousSubtitle: self.subtitle, transition: transition)
+    }
     
     private func updateLayout(width: CGFloat, previousSubtitle: String?, transition: ContainedViewLayoutTransition) -> CGFloat {
         self.validLayout = width
+
+        if self.title != self.titleNode.attributedText?.string {
+            self.titleNode.attributedText = NSAttributedString(string: self.title ?? "", font: self.font == .bold ? Font.semibold(self.fontSize) : Font.regular(self.fontSize), textColor: self.isEnabled ? self.theme.foregroundColor : (self.theme.disabledForegroundColor ?? self.theme.foregroundColor))
+        }
+        let iconSize: CGSize
+        if let _ = self.animationNode {
+            iconSize = self.animationSize
+        } else {
+            iconSize = self.iconNode.image?.size ?? CGSize()
+        }
+        let titleWidth = self.usesAdaptiveTypography ? max(1.0, width - 32.0 - (iconSize.width.isZero ? 0.0 : iconSize.width + self.iconSpacing)) : width
+        let titleSize = self.titleNode.updateLayout(CGSize(width: titleWidth, height: self.usesAdaptiveTypography ? .greatestFiniteMagnitude : self.buttonHeight))
+        if self.subtitle != self.subtitleNode.attributedText?.string {
+            self.subtitleNode.attributedText = NSAttributedString(string: self.subtitle ?? "", font: Font.regular(14.0), textColor: self.theme.foregroundColor)
+        }
+        let subtitleSize = self.subtitleNode.updateLayout(CGSize(width: self.usesAdaptiveTypography ? max(1.0, width - 32.0) : width, height: self.usesAdaptiveTypography ? .greatestFiniteMagnitude : self.buttonHeight))
+        let textHeight = titleSize.height + (self.subtitle == nil ? 0.0 : subtitleSize.height + 4.0)
+        if self.usesAdaptiveTypography {
+            self.buttonHeight = max(self.minimumButtonHeight, ceil(max(textHeight, iconSize.height)) + 24.0)
+        }
         
         let buttonSize = CGSize(width: width, height: self.buttonHeight)
         let buttonFrame = CGRect(origin: CGPoint(), size: buttonSize)
@@ -725,20 +757,13 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
         
         transition.updateFrame(node: self.buttonNode, frame: buttonFrame)
         
-        if self.title != self.titleNode.attributedText?.string {
-            self.titleNode.attributedText = NSAttributedString(string: self.title ?? "", font: self.font == .bold ? Font.semibold(self.fontSize) : Font.regular(self.fontSize), textColor: self.isEnabled ? self.theme.foregroundColor : (self.theme.disabledForegroundColor ?? self.theme.foregroundColor))
-        }
-        
-        let iconSize: CGSize
-        if let _ = self.animationNode {
-            iconSize = self.animationSize
-        } else {
-            iconSize = self.iconNode.image?.size ?? CGSize()
-        }
-        let titleSize = self.titleNode.updateLayout(buttonSize)
-        
         let spacingOffset: CGFloat = 9.0
-        let verticalInset: CGFloat = self.subtitle == nil ? floor((buttonFrame.height - titleSize.height) / 2.0) : floor((buttonFrame.height - titleSize.height) / 2.0) - spacingOffset
+        let verticalInset: CGFloat
+        if self.usesAdaptiveTypography {
+            verticalInset = floor((buttonFrame.height - textHeight) / 2.0)
+        } else {
+            verticalInset = self.subtitle == nil ? floor((buttonFrame.height - titleSize.height) / 2.0) : floor((buttonFrame.height - titleSize.height) / 2.0) - spacingOffset
+        }
 
         let iconSpacing: CGFloat = self.iconSpacing
         
@@ -790,12 +815,8 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
         
         transition.updateFrame(node: self.titleNode, frame: titleFrame)
         
-        if self.subtitle != self.subtitleNode.attributedText?.string {
-            self.subtitleNode.attributedText = NSAttributedString(string: self.subtitle ?? "", font: Font.regular(14.0), textColor: self.theme.foregroundColor)
-        }
-        
-        let subtitleSize = self.subtitleNode.updateLayout(buttonSize)
-        let subtitleFrame = CGRect(origin: CGPoint(x: buttonFrame.minX + floor((buttonFrame.width - subtitleSize.width) / 2.0), y: buttonFrame.minY + floor((buttonFrame.height - titleSize.height) / 2.0) + spacingOffset + 2.0), size: subtitleSize)
+        let subtitleY = self.usesAdaptiveTypography ? titleFrame.maxY + 4.0 : buttonFrame.minY + floor((buttonFrame.height - titleSize.height) / 2.0) + spacingOffset + 2.0
+        let subtitleFrame = CGRect(origin: CGPoint(x: buttonFrame.minX + floor((buttonFrame.width - subtitleSize.width) / 2.0), y: subtitleY), size: subtitleSize)
         transition.updateFrame(node: self.subtitleNode, frame: subtitleFrame)
         
         if previousSubtitle == nil && self.subtitle != nil {

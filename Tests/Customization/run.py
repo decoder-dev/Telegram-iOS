@@ -63,3 +63,4 @@ with tempfile.TemporaryDirectory(prefix='telegram-customization-') as tmp:
     subprocess.run(['swift', str(file)], check=True)
 
 subprocess.run([sys.executable, str(root / 'Tests/Customization/header_scroll.py')], check=True)
+subprocess.run([sys.executable, str(root / 'Tests/Customization/authorization_layout.py')], check=True)

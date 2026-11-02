@@ -1,4 +1,6 @@
 load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
+load("@build_bazel_rules_apple//apple:ios.bzl", "ios_unit_test")
+load("@build_bazel_rules_apple//apple/testing/default_runner:ios_test_runner.bzl", "ios_test_runner")
 
 swift_library(
     name = "AuthorizationUI",
@@ -53,4 +55,33 @@ swift_library(
     visibility = [
         "//visibility:public",
     ],
+)
+
+swift_library(
+    name = "AuthorizationFormTestLib",
+    testonly = True,
+    srcs = [
+        "Sources/AuthorizationFormNode.swift",
+        "Tests/AuthorizationFormTests.swift",
+    ],
+    deps = [
+        "//submodules/AsyncDisplayKit:AsyncDisplayKit",
+        "//submodules/AuthorizationUtils:AuthorizationUtils",
+        "//submodules/Display:Display",
+        "//submodules/SolidRoundedButtonNode:SolidRoundedButtonNode",
+    ],
+)
+
+ios_test_runner(
+    name = "AuthorizationFormTestRunner",
+    device_type = "iPhone 17",
+    os_version = "26.5",
+)
+
+ios_unit_test(
+    name = "AuthorizationFormTests",
+    bundle_id = "org.bananagram.tests.AuthorizationFormTests",
+    minimum_os_version = "15.0",
+    runner = ":AuthorizationFormTestRunner",
+    deps = [":AuthorizationFormTestLib"],
 )

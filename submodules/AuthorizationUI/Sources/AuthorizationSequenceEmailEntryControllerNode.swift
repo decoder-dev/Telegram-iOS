@@ -11,20 +11,24 @@ import TelegramAnimatedStickerNode
 import SolidRoundedButtonNode
 
 final class AuthorizationDividerNode: ASDisplayNode {
+    private let theme: PresentationTheme
+    private let strings: PresentationStrings
     private let titleNode: ImmediateTextNode
     private let leftLineNode: ASDisplayNode
     private let rightLineNode: ASDisplayNode
     
     init(theme: PresentationTheme, strings: PresentationStrings) {
+        self.theme = theme
+        self.strings = strings
         self.titleNode = ImmediateTextNode()
         self.titleNode.maximumNumberOfLines = 1
         self.titleNode.attributedText = NSAttributedString(string: strings.Login_Or, font: Font.regular(17.0), textColor: theme.list.itemSecondaryTextColor)
 
         self.leftLineNode = ASDisplayNode()
-        self.leftLineNode.backgroundColor = theme.list.itemSecondaryTextColor
+        self.leftLineNode.backgroundColor = theme.list.itemPlainSeparatorColor
         
         self.rightLineNode = ASDisplayNode()
-        self.rightLineNode.backgroundColor = theme.list.itemSecondaryTextColor
+        self.rightLineNode.backgroundColor = theme.list.itemPlainSeparatorColor
         
         super.init()
         
@@ -34,13 +38,14 @@ final class AuthorizationDividerNode: ASDisplayNode {
     }
     
     func updateLayout(width: CGFloat) -> CGSize {
+        self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_Or, font: UIFont.preferredFont(forTextStyle: .body), textColor: self.theme.list.itemSecondaryTextColor)
         let lineSize = CGSize(width: 33.0, height: UIScreenPixel)
         let spacing: CGFloat = 7.0
         
-        let titleSize = self.titleNode.updateLayout(CGSize(width: width - (lineSize.width + spacing) * 2.0, height: .greatestFiniteMagnitude))
+        let titleSize = self.titleNode.updateLayout(CGSize(width: max(1.0, width - (lineSize.width + spacing) * 2.0), height: .greatestFiniteMagnitude))
        
-        let height: CGFloat = 40.0
-        let titleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((width - lineSize.width) / 2.0), y: floor((height - titleSize.height) / 2.0)), size: titleSize)
+        let height: CGFloat = max(40.0, titleSize.height + 16.0)
+        let titleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((width - titleSize.width) / 2.0), y: floor((height - titleSize.height) / 2.0)), size: titleSize)
         self.titleNode.frame = titleFrame
         self.leftLineNode.frame = CGRect(origin: CGPoint(x: titleFrame.minX - spacing - lineSize.width, y: floorToScreenPixels(height / 2.0)), size: lineSize)
         self.rightLineNode.frame = CGRect(origin: CGPoint(x: titleFrame.maxX + spacing, y: floorToScreenPixels(height / 2.0)), size: lineSize)
@@ -52,6 +57,7 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
     private let strings: PresentationStrings
     private let theme: PresentationTheme
     private let mode: AuthorizationSequenceEmailEntryController.Mode
+    private let formNode = AuthorizationFormNode()
     
     private let animationNode: AnimatedStickerNode
     private let titleNode: ASTextNode
@@ -78,6 +84,7 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
     var inProgress: Bool = false {
         didSet {
             self.codeField.alpha = self.inProgress ? 0.6 : 1.0
+            self.updateButtonsVisibility(transition: .immediate)
             
             if self.inProgress != oldValue {
                 if self.inProgress {
@@ -149,13 +156,25 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
         
         self.codeField.textField.delegate = self
         
-        self.addSubnode(self.codeSeparatorNode)
-        self.addSubnode(self.codeField)
-        self.addSubnode(self.titleNode)
+        self.addSubnode(self.formNode)
+        self.formNode.addSubnode(self.codeSeparatorNode)
+        self.formNode.addSubnode(self.codeField)
+        self.formNode.addSubnode(self.titleNode)
         self.addSubnode(self.proceedNode)
-        self.addSubnode(self.noticeNode)
-        self.addSubnode(self.animationNode)
+        self.formNode.addSubnode(self.noticeNode)
+        self.formNode.addSubnode(self.animationNode)
         self.addSubnode(self.dividerNode)
+
+        self.titleNode.isAccessibilityElement = true
+        self.titleNode.accessibilityTraits = [.header]
+        self.noticeNode.isAccessibilityElement = true
+        self.codeField.textField.accessibilityLabel = self.strings.Login_AddEmailPlaceholder
+        self.formNode.requestLayout = { [weak self] in
+            guard let self, let (layout, navigationHeight) = self.layoutArguments else {
+                return
+            }
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
+        }
         
         self.codeField.textField.addTarget(self, action: #selector(self.textDidChange), for: .editingChanged)
         self.proceedNode.pressed = { [weak self] in
@@ -177,7 +196,12 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
     }
     
     private func updateButtonsVisibility(transition: ContainedViewLayoutTransition) {
-        if self.currentEmail.isEmpty && self.appleSignInAllowed {
+        let showAppleSignIn = self.currentEmail.isEmpty && self.appleSignInAllowed
+        self.proceedNode.isUserInteractionEnabled = !showAppleSignIn && !self.inProgress
+        self.proceedNode.accessibilityElementsHidden = showAppleSignIn
+        self.signInWithAppleButton?.isEnabled = showAppleSignIn && !self.inProgress
+        self.signInWithAppleButton?.accessibilityElementsHidden = !showAppleSignIn
+        if showAppleSignIn {
             transition.updateAlpha(node: self.proceedNode, alpha: 0.0)
             transition.updateAlpha(node: self.dividerNode, alpha: 1.0)
             if let signInWithAppleButton = self.signInWithAppleButton {
@@ -212,14 +236,17 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
         }
                 
         var insets = layout.insets(options: [])
-        insets.top = layout.statusBarHeight ?? 20.0
+        insets.top = max(layout.statusBarHeight ?? 20.0, navigationBarHeight)
         if let inputHeight = layout.inputHeight {
             insets.bottom = max(inputHeight, insets.bottom)
         }
         
         let titleInset: CGFloat = layout.size.width > 320.0 ? 18.0 : 0.0
         
-        self.titleNode.attributedText = NSAttributedString(string: self.mode == .setup ? self.strings.LoginEmail_Title : self.strings.Login_EnterNewEmailTitle, font: Font.bold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: self.mode == .setup ? self.strings.LoginEmail_Title : self.strings.Login_EnterNewEmailTitle, font: Font.bold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.noticeNode.attributedText = NSAttributedString(string: self.strings.LoginEmail_Description, font: UIFont.preferredFont(forTextStyle: .body), textColor: self.theme.list.itemSecondaryTextColor, paragraphAlignment: .center)
+        let fieldFont = UIFont.preferredFont(forTextStyle: .title3)
+        self.codeField.textField.font = fieldFont
 
         
         // iPhone Duo: beside a side strip the content keeps to the band between the side insets. With equal
@@ -239,10 +266,10 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
         let bottomMaximumWidth: CGFloat = min(430.0, bottomBandWidth)
         
         let animationSize = CGSize(width: 100.0, height: 100.0)
-        let titleSize = self.titleNode.measure(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
+        let titleSize = self.titleNode.measure(CGSize(width: max(1.0, maximumWidth - 48.0), height: CGFloat.greatestFiniteMagnitude))
         
-        let noticeSize = self.noticeNode.measure(CGSize(width: maximumWidth - 80.0, height: CGFloat.greatestFiniteMagnitude))
-        let proceedHeight = self.proceedNode.updateLayout(width: bottomMaximumWidth - 48.0, transition: transition)
+        let noticeSize = self.noticeNode.measure(CGSize(width: max(1.0, maximumWidth - 48.0), height: CGFloat.greatestFiniteMagnitude))
+        let proceedHeight = self.proceedNode.updateLayout(width: bottomMaximumWidth - 48.0, fontSize: UIFont.preferredFont(forTextStyle: .body).pointSize, transition: transition)
         let proceedSize = CGSize(width: bottomMaximumWidth - 48.0, height: proceedHeight)
         
         var items: [AuthorizationLayoutItem] = []
@@ -250,25 +277,24 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
         items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: titleInset, maxValue: titleInset), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.noticeNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
-        items.append(AuthorizationLayoutItem(node: self.codeField, size: CGSize(width: maximumWidth - 88.0, height: 44.0), spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        items.append(AuthorizationLayoutItem(node: self.codeField, size: CGSize(width: max(1.0, maximumWidth - 88.0), height: max(44.0, ceil(fieldFont.lineHeight) + 16.0)), spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.codeSeparatorNode, size: CGSize(width: maximumWidth - 48.0, height: UIScreenPixel), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
-        if layout.size.width > 320.0 {
+        let buttonFrame = CGRect(origin: CGPoint(x: bottomBandMinX + floorToScreenPixels((bottomBandWidth - proceedSize.width) / 2.0), y: layout.size.height - insets.bottom - proceedSize.height - inset), size: proceedSize)
+        let dividerSize = self.dividerNode.updateLayout(width: bottomMaximumWidth)
+        let formHeight = max(1.0, buttonFrame.minY - (self.appleSignInAllowed ? dividerSize.height : 16.0) - insets.top)
+        if formHeight >= AuthorizationFormNode.minimumHeight(for: items) + animationSize.height + 10.0 {
             items.insert(AuthorizationLayoutItem(node: self.animationNode, size: animationSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)), at: 0)
             self.animationNode.updateLayout(size: animationSize)
-            self.proceedNode.isHidden = false
             self.animationNode.isHidden = false
             self.animationNode.visibility = true
         } else {
-            insets.top = navigationBarHeight
-            self.proceedNode.isHidden = true
             self.animationNode.isHidden = true
+            self.animationNode.visibility = false
         }
         
-        let buttonFrame = CGRect(origin: CGPoint(x: bottomBandMinX + floorToScreenPixels((bottomBandWidth - proceedSize.width) / 2.0), y: layout.size.height - insets.bottom - proceedSize.height - inset), size: proceedSize)
         transition.updateFrame(node: self.proceedNode, frame: buttonFrame)
         
-        let dividerSize = self.dividerNode.updateLayout(width: bottomMaximumWidth)
         transition.updateFrame(node: self.dividerNode, frame: CGRect(origin: CGPoint(x: bottomBandMinX + floorToScreenPixels((bottomBandWidth - dividerSize.width) / 2.0), y: buttonFrame.minY - dividerSize.height), size: dividerSize))
         
         if let _ = self.signInWithAppleButton, self.appleSignInAllowed {
@@ -277,7 +303,7 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
             self.dividerNode.isHidden = true
         }
         
-        let _ = layoutAuthorizationItems(bounds: CGRect(origin: CGPoint(x: bandMinX, y: insets.top), size: CGSize(width: bandWidth, height: layout.size.height - insets.top - insets.bottom - 120.0)), items: items, transition: transition, failIfDoesNotFit: false)
+        self.formNode.update(bounds: CGRect(x: bandMinX, y: insets.top, width: bandWidth, height: formHeight), items: items, focusedNode: self.codeField.textField.isFirstResponder ? self.codeField : nil, transition: transition)
         
         if let signInWithAppleButton = self.signInWithAppleButton, self.appleSignInAllowed {
             signInWithAppleButton.isHidden = false
@@ -285,6 +311,7 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
         } else {
             self.signInWithAppleButton?.isHidden = true
         }
+        self.updateButtonsVisibility(transition: .immediate)
     }
     
     func activateInput() {
@@ -296,15 +323,21 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        self.proceedWithEmail?(self.currentEmail)
+        self.proceedPressed()
         return false
     }
     
     @objc func proceedPressed() {
+        guard !self.inProgress else {
+            return
+        }
         self.proceedWithEmail?(self.currentEmail)
     }
     
     @objc func signInWithApplePressed() {
+        guard self.appleSignInAllowed, !self.inProgress else {
+            return
+        }
         self.signInWithApple?()
     }
 }

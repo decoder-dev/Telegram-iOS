@@ -19,12 +19,14 @@ private func timerValueString(days: Int32, hours: Int32, minutes: Int32, color: 
     
     let minutesString = strings.MessageTimer_Minutes(minutes)
     
-    return NSAttributedString(string: daysString + hoursString + minutesString, font: Font.regular(21.0), textColor: color)
+    return NSAttributedString(string: daysString + hoursString + minutesString, font: UIFont.monospacedDigitSystemFont(ofSize: UIFont.preferredFont(forTextStyle: .title2).pointSize, weight: .regular), textColor: color)
 }
 
 final class AuthorizationSequenceAwaitingAccountResetControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let strings: PresentationStrings
     private let theme: PresentationTheme
+    private let formNode = AuthorizationFormNode()
+    private var number: String = ""
     
     private let titleNode: ASTextNode
     private let noticeNode: ASTextNode
@@ -67,7 +69,10 @@ final class AuthorizationSequenceAwaitingAccountResetControllerNode: ASDisplayNo
         self.resetNode.setAttributedTitle(NSAttributedString(string: strings.Login_ResetAccountProtected_Reset, font: Font.regular(21.0), textColor: self.theme.list.itemAccentColor), for: [])
         self.resetNode.setAttributedTitle(NSAttributedString(string: strings.Login_ResetAccountProtected_Reset, font: Font.regular(21.0), textColor: self.theme.list.itemPlaceholderTextColor), for: [.disabled])
         self.resetNode.displaysAsynchronously = false
+        self.resetNode.titleNode.maximumNumberOfLines = 0
         self.resetNode.isEnabled = false
+        self.resetNode.accessibilityLabel = self.strings.Login_ResetAccountProtected_Reset
+        self.resetNode.accessibilityTraits = [.button]
         
         super.init()
         
@@ -77,11 +82,23 @@ final class AuthorizationSequenceAwaitingAccountResetControllerNode: ASDisplayNo
         
         self.backgroundColor = self.theme.list.plainBackgroundColor
         
-        self.addSubnode(self.titleNode)
-        self.addSubnode(self.noticeNode)
-        self.addSubnode(self.timerTitleNode)
-        self.addSubnode(self.timerValueNode)
-        self.addSubnode(self.resetNode)
+        self.addSubnode(self.formNode)
+        self.formNode.addSubnode(self.titleNode)
+        self.formNode.addSubnode(self.noticeNode)
+        self.formNode.addSubnode(self.timerTitleNode)
+        self.formNode.addSubnode(self.timerValueNode)
+        self.formNode.addSubnode(self.resetNode)
+        self.titleNode.isAccessibilityElement = true
+        self.titleNode.accessibilityTraits = [.header]
+        self.noticeNode.isAccessibilityElement = true
+        self.timerTitleNode.isAccessibilityElement = true
+        self.timerValueNode.isAccessibilityElement = true
+        self.formNode.requestLayout = { [weak self] in
+            guard let self, let (layout, navigationHeight) = self.layoutArguments else {
+                return
+            }
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
+        }
         
         self.resetNode.addTarget(self, action: #selector(self.resetPressed), forControlEvents: .touchUpInside)
     }
@@ -91,6 +108,7 @@ final class AuthorizationSequenceAwaitingAccountResetControllerNode: ASDisplayNo
     }
     
     func updateData(protectedUntil: Int32, number: String) {
+        self.number = number
         self.protectedUntil = protectedUntil
         self.updateTimerValue()
         
@@ -143,38 +161,47 @@ final class AuthorizationSequenceAwaitingAccountResetControllerNode: ASDisplayNo
         var insets = layout.insets(options: [.input])
         insets.top = navigationBarHeight
         
-        if max(layout.size.width, layout.size.height) > 1023.0 {
-            self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_ResetAccountProtected_Title, font: Font.light(40.0), textColor: self.theme.list.itemPrimaryTextColor)
-        } else {
-            self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_ResetAccountProtected_Title, font: Font.light(30.0), textColor: self.theme.list.itemPrimaryTextColor)
+        let bodyFont = UIFont.preferredFont(forTextStyle: .body)
+        self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_ResetAccountProtected_Title, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.noticeNode.attributedText = NSAttributedString(string: self.strings.Login_ResetAccountProtected_Text(self.number).string, font: bodyFont, textColor: self.theme.list.itemSecondaryTextColor, paragraphAlignment: .center)
+        self.timerTitleNode.attributedText = NSAttributedString(string: self.strings.Login_ResetAccountProtected_TimerTitle, font: bodyFont, textColor: self.theme.list.itemSecondaryTextColor, paragraphAlignment: .center)
+        if let value = self.timerValueNode.attributedText?.string {
+            self.timerValueNode.attributedText = NSAttributedString(string: value, font: UIFont.monospacedDigitSystemFont(ofSize: UIFont.preferredFont(forTextStyle: .title2).pointSize, weight: .regular), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
         }
+        self.resetNode.setAttributedTitle(NSAttributedString(string: self.strings.Login_ResetAccountProtected_Reset, font: bodyFont, textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
+        self.resetNode.setAttributedTitle(NSAttributedString(string: self.strings.Login_ResetAccountProtected_Reset, font: bodyFont, textColor: self.theme.list.itemDisabledTextColor, paragraphAlignment: .center), for: [.disabled])
         
         // iPhone Duo: beside a side strip the content keeps to the band between the side insets. With equal
         // insets (every other phone) it keeps the full width.
         let insetsDiffer = layout.safeInsets.left != layout.safeInsets.right
         let bandMinX: CGFloat = insetsDiffer ? layout.safeInsets.left : 0.0
         let bandWidth: CGFloat = insetsDiffer ? layout.size.width - layout.safeInsets.left - layout.safeInsets.right : layout.size.width
+        let contentWidth = max(1.0, min(430.0, bandWidth) - 48.0)
         
-        let titleSize = self.titleNode.measure(CGSize(width: bandWidth, height: CGFloat.greatestFiniteMagnitude))
+        let titleSize = self.titleNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
         
-        let noticeSize = self.noticeNode.measure(CGSize(width: bandWidth - 28.0, height: CGFloat.greatestFiniteMagnitude))
+        let noticeSize = self.noticeNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
         
-        let timerTitleSize = self.timerTitleNode.measure(CGSize(width: bandWidth, height: CGFloat.greatestFiniteMagnitude))
-        let timerValueSize = self.timerValueNode.measure(CGSize(width: bandWidth, height: CGFloat.greatestFiniteMagnitude))
-        let resetSize = self.resetNode.measure(CGSize(width: bandWidth, height: CGFloat.greatestFiniteMagnitude))
+        let timerTitleSize = self.timerTitleNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+        let timerValueSize = self.timerValueNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+        var resetSize = self.resetNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+        resetSize.height = max(44.0, resetSize.height + 16.0)
         
         var items: [AuthorizationLayoutItem] = []
         items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.noticeNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 20.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
-        items.append(AuthorizationLayoutItem(node: self.timerTitleNode, size: timerTitleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 100.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        items.append(AuthorizationLayoutItem(node: self.timerTitleNode, size: timerTitleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 32.0, maxValue: 48.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.timerValueNode, size: timerValueSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.resetNode, size: resetSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
-        let _ = layoutAuthorizationItems(bounds: CGRect(origin: CGPoint(x: bandMinX, y: insets.top), size: CGSize(width: bandWidth, height: layout.size.height - insets.top - insets.bottom - 20.0)), items: items, transition: transition, failIfDoesNotFit: false)
+        self.formNode.update(bounds: CGRect(x: bandMinX, y: insets.top, width: bandWidth, height: layout.size.height - insets.top - insets.bottom - 20.0), items: items, transition: transition)
     }
     
     @objc func resetPressed() {
+        guard self.resetNode.isEnabled else {
+            return
+        }
         self.reset?()
     }
 }

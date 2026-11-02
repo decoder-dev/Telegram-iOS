@@ -13,6 +13,8 @@ import SolidRoundedButtonNode
 final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let strings: PresentationStrings
     private let theme: PresentationTheme
+    private let formNode = AuthorizationFormNode()
+    private var passwordHint: String = ""
     
     private let animationNode: AnimatedStickerNode
     private let titleNode: ASTextNode
@@ -44,6 +46,8 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
     var inProgress: Bool = false {
         didSet {
             self.codeField.alpha = self.inProgress ? 0.6 : 1.0
+            self.forgotNode.isUserInteractionEnabled = !self.inProgress
+            self.resetNode.isUserInteractionEnabled = !self.inProgress
             
             if self.inProgress != oldValue {
                 if self.inProgress {
@@ -72,7 +76,7 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
         self.titleNode.attributedText = NSAttributedString(string: strings.LoginPassword_Title, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
         
         self.titleActivateAreaNode = AccessibilityAreaNode()
-        self.titleActivateAreaNode.accessibilityTraits = .staticText
+        self.titleActivateAreaNode.accessibilityTraits = [.header]
         
         self.noticeNode = ASTextNode()
         self.noticeNode.isUserInteractionEnabled = false
@@ -85,13 +89,17 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
         
         self.forgotNode = HighlightableButtonNode()
         self.forgotNode.displaysAsynchronously = false
+        self.forgotNode.titleNode.maximumNumberOfLines = 0
         self.forgotNode.setAttributedTitle(NSAttributedString(string: self.strings.TwoStepAuth_EnterPasswordForgot, font: Font.regular(16.0), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
         self.forgotNode.accessibilityLabel = self.strings.TwoStepAuth_EnterPasswordForgot
         self.forgotNode.accessibilityTraits = [.button]
         
         self.resetNode = HighlightableButtonNode()
         self.resetNode.displaysAsynchronously = false
+        self.resetNode.titleNode.maximumNumberOfLines = 0
         self.resetNode.setAttributedTitle(NSAttributedString(string: self.strings.LoginPassword_ResetAccount, font: Font.regular(16.0), textColor: self.theme.list.itemDestructiveColor, paragraphAlignment: .center), for: [])
+        self.resetNode.accessibilityLabel = self.strings.LoginPassword_ResetAccount
+        self.resetNode.accessibilityTraits = [.button]
         
         self.codeSeparatorNode = ASDisplayNode()
         self.codeSeparatorNode.isLayerBacked = true
@@ -123,28 +131,38 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
         self.codeField.textField.delegate = self
         self.codeField.textField.addTarget(self, action: #selector(self.textDidChange), for: .editingChanged)
         
-        self.addSubnode(self.codeSeparatorNode)
-        self.addSubnode(self.codeField)
-        self.addSubnode(self.titleNode)
-        self.addSubnode(self.titleActivateAreaNode)
-        self.addSubnode(self.forgotNode)
-        self.addSubnode(self.resetNode)
-        self.addSubnode(self.noticeNode)
-        self.addSubnode(self.noticeActivateAreaNode)
-        self.addSubnode(self.animationNode)
+        self.addSubnode(self.formNode)
+        self.formNode.addSubnode(self.codeSeparatorNode)
+        self.formNode.addSubnode(self.codeField)
+        self.formNode.addSubnode(self.titleNode)
+        self.formNode.addSubnode(self.titleActivateAreaNode)
+        self.formNode.addSubnode(self.forgotNode)
+        self.formNode.addSubnode(self.resetNode)
+        self.formNode.addSubnode(self.noticeNode)
+        self.formNode.addSubnode(self.noticeActivateAreaNode)
+        self.formNode.addSubnode(self.animationNode)
         self.addSubnode(self.proceedNode)
+        self.formNode.requestLayout = { [weak self] in
+            guard let self, let (layout, navigationHeight) = self.layoutArguments else {
+                return
+            }
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
+        }
         
         self.forgotNode.addTarget(self, action: #selector(self.forgotPressed), forControlEvents: .touchUpInside)
         self.resetNode.addTarget(self, action: #selector(self.resetPressed), forControlEvents: .touchUpInside)
         
         self.proceedNode.pressed = { [weak self] in
-            if let strongSelf = self {
+            if let strongSelf = self, !strongSelf.inProgress {
                 strongSelf.loginWithCode?(strongSelf.currentPassword)
             }
         }
         
         self.timer = SwiftSignalKit.Timer(timeout: 7.5, repeat: true, completion: { [weak self] in
-            self?.animationNode.playOnce()
+            guard let self, !UIAccessibility.isReduceMotionEnabled, !self.animationNode.isHidden else {
+                return
+            }
+            self.animationNode.playOnce()
         }, queue: Queue.mainQueue())
         self.timer?.start()
     }
@@ -156,6 +174,7 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
     func updateData(hint: String, didForgotWithNoRecovery: Bool, suggestReset: Bool) {
         self.didForgotWithNoRecovery = didForgotWithNoRecovery
         self.suggestReset = suggestReset
+        self.passwordHint = hint
         self.codeField.textField.attributedPlaceholder = NSAttributedString(string: hint, font: Font.regular(20.0), textColor: self.theme.list.itemPlaceholderTextColor)
         if let (layout, navigationHeight) = self.layoutArguments {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
@@ -189,30 +208,38 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
         let bottomMaximumWidth: CGFloat = min(430.0, bottomBandWidth)
         
         var insets = layout.insets(options: [])
-        insets.top = layout.statusBarHeight ?? 20.0
+        insets.top = max(layout.statusBarHeight ?? 20.0, navigationBarHeight)
         if let inputHeight = layout.inputHeight, !inputHeight.isZero {
             insets.bottom = max(inputHeight, insets.bottom)
         }
         
         let titleInset: CGFloat = layout.size.width > 320.0 ? 18.0 : 0.0
-        let additionalBottomInset: CGFloat = layout.size.width > 320.0 ? 110.0 : 20.0
-        
-        self.titleNode.attributedText = NSAttributedString(string: self.strings.LoginPassword_Title, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
+        let bodyFont = UIFont.preferredFont(forTextStyle: .body)
+        let fieldFont = UIFont.preferredFont(forTextStyle: .title3)
+        self.titleNode.attributedText = NSAttributedString(string: self.strings.LoginPassword_Title, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.noticeNode.attributedText = NSAttributedString(string: self.strings.TwoStepAuth_EnterPasswordHelp, font: bodyFont, textColor: self.theme.list.itemSecondaryTextColor, paragraphAlignment: .center)
+        self.forgotNode.setAttributedTitle(NSAttributedString(string: self.strings.TwoStepAuth_EnterPasswordForgot, font: bodyFont, textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
+        self.resetNode.setAttributedTitle(NSAttributedString(string: self.strings.LoginPassword_ResetAccount, font: bodyFont, textColor: self.theme.list.itemDestructiveColor, paragraphAlignment: .center), for: [])
+        self.codeField.textField.font = fieldFont
+        self.codeField.textField.attributedPlaceholder = NSAttributedString(string: self.passwordHint, font: fieldFont, textColor: self.theme.list.itemPlaceholderTextColor)
         
         let animationSize = CGSize(width: 100.0, height: 100.0)
-        let titleSize = self.titleNode.measure(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
-        
-        let noticeSize = self.noticeNode.measure(CGSize(width: maximumWidth - 28.0, height: CGFloat.greatestFiniteMagnitude))
-        let forgotSize = self.forgotNode.measure(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
-        let resetSize = self.resetNode.measure(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
-        let proceedHeight = self.proceedNode.updateLayout(width: bottomMaximumWidth - inset * 2.0, transition: transition)
+        let contentWidth = max(1.0, maximumWidth - 48.0)
+        let titleSize = self.titleNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+
+        let noticeSize = self.noticeNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+        var forgotSize = self.forgotNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+        forgotSize.height = max(44.0, forgotSize.height + 16.0)
+        var resetSize = self.resetNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+        resetSize.height = max(44.0, resetSize.height + 16.0)
+        let proceedHeight = self.proceedNode.updateLayout(width: bottomMaximumWidth - inset * 2.0, fontSize: bodyFont.pointSize, transition: transition)
         let proceedSize = CGSize(width: bottomMaximumWidth - inset * 2.0, height: proceedHeight)
         
         var items: [AuthorizationLayoutItem] = []
         items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: titleInset, maxValue: titleInset), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.noticeNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
-        items.append(AuthorizationLayoutItem(node: self.codeField, size: CGSize(width: maximumWidth - 80.0, height: 44.0), spacingBefore: AuthorizationLayoutItemSpacing(weight: 32.0, maxValue: 60.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        items.append(AuthorizationLayoutItem(node: self.codeField, size: CGSize(width: max(1.0, maximumWidth - 80.0), height: max(44.0, ceil(fieldFont.lineHeight) + 16.0)), spacingBefore: AuthorizationLayoutItemSpacing(weight: 32.0, maxValue: 60.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.codeSeparatorNode, size: CGSize(width: maximumWidth - 48.0, height: UIScreenPixel), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
         items.append(AuthorizationLayoutItem(node: self.forgotNode, size: forgotSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 48.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
@@ -224,22 +251,22 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
             self.resetNode.isHidden = true
         }
         
-        if layout.size.width > 320.0 {
+        let buttonFrame = CGRect(origin: CGPoint(x: bottomBandMinX + floorToScreenPixels((bottomBandWidth - proceedSize.width) / 2.0), y: layout.size.height - insets.bottom - proceedSize.height - inset), size: proceedSize)
+        let formHeight = max(1.0, buttonFrame.minY - 16.0 - insets.top)
+        if formHeight >= AuthorizationFormNode.minimumHeight(for: items) + animationSize.height + 10.0 {
             items.insert(AuthorizationLayoutItem(node: self.animationNode, size: animationSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)), at: 0)
-            self.proceedNode.isHidden = false
             self.animationNode.isHidden = false
             self.animationNode.visibility = true
         } else {
-            insets.top = navigationBarHeight
-            self.proceedNode.isHidden = true
             self.animationNode.isHidden = true
+            self.animationNode.visibility = false
         }
         
-        transition.updateFrame(node: self.proceedNode, frame: CGRect(origin: CGPoint(x: bottomBandMinX + floorToScreenPixels((bottomBandWidth - proceedSize.width) / 2.0), y: layout.size.height - insets.bottom - proceedSize.height - inset), size: proceedSize))
+        transition.updateFrame(node: self.proceedNode, frame: buttonFrame)
         
         self.animationNode.updateLayout(size: animationSize)
         
-        let _ = layoutAuthorizationItems(bounds: CGRect(origin: CGPoint(x: bandMinX, y: insets.top), size: CGSize(width: bandWidth, height: layout.size.height - insets.top - insets.bottom - additionalBottomInset)), items: items, transition: transition, failIfDoesNotFit: false)
+        self.formNode.update(bounds: CGRect(x: bandMinX, y: insets.top, width: bandWidth, height: formHeight), items: items, focusedNode: self.codeField.textField.isFirstResponder ? self.codeField : nil, transition: transition)
         
         self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
         self.noticeActivateAreaNode.accessibilityLabel = self.noticeNode.attributedText?.string ?? ""
@@ -276,15 +303,23 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        self.loginWithCode?(self.currentPassword)
+        if !self.inProgress {
+            self.loginWithCode?(self.currentPassword)
+        }
         return false
     }
     
     @objc func forgotPressed() {
+        guard !self.inProgress else {
+            return
+        }
         self.forgot?()
     }
     
     @objc func resetPressed() {
+        guard !self.inProgress else {
+            return
+        }
         self.reset?()
     }
 }
