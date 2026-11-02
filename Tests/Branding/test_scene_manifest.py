@@ -18,10 +18,12 @@ class SceneManifestTests(unittest.TestCase):
 
     def test_ci_does_not_inject_a_second_scene_manifest(self):
         workflow = (ROOT / '.github/workflows/build.yml').read_text()
-        step = workflow.split('- name: Adapt sources to the Xcode 27 SDK', 1)[1].split('- name:', 1)[0]
+        self.assertIn('uses: ./.github/actions/prepare-apple-toolchain', workflow)
+        preparation = (ROOT / '.github/actions/prepare-apple-toolchain/action.yml').read_text()
+        step = preparation.split('- name: Adapt sources to the Xcode 27 SDK', 1)[1].split('- name:', 1)[0]
         self.assertIn("inputs.toolchain == 'xcode27'", step)
         self.assertNotIn('UIApplicationSceneManifest', step)
-        self.assertNotIn('TelegramSceneDelegate', workflow)
+        self.assertNotIn('TelegramSceneDelegate', preparation)
 
 
 if __name__ == '__main__':

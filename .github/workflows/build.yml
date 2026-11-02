@@ -230,84 +230,10 @@ jobs:
           git apply ../patches/vless-media-socks.patch
           python3 ../../../Tests/Upstream13/call_patch.py .
 
-      - name: Select Xcode
-        env:
-          TOOLCHAIN: ${{ inputs.toolchain || 'xcode26' }}
-        run: |
-          set -euo pipefail
-          if [ "$TOOLCHAIN" = "xcode27" ]; then
-            # Preview images ship betas as Xcode_27_beta_N.app (+ optional Xcode_27.0.app). Never accept Xcode 26 here.
-            DEVELOPER_DIR=""
-            for CANDIDATE in /Applications/Xcode_27.0.app $(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1); do
-              if [ -d "$CANDIDATE" ]; then DEVELOPER_DIR="$CANDIDATE/Contents/Developer"; break; fi
-            done
-            if [ -z "$DEVELOPER_DIR" ]; then
-              echo "::error::No Xcode 27.x found under /Applications"
-              ls -d /Applications/Xcode*.app 2>/dev/null || true
-              exit 1
-            fi
-          else
-            XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
-            DEVELOPER_DIR="/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
-            if [ ! -d "$DEVELOPER_DIR" ]; then
-              CANDIDATE="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)"
-              [ -n "$CANDIDATE" ] || { echo "::error::No Xcode 26.x found"; exit 1; }
-              DEVELOPER_DIR="${CANDIDATE}/Contents/Developer"
-              ACTUAL_VERSION="$(DEVELOPER_DIR="$DEVELOPER_DIR" xcodebuild -version | awk '/^Xcode / { print $2 }')"
-              python3 - "$XCODE_VERSION" "$ACTUAL_VERSION" <<'PY'
-          import sys
-          version = lambda text: tuple(map(int, text.split('.')))
-          if version(sys.argv[2]) < version(sys.argv[1]):
-              raise SystemExit(f"Installed Xcode {sys.argv[2]} is older than required {sys.argv[1]}")
-          PY
-              echo "Using Xcode ${ACTUAL_VERSION}"
-            fi
-          fi
-          sudo xcode-select -s "$DEVELOPER_DIR"
-          xcodebuild -version
-          echo "DEVELOPER_DIR=$DEVELOPER_DIR"
-          echo "CPUS=$(sysctl -n hw.ncpu)"
-
-      - name: Adapt sources to the Xcode 27 SDK
-        if: ${{ inputs.toolchain == 'xcode27' }}
-        run: |
-          set -euo pipefail
-          # The iOS 27 SDK libc++ rejects deployment targets below iOS 15.
-          sed -i '' 's/^minimum_os_version = "13.0"/minimum_os_version = "15.0"/' Telegram/BUILD
-          grep -n '^minimum_os_version' Telegram/BUILD
-          # Telegram 13 includes its scene manifest for all supported toolchains.
-          # Keep Swift diagnostic groups that are new in Xcode 27 as warnings (the BUILD files use -warnings-as-errors).
-          python3 - <<'PY'
-          import os, re
-          flags = '        "-Wwarning", "ImplicitStrongCapture",\n        "-Wwarning", "DeprecatedDeclaration",\n        "-Wwarning", "NoUseUnstructuredThrowingTask",\n'
-          changed = 0
-          for root, dirs, files in os.walk('.'):
-              dirs[:] = [d for d in dirs if d not in ('.git', 'node_modules', 'build-input', 'bazel-out')]
-              if 'BUILD' not in files:
-                  continue
-              path = os.path.join(root, 'BUILD')
-              text = open(path, encoding='utf-8').read()
-              if '"-warnings-as-errors",' not in text or 'ImplicitStrongCapture' in text:
-                  continue
-              text = re.sub(r'(\n[ \t]*)"-warnings-as-errors",\n', lambda m: m.group(0) + flags, text)
-              open(path, 'w', encoding='utf-8').write(text)
-              changed += 1
-          print("patched BUILD files:", changed)
-          PY
-
-      - name: Prepare Metal toolchain
-        run: |
-          set -euo pipefail
-          # `xcrun -f` only finds the path; on the Xcode 27 image the tool is there but refuses to run until the
-          # Metal Toolchain component is installed, so ask it to run.
-          if xcrun metal -v >/dev/null 2>&1; then
-            echo "metal already available: $(xcrun -f metal)"
-          else
-            sudo xcodebuild -downloadComponent MetalToolchain
-            rm -f "$(getconf DARWIN_USER_TEMP_DIR)/xcrun_db" || true
-          fi
-          xcrun -f metal
-          xcrun metal -v
+      - name: Prepare Apple toolchain
+        uses: ./.github/actions/prepare-apple-toolchain
+        with:
+          toolchain: ${{ inputs.toolchain || 'xcode26' }}
 
       - name: Free disk space
         run: |
@@ -315,7 +241,6 @@ jobs:
           df -h /
           sudo rm -rf \
             /Users/runner/Library/Developer/CoreSimulator/Caches \
-            /Library/Developer/CoreSimulator/Profiles/Runtimes/* \
             /Users/runner/.cargo \
             /Users/runner/.rustup \
             /usr/local/lib/android \

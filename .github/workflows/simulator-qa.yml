@@ -2,6 +2,12 @@ name: Simulator QA evidence
 
 on:
   workflow_dispatch:
+    inputs:
+      toolchain:
+        description: Apple SDK to use for the simulator build
+        type: choice
+        options: [xcode27, xcode26]
+        default: xcode27
 
 permissions:
   contents: read
@@ -13,7 +19,7 @@ concurrency:
 jobs:
   capture:
     name: First-launch screenshots and video
-    runs-on: macos-26
+    runs-on: ${{ inputs.toolchain == 'xcode27' && 'xcode-27' || 'macos-26' }}
     timeout-minutes: 240
     env:
       BAZEL_USER_ROOT: /private/var/tmp/_bazel_telegram_ios_qa
@@ -58,6 +64,11 @@ jobs:
               test -d third-party/libxray/LibXray.xcframework/ios-arm64_x86_64-simulator
           fi
 
+      - name: Prepare Apple toolchain
+        uses: ./.github/actions/prepare-apple-toolchain
+        with:
+          toolchain: ${{ inputs.toolchain }}
+
       - name: Restore Bazel simulator cache
         id: bazel-cache
         uses: actions/cache/restore@v4
@@ -65,9 +76,9 @@ jobs:
           path: |
             ${{ env.BAZEL_CACHE_DIR }}
             ${{ env.BAZEL_REPO_CACHE }}
-          key: bazel-warm-simulator-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}
+          key: bazel-warm-simulator-${{ inputs.toolchain }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}
           restore-keys: |
-            bazel-warm-simulator-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-
+            bazel-warm-simulator-${{ inputs.toolchain }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-
 
       - name: Build Telegram for iOS Simulator
         run: |
@@ -107,8 +118,16 @@ jobs:
       - name: Install and capture first-launch screens
         run: |
           set -euo pipefail
-          APP="$(find -L bazel-bin/Telegram -type d -name 'Telegram.app' -print -quit)"
-          test -n "$APP" && test -d "$APP"
+          STAGE="$(mktemp -d "$RUNNER_TEMP/liquid-simulator.XXXXXX")"
+          unzip -q bazel-bin/Telegram/Telegram.ipa -d "$STAGE"
+          APP="$STAGE/Payload/Telegram.app"
+          test -x "$APP/Telegram"
+          {
+            git rev-parse HEAD
+            xcodebuild -version
+            xcrun simctl list runtimes
+            xcrun simctl list devices -j
+          } > qa-artifacts/environment.txt
           BUNDLE_ID="$(jq -r .bundle_id build-system/sideload-configuration.json)"
           echo "Simulator app: $APP"
           echo "Bundle id: $BUNDLE_ID"
@@ -143,7 +162,7 @@ jobs:
           path: |
             ${{ env.BAZEL_CACHE_DIR }}
             ${{ env.BAZEL_REPO_CACHE }}
-          key: bazel-warm-simulator-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}
+          key: bazel-warm-simulator-${{ inputs.toolchain }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}
 
       - name: Upload simulator QA evidence
         if: always()

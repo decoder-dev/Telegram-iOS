@@ -22,6 +22,22 @@ class SimulatorQAWorkflow(unittest.TestCase):
         self.assertIn('recordVideo', WORKFLOW)
         self.assertIn('retention-days: 14', WORKFLOW)
 
+    def test_installs_the_fresh_package_and_records_its_environment(self):
+        self.assertIn('unzip -q bazel-bin/Telegram/Telegram.ipa', WORKFLOW)
+        self.assertIn('APP="$STAGE/Payload/Telegram.app"', WORKFLOW)
+        self.assertNotIn('find -L bazel-bin', WORKFLOW)
+        self.assertIn('qa-artifacts/environment.txt', WORKFLOW)
+        self.assertIn('git rev-parse HEAD', WORKFLOW)
+
+    def test_qa_and_device_build_share_toolchain_setup(self):
+        build = (ROOT / '.github/workflows/build.yml').read_text(encoding='utf-8')
+        for workflow in (WORKFLOW, build):
+            self.assertIn('uses: ./.github/actions/prepare-apple-toolchain', workflow)
+        self.assertIn('options: [xcode27, xcode26]', WORKFLOW)
+        self.assertIn('bazel-warm-simulator-${{ inputs.toolchain }}-', WORKFLOW)
+        # Device builds now run Simulator tests too; their runtimes must survive disk cleanup.
+        self.assertNotIn('/CoreSimulator/Profiles/Runtimes/*', build)
+
 
 if __name__ == '__main__':
     unittest.main()

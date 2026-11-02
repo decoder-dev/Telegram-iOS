@@ -109,7 +109,9 @@ class BazelResourcesTests(unittest.TestCase):
         self.assertIn('"-warnings-as-errors"', block)
         self.assertNotIn('"-Wwarning"', block)
         workflow = (ROOT / '.github/workflows/build.yml').read_text(encoding='utf-8')
-        adaptation = workflow.split('- name: Adapt sources to the Xcode 27 SDK', 1)[1].split('- name:', 1)[0]
+        self.assertIn('uses: ./.github/actions/prepare-apple-toolchain', workflow)
+        preparation = (ROOT / '.github/actions/prepare-apple-toolchain/action.yml').read_text()
+        adaptation = preparation.split('- name: Adapt sources to the Xcode 27 SDK', 1)[1].split('- name:', 1)[0]
         self.assertIn("inputs.toolchain == 'xcode27'", adaptation)
         self.assertIn('ImplicitStrongCapture', adaptation)
 
