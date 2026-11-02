@@ -38,17 +38,37 @@ final class AuthorizationFormTests: XCTestCase {
         }
     }
 
-    func testFontObservationEndsWithTheFormLifetime() {
+    func testPreferenceObservationEndsWithTheFormLifetime() {
         var callbacks = 0
         var form: AuthorizationFormNode? = AuthorizationFormNode()
         form?.requestLayout = { callbacks += 1 }
         NotificationCenter.default.post(name: UIContentSizeCategory.didChangeNotification, object: nil)
         XCTAssertEqual(callbacks, 1)
+        NotificationCenter.default.post(name: UIAccessibility.reduceMotionStatusDidChangeNotification, object: nil)
+        XCTAssertEqual(callbacks, 2)
         weak var released = form
         form = nil
         XCTAssertNil(released)
         NotificationCenter.default.post(name: UIContentSizeCategory.didChangeNotification, object: nil)
-        XCTAssertEqual(callbacks, 1)
+        XCTAssertEqual(callbacks, 2)
+    }
+
+    func testNestedFieldsUseTheirFrameInTheScrollContent() {
+        let form = AuthorizationFormNode()
+        let title = ASDisplayNode()
+        let group = ASDisplayNode()
+        let field = TextFieldNode()
+        form.addSubnode(title)
+        form.addSubnode(group)
+        group.addSubnode(field)
+        field.frame = CGRect(x: 24.0, y: 120.0, width: 220.0, height: 44.0)
+        let zero = AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)
+        let items = [
+            AuthorizationLayoutItem(node: title, size: CGSize(width: 200.0, height: 200.0), spacingBefore: zero, spacingAfter: zero),
+            AuthorizationLayoutItem(node: group, size: CGSize(width: 300.0, height: 200.0), spacingBefore: zero, spacingAfter: zero)
+        ]
+        form.update(bounds: CGRect(x: 0.0, y: 62.0, width: 320.0, height: 100.0), items: items, focusedNode: field, transition: .immediate)
+        XCTAssertTrue(form.view.bounds.contains(field.convert(field.bounds, to: form)))
     }
 
     func testContinueButtonFitsLargeAndWrappedTextAndShrinksAgain() {
@@ -73,5 +93,17 @@ final class AuthorizationFormTests: XCTestCase {
         XCTAssertTrue(button.accessibilityTraits.contains(.notEnabled))
         button.isEnabled = true
         XCTAssertFalse(button.accessibilityTraits.contains(.notEnabled))
+    }
+
+    func testEmbeddedProgressRemainsCenteredAfterTextAndWidthChanges() throws {
+        let button = SolidRoundedButtonNode(title: "Continue", theme: SolidRoundedButtonTheme(backgroundColor: .systemBlue, foregroundColor: .white), height: 50.0)
+        button.progressType = .embedded
+        let _ = button.updateLayout(width: 260.0, fontSize: 17.0, transition: .immediate)
+        button.transitionToProgress()
+        let progress = try XCTUnwrap(button.subnodes?.first { $0.layer.animation(forKey: "progressRotation") != nil })
+        let height = button.updateLayout(width: 320.0, fontSize: 34.0, transition: .immediate)
+        XCTAssertEqual(progress.frame.midX, 160.0, accuracy: 0.5)
+        XCTAssertEqual(progress.frame.midY, height * 0.5, accuracy: 0.5)
+        XCTAssertLessThanOrEqual(progress.frame.height, 28.0)
     }
 }

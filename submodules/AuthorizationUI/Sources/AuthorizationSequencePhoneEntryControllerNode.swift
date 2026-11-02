@@ -264,18 +264,23 @@ private final class PhoneAndCountryNode: ASDisplayNode {
 }
 
 private final class ContactSyncNode: ASDisplayNode {
+    private let theme: PresentationTheme
+    private let strings: PresentationStrings
     private let titleNode: ImmediateTextNode
     let switchNode: SwitchNode
     
     init(theme: PresentationTheme, strings: PresentationStrings) {
+        self.theme = theme
+        self.strings = strings
         self.titleNode = ImmediateTextNode()
-        self.titleNode.maximumNumberOfLines = 1
+        self.titleNode.maximumNumberOfLines = 0
         self.titleNode.attributedText = NSAttributedString(string: strings.Privacy_ContactsSync, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor)
         self.switchNode = SwitchNode()
         self.switchNode.frameColor = theme.list.itemSwitchColors.frameColor
         self.switchNode.contentColor = theme.list.itemSwitchColors.contentColor
         self.switchNode.handleColor = theme.list.itemSwitchColors.handleColor
         self.switchNode.isOn = true
+        self.switchNode.accessibilityLabel = strings.Privacy_ContactsSync
         
         super.init()
         
@@ -284,6 +289,7 @@ private final class ContactSyncNode: ASDisplayNode {
     }
     
     func updateLayout(width: CGFloat) -> CGSize {
+        self.titleNode.attributedText = NSAttributedString(string: self.strings.Privacy_ContactsSync, font: UIFont.preferredFont(forTextStyle: .body), textColor: self.theme.list.itemPrimaryTextColor)
         var switchSize = CGSize(width: 51.0, height: 31.0)
         if let switchView = self.switchNode.view as? UISwitch {
             if self.switchNode.bounds.size.width.isZero {
@@ -293,8 +299,8 @@ private final class ContactSyncNode: ASDisplayNode {
         }
         
         let inset: CGFloat = 24.0
-        let titleSize = self.titleNode.updateLayout(CGSize(width: width - switchSize.width - inset * 2.0 - 8.0, height: .greatestFiniteMagnitude))
-        let height: CGFloat = 40.0
+        let titleSize = self.titleNode.updateLayout(CGSize(width: max(1.0, width - switchSize.width - inset * 2.0 - 12.0), height: .greatestFiniteMagnitude))
+        let height: CGFloat = max(44.0, titleSize.height + 16.0)
         self.titleNode.frame = CGRect(origin: CGPoint(x: inset, y: floor((height - titleSize.height) / 2.0)), size: titleSize)
         self.switchNode.frame = CGRect(origin: CGPoint(x: width - inset - switchSize.width, y: floor((height - switchSize.height) / 2.0)), size: switchSize)
         return CGSize(width: width, height: height)
@@ -307,6 +313,15 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     private let strings: PresentationStrings
     private let theme: PresentationTheme
     private let hasOtherAccounts: Bool
+    private let formNode = AuthorizationFormNode()
+    private var layoutArguments: (ContainerViewLayout, CGFloat)?
+    private var showsPasskeyLoginOption = false
+    private var displaysAnimation = true
+    private var previousReduceMotion: Bool?
+    private var noticePresentation: (font: UIFont, passkey: Bool)?
+    private var reduceMotion: Bool {
+        return UIAccessibility.isReduceMotionEnabled || self.sharedContext.currentPresentationData.with { $0.reduceMotion }
+    }
     
     private let animationNode: AnimatedStickerNode
     private let managedAnimationNode: ManagedPhoneAnimationNode
@@ -405,7 +420,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.titleNode.attributedText = NSAttributedString(string: account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle, font: Font.light(30.0), textColor: theme.list.itemPrimaryTextColor)
         
         self.titleActivateAreaNode = AccessibilityAreaNode()
-        self.titleActivateAreaNode.accessibilityTraits = .staticText
+        self.titleActivateAreaNode.accessibilityTraits = [.header]
         
         self.noticeNode = ImmediateTextNode()
         self.noticeNode.maximumNumberOfLines = 0
@@ -435,16 +450,23 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         
         self.backgroundColor = theme.list.plainBackgroundColor
         
-        self.addSubnode(self.titleNode)
-        self.addSubnode(self.noticeNode)
-        self.addSubnode(self.titleActivateAreaNode)
-        self.addSubnode(self.noticeActivateAreaNode)
-        self.addSubnode(self.phoneAndCountryNode)
-        self.addSubnode(self.contactSyncNode)
+        self.addSubnode(self.formNode)
+        self.formNode.addSubnode(self.titleNode)
+        self.formNode.addSubnode(self.noticeNode)
+        self.formNode.addSubnode(self.titleActivateAreaNode)
+        self.formNode.addSubnode(self.noticeActivateAreaNode)
+        self.formNode.addSubnode(self.phoneAndCountryNode)
+        self.formNode.addSubnode(self.contactSyncNode)
         self.addSubnode(self.proceedNode)
-        self.addSubnode(self.animationNode)
-        self.addSubnode(self.managedAnimationNode)
+        self.formNode.addSubnode(self.animationNode)
+        self.formNode.addSubnode(self.managedAnimationNode)
         self.contactSyncNode.isHidden = true
+        self.formNode.requestLayout = { [weak self] in
+            guard let self, let (layout, navigationHeight) = self.layoutArguments else {
+                return
+            }
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
+        }
         
         self.noticeNode.highlightAttributeAction = { attributes in
             if let _ = attributes[NSAttributedString.Key(rawValue: "URL")] {
@@ -486,12 +508,17 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         }
         
         self.proceedNode.pressed = { [weak self] in
-            self?.checkPhone?()
+            if let self, !self.inProgress {
+                self.checkPhone?()
+            }
         }
         
         self.animationNode.completed = { [weak self] _ in
-            self?.animationNode.removeFromSupernode()
-            self?.managedAnimationNode.isHidden = false
+            guard let self, !self.reduceMotion else {
+                return
+            }
+            self.animationNode.removeFromSupernode()
+            self.managedAnimationNode.isHidden = !self.displaysAnimation
         }
     }
     
@@ -539,6 +566,18 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     }
     
     func animateIn(buttonFrame: CGRect, buttonTitle: String, animationSnapshot: UIView, textSnapshot: UIView) {
+        if self.reduceMotion {
+            self.proceedNode.title = self.strings.Login_Continue
+            self.animationSnapshotView?.removeFromSuperview()
+            self.animationSnapshotView = nil
+            self.textSnapshotView?.removeFromSuperview()
+            self.textSnapshotView = nil
+            let nodes: [ASDisplayNode] = [self.animationNode, self.titleNode, self.noticeNode, self.phoneAndCountryNode, self.contactSyncNode]
+            for node in nodes {
+                node.alpha = 1.0
+            }
+            return
+        }
         self.proceedNode.animateTitle(to: self.strings.Login_Continue)
                 
         self.animationSnapshotView?.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak self] _ in
@@ -579,10 +618,27 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         if self.account == nil {
             return
         }
+        self.showsPasskeyLoginOption = true
+        self.updateNotice()
+        if let (layout, navigationHeight) = self.layoutArguments {
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
+        }
+    }
+
+    private func updateNotice() {
+        let bodyFont = UIFont.preferredFont(forTextStyle: .body)
+        if self.noticePresentation?.font == bodyFont, self.noticePresentation?.passkey == self.showsPasskeyLoginOption {
+            return
+        }
+        self.noticePresentation = (bodyFont, self.showsPasskeyLoginOption)
+        if !self.showsPasskeyLoginOption {
+            self.noticeNode.attributedText = NSAttributedString(string: self.account == nil ? self.strings.ChangePhoneNumberNumber_Help : self.strings.Login_PhoneAndCountryHelp, font: bodyFont, textColor: self.theme.list.itemSecondaryTextColor, paragraphAlignment: .center)
+            return
+        }
         let attributedText = NSMutableAttributedString(attributedString: parseMarkdownIntoAttributedString(self.strings.Login_PhoneWithPasskeySubtitle, attributes: MarkdownAttributes(
-            body: MarkdownAttributeSet(font: Font.regular(17.0), textColor: self.theme.list.itemPrimaryTextColor),
-            bold: MarkdownAttributeSet(font: Font.semibold(17.0), textColor: self.theme.list.itemPrimaryTextColor),
-            link: MarkdownAttributeSet(font: Font.regular(17.0), textColor: self.theme.list.itemAccentColor),
+            body: MarkdownAttributeSet(font: bodyFont, textColor: self.theme.list.itemSecondaryTextColor),
+            bold: MarkdownAttributeSet(font: Font.semibold(bodyFont.pointSize), textColor: self.theme.list.itemPrimaryTextColor),
+            link: MarkdownAttributeSet(font: bodyFont, textColor: self.theme.list.itemAccentColor),
             linkAttribute: { url in
                 return ("URL", url)
             }
@@ -597,16 +653,16 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+        self.layoutArguments = (layout, navigationBarHeight)
         var insets = layout.insets(options: [])
-        insets.top = layout.statusBarHeight ?? 20.0
+        insets.top = max(layout.statusBarHeight ?? 20.0, navigationBarHeight)
         if let inputHeight = layout.inputHeight, !inputHeight.isZero {
             insets.bottom = max(inputHeight, insets.bottom)
         }
         
         let titleInset: CGFloat = layout.size.width > 320.0 ? 18.0 : 0.0
-        let additionalBottomInset: CGFloat = layout.size.width > 320.0 ? 80.0 : 10.0
-        
-        self.titleNode.attributedText = NSAttributedString(string: self.account == nil ? self.strings.Login_NewNumber : self.strings.Login_PhoneTitle, font: Font.bold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
+        self.updateNotice()
+        self.titleNode.attributedText = NSAttributedString(string: self.account == nil ? self.strings.Login_NewNumber : self.strings.Login_PhoneTitle, font: Font.bold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
         self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
         
         // iPhone Duo: beside a side strip the content keeps to the band between the side insets. With equal
@@ -625,12 +681,12 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         let bottomMaximumWidth: CGFloat = min(430.0, bottomBandWidth)
         
         let animationSize = CGSize(width: 100.0, height: 100.0)
-        let titleSize = self.titleNode.measure(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
+        let titleSize = self.titleNode.measure(CGSize(width: max(1.0, maximumWidth - 48.0), height: CGFloat.greatestFiniteMagnitude))
         
         let noticeInset: CGFloat = self.account == nil ? 32.0 : 0.0
         
         let noticeSize = self.noticeNode.updateLayout(CGSize(width: min(274.0 + noticeInset, maximumWidth - 28.0), height: CGFloat.greatestFiniteMagnitude))
-        let proceedHeight = self.proceedNode.updateLayout(width: bottomMaximumWidth - inset * 2.0, transition: transition)
+        let proceedHeight = self.proceedNode.updateLayout(width: bottomMaximumWidth - inset * 2.0, fontSize: UIFont.preferredFont(forTextStyle: .body).pointSize, transition: transition)
         let proceedSize = CGSize(width: bottomMaximumWidth - inset * 2.0, height: proceedHeight)
         
         var items: [AuthorizationLayoutItem] = [
@@ -638,18 +694,6 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
             AuthorizationLayoutItem(node: self.noticeNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)),
             AuthorizationLayoutItem(node: self.phoneAndCountryNode, size: CGSize(width: maximumWidth, height: 115.0), spacingBefore: AuthorizationLayoutItemSpacing(weight: 30.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)),
         ]
-        
-        if layout.size.width > 320.0 {
-            items.insert(AuthorizationLayoutItem(node: self.animationNode, size: animationSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)), at: 0)
-            self.proceedNode.isHidden = false
-            self.animationNode.isHidden = false
-            self.animationNode.visibility = true
-        } else {
-            insets.top = navigationBarHeight
-            self.proceedNode.isHidden = true
-            self.animationNode.isHidden = true
-            self.managedAnimationNode.isHidden = true
-        }
         
         let contactSyncSize = self.contactSyncNode.updateLayout(width: maximumWidth)
         if self.hasOtherAccounts {
@@ -667,10 +711,27 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         }
         
         transition.updateFrame(node: self.proceedNode, frame: buttonFrame)
+        let formHeight = max(1.0, buttonFrame.minY - 16.0 - insets.top)
+        self.displaysAnimation = formHeight >= AuthorizationFormNode.minimumHeight(for: items) + animationSize.height + 10.0
+        let reduceMotion = self.reduceMotion
+        if self.previousReduceMotion != reduceMotion {
+            self.previousReduceMotion = reduceMotion
+            if self.animationNode.supernode == nil {
+                self.formNode.addSubnode(self.animationNode)
+            }
+            self.animationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: "IntroPhone"), width: 256, height: 256, playbackMode: reduceMotion ? .still(.start) : .once, mode: .direct(cachePathPrefix: nil))
+        }
+        if self.displaysAnimation {
+            items.insert(AuthorizationLayoutItem(node: self.animationNode, size: animationSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)), at: 0)
+        }
+        self.animationNode.isHidden = !self.displaysAnimation
+        self.animationNode.visibility = self.displaysAnimation
+        self.managedAnimationNode.isHidden = !self.displaysAnimation || reduceMotion || self.animationNode.supernode != nil
         
         self.animationNode.updateLayout(size: animationSize)
         
-        let _ = layoutAuthorizationItems(bounds: CGRect(origin: CGPoint(x: bandMinX, y: insets.top), size: CGSize(width: bandWidth, height: layout.size.height - insets.top - insets.bottom - additionalBottomInset)), items: items, transition: transition, failIfDoesNotFit: false)
+        let focusedField: ASDisplayNode? = self.phoneAndCountryNode.phoneInputNode.numberField.textField.isFirstResponder ? self.numberNode : self.phoneAndCountryNode.phoneInputNode.countryCodeField.textField.isFirstResponder ? self.codeNode : nil
+        self.formNode.update(bounds: CGRect(x: bandMinX, y: insets.top, width: bandWidth, height: formHeight), items: items, focusedNode: focusedField, transition: transition)
         
         transition.updateFrame(node: self.managedAnimationNode, frame: self.animationNode.frame)
         

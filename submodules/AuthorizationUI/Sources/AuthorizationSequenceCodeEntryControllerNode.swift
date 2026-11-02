@@ -1052,7 +1052,10 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         }
         
         var updated = textField.text ?? ""
-        updated.replaceSubrange(updated.index(updated.startIndex, offsetBy: range.lowerBound) ..< updated.index(updated.startIndex, offsetBy: range.upperBound), with: string)
+        guard let stringRange = Range(range, in: updated) else {
+            return false
+        }
+        updated.replaceSubrange(stringRange, with: string)
         
         if updated.isEmpty {
             return true

@@ -58,6 +58,7 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
     private let theme: PresentationTheme
     private let mode: AuthorizationSequenceEmailEntryController.Mode
     private let formNode = AuthorizationFormNode()
+    private var previousReduceMotion: Bool?
     
     private let animationNode: AnimatedStickerNode
     private let titleNode: ASTextNode
@@ -225,6 +226,10 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+        if self.previousReduceMotion != UIAccessibility.isReduceMotionEnabled {
+            self.previousReduceMotion = UIAccessibility.isReduceMotionEnabled
+            self.animationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: "IntroMail"), width: 256, height: 256, playbackMode: UIAccessibility.isReduceMotionEnabled ? .still(.start) : .once, mode: .direct(cachePathPrefix: nil))
+        }
         let previousInputHeight = self.layoutArguments?.0.inputHeight ?? 0.0
         let newInputHeight = layout.inputHeight ?? 0.0
         

@@ -187,6 +187,7 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
     private let iconNode: ASImageNode
     private var animationNode: SimpleAnimationNode?
     private var progressNode: ASImageNode?
+    private var progressAppearance: (diameter: CGFloat, color: UIColor)?
     private var badgeNode: BadgeNode?
     
     private let minimumButtonHeight: CGFloat
@@ -847,7 +848,32 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
             chromeTransition.updateFrame(view: chromeView, frame: CGRect(origin: .zero, size: buttonSize))
         }
         
+        self.updateProgressLayout(width: width, transition: transition)
         return buttonSize.height
+    }
+
+    private func updateProgressLayout(width: CGFloat, transition: ContainedViewLayoutTransition) {
+        guard let progressNode = self.progressNode else {
+            return
+        }
+        let diameter: CGFloat
+        let color: UIColor
+        let lineWidth: CGFloat
+        switch self.progressType {
+        case .fullSize:
+            diameter = self.buttonHeight
+            color = self.buttonBackgroundNode.backgroundColor ?? .clear
+            lineWidth = 2.0 + UIScreenPixel
+        case .embedded:
+            diameter = self.usesAdaptiveTypography ? min(28.0, self.buttonHeight - 22.0) : self.buttonHeight - 22.0
+            color = self.isEnabled ? self.theme.foregroundColor : self.theme.disabledForegroundColor ?? self.theme.foregroundColor
+            lineWidth = 3.0
+        }
+        if self.progressAppearance?.diameter != diameter || self.progressAppearance?.color != color {
+            self.progressAppearance = (diameter, color)
+            progressNode.image = generateIndefiniteActivityIndicatorImage(color: color, diameter: diameter, lineWidth: lineWidth)
+        }
+        transition.updateFrame(node: progressNode, frame: CGRect(x: floorToScreenPixels((width - diameter) / 2.0), y: floorToScreenPixels((self.buttonHeight - diameter) / 2.0), width: diameter, height: diameter))
     }
     
     @objc private func buttonPressed() {
@@ -881,7 +907,6 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
             case .fullSize:
                 let progressFrame = CGRect(origin: CGPoint(x: floorToScreenPixels(buttonOffset + (buttonWidth - self.buttonHeight) / 2.0), y: 0.0), size: CGSize(width: self.buttonHeight, height: self.buttonHeight))
                 progressNode.frame = progressFrame
-                progressNode.image = generateIndefiniteActivityIndicatorImage(color: self.buttonBackgroundNode.backgroundColor ?? .clear, diameter: self.buttonHeight, lineWidth: 2.0 + UIScreenPixel)
                                 
                 self.buttonBackgroundNode.layer.cornerRadius = self.buttonHeight / 2.0
                 self.buttonBackgroundNode.layer.animate(from: self.buttonCornerRadius as NSNumber, to: self.buttonHeight / 2.0 as NSNumber, keyPath: "cornerRadius", timingFunction: CAMediaTimingFunctionName.easeInEaseOut.rawValue, duration: 0.2)
@@ -896,17 +921,13 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
                 let progressFrame = CGRect(origin: CGPoint(x: floorToScreenPixels(buttonOffset + (buttonWidth - diameter) / 2.0), y: floorToScreenPixels((self.buttonHeight - diameter) / 2.0)), size: CGSize(width: diameter, height: diameter))
                 progressNode.frame = progressFrame
             
-                if !self.isEnabled, let disabledForegroundColor = self.theme.disabledForegroundColor {
-                    progressNode.image = generateIndefiniteActivityIndicatorImage(color: disabledForegroundColor, diameter: diameter, lineWidth: 3.0)
-                } else {
-                    progressNode.image = generateIndefiniteActivityIndicatorImage(color: self.theme.foregroundColor, diameter: diameter, lineWidth: 3.0)
-                }
                 self.addSubnode(progressNode)
         }
         
         progressNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
         progressNode.layer.add(rotationAnimation, forKey: "progressRotation")
         self.progressNode = progressNode
+        self.updateProgressLayout(width: buttonWidth, transition: .immediate)
         self.updateAccessibilityLabels()
         
         self.titleNode.alpha = 0.0

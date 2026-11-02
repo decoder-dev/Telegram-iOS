@@ -6,18 +6,20 @@ import AuthorizationUtils
 
 final class AuthorizationFormNode: ASScrollNode {
     var requestLayout: (() -> Void)?
-    private var fontObserver: NSObjectProtocol?
+    private var preferenceObservers: [NSObjectProtocol] = []
 
     override init() {
         super.init()
-        self.fontObserver = NotificationCenter.default.addObserver(forName: UIContentSizeCategory.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.requestLayout?()
+        for name in [UIContentSizeCategory.didChangeNotification, UIAccessibility.reduceMotionStatusDidChangeNotification] {
+            self.preferenceObservers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.requestLayout?()
+            })
         }
     }
 
     deinit {
-        if let fontObserver = self.fontObserver {
-            NotificationCenter.default.removeObserver(fontObserver)
+        for observer in self.preferenceObservers {
+            NotificationCenter.default.removeObserver(observer)
         }
     }
 
@@ -44,8 +46,11 @@ final class AuthorizationFormNode: ASScrollNode {
         self.view.isScrollEnabled = contentHeight > viewport.height
         self.view.showsVerticalScrollIndicator = self.view.isScrollEnabled
         self.view.contentOffset.y = min(max(0.0, self.view.contentOffset.y), contentHeight - viewport.height)
-        if let focusedNode = focusedNode, !self.view.bounds.contains(focusedNode.frame.insetBy(dx: 0.0, dy: -12.0)) {
-            self.view.scrollRectToVisible(focusedNode.frame.insetBy(dx: 0.0, dy: -12.0), animated: false)
+        if let focusedNode = focusedNode {
+            let focusFrame = focusedNode.convert(focusedNode.bounds, to: self).insetBy(dx: 0.0, dy: -12.0)
+            if !self.view.bounds.contains(focusFrame) {
+                self.view.scrollRectToVisible(focusFrame, animated: false)
+            }
         }
     }
 }
