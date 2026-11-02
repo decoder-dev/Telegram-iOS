@@ -13,6 +13,7 @@ public final class EmptyStateIndicatorComponent: Component {
     public let context: AccountContext
     public let theme: PresentationTheme
     public let animationName: String?
+    public let animationIsLooping: Bool
     public let title: String?
     public let text: String
     public let actionTitle: String?
@@ -37,12 +38,14 @@ public final class EmptyStateIndicatorComponent: Component {
         additionalAction: @escaping () -> Void,
         additionalActionSeparator: String? = nil,
         fontSize: CGFloat? = nil,
-        reduceMotion: Bool? = nil
+        reduceMotion: Bool? = nil,
+        animationIsLooping: Bool = true
     ) {
         self.context = context
         self.theme = theme
         self.fitToHeight = fitToHeight
         self.animationName = animationName
+        self.animationIsLooping = animationIsLooping
         self.title = title
         self.text = text
         self.actionTitle = actionTitle
@@ -68,7 +71,7 @@ public final class EmptyStateIndicatorComponent: Component {
         if lhs.fitToHeight != rhs.fitToHeight {
             return false
         }
-        if lhs.animationName != rhs.animationName {
+        if lhs.animationName != rhs.animationName || lhs.animationIsLooping != rhs.animationIsLooping {
             return false
         }
         if lhs.title != rhs.title {
@@ -134,7 +137,7 @@ public final class EmptyStateIndicatorComponent: Component {
                     transition: transition,
                     component: AnyComponent(AnimatedStickerComponent(
                         account: component.context.account,
-                        animation: AnimatedStickerComponent.Animation(source: .bundle(name: animationName), loop: !component.reduceMotion),
+                        animation: AnimatedStickerComponent.Animation(source: .bundle(name: animationName), loop: component.animationIsLooping && !component.reduceMotion),
                         isAnimating: !component.reduceMotion,
                         size: CGSize(width: 120.0, height: 120.0),
                         lottieSettings: component.context.lottieRenderingSettings

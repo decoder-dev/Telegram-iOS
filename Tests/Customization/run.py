@@ -74,3 +74,4 @@ subprocess.run([sys.executable, str(root / 'Tests/Customization/presentation_upd
 subprocess.run([sys.executable, str(root / 'Tests/Customization/alert_actions.py')], check=True)
 subprocess.run([sys.executable, str(root / 'Tests/Customization/permission_layout.py')], check=True)
 subprocess.run([sys.executable, str(root / 'Tests/Customization/action_sheet_layout.py')], check=True)
+subprocess.run([sys.executable, str(root / 'Tests/Customization/media_placeholder.py')], check=True)

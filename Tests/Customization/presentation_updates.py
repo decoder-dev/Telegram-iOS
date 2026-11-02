@@ -9,6 +9,7 @@ controllers = [
     'CallListUI/Sources/CallListController.swift',
     'ChatListUI/Sources/ChatListController.swift',
     'TelegramPermissionsUI/Sources/PermissionController.swift',
+    'MediaPickerUI/Sources/MediaPickerScreen.swift',
     'ContactListUI/Sources/ContactsController.swift',
     'ContactListUI/Sources/ContactsControllerNode.swift',
 ]
@@ -36,7 +37,7 @@ fixture += '''
 let theme = Identity()
 let strings = Identity()
 let original = Data(theme: theme, strings: strings, listsFontSize: 17, reduceMotion: false)
-for updates in [updates0, updates1, updates2, updates3, updates4] {
+for updates in [updates0, updates1, updates2, updates3, updates4, updates5] {
     precondition(!updates(original, original))
     precondition(updates(original, Data(theme: theme, strings: strings, listsFontSize: 23, reduceMotion: false)))
     precondition(updates(original, Data(theme: theme, strings: strings, listsFontSize: 17, reduceMotion: true)))

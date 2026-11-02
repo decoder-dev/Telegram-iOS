@@ -1795,10 +1795,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                     if let current = self.placeholderNode {
                         placeholderNode = current
                     } else {
-                        placeholderNode = MediaPickerPlaceholderNode(content: .bannedSendMedia(text: banDescription, canBoost: controller.canBoostToUnrestrict), lottieSettings: controller.context.lottieRenderingSettings)
-                        placeholderNode.boostPressed = { [weak controller] in
-                            controller?.openBoost()
-                        }
+                        placeholderNode = MediaPickerPlaceholderNode(context: controller.context)
                         self.containerNode.insertSubnode(placeholderNode, aboveSubnode: self.gridContainerNode)
                         self.placeholderNode = placeholderNode
                         
@@ -1806,7 +1803,10 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                         
                         self.updateTopEdgeEffect()
                     }
-                    placeholderNode.update(layout: layout, theme: self.presentationData.theme, strings: self.presentationData.strings, hasCamera: false, transition: placeholderTransition)
+                    placeholderNode.boostPressed = { [weak controller] in
+                        controller?.openBoost()
+                    }
+                    placeholderNode.update(content: .bannedSendMedia(text: banDescription, canBoost: controller.canBoostToUnrestrict), layout: layout, navigationBarHeight: navigationBarHeight, presentationData: self.presentationData, hasCamera: false, transition: placeholderTransition)
                     placeholderTransition.updateFrame(node: placeholderNode, frame: innerBounds)
                     
                     self.updateNavigation(transition: .immediate)
@@ -1967,7 +1967,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 bannedSendMedia = (max(bannedSendPhotos.0, bannedSendVideos.0), bannedSendPhotos.1 || bannedSendVideos.1)
             }
                         
-            if case let .noAccess(cameraAccess) = self.state {
+            if case let .noAccess(cameraAccess) = self.state, bannedSendMedia == nil {
                 self.controller?.titleView.isEnabled = false
                 
                 var hasCamera = cameraAccess == .authorized
@@ -1989,14 +1989,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                 if let current = self.placeholderNode {
                     placeholderNode = current
                 } else {
-                    placeholderNode = MediaPickerPlaceholderNode(content: .intro(story: story), lottieSettings: controller.context.lottieRenderingSettings)
-                    placeholderNode.settingsPressed = { [weak self] in
-                        self?.controller?.context.sharedContext.applicationBindings.openSettings()
-                    }
-                    placeholderNode.cameraPressed = { [weak self] in
-                        self?.dismissInput()
-                        self?.controller?.openCamera?(nil)
-                    }
+                    placeholderNode = MediaPickerPlaceholderNode(context: controller.context)
                     self.containerNode.insertSubnode(placeholderNode, aboveSubnode: self.gridContainerNode)
                     self.placeholderNode = placeholderNode
                     
@@ -2009,7 +2002,14 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                     
                     self.updateTopEdgeEffect()
                 }
-                placeholderNode.update(layout: layout, theme: self.presentationData.theme, strings: self.presentationData.strings, hasCamera: hasCamera, transition: placeholderTransition)
+                placeholderNode.settingsPressed = { [weak self] in
+                    self?.controller?.context.sharedContext.applicationBindings.openSettings()
+                }
+                placeholderNode.cameraPressed = { [weak self] in
+                    self?.dismissInput()
+                    self?.controller?.openCamera?(nil)
+                }
+                placeholderNode.update(content: .intro(story: story), layout: layout, navigationBarHeight: navigationBarHeight, presentationData: self.presentationData, hasCamera: hasCamera, transition: placeholderTransition)
                 placeholderTransition.updateFrame(node: placeholderNode, frame: innerBounds)
             } else if let placeholderNode = self.placeholderNode, bannedSendMedia == nil {
                 self.placeholderNode = nil
@@ -2260,10 +2260,12 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             if let strongSelf = self {
                 let previousTheme = strongSelf.presentationData.theme
                 let previousStrings = strongSelf.presentationData.strings
+                let previousFontSize = strongSelf.presentationData.listsFontSize
+                let previousReduceMotion = strongSelf.presentationData.reduceMotion
                 
                 strongSelf.presentationData = presentationData
                 
-                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
+                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings || previousFontSize != presentationData.listsFontSize || previousReduceMotion != presentationData.reduceMotion {
                     strongSelf.updateThemeAndStrings()
                 }
             }
