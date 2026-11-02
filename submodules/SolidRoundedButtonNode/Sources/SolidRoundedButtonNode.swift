@@ -249,7 +249,7 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
     
     private func updateAccessibilityLabels() {
         self.accessibilityLabel = (self.title ?? "") + " " + (self.subtitle ?? "")
-        if !self.isEnabled {
+        if !self.isEnabled || self.progressNode != nil {
             self.accessibilityTraits = [.button, .notEnabled]
         } else {
             self.accessibilityTraits = [.button]
@@ -851,7 +851,7 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
     }
     
     @objc private func buttonPressed() {
-        if self.isEnabled {
+        if self.isEnabled && self.progressNode == nil {
             self.pressed?()
         }
     }
@@ -907,6 +907,7 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
         progressNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
         progressNode.layer.add(rotationAnimation, forKey: "progressRotation")
         self.progressNode = progressNode
+        self.updateAccessibilityLabels()
         
         self.titleNode.alpha = 0.0
         self.titleNode.layer.animateAlpha(from: 0.55, to: 0.0, duration: 0.2)
@@ -926,6 +927,7 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
             return
         }
         self.progressNode = nil
+        self.updateAccessibilityLabels()
         
         switch self.progressType {
             case .fullSize:
@@ -941,7 +943,9 @@ public final class SolidRoundedButtonNode: ASDisplayNode {
         
         progressNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak progressNode, weak self] _ in
             progressNode?.removeFromSupernode()
-            self?.isUserInteractionEnabled = true
+            if self?.progressNode == nil {
+                self?.isUserInteractionEnabled = true
+            }
         })
         
         self.titleNode.alpha = 1.0
@@ -1026,7 +1030,7 @@ public final class SolidRoundedButtonView: UIView {
     private func updateAccessibilityLabels() {
         self.accessibilityLabel = (self.title ?? "") + " " + (self.subtitle ?? "")
         self.accessibilityValue = self.label
-        if !self.isEnabled {
+        if !self.isEnabled || self.progressNode != nil {
             self.accessibilityTraits = [.button, .notEnabled]
         } else {
             self.accessibilityTraits = [.button]
@@ -1364,6 +1368,7 @@ public final class SolidRoundedButtonView: UIView {
         progressNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
         progressNode.layer.add(rotationAnimation, forKey: "progressRotation")
         self.progressNode = progressNode
+        self.updateAccessibilityLabels()
         
         self.titleNode.alpha = 0.0
         self.titleNode.layer.animateAlpha(from: 0.55, to: 0.0, duration: 0.2)
@@ -1383,6 +1388,7 @@ public final class SolidRoundedButtonView: UIView {
             return
         }
         self.progressNode = nil
+        self.updateAccessibilityLabels()
         
         switch self.progressType {
             case .fullSize:
@@ -1398,7 +1404,9 @@ public final class SolidRoundedButtonView: UIView {
         
         progressNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak progressNode, weak self] _ in
             progressNode?.removeFromSuperview()
-            self?.isUserInteractionEnabled = true
+            if self?.progressNode == nil {
+                self?.isUserInteractionEnabled = true
+            }
         })
         
         self.titleNode.alpha = 1.0

@@ -62,4 +62,16 @@ final class AuthorizationFormTests: XCTestCase {
         XCTAssertEqual(button.updateLayout(width: 300.0, fontSize: 17.0, transition: .immediate), regularHeight)
         XCTAssertEqual(button.accessibilityLabel?.trimmingCharacters(in: .whitespaces), "Войти в аккаунт")
     }
+
+    func testProgressAndDisabledStateRemainVisibleToAccessibility() {
+        let button = SolidRoundedButtonNode(title: "Continue", theme: SolidRoundedButtonTheme(backgroundColor: .systemBlue, foregroundColor: .white))
+        let _ = button.updateLayout(width: 300.0, transition: .immediate)
+        button.transitionToProgress()
+        XCTAssertTrue(button.accessibilityTraits.contains(.notEnabled))
+        button.isEnabled = false
+        button.transitionFromProgress()
+        XCTAssertTrue(button.accessibilityTraits.contains(.notEnabled))
+        button.isEnabled = true
+        XCTAssertFalse(button.accessibilityTraits.contains(.notEnabled))
+    }
 }

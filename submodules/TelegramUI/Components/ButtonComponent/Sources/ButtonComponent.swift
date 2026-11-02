@@ -408,6 +408,7 @@ public final class ButtonComponent: Component {
     public let restrictContentAnimations: Bool
     public let contentInsets: UIEdgeInsets?
     public let fitToContentWidth: Bool
+    public let fitToContentHeight: Bool
     public let accessibilityLabel: String?
     public let isEnabled: Bool
     public let tintWhenDisabled: Bool
@@ -422,6 +423,7 @@ public final class ButtonComponent: Component {
         restrictContentAnimations: Bool = false,
         contentInsets: UIEdgeInsets? = nil,
         fitToContentWidth: Bool = false,
+        fitToContentHeight: Bool = false,
         accessibilityLabel: String? = nil,
         isEnabled: Bool = true,
         tintWhenDisabled: Bool = true,
@@ -435,6 +437,7 @@ public final class ButtonComponent: Component {
         self.restrictContentAnimations = restrictContentAnimations
         self.contentInsets = contentInsets
         self.fitToContentWidth = fitToContentWidth
+        self.fitToContentHeight = fitToContentHeight
         self.accessibilityLabel = accessibilityLabel
         self.isEnabled = isEnabled
         self.tintWhenDisabled = tintWhenDisabled
@@ -465,6 +468,9 @@ public final class ButtonComponent: Component {
             return false
         }
         if lhs.fitToContentWidth != rhs.fitToContentWidth {
+            return false
+        }
+        if lhs.fitToContentHeight != rhs.fitToContentHeight {
             return false
         }
         if lhs.isEnabled != rhs.isEnabled {
@@ -780,10 +786,14 @@ public final class ButtonComponent: Component {
                 transition: contentItemTransition,
                 component: component.content.component,
                 environment: {},
-                containerSize: CGSize(width: maxContentWidth, height: availableSize.height)
+                containerSize: CGSize(width: max(1.0, maxContentWidth), height: component.fitToContentHeight ? .greatestFiniteMagnitude : availableSize.height)
             )
             
             var size = availableSize
+            if component.fitToContentHeight {
+                let verticalInset = component.contentInsets.map { $0.top + $0.bottom } ?? 24.0
+                size.height = max(size.height, ceil(contentSize.height) + verticalInset)
+            }
             if component.fitToContentWidth {
                 size.width = floor(contentSize.width + cornerRadius * 1.5)
             }

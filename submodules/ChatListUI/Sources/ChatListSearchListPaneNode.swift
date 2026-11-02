@@ -1288,6 +1288,7 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
                 return ChatListSearchEmptyFooterItem(
                     theme: presentationData.theme,
                     strings: presentationData.strings,
+                    fontSize: presentationData.listsFontSize.baseDisplaySize,
                     header: header,
                     searchQuery: searchQuery,
                     searchAllMessages: searchScope == .everywhere ? nil : {
@@ -1621,7 +1622,7 @@ final class GlobalPeerSearchContext {
                     guard let self, let queryContext else {
                         return
                     }
-                    guard let currentContext = self.queryContexts[searchKey], queryContext === queryContext else {
+                    guard let currentContext = self.queryContexts[searchKey], currentContext === queryContext else {
                         return
                     }
                     currentContext.subscribers.remove(index)
@@ -1731,6 +1732,9 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
     private var mediaAccessoryPanel: (MediaNavigationAccessoryPanel, MediaManagerPlayerType)?
     private var dismissingPanel: ASDisplayNode?
 
+    private let emptyResultsScrollNode = ASScrollNode()
+    private var displaysEmptyResultsAnimation = true
+    private var displaysEmptyRecentAnimation = true
     private let emptyResultsTitleNode: ImmediateTextNode
     private let emptyResultsTextNode: ImmediateTextNode
     private let emptyResultsAnimationNode: AnimatedStickerNode
@@ -1740,7 +1744,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
     private var emptyResultsButtonContent: EmptyResultsButton.Content?
     private var emptyResultsButtonSubtitleText: String?
 
-    private var recentEmptyNode: ASDisplayNode?
+    private var recentEmptyNode: ASScrollNode?
     private var emptyRecentTitleNode: ImmediateTextNode?
     private var emptyRecentTextNode: ImmediateTextNode?
     private var emptyRecentAnimationNode: AnimatedStickerNode?
@@ -1879,12 +1883,16 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         self.emptyResultsTitleNode = ImmediateTextNode()
         self.emptyResultsTitleNode.displaysAsynchronously = false
         self.emptyResultsTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.ChatList_Search_NoResults, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.freeTextColor)
+        self.emptyResultsTitleNode.maximumNumberOfLines = 0
+        self.emptyResultsTitleNode.isAccessibilityElement = true
+        self.emptyResultsTitleNode.accessibilityTraits = [.header]
         self.emptyResultsTitleNode.textAlignment = .center
         self.emptyResultsTitleNode.isHidden = true
 
         self.emptyResultsTextNode = ImmediateTextNode()
         self.emptyResultsTextNode.displaysAsynchronously = false
         self.emptyResultsTextNode.maximumNumberOfLines = 0
+        self.emptyResultsTextNode.isAccessibilityElement = true
         self.emptyResultsTextNode.textAlignment = .center
         self.emptyResultsTextNode.lineSpacing = 0.2
         self.emptyResultsTextNode.isHidden = true
@@ -1896,13 +1904,17 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
             let emptyRecentTitleNode = ImmediateTextNode()
             emptyRecentTitleNode.displaysAsynchronously = false
             emptyRecentTitleNode.attributedText = NSAttributedString(string: presentationData.strings.ChatList_Search_RecommendedChannelsEmpty_Title, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.freeTextColor)
+            emptyRecentTitleNode.maximumNumberOfLines = 0
+            emptyRecentTitleNode.isAccessibilityElement = true
+            emptyRecentTitleNode.accessibilityTraits = [.header]
             emptyRecentTitleNode.textAlignment = .center
             emptyRecentTitleNode.isHidden = true
             self.emptyRecentTitleNode = emptyRecentTitleNode
 
             let emptyRecentTextNode = ImmediateTextNode()
-            emptyResultsTextNode.displaysAsynchronously = false
+            emptyRecentTextNode.displaysAsynchronously = false
             emptyRecentTextNode.maximumNumberOfLines = 0
+            emptyRecentTextNode.isAccessibilityElement = true
             emptyRecentTextNode.textAlignment = .center
             emptyRecentTextNode.isHidden = true
             if key == .channels {
@@ -1919,13 +1931,12 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
             emptyRecentAnimationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: "ChatListNoResults"), width: 256, height: 256, playbackMode: .once, mode: .direct(cachePathPrefix: nil))
             self.emptyRecentAnimationSize = CGSize(width: 148.0, height: 148.0)
 
-            let recentEmptyNode = ASDisplayNode()
+            let recentEmptyNode = ASScrollNode()
 
             recentEmptyNode.addSubnode(emptyRecentTitleNode)
             recentEmptyNode.addSubnode(emptyRecentTextNode)
             recentEmptyNode.addSubnode(emptyRecentAnimationNode)
 
-            recentEmptyNode.isUserInteractionEnabled = false
             recentEmptyNode.isHidden = true
 
             self.recentEmptyNode = recentEmptyNode
@@ -1949,9 +1960,11 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
             self.addSubnode(mediaNode)
         }
 
-        self.addSubnode(self.emptyResultsAnimationNode)
-        self.addSubnode(self.emptyResultsTitleNode)
-        self.addSubnode(self.emptyResultsTextNode)
+        self.addSubnode(self.emptyResultsScrollNode)
+        self.emptyResultsScrollNode.isHidden = true
+        self.emptyResultsScrollNode.addSubnode(self.emptyResultsAnimationNode)
+        self.emptyResultsScrollNode.addSubnode(self.emptyResultsTitleNode)
+        self.emptyResultsScrollNode.addSubnode(self.emptyResultsTextNode)
 
         self.addSubnode(self.shimmerNode)
         self.addSubnode(self.mediaAccessoryPanelContainer)
@@ -4826,6 +4839,9 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         itemHeaderNode.updateTheme(theme: presentationData.theme)
                     }
                 })
+                if let params = strongSelf.currentParams {
+                    strongSelf.update(size: params.size, sideInsets: params.sideInsets, topInset: params.topInset, bottomInset: params.bottomInset, visibleHeight: params.visibleHeight, presentationData: presentationData, synchronous: true, transition: .immediate)
+                }
             }
         }).strict()
 
@@ -5018,9 +5034,35 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         }
     }
 
+    private func updateEmptyScrollNode(_ node: ASScrollNode, frame: CGRect, contentHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+        transition.updateFrame(node: node, frame: frame)
+        node.view.contentInsetAdjustmentBehavior = .never
+        node.view.scrollsToTop = false
+        node.view.isDirectionalLockEnabled = true
+        node.view.keyboardDismissMode = .interactive
+        node.view.contentSize = CGSize(width: frame.width, height: contentHeight)
+        node.view.isScrollEnabled = contentHeight > frame.height
+        node.view.showsVerticalScrollIndicator = node.view.isScrollEnabled
+        node.view.contentOffset.y = min(max(0.0, node.view.contentOffset.y), max(0.0, contentHeight - frame.height))
+    }
+
     func update(size: CGSize, sideInsets: UIEdgeInsets, topInset: CGFloat, bottomInset: CGFloat, visibleHeight: CGFloat, presentationData: PresentationData, synchronous: Bool, transition: ContainedViewLayoutTransition) {
         let hadValidLayout = self.currentParams != nil
         let layoutChanged = self.currentParams?.size != size || self.currentParams?.sideInsets != sideInsets ||  self.currentParams?.topInset != topInset || self.currentParams?.bottomInset != bottomInset || self.currentParams?.visibleHeight != visibleHeight
+        let emptyPresentationChanged = self.currentParams?.presentationData.theme !== presentationData.theme || self.currentParams?.presentationData.strings !== presentationData.strings || self.currentParams?.presentationData.listsFontSize != presentationData.listsFontSize
+        if emptyPresentationChanged {
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
+            self.emptyResultsTitleNode.attributedText = NSAttributedString(string: self.emptyResultsTitleNode.attributedText?.string ?? "", font: Font.semibold(fontSize), textColor: presentationData.theme.list.itemPrimaryTextColor)
+            self.emptyResultsTextNode.attributedText = NSAttributedString(string: self.emptyResultsTextNode.attributedText?.string ?? "", font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: presentationData.theme.list.freeTextColor)
+            self.emptyRecentTitleNode?.attributedText = NSAttributedString(string: presentationData.strings.ChatList_Search_RecommendedChannelsEmpty_Title, font: Font.semibold(fontSize), textColor: presentationData.theme.list.itemPrimaryTextColor)
+            self.emptyRecentTextNode?.attributedText = NSAttributedString(string: self.key == .apps ? presentationData.strings.ChatList_Search_Apps_Empty_Text : presentationData.strings.ChatList_Search_RecommendedChannelsEmpty_Text, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: presentationData.theme.list.freeTextColor)
+        }
+        if self.currentParams?.presentationData.reduceMotion != presentationData.reduceMotion {
+            let playback: AnimatedStickerPlaybackMode = presentationData.reduceMotion ? .still(.start) : .once
+            self.emptyResultsAnimationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: "ChatListNoResults"), width: 256, height: 256, playbackMode: playback, mode: .direct(cachePathPrefix: nil))
+            self.emptyRecentAnimationNode?.setup(source: AnimatedStickerNodeLocalFileSource(name: "ChatListNoResults"), width: 256, height: 256, playbackMode: playback, mode: .direct(cachePathPrefix: nil))
+        }
+        self.presentationData = presentationData
         self.currentParams = (size, sideInsets, topInset, bottomInset, visibleHeight, presentationData)
 
         var topPanelHeight: CGFloat = 0.0
@@ -5297,7 +5339,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
 
         let topInset: CGFloat = topInset + topPanelHeight
         let overflowInset: CGFloat = 0.0
-        let insets = UIEdgeInsets(top: topInset + topPanelHeight, left: sideInsets.left, bottom: bottomInset, right: sideInsets.right)
+        let insets = UIEdgeInsets(top: topInset, left: sideInsets.left, bottom: bottomInset, right: sideInsets.right)
 
         self.shimmerNode.frame = CGRect(origin: CGPoint(x: overflowInset, y: topInset), size: CGSize(width: size.width - overflowInset * 2.0, height: size.height))
         self.shimmerNode.update(context: self.context, size: CGSize(width: size.width - overflowInset * 2.0, height: size.height), presentationData: self.presentationData, animationCache: self.animationCache, animationRenderer: self.animationRenderer, key: !(self.searchQueryValue?.isEmpty ?? true) && self.key == .media ? .chats : self.key, hasSelection: self.selectedMessages != nil, transition: transition)
@@ -5308,14 +5350,23 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
 
         if let emptyRecentTitleNode = self.emptyRecentTitleNode, let emptyRecentTextNode = self.emptyRecentTextNode, let emptyRecentAnimationNode = self.emptyRecentAnimationNode {
             let padding: CGFloat = 16.0
-            let emptyTitleSize = emptyRecentTitleNode.updateLayout(CGSize(width: size.width - sideInsets.left - sideInsets.right - padding * 2.0, height: CGFloat.greatestFiniteMagnitude))
-            let emptyTextSize = emptyRecentTextNode.updateLayout(CGSize(width: size.width - sideInsets.left - sideInsets.right - padding * 2.0, height: CGFloat.greatestFiniteMagnitude))
+            let contentWidth = max(1.0, size.width - sideInsets.left - sideInsets.right - padding * 2.0)
+            let emptyTitleSize = emptyRecentTitleNode.updateLayout(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+            let emptyTextSize = emptyRecentTextNode.updateLayout(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
 
-            let emptyAnimationHeight = emptyRecentAnimationSize.height
-            let emptyAnimationSpacing: CGFloat = 8.0
+            let availableHeight = max(1.0, visibleHeight - topInset - bottomInset)
+            self.displaysEmptyRecentAnimation = availableHeight >= emptyTitleSize.height + emptyTextSize.height + emptyRecentAnimationSize.height + 48.0
+            let emptyAnimationHeight = self.displaysEmptyRecentAnimation ? emptyRecentAnimationSize.height : 0.0
+            let emptyAnimationSpacing: CGFloat = self.displaysEmptyRecentAnimation ? 8.0 : 0.0
             let emptyTextSpacing: CGFloat = 8.0
             let emptyTotalHeight = emptyAnimationHeight + emptyAnimationSpacing + emptyTitleSize.height + emptyTextSize.height + emptyTextSpacing
-            let emptyAnimationY = topInset + floorToScreenPixels((visibleHeight - topInset - bottomInset - emptyTotalHeight) / 2.0)
+            let contentHeight = max(availableHeight, emptyTotalHeight + 32.0)
+            let emptyAnimationY = floorToScreenPixels((contentHeight - emptyTotalHeight) / 2.0)
+            if let recentEmptyNode = self.recentEmptyNode {
+                self.updateEmptyScrollNode(recentEmptyNode, frame: CGRect(x: 0.0, y: topInset, width: size.width, height: availableHeight), contentHeight: contentHeight, transition: transition)
+            }
+            emptyRecentAnimationNode.isHidden = emptyRecentTitleNode.isHidden || !self.displaysEmptyRecentAnimation
+            emptyRecentAnimationNode.visibility = !emptyRecentAnimationNode.isHidden
 
             let textTransition = ContainedViewLayoutTransition.immediate
             textTransition.updateFrame(node: emptyRecentAnimationNode, frame: CGRect(origin: CGPoint(x: sideInsets.left + padding + (size.width - sideInsets.left - sideInsets.right - padding * 2.0 - emptyRecentAnimationSize.width) / 2.0, y: emptyAnimationY), size: emptyRecentAnimationSize))
@@ -5332,8 +5383,9 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
 
         do {
             let padding: CGFloat = 16.0
-            let emptyTitleSize = self.emptyResultsTitleNode.updateLayout(CGSize(width: size.width - sideInsets.left - sideInsets.right - padding * 2.0, height: CGFloat.greatestFiniteMagnitude))
-            let emptyTextSize = self.emptyResultsTextNode.updateLayout(CGSize(width: size.width - sideInsets.left - sideInsets.right - padding * 2.0, height: CGFloat.greatestFiniteMagnitude))
+            let contentWidth = max(1.0, size.width - sideInsets.left - sideInsets.right - padding * 2.0)
+            let emptyTitleSize = self.emptyResultsTitleNode.updateLayout(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
+            let emptyTextSize = self.emptyResultsTextNode.updateLayout(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
 
             let emptyAnimationHeight = self.emptyResultsAnimationSize.height
             let emptyAnimationSpacing: CGFloat = 8.0
@@ -5366,6 +5418,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     component: AnyComponent(EmptyResultsButton(
                         theme: self.presentationData.theme,
                         strings: self.presentationData.strings,
+                        fontSize: self.presentationData.listsFontSize.baseDisplaySize,
                         content: emptyResultsButtonContent,
                         action: { [weak self] in
                             guard let self else {
@@ -5413,7 +5466,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         }
                     )),
                     environment: {},
-                    containerSize: CGSize(width: min(282.0, size.width - max(sideInsets.left, sideInsets.right) - 24.0 * 2.0), height: 50.0)
+                    containerSize: CGSize(width: max(1.0, min(282.0, size.width - sideInsets.left - sideInsets.right - 48.0)), height: .greatestFiniteMagnitude)
                 )
                 emptyButtonSize = emptyResultsButtonSizeValue
             } else {
@@ -5437,13 +5490,14 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: emptyResultsButtonSubtitleText,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(self.presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)),
                             textColor: self.presentationData.theme.list.freeTextColor
                         )),
-                        horizontalAlignment: .center
+                        horizontalAlignment: .center,
+                        maximumNumberOfLines: 0
                     )),
                     environment: {},
-                    containerSize: CGSize(width: size.width - max(sideInsets.left, sideInsets.right) - 24.0 * 2.0, height: 100.0)
+                    containerSize: CGSize(width: max(1.0, size.width - sideInsets.left - sideInsets.right - 48.0), height: .greatestFiniteMagnitude)
                 )
                 emptyButtonSubtitleSize = emptyResultsButtonSubtitleSizeValue
             } else {
@@ -5464,7 +5518,17 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 emptyTotalHeight += emptyButtonSubtitleSize.height + emptyButtonSubtitleSpacing
             }
 
-            let emptyAnimationY = topInset + floorToScreenPixels((visibleHeight - topInset - bottomInset - emptyTotalHeight) / 2.0)
+            let availableHeight = max(1.0, visibleHeight - topInset - bottomInset)
+            if displayEmptyAnimation && emptyTotalHeight + 32.0 > availableHeight {
+                displayEmptyAnimation = false
+                emptyTotalHeight -= emptyAnimationHeight + emptyAnimationSpacing
+            }
+            self.displaysEmptyResultsAnimation = displayEmptyAnimation
+            self.emptyResultsAnimationNode.isHidden = self.emptyResultsTitleNode.isHidden || !displayEmptyAnimation
+            self.emptyResultsAnimationNode.visibility = !self.emptyResultsAnimationNode.isHidden
+            let contentHeight = max(availableHeight, emptyTotalHeight + 32.0)
+            self.updateEmptyScrollNode(self.emptyResultsScrollNode, frame: CGRect(x: 0.0, y: topInset, width: size.width, height: availableHeight), contentHeight: contentHeight, transition: transition)
+            let emptyAnimationY = floorToScreenPixels((contentHeight - emptyTotalHeight) / 2.0)
             let emptyTitleY: CGFloat
             if displayEmptyAnimation {
                 emptyTitleY = emptyAnimationY + emptyAnimationHeight + emptyAnimationSpacing
@@ -5485,7 +5549,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 var emptyButtonTransition = textTransition
                 if emptyButtonView.superview == nil {
                     emptyButtonTransition = .immediate
-                    self.view.insertSubview(emptyButtonView, aboveSubview: self.emptyResultsTextNode.view)
+                    self.emptyResultsScrollNode.view.insertSubview(emptyButtonView, aboveSubview: self.emptyResultsTextNode.view)
                 }
                 emptyButtonTransition.updateFrame(view: emptyButtonView, frame: CGRect(origin: CGPoint(x: sideInsets.left + floor((size.width - sideInsets.left - sideInsets.right - emptyButtonSize.width) * 0.5), y: nextY), size: emptyButtonSize))
 
@@ -5497,7 +5561,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 var emptyButtonSubtitleTransition = textTransition
                 if emptyButtonSubtitleView.superview == nil {
                     emptyButtonSubtitleTransition = .immediate
-                    self.view.insertSubview(emptyButtonSubtitleView, aboveSubview: self.emptyResultsTextNode.view)
+                    self.emptyResultsScrollNode.view.insertSubview(emptyButtonSubtitleView, aboveSubview: self.emptyResultsTextNode.view)
                 }
                 emptyButtonSubtitleTransition.updateFrame(view: emptyButtonSubtitleView, frame: CGRect(origin: CGPoint(x: sideInsets.left + floor((size.width - sideInsets.left - sideInsets.right - emptyButtonSubtitleSize.width) * 0.5), y: nextY), size: emptyButtonSubtitleSize))
 
@@ -5599,11 +5663,12 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         }
                     }
 
-                    strongSelf.emptyRecentAnimationNode?.isHidden = !transition.isEmpty
-                    strongSelf.emptyRecentTitleNode?.isHidden = !transition.isEmpty
-                    strongSelf.emptyRecentTextNode?.isHidden = !transition.isEmpty
-                    strongSelf.emptyRecentAnimationNode?.visibility = transition.isEmpty
                 }
+                strongSelf.emptyRecentTitleNode?.isHidden = !transition.isEmpty
+                strongSelf.emptyRecentTextNode?.isHidden = !transition.isEmpty
+                strongSelf.emptyRecentAnimationNode?.isHidden = !transition.isEmpty || !strongSelf.displaysEmptyRecentAnimation
+                strongSelf.emptyRecentAnimationNode?.visibility = transition.isEmpty && strongSelf.displaysEmptyRecentAnimation
+                strongSelf.recentEmptyNode?.isHidden = !transition.isEmpty || strongSelf.recentListNode.isHidden
             })
         }
     }
@@ -5748,13 +5813,8 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                             }
                         }
 
-                        if strongSelf.key == .globalPosts {
-                            strongSelf.emptyResultsTitleNode.attributedText = NSAttributedString(string: emptyResultsTitle, font: Font.semibold(17.0), textColor: strongSelf.presentationData.theme.list.itemPrimaryTextColor)
-                            strongSelf.emptyResultsTextNode.attributedText = NSAttributedString(string: emptyResultsText, font: Font.regular(15.0), textColor: strongSelf.presentationData.theme.list.freeTextColor)
-                        } else {
-                            strongSelf.emptyResultsTitleNode.attributedText = NSAttributedString(string: emptyResultsTitle, font: Font.semibold(17.0), textColor: strongSelf.presentationData.theme.list.freeTextColor)
-                            strongSelf.emptyResultsTextNode.attributedText = NSAttributedString(string: emptyResultsText, font: Font.regular(15.0), textColor: strongSelf.presentationData.theme.list.freeTextColor)
-                        }
+                        strongSelf.emptyResultsTitleNode.attributedText = NSAttributedString(string: emptyResultsTitle, font: Font.semibold(strongSelf.presentationData.listsFontSize.baseDisplaySize), textColor: strongSelf.presentationData.theme.list.itemPrimaryTextColor)
+                        strongSelf.emptyResultsTextNode.attributedText = NSAttributedString(string: emptyResultsText, font: Font.regular(floor(strongSelf.presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: strongSelf.presentationData.theme.list.freeTextColor)
                         strongSelf.emptyResultsButtonContent = emptyResultsButtonContent
                         strongSelf.emptyResultsButtonSubtitleText = emptyResultsButtonSubtitleText
                     } else {
@@ -5766,6 +5826,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         strongSelf.update(size: size, sideInsets: sideInsets, topInset: topInset, bottomInset: bottomInset, visibleHeight: visibleHeight, presentationData: presentationData, synchronous: true, transition: .animated(duration: 0.4, curve: .spring))
                     }
 
+                    strongSelf.emptyResultsScrollNode.isHidden = !emptyResults || strongSelf.key == .downloads
                     if strongSelf.key == .downloads {
                         strongSelf.emptyResultsAnimationNode.isHidden = true
                         strongSelf.emptyResultsTitleNode.isHidden = true
@@ -5774,17 +5835,17 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                         strongSelf.emptyResultsButton?.view?.isHidden = true
                         strongSelf.emptyResultsButtonSubtitle?.view?.isHidden = true
                     } else if strongSelf.key == .globalPosts {
-                        strongSelf.emptyResultsAnimationNode.isHidden = !emptyResults ||  strongSelf.emptyResultsButtonContent != nil
+                        strongSelf.emptyResultsAnimationNode.isHidden = !emptyResults || !strongSelf.displaysEmptyResultsAnimation
                         strongSelf.emptyResultsTitleNode.isHidden = !emptyResults
                         strongSelf.emptyResultsTextNode.isHidden = !emptyResults
-                        strongSelf.emptyResultsAnimationNode.visibility = emptyResults
+                        strongSelf.emptyResultsAnimationNode.visibility = !strongSelf.emptyResultsAnimationNode.isHidden
                         strongSelf.emptyResultsButton?.view?.isHidden = !emptyResults
                         strongSelf.emptyResultsButtonSubtitle?.view?.isHidden = !emptyResults
                     } else {
-                        strongSelf.emptyResultsAnimationNode.isHidden = !emptyResults
+                        strongSelf.emptyResultsAnimationNode.isHidden = !emptyResults || !strongSelf.displaysEmptyResultsAnimation
                         strongSelf.emptyResultsTitleNode.isHidden = !emptyResults
                         strongSelf.emptyResultsTextNode.isHidden = !emptyResults
-                        strongSelf.emptyResultsAnimationNode.visibility = emptyResults
+                        strongSelf.emptyResultsAnimationNode.visibility = !strongSelf.emptyResultsAnimationNode.isHidden
                         strongSelf.emptyResultsButton?.view?.isHidden = emptyResults
                         strongSelf.emptyResultsButtonSubtitle?.view?.isHidden = emptyResults
                     }
@@ -5801,7 +5862,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                     }
 
                     strongSelf.recentListNode.isHidden = displayingResults || strongSelf.peersFilter.contains(.excludeRecent)
-                    strongSelf.recentEmptyNode?.isHidden = strongSelf.recentListNode.isHidden
+                    strongSelf.recentEmptyNode?.isHidden = strongSelf.recentListNode.isHidden || strongSelf.emptyRecentTitleNode?.isHidden != false
                     strongSelf.backgroundColor = !displayingResults && strongSelf.peersFilter.contains(.excludeRecent) ? nil : strongSelf.presentationData.theme.chatList.backgroundColor
 
                     if !strongSelf.didSetReady && strongSelf.recentListNode.isHidden {
@@ -6432,20 +6493,26 @@ private final class ChatListSearchReferenceContentSource: ContextReferenceConten
 private final class EmptyResultsButtonSearchContent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let query: String
 
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: CGFloat,
         query: String
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.query = query
     }
 
     static func ==(lhs: EmptyResultsButtonSearchContent, rhs: EmptyResultsButtonSearchContent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.strings !== rhs.strings {
@@ -6506,23 +6573,23 @@ private final class EmptyResultsButtonSearchContent: Component {
             let rawString = component.strings.ChatList_GlobalSearch_SearchButtonQuery
             if let range = rawString.range(of: "{}") {
                 if range.lowerBound != rawString.startIndex {
-                    string.append(NSAttributedString(string: String(rawString[rawString.startIndex ..< range.lowerBound]), font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor))
+                    string.append(NSAttributedString(string: String(rawString[rawString.startIndex ..< range.lowerBound]), font: Font.semibold(component.fontSize), textColor: component.theme.list.itemCheckColors.foregroundColor))
                 }
-                string.append(NSAttributedString(string: component.query.trimmingCharacters(in: .whitespacesAndNewlines), font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor.withMultipliedAlpha(0.7)))
+                string.append(NSAttributedString(string: component.query.trimmingCharacters(in: .whitespacesAndNewlines), font: Font.semibold(component.fontSize), textColor: component.theme.list.itemCheckColors.foregroundColor))
                 if range.upperBound != rawString.endIndex {
-                    string.append(NSAttributedString(string: String(rawString[range.upperBound...]), font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor))
+                    string.append(NSAttributedString(string: String(rawString[range.upperBound...]), font: Font.semibold(component.fontSize), textColor: component.theme.list.itemCheckColors.foregroundColor))
                 }
             } else {
-                string.append(NSAttributedString(string: rawString, font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor))
+                string.append(NSAttributedString(string: rawString, font: Font.semibold(component.fontSize), textColor: component.theme.list.itemCheckColors.foregroundColor))
             }
 
             let textSize = self.text.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(string)
+                    text: .plain(string), horizontalAlignment: .center, maximumNumberOfLines: 2
                 )),
                 environment: {},
-                containerSize: CGSize(width: availableSize.width - iconSize.width - iconSpacing - arrowSize.width - arrowSpacing - sideInset * 2.0, height: 100.0)
+                containerSize: CGSize(width: max(1.0, availableSize.width - iconSize.width - iconSpacing - arrowSize.width - arrowSpacing - sideInset * 2.0), height: .greatestFiniteMagnitude)
             )
             let textFrame = CGRect(origin: CGPoint(x: iconSize.width + iconSpacing, y: 0.0), size: textSize)
             if let textView = self.text.view {
@@ -6562,23 +6629,29 @@ private final class EmptyResultsButtonSearchContent: Component {
 private final class EmptyResultsButtonPaidSearchContent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let price: Int
     let unlockTimestamp: Int32?
 
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: CGFloat,
         price: Int,
         unlockTimestamp: Int32?
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.price = price
         self.unlockTimestamp = unlockTimestamp
     }
 
     static func ==(lhs: EmptyResultsButtonPaidSearchContent, rhs: EmptyResultsButtonPaidSearchContent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.strings !== rhs.strings {
@@ -6629,7 +6702,7 @@ private final class EmptyResultsButtonPaidSearchContent: Component {
             self.component = component
             self.state = state
 
-            let attributedString = NSMutableAttributedString(attributedString: NSAttributedString(string: component.strings.ChatList_GlobalSearch_SearchButtonPaidTitle("\(component.price)").string, font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor))
+            let attributedString = NSMutableAttributedString(attributedString: NSAttributedString(string: component.strings.ChatList_GlobalSearch_SearchButtonPaidTitle("\(component.price)").string, font: Font.semibold(component.fontSize), textColor: component.theme.list.itemCheckColors.foregroundColor))
             if let range = attributedString.string.range(of: "*"), let starImage = self.cachedStarImage {
                 attributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: attributedString.string))
                 attributedString.addAttribute(.foregroundColor, value: component.theme.list.itemCheckColors.foregroundColor, range: NSRange(range, in: attributedString.string))
@@ -6639,10 +6712,10 @@ private final class EmptyResultsButtonPaidSearchContent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(attributedString)
+                    text: .plain(attributedString), horizontalAlignment: .center, maximumNumberOfLines: 0
                 )),
                 environment: {},
-                containerSize: CGSize(width: availableSize.width, height: 100.0)
+                containerSize: CGSize(width: availableSize.width, height: .greatestFiniteMagnitude)
             )
 
             var subtitleText = ""
@@ -6651,13 +6724,16 @@ private final class EmptyResultsButtonPaidSearchContent: Component {
                 remainingTime = max(0, remainingTime)
                 subtitleText = component.strings.ChatList_GlobalSearch_SearchButtonPaidSubtitle(stringForRemainingTime(remainingTime)).string
 
-                if self.timer == nil {
+                if remainingTime > 0, self.timer == nil {
                     self.timer = Foundation.Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true, block: { [weak self] _ in
                         guard let self else {
                             return
                         }
                         self.state?.updated(transition: .immediate)
                     })
+                } else if remainingTime == 0 {
+                    self.timer?.invalidate()
+                    self.timer = nil
                 }
             } else {
                 if let timer = self.timer {
@@ -6669,10 +6745,10 @@ private final class EmptyResultsButtonPaidSearchContent: Component {
             let subtitleSize = self.subtitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(12.0), textColor: component.theme.list.itemCheckColors.foregroundColor.withMultipliedAlpha(0.7)))
+                    text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(floor(component.fontSize * 12.0 / 17.0)), textColor: component.theme.list.itemCheckColors.foregroundColor)), horizontalAlignment: .center, maximumNumberOfLines: 0
                 )),
                 environment: {},
-                containerSize: CGSize(width: availableSize.width, height: 100.0)
+                containerSize: CGSize(width: availableSize.width, height: .greatestFiniteMagnitude)
             )
 
             var contentSize = CGSize()
@@ -6723,23 +6799,29 @@ private final class EmptyResultsButton: Component {
 
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let content: Content
     let action: () -> Void
 
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: CGFloat,
         content: Content,
         action: @escaping () -> Void
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.content = content
         self.action = action
     }
 
     static func ==(lhs: EmptyResultsButton, rhs: EmptyResultsButton) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.strings !== rhs.strings {
@@ -6769,28 +6851,33 @@ private final class EmptyResultsButton: Component {
 
             let buttonContent: AnyComponentWithIdentity<Empty>
             var isEnabled = true
+            let accessibilityLabel: String
             switch component.content {
             case .searchEmpty:
+                accessibilityLabel = component.strings.ChatList_GlobalSearch_SearchButton
                 isEnabled = false
                 buttonContent = AnyComponentWithIdentity(id: "empty", component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.strings.ChatList_GlobalSearch_SearchButton,
-                        font: Font.medium(17.0),
+                        font: Font.medium(component.fontSize),
                         textColor: component.theme.list.itemCheckColors.foregroundColor
-                    ))
+                    )), horizontalAlignment: .center, maximumNumberOfLines: 0
                 )))
             case .premiumRequired:
+                accessibilityLabel = component.strings.ChatList_GlobalSearch_SearchButtonPremium
                 buttonContent = AnyComponentWithIdentity(id: "premium", component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.strings.ChatList_GlobalSearch_SearchButtonPremium,
-                        font: Font.medium(17.0),
+                        font: Font.medium(component.fontSize),
                         textColor: component.theme.list.itemCheckColors.foregroundColor
-                    ))
+                    )), horizontalAlignment: .center, maximumNumberOfLines: 0
                 )))
             case let .searchQuery(query):
-                buttonContent = AnyComponentWithIdentity(id: "query", component: AnyComponent(EmptyResultsButtonSearchContent(theme: component.theme, strings: component.strings, query: query)))
+                accessibilityLabel = component.strings.ChatList_GlobalSearch_SearchButtonQuery.replacingOccurrences(of: "{}", with: query.trimmingCharacters(in: .whitespacesAndNewlines))
+                buttonContent = AnyComponentWithIdentity(id: "query", component: AnyComponent(EmptyResultsButtonSearchContent(theme: component.theme, strings: component.strings, fontSize: component.fontSize, query: query)))
             case let .paidSearch(price, unlockTimestamp):
-                buttonContent = AnyComponentWithIdentity(id: "paid", component: AnyComponent(EmptyResultsButtonPaidSearchContent(theme: component.theme, strings: component.strings, price: price, unlockTimestamp: unlockTimestamp)))
+                accessibilityLabel = component.strings.ChatList_GlobalSearch_SearchButtonPaidTitle("\(price)").string
+                buttonContent = AnyComponentWithIdentity(id: "paid", component: AnyComponent(EmptyResultsButtonPaidSearchContent(theme: component.theme, strings: component.strings, fontSize: component.fontSize, price: price, unlockTimestamp: unlockTimestamp)))
             }
 
             let size = self.button.update(
@@ -6800,9 +6887,13 @@ private final class EmptyResultsButton: Component {
                         style: .glass,
                         color: component.theme.list.itemCheckColors.fillColor,
                         foreground: component.theme.list.itemCheckColors.foregroundColor,
-                        pressedColor: component.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9)
+                        pressedColor: component.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9),
+                        cornerRadius: 26.0
                     ),
                     content: buttonContent,
+                    contentInsets: UIEdgeInsets(top: 12.0, left: 13.0, bottom: 12.0, right: 13.0),
+                    fitToContentHeight: true,
+                    accessibilityLabel: accessibilityLabel,
                     isEnabled: isEnabled,
                     action: { [weak self] in
                         guard let self, let component = self.component else {

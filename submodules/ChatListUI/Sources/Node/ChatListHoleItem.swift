@@ -93,15 +93,17 @@ class ChatListSearchEmptyFooterItem: ListViewItem {
 
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let searchQuery: String?
     let searchAllMessages: (() -> Void)?
     
     let header: ListViewItemHeader?
     let selectable: Bool = false
     
-    init(theme: PresentationTheme, strings: PresentationStrings, header: ListViewItemHeader?, searchQuery: String?, searchAllMessages: (() -> Void)?) {
+    init(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat, header: ListViewItemHeader?, searchQuery: String?, searchAllMessages: (() -> Void)?) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.header = header
         self.searchQuery = searchQuery
         self.searchAllMessages = searchAllMessages
@@ -156,7 +158,10 @@ class ChatListSearchEmptyFooterItemNode: ListViewItemNode {
     required init() {
         self.contentNode = ASDisplayNode()
         self.titleNode = TextNode()
+        self.titleNode.isAccessibilityElement = true
+        self.titleNode.accessibilityTraits = [.header]
         self.textNode = TextNode()
+        self.textNode.isAccessibilityElement = true
         
         self.searchAllMessagesButton = HighlightableButtonNode()
         self.searchAllMessagesTitle = TextNode()
@@ -215,10 +220,10 @@ class ChatListSearchEmptyFooterItemNode: ListViewItemNode {
         
         return { [weak self] item, params in
             let titleLayout = makeTitleNodeLayout(TextNodeLayoutArguments(
-                attributedString: NSAttributedString(string: item.strings.ChatList_Search_NoResults, font: Font.semibold(17.0), textColor: item.theme.list.freeTextColor),
-                maximumNumberOfLines: 1,
+                attributedString: NSAttributedString(string: item.strings.ChatList_Search_NoResults, font: Font.semibold(item.fontSize), textColor: item.theme.list.itemPrimaryTextColor),
+                maximumNumberOfLines: 0,
                 truncationType: .end,
-                constrainedSize: CGSize(width: params.width - params.leftInset * 2.0 - 12.0 * 2.0, height: 1000.0)
+                constrainedSize: CGSize(width: max(1.0, params.width - params.leftInset - params.rightInset - 24.0), height: 1000.0)
             ))
             
             let textValue: String
@@ -229,19 +234,19 @@ class ChatListSearchEmptyFooterItemNode: ListViewItemNode {
             }
             
             let textLayout = makeTextNodeLayout(TextNodeLayoutArguments(
-                attributedString: NSAttributedString(string: textValue, font: Font.regular(16.0), textColor: item.theme.list.freeTextColor),
+                attributedString: NSAttributedString(string: textValue, font: Font.regular(floor(item.fontSize * 16.0 / 17.0)), textColor: item.theme.list.freeTextColor),
                 maximumNumberOfLines: 0,
                 truncationType: .end,
-                constrainedSize: CGSize(width: params.width - params.leftInset * 2.0 - 12.0 * 2.0, height: 1000.0),
+                constrainedSize: CGSize(width: max(1.0, params.width - params.leftInset - params.rightInset - 24.0), height: 1000.0),
                 alignment: .center,
                 lineSpacing: 0.1
             ))
             
             let searchAllMessagesTitleLayout = makeSearchAllMessagesTitleLayout(TextNodeLayoutArguments(
-                attributedString: NSAttributedString(string: item.strings.ChatList_EmptyResult_SearchInAll, font: Font.regular(17.0), textColor: item.theme.list.itemAccentColor),
-                maximumNumberOfLines: 1,
+                attributedString: NSAttributedString(string: item.strings.ChatList_EmptyResult_SearchInAll, font: Font.regular(item.fontSize), textColor: item.theme.list.itemAccentColor),
+                maximumNumberOfLines: 0,
                 truncationType: .end,
-                constrainedSize: CGSize(width: params.width - params.leftInset * 2.0 - 12.0 * 2.0, height: 1000.0)
+                constrainedSize: CGSize(width: max(1.0, params.width - params.leftInset - params.rightInset - 24.0), height: 1000.0)
             ))
             
             var contentHeight: CGFloat = 0.0
@@ -253,6 +258,7 @@ class ChatListSearchEmptyFooterItemNode: ListViewItemNode {
             
             let buttonSpacing: CGFloat = 14.0
             let buttonInset: CGFloat = 11.0
+            let buttonHeight = max(44.0, searchAllMessagesTitleLayout.0.size.height + buttonInset * 2.0)
             
             let iconSize = CGSize(width: 128.0, height: 128.0)
             
@@ -265,9 +271,7 @@ class ChatListSearchEmptyFooterItemNode: ListViewItemNode {
             
             if item.searchAllMessages != nil {
                 contentHeight += buttonSpacing
-                contentHeight += buttonInset
-                contentHeight += searchAllMessagesTitleLayout.0.size.height
-                contentHeight += buttonInset
+                contentHeight += buttonHeight
             }
             
             contentHeight += bottomInset
@@ -280,6 +284,11 @@ class ChatListSearchEmptyFooterItemNode: ListViewItemNode {
                 }
                 
                 self.item = item
+                self.titleNode.accessibilityLabel = item.strings.ChatList_Search_NoResults
+                self.textNode.accessibilityLabel = textValue
+                self.searchAllMessagesButton.accessibilityLabel = item.strings.ChatList_EmptyResult_SearchInAll
+                self.searchAllMessagesButton.accessibilityTraits = [.button]
+                self.searchAllMessagesButton.isHidden = item.searchAllMessages == nil
                 self.contentSize = layout.contentSize
                 self.insets = layout.insets
                 
@@ -307,7 +316,7 @@ class ChatListSearchEmptyFooterItemNode: ListViewItemNode {
                     )),
                     environment: {}, containerSize: iconSize
                 )
-                let iconFrame = CGRect(origin: CGPoint(x: floor((params.width - iconSize.width) * 0.5), y: contentY), size: iconSize)
+                let iconFrame = CGRect(origin: CGPoint(x: params.leftInset + floor((params.width - params.leftInset - params.rightInset - iconSize.width) * 0.5), y: contentY), size: iconSize)
                 if let iconView = self.icon.view {
                     if iconView.superview == nil {
                         self.contentNode.view.addSubview(iconView)
@@ -318,25 +327,22 @@ class ChatListSearchEmptyFooterItemNode: ListViewItemNode {
                 contentY += iconSize.height
                 contentY += iconSpacing
                 
-                let titleFrame = CGRect(origin: CGPoint(x: floor((params.width - titleLayout.0.size.width) * 0.5), y: contentY), size: titleLayout.0.size)
+                let titleFrame = CGRect(origin: CGPoint(x: params.leftInset + floor((params.width - params.leftInset - params.rightInset - titleLayout.0.size.width) * 0.5), y: contentY), size: titleLayout.0.size)
                 self.titleNode.frame = titleFrame
                 contentY += titleLayout.0.size.height
                 contentY += titleSpacing
                 
-                let textFrame = CGRect(origin: CGPoint(x: floor((params.width - textLayout.0.size.width) * 0.5), y: contentY), size: textLayout.0.size)
+                let textFrame = CGRect(origin: CGPoint(x: params.leftInset + floor((params.width - params.leftInset - params.rightInset - textLayout.0.size.width) * 0.5), y: contentY), size: textLayout.0.size)
                 self.textNode.frame = textFrame
                 contentY += textLayout.0.size.height
                 
                 if item.searchAllMessages != nil {
                     contentY += buttonSpacing
-                    let searchAllMessagesButtonFrame = CGRect(origin: CGPoint(x: floor((params.width - searchAllMessagesTitleLayout.0.size.width) * 0.5), y: contentY), size: CGSize(width: searchAllMessagesTitleLayout.0.size.width, height: searchAllMessagesTitleLayout.0.size.height + buttonInset * 2.0))
-                    contentY += searchAllMessagesTitleLayout.0.size.height + buttonInset * 2.0
+                    let searchAllMessagesButtonFrame = CGRect(origin: CGPoint(x: params.leftInset + floor((params.width - params.leftInset - params.rightInset - searchAllMessagesTitleLayout.0.size.width) * 0.5), y: contentY), size: CGSize(width: searchAllMessagesTitleLayout.0.size.width, height: buttonHeight))
+                    contentY += buttonHeight
                     
                     self.searchAllMessagesButton.frame = searchAllMessagesButtonFrame
-                    self.searchAllMessagesTitle.frame = CGRect(origin: CGPoint(x: 0.0, y: buttonInset), size: searchAllMessagesTitleLayout.0.size)
-                    contentY += buttonInset
-                    contentY += searchAllMessagesTitleLayout.0.size.height
-                    contentY += buttonInset
+                    self.searchAllMessagesTitle.frame = CGRect(origin: CGPoint(x: 0.0, y: floor((buttonHeight - searchAllMessagesTitleLayout.0.size.height) * 0.5)), size: searchAllMessagesTitleLayout.0.size)
                 }
                 
                 contentY += bottomInset
