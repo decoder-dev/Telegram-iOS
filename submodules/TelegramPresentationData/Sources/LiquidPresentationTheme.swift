@@ -221,7 +221,8 @@ func makeLiquidPresentationTheme(_ theme: PresentationTheme, updateWallpaper: Bo
     )
     return PresentationTheme(
         name: theme.name, index: theme.index, referenceTheme: theme.referenceTheme, overallDarkAppearance: dark,
-        intro: theme.intro, passcode: theme.passcode, rootController: root, list: list, chatList: chatList, chat: chat,
+        intro: theme.intro.withUpdated(startButtonColor: palette.accent, dotColor: palette.secondaryText.withAlphaComponent(0.35)),
+        passcode: theme.passcode, rootController: root, list: list, chatList: chatList, chat: chat,
         actionSheet: theme.actionSheet.withUpdated(
             opaqueItemBackgroundColor: palette.surface,
             itemBackgroundColor: palette.surface,
@@ -253,6 +254,28 @@ func makeLiquidPresentationTheme(_ theme: PresentationTheme, updateWallpaper: Bo
             badgeFillColor: palette.accent,
             badgeForegroundColor: palette.onAccent
         ),
-        inAppNotification: theme.inAppNotification, chart: theme.chart
+        inAppNotification: theme.inAppNotification.withUpdated(
+            fillColor: palette.surface,
+            primaryTextColor: palette.primaryText,
+            expandedNotification: theme.inAppNotification.expandedNotification.withUpdated(
+                navigationBar: theme.inAppNotification.expandedNotification.navigationBar.withUpdated(
+                    backgroundColor: palette.surface,
+                    primaryTextColor: palette.primaryText,
+                    controlColor: palette.accent,
+                    separatorColor: palette.separator
+                )
+            )
+        ),
+        chart: theme.chart.withUpdated(
+            labelsColor: palette.secondaryText,
+            helperLinesColor: palette.separator,
+            strongLinesColor: palette.secondaryText.withAlphaComponent(0.45),
+            barStrongLinesColor: palette.secondaryText.withAlphaComponent(0.45),
+            detailsTextColor: palette.primaryText,
+            detailsArrowColor: palette.secondaryText,
+            detailsViewColor: palette.surface,
+            rangeViewFrameColor: palette.separator,
+            rangeViewMarkerColor: palette.secondaryText
+        )
     )
 }

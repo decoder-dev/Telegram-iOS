@@ -164,7 +164,7 @@ private func makeBananaGramTheme(dark: Bool, halloween: Bool = false) -> Present
         rangeViewFrameColor: separator,
         rangeViewMarkerColor: secondary
     )
-    let intro = theme.intro.withUpdated(startButtonColor: accent, dotColor: accent)
+    let intro = theme.intro.withUpdated(startButtonColor: accent, dotColor: secondary.withAlphaComponent(0.35))
     return PresentationTheme(name: .custom(title), index: PresentationThemeReference.builtin(halloween ? .bananaGramHalloween : dark ? .bananaGramGraphite : .bananaGramCream).index, referenceTheme: theme.referenceTheme, overallDarkAppearance: dark, intro: intro, passcode: passcode, rootController: root, list: list, chatList: chats, chat: chat, actionSheet: actionSheet, contextMenu: contextMenu, inAppNotification: inAppNotification, chart: chart)
 }
 

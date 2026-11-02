@@ -68,7 +68,53 @@ public func renderSettingsIcon(name: String, scaleFactor: CGFloat = 1.0, backgro
     return image
 }
 
+private let settingsSymbolNames: [String: String] = [
+    "Item List/Icons/Proxy": "network",
+    "Item List/Icons/SavedMessages": "bookmark.fill",
+    "Item List/Icons/Phone": "phone.fill",
+    "Item List/Icons/Devices": "laptopcomputer.and.iphone",
+    "Item List/Icons/Folder": "folder.fill",
+    "Item List/Icons/Notifications": "bell.fill",
+    "Item List/Icons/Privacy": "hand.raised.fill",
+    "Item List/Icons/Data": "arrow.up.arrow.down",
+    "Item List/Icons/Appearance": "paintbrush.fill",
+    "Item List/Icons/Language": "globe",
+    "Item List/Icons/PowerSaving": "battery.100",
+    "Item List/Icons/Settings": "gearshape.fill",
+    "Item List/Icons/Profile": "person.crop.circle",
+    "Item List/Icons/Brush": "paintbrush.pointed.fill",
+    "Item List/Icons/Pie": "chart.pie.fill",
+    "Item List/Icons/Stats": "chart.bar.fill",
+    "Item List/Icons/Cellular": "antenna.radiowaves.left.and.right",
+    "Item List/Icons/Wifi": "wifi",
+    "Item List/Icons/Member": "person.fill",
+    "Item List/Icons/Group": "person.2.fill",
+    "Item List/Icons/Members": "person.2.fill",
+    "Item List/Icons/Channel": "megaphone.fill",
+    "Item List/Icons/Photo": "photo.fill",
+    "Item List/Icons/Video": "video.fill",
+    "Item List/Icons/File": "doc.fill",
+    "Item List/Icons/Clock": "clock.fill",
+    "Item List/Icons/Key": "key.fill",
+    "Item List/Icons/Link": "link",
+    "Item List/Icons/Delete": "trash.fill",
+    "Item List/Icons/Chat": "bubble.left.and.bubble.right.fill",
+    "Item List/Icons/Faq": "questionmark.circle.fill",
+]
+
 private func renderSettingsIconUncached(name: String, scaleFactor: CGFloat, backgroundColors: [UIColor]?, glyphColor: UIColor?) -> UIImage? {
+    let symbol = backgroundColors == nil ? nil : settingsSymbolNames[name].flatMap {
+        UIImage(systemName: $0, withConfiguration: UIImage.SymbolConfiguration(pointSize: 19.0, weight: .regular))
+    }
+    let glyph: UIImage?
+    if let symbol {
+        let glyphSize = symbol.size.aspectFitted(CGSize(width: 22.0, height: 22.0))
+        glyph = UIGraphicsImageRenderer(size: glyphSize).image { _ in
+            symbol.withTintColor(.white, renderingMode: .alwaysOriginal).draw(in: CGRect(origin: .zero, size: glyphSize))
+        }
+    } else {
+        glyph = UIImage(bundleImageName: name)
+    }
     return generateImage(CGSize(width: 30.0, height: 30.0), contextGenerator: { size, context in
         let bounds = CGRect(origin: CGPoint(), size: size)
         context.clear(bounds)
@@ -82,19 +128,19 @@ private func renderSettingsIconUncached(name: String, scaleFactor: CGFloat, back
             
             context.drawLinearGradient(gradient, start: CGPoint(x: size.width, y: size.height), end: CGPoint(x: 0.0, y: 0.0), options: CGGradientDrawingOptions())
             
-            if let gradientImage, let cgImage = gradientImage.cgImage {
+            if symbol == nil, let gradientImage, let cgImage = gradientImage.cgImage {
                 context.setBlendMode(.plusLighter)
                 context.draw(cgImage, in: CGRect(origin: .zero, size: size))
             }
             
-            if let backdropImage, let cgImage = backdropImage.cgImage {
+            if symbol == nil, let backdropImage, let cgImage = backdropImage.cgImage {
                 context.setBlendMode(.overlay)
                 context.draw(cgImage, in: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: size))
             }
                         
             context.setBlendMode(.normal)
             
-            if let image = UIImage(bundleImageName: name), let maskImage = image.cgImage {
+            if let image = glyph, let maskImage = image.cgImage {
                 let imageSize = CGSize(width: image.size.width * scaleFactor, height: image.size.height * scaleFactor)
                 let imageRect = CGRect(origin: CGPoint(x: (bounds.width - imageSize.width) * 0.5, y: (bounds.height - imageSize.height) * 0.5), size: imageSize)
                 
