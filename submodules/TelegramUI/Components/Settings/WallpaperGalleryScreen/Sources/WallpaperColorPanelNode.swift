@@ -192,7 +192,10 @@ private class ColorInputFieldNode: ASDisplayNode, UITextFieldDelegate {
 
     @objc internal func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         var updated = textField.text ?? ""
-        updated.replaceSubrange(updated.index(updated.startIndex, offsetBy: range.lowerBound) ..< updated.index(updated.startIndex, offsetBy: range.upperBound), with: string)
+        guard let replacementRange = Range(range, in: updated) else {
+            return false
+        }
+        updated.replaceSubrange(replacementRange, with: string)
         if updated.hasPrefix("#") {
             updated.removeFirst()
         }

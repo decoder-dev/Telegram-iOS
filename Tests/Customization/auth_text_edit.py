@@ -1,4 +1,4 @@
-"""Execute the authorization text delegate with UIKit's UTF-16 edit ranges."""
+"""Execute production input delegates with UIKit's UTF-16 edit ranges."""
 import pathlib
 import subprocess
 import tempfile
@@ -52,6 +52,26 @@ precondition(!delegate.textField(UITextField("word"), shouldChangeCharactersIn: 
 precondition(!delegate.textField(UITextField("word"), shouldChangeCharactersIn: NSRange(location: 4, length: 0), replacementString: "\n"))
 precondition(delegate.submissions == 1)
 print("Authorization editing: \(cases) Unicode ranges and five state checks passed")
+'''
+drawing = (ROOT / 'submodules/DrawingUI/Sources/ColorPickerScreen.swift').read_text()
+drawing_begin = drawing.index('        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {')
+drawing_end = drawing.index('\n        func textFieldDidBeginEditing(', drawing_begin)
+checks += r'''
+final class DrawingDelegate {
+    var candidate: String?
+    func shouldUpdate(_ value: String) -> Bool { candidate = value; return !value.contains("!") }
+'''
+checks += drawing[drawing_begin:drawing_end]
+checks += r'''
+}
+let drawing = DrawingDelegate()
+let drawingText = "🧑🏽‍💻 value"
+let drawingRange = NSRange(drawingText.range(of: "value")!, in: drawingText)
+precondition(drawing.textField(UITextField(drawingText), shouldChangeCharactersIn: drawingRange, replacementString: "42"))
+precondition(drawing.candidate == "🧑🏽‍💻 42")
+precondition(!drawing.textField(UITextField("😀"), shouldChangeCharactersIn: NSRange(location: 1, length: 0), replacementString: "x"))
+precondition(!drawing.textField(UITextField("42"), shouldChangeCharactersIn: NSRange(location: 0, length: 0), replacementString: "!"))
+print("Drawing input: UTF-16 replacement, invalid boundary and validation callback passed")
 '''
 
 with tempfile.TemporaryDirectory(prefix='liquid-auth-edit-') as directory:

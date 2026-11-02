@@ -376,7 +376,11 @@ private final class ImportStickerPackTitleInputFieldNode: ASDisplayNode, UITextF
         if self.disabled {
             return false
         }
-        let updatedText = ((textField.text ?? "") as NSString).replacingCharacters(in: range, with: string)
+        let currentText = textField.text ?? ""
+        guard let replacementRange = Range(range, in: currentText) else {
+            return false
+        }
+        let updatedText = currentText.replacingCharacters(in: replacementRange, with: string)
         if updatedText.count > maxLength {
             self.textInputNode.layer.addShakeAnimation()
             return false
@@ -409,11 +413,19 @@ private final class ImportStickerPackTitleInputFieldNode: ASDisplayNode, UITextF
             
             if cleanString != string {
                 var text = textField.text ?? ""
-                text.replaceSubrange(text.index(text.startIndex, offsetBy: range.lowerBound) ..< text.index(text.startIndex, offsetBy: range.upperBound), with: cleanString)
+                guard let textRange = Range(range, in: text) else {
+                    return false
+                }
+                let caretPrefix = String(text[..<textRange.lowerBound]) + cleanString
+                text.replaceSubrange(textRange, with: cleanString)
                 textField.text = text
-                if let startPosition = textField.position(from: textField.beginningOfDocument, offset: range.lowerBound + cleanString.count) {
+                if let startPosition = textField.position(from: textField.beginningOfDocument, offset: caretPrefix.utf16.count) {
                     let selectionRange = textField.textRange(from: startPosition, to: startPosition)
-                    DispatchQueue.main.async {
+                    let expectedText = text
+                    DispatchQueue.main.async { [weak textField] in
+                        guard let textField, textField.text == expectedText else {
+                            return
+                        }
                         textField.selectedTextRange = selectionRange
                     }
                 }

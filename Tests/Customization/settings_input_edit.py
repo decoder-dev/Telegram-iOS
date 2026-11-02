@@ -1,7 +1,7 @@
-"""Run the actual settings-field delegate against UTF-16 edits and queued caret updates.
+"""Run settings and sticker delegates against UTF-16 edits and queued caret updates.
 
 The small field/queue adapters supply UIKit's text-position contract, not a renderer.
-Native coverage of the same paths lives in InputRowLayoutTests.
+Native coverage of the settings paths lives in InputRowLayoutTests.
 """
 import pathlib
 import subprocess
@@ -23,9 +23,12 @@ final class DispatchQueue {
     func asyncAfter(deadline: DispatchTime, execute: @escaping () -> Void) { execute() }
     func flush() { let work = pending; pending.removeAll(); work.forEach { $0() } }
 }
+enum KeyboardType { case `default`, asciiCapable }
 final class UITextField {
     var text: String?
     var selectedTextRange: NSRange?
+    var keyboardType = KeyboardType.default
+    let layer = Layer()
     let beginningOfDocument = 0
     init(_ text: String) { self.text = text }
     func position(from: Int, offset: Int) -> Int? {
@@ -99,6 +102,44 @@ precondition(!delegate.textField(empty, shouldChangeCharactersIn: NSRange(locati
 delegate.item?.shouldUpdateText = { _ in false }
 precondition(!delegate.textField(empty, shouldChangeCharactersIn: NSRange(location: 0, length: 0), replacementString: "a"))
 print("Settings input: processed paste, Unicode usernames, caret ownership, invalid ranges and disabled/length/validation gates passed")
+'''
+sticker = (ROOT / 'submodules/TelegramUI/Components/Stickers/StickerPackEditTitleController/Sources/StickerPackEditTitleController.swift').read_text()
+sticker_begin = sticker.index('    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {')
+sticker_end = sticker.index('\n    private func calculateTextFieldMetrics(', sticker_begin)
+sticker_identifier_begin = sticker.index('private let validIdentifierSet:')
+sticker_identifier_end = sticker.index('\n}()', sticker_identifier_begin) + len('\n}()')
+checks += '\n' + sticker[sticker_identifier_begin:sticker_identifier_end].replace('validIdentifierSet', 'stickerIdentifierSet')
+checks += r'''
+final class StickerDelegate {
+    var disabled = false
+    var maxLength = 64
+    let textInputNode = UITextField("")
+    var complete: (() -> Void)?
+    var changes: [String] = []
+    func textFieldDidUpdateText(_ text: String) { changes.append(text) }
+'''
+checks += sticker[sticker_begin:sticker_end].replace('validIdentifierSet', 'stickerIdentifierSet')
+checks += r'''
+}
+let sticker = StickerDelegate()
+sticker.textInputNode.keyboardType = .asciiCapable
+sticker.textInputNode.text = "e\u{301}x"
+precondition(!sticker.textField(sticker.textInputNode, shouldChangeCharactersIn: NSRange(location: 2, length: 0), replacementString: "ä👍"))
+precondition(sticker.textInputNode.text == "e\u{301}ax")
+DispatchQueue.main.flush()
+precondition(sticker.textInputNode.selectedTextRange?.location == 3)
+sticker.disabled = true
+let stickerCount = sticker.changes.count
+precondition(!sticker.textField(sticker.textInputNode, shouldChangeCharactersIn: NSRange(location: 0, length: 0), replacementString: "x"))
+precondition(sticker.changes.count == stickerCount)
+sticker.disabled = false
+sticker.textInputNode.keyboardType = .default
+sticker.textInputNode.text = "🇷🇺 name"
+precondition(sticker.textField(sticker.textInputNode, shouldChangeCharactersIn: NSRange(location: 5, length: 4), replacementString: "title"))
+precondition(sticker.changes.last == "🇷🇺 title")
+sticker.textInputNode.text = "😀"
+precondition(!sticker.textField(sticker.textInputNode, shouldChangeCharactersIn: NSRange(location: 1, length: 0), replacementString: "x"))
+print("Sticker title/slug: Unicode range, normalized caret, disabled state and invalid boundary passed")
 '''
 
 with tempfile.TemporaryDirectory(prefix='liquid-settings-edit-') as directory:
