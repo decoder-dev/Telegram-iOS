@@ -98,10 +98,18 @@ final class PermissionControllerNode: ASDisplayNode {
     }
     
     func animateIn(completion: (() -> Void)? = nil) {
+        if self.presentationData.reduceMotion {
+            completion?()
+            return
+        }
         self.layer.animatePosition(from: CGPoint(x: self.layer.position.x, y: self.layer.position.y + self.layer.bounds.size.height), to: self.layer.position, duration: 0.5, timingFunction: kCAMediaTimingFunctionSpring)
     }
     
     func animateOut(completion: (() -> Void)? = nil) {
+        if self.presentationData.reduceMotion {
+            completion?()
+            return
+        }
         self.layer.animatePosition(from: self.layer.position, to: CGPoint(x: self.layer.position.x, y: self.layer.position.y + self.layer.bounds.size.height), duration: 0.2, timingFunction: CAMediaTimingFunctionName.easeInEaseOut.rawValue, removeOnCompletion: false, completion: { _ in
             completion?()
         })
@@ -124,14 +132,12 @@ final class PermissionControllerNode: ASDisplayNode {
     }
     
     private func transition(state: PermissionControllerState, transition: ContainedViewLayoutTransition) {
+        let transition: ContainedViewLayoutTransition = self.presentationData.reduceMotion ? .immediate : transition
         var insets = state.layout.layout.insets(options: [.statusBar])
-        if state.layout.layout.safeInsets.left != state.layout.layout.safeInsets.right {
-            // Beside iPhone Duo's side strip the content keeps to the band between the side insets; equal insets keep
-            // the full width as before.
-            insets.left = state.layout.layout.safeInsets.left
-            insets.right = state.layout.layout.safeInsets.right
-        }
-        let contentFrame = CGRect(origin: CGPoint(x: 0.0, y: state.layout.navigationHeight), size: CGSize(width: state.layout.layout.size.width, height: state.layout.layout.size.height))
+        insets.top = max(0.0, insets.top - state.layout.navigationHeight)
+        insets.left = state.layout.layout.safeInsets.left
+        insets.right = state.layout.layout.safeInsets.right
+        let contentFrame = CGRect(origin: CGPoint(x: 0.0, y: state.layout.navigationHeight), size: CGSize(width: state.layout.layout.size.width, height: max(1.0, state.layout.layout.size.height - state.layout.navigationHeight)))
         
         if let state = state.data.state {
             switch state {

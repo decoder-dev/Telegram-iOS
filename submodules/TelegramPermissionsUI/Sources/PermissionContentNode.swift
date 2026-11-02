@@ -9,6 +9,7 @@ import TextFormat
 import TelegramPermissions
 import ComponentFlow
 import ButtonComponent
+import MultilineTextComponent
 import ComponentDisplayAdapters
 import Markdown
 import AnimatedStickerNode
@@ -35,9 +36,12 @@ public enum PermissionContentIcon: Equatable {
 
 public final class PermissionContentNode: ASDisplayNode {
     private var theme: PresentationTheme
+    private var fontSize: CGFloat
+    private var reduceMotion: Bool
     public let kind: Int32
     private let filterHitTest: Bool
 
+    private let scrollNode: ASScrollNode
     private let iconNode: ASImageNode
     private let animationNode: AnimatedStickerNode?
     private let titleNode: ImmediateTextNode
@@ -46,291 +50,215 @@ public final class PermissionContentNode: ASDisplayNode {
     private let actionButton = ComponentView<Empty>()
     private let footerNode: ImmediateTextNode
     private let privacyPolicyButton: HighlightableButtonNode
-    
+
     private let icon: PermissionContentIcon
-    private var title: String
-    private var text: String
+    private let title: String
+    private let subtitle: String?
+    private let text: String
     private let buttonTitle: String
-    
+    private let privacyPolicyTitle: String
+    private let footerText: String?
+    private let textAlignment: NSTextAlignment
+
     public var buttonAction: (() -> Void)?
     public var openPrivacyPolicy: (() -> Void)?
-    
     public var validLayout: (CGSize, UIEdgeInsets)?
-    
+
     public init(context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, kind: Int32, icon: PermissionContentIcon, title: String, subtitle: String? = nil, text: String, buttonTitle: String, secondaryButtonTitle: String? = nil, footerText: String? = nil, buttonAction: @escaping () -> Void, openPrivacyPolicy: (() -> Void)?, filterHitTest: Bool = false) {
+        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.theme = theme
+        self.fontSize = presentationData.listsFontSize.baseDisplaySize
+        self.reduceMotion = presentationData.reduceMotion
         self.kind = kind
-        
         self.buttonAction = buttonAction
         self.openPrivacyPolicy = openPrivacyPolicy
         self.filterHitTest = filterHitTest
-        
         self.icon = icon
         self.title = title
+        self.subtitle = subtitle
         self.text = text
         self.buttonTitle = buttonTitle
-        
+        self.privacyPolicyTitle = secondaryButtonTitle ?? strings.Permissions_PrivacyPolicy
+        self.footerText = footerText
+        if case .animation = icon {
+            self.textAlignment = .natural
+        } else {
+            self.textAlignment = secondaryButtonTitle != nil ? .natural : .center
+        }
+
+        self.scrollNode = ASScrollNode()
         self.iconNode = ASImageNode()
         self.iconNode.isLayerBacked = true
         self.iconNode.displayWithoutProcessing = true
         self.iconNode.displaysAsynchronously = false
-        
-        if case let .animation(animation) = icon {
-            self.animationNode = DefaultAnimatedStickerNodeImpl(lottieSettings: context.lottieRenderingSettings)
-            
-            self.animationNode?.setup(source: AnimatedStickerNodeLocalFileSource(name: animation), width: 320, height: 320, playbackMode: .once, mode: .direct(cachePathPrefix: nil))
-            self.animationNode?.visibility = true
+        self.iconNode.isUserInteractionEnabled = false
+        if case let .animation(name) = icon {
+            let animationNode = DefaultAnimatedStickerNodeImpl(lottieSettings: context.lottieRenderingSettings)
+            animationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: name), width: 320, height: 320, playbackMode: presentationData.reduceMotion ? .still(.start) : .once, mode: .direct(cachePathPrefix: nil))
+            animationNode.isUserInteractionEnabled = false
+            self.animationNode = animationNode
         } else {
             self.animationNode = nil
         }
-        
+
         self.titleNode = ImmediateTextNode()
-        self.titleNode.maximumNumberOfLines = 0
-        self.titleNode.textAlignment = .center
-        self.titleNode.isUserInteractionEnabled = false
-        self.titleNode.displaysAsynchronously = false
-        self.titleNode.isAccessibilityElement = true
-        
         self.subtitleNode = ImmediateTextNode()
-        self.subtitleNode.maximumNumberOfLines = 1
-        self.subtitleNode.textAlignment = .center
-        self.subtitleNode.isUserInteractionEnabled = false
-        self.subtitleNode.displaysAsynchronously = false
-        self.subtitleNode.isAccessibilityElement = true
-        
         self.textNode = ImmediateTextNode()
-        self.textNode.maximumNumberOfLines = 0
-        self.textNode.displaysAsynchronously = false
-        self.textNode.isAccessibilityElement = true
-        self.textNode.lineSpacing = 0.1
-        
         self.footerNode = ImmediateTextNode()
-        self.footerNode.textAlignment = .center
-        self.footerNode.maximumNumberOfLines = 0
-        self.footerNode.displaysAsynchronously = false
-        self.footerNode.isAccessibilityElement = true
-        
         self.privacyPolicyButton = HighlightableButtonNode()
-        self.privacyPolicyButton.setTitle(secondaryButtonTitle ?? strings.Permissions_PrivacyPolicy, with: Font.regular(17.0), with: theme.list.itemAccentColor, for: .normal)
-        self.privacyPolicyButton.accessibilityLabel = secondaryButtonTitle ?? strings.Permissions_PrivacyPolicy
-        
+        self.privacyPolicyButton.titleNode.maximumNumberOfLines = 0
+        self.privacyPolicyButton.titleNode.textAlignment = .center
+        self.privacyPolicyButton.accessibilityLabel = self.privacyPolicyTitle
+
         super.init()
-        
-        self.iconNode.image = icon.imageForTheme(theme)
-        self.title = title
-        
-        var secondaryText = false
-        if case .animation = icon {
-            secondaryText = true
+
+        self.addSubnode(self.scrollNode)
+        for node in [self.titleNode, self.subtitleNode, self.textNode, self.footerNode] {
+            node.maximumNumberOfLines = 0
+            node.textAlignment = .center
+            node.isUserInteractionEnabled = false
+            node.displaysAsynchronously = false
+            node.isAccessibilityElement = true
+            self.scrollNode.addSubnode(node)
         }
-        
-        self.textNode.textAlignment = secondaryButtonTitle != nil ? .natural : .center
-        
-        let body = MarkdownAttributeSet(font: Font.regular(16.0), textColor: secondaryButtonTitle != nil ? theme.list.itemSecondaryTextColor : theme.list.itemPrimaryTextColor)
-        let link = MarkdownAttributeSet(font: Font.regular(16.0), textColor: theme.list.itemAccentColor, additionalAttributes: [TelegramTextAttributes.URL: ""])
-        self.textNode.attributedText = parseMarkdownIntoAttributedString(text.replacingOccurrences(of: "]", with: "]()"), attributes: MarkdownAttributes(body: body, bold: body, link: link, linkAttribute: { _ in nil }), textAlignment: secondaryText ? .natural : .center)
-        
-        self.privacyPolicyButton.isHidden = openPrivacyPolicy == nil
-        
-        if let subtitle = subtitle {
-            self.subtitleNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(13.0), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
-            self.subtitleNode.accessibilityLabel = subtitle
+        self.titleNode.accessibilityTraits = .header
+        self.textNode.textAlignment = self.textAlignment
+        self.scrollNode.addSubnode(self.iconNode)
+        if let animationNode = self.animationNode {
+            self.scrollNode.addSubnode(animationNode)
         }
-        
-        if let footerText = footerText {
-            self.footerNode.attributedText = NSAttributedString(string: footerText, font: Font.regular(13.0), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
-            self.footerNode.accessibilityLabel = footerText
-        }
-        
-        self.addSubnode(self.iconNode)
-        self.animationNode.flatMap { self.addSubnode($0) }
-        self.addSubnode(self.titleNode)
-        self.addSubnode(self.subtitleNode)
-        self.addSubnode(self.textNode)
-        self.addSubnode(self.footerNode)
-        self.addSubnode(self.privacyPolicyButton)
-        
+        self.scrollNode.addSubnode(self.privacyPolicyButton)
+        self.scrollNode.view.contentInsetAdjustmentBehavior = .never
+        self.scrollNode.view.scrollsToTop = false
+        self.scrollNode.view.alwaysBounceVertical = false
+        self.scrollNode.view.isDirectionalLockEnabled = true
+        self.updateText()
         self.privacyPolicyButton.addTarget(self, action: #selector(self.privacyPolicyPressed), forControlEvents: .touchUpInside)
     }
-    
+
+    private func updateText() {
+        self.iconNode.image = self.icon.imageForTheme(self.theme)
+        self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.bold(floor(self.fontSize * 28.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.titleNode.accessibilityLabel = self.title
+        let body = MarkdownAttributeSet(font: Font.regular(self.fontSize), textColor: self.theme.list.itemPrimaryTextColor)
+        let link = MarkdownAttributeSet(font: Font.regular(self.fontSize), textColor: self.theme.list.itemAccentColor, additionalAttributes: [TelegramTextAttributes.URL: ""])
+        self.textNode.attributedText = parseMarkdownIntoAttributedString(self.text.replacingOccurrences(of: "]", with: "]()"), attributes: MarkdownAttributes(body: body, bold: body, link: link, linkAttribute: { _ in nil }), textAlignment: self.textAlignment)
+        self.textNode.accessibilityLabel = self.textNode.attributedText?.string
+        let captionFont = Font.regular(floor(self.fontSize * 13.0 / 17.0))
+        self.subtitleNode.attributedText = self.subtitle.map { NSAttributedString(string: $0, font: captionFont, textColor: self.theme.list.freeTextColor, paragraphAlignment: .center) }
+        self.subtitleNode.accessibilityLabel = self.subtitle
+        self.subtitleNode.isHidden = self.subtitle == nil
+        self.footerNode.attributedText = self.footerText.map { NSAttributedString(string: $0, font: captionFont, textColor: self.theme.list.freeTextColor, paragraphAlignment: .center) }
+        self.footerNode.accessibilityLabel = self.footerText
+        self.footerNode.isHidden = self.footerText == nil
+        self.privacyPolicyButton.setTitle(self.privacyPolicyTitle, with: Font.regular(self.fontSize), with: self.theme.list.itemAccentColor, for: .normal)
+        self.privacyPolicyButton.isHidden = self.openPrivacyPolicy == nil
+    }
+
     override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         guard let result = super.hitTest(point, with: event) else {
             return nil
         }
-        if self.filterHitTest {
-            if result === self.view {
-                return nil
-            }
+        if self.filterHitTest && !self.scrollNode.view.isScrollEnabled && (result === self.view || result === self.scrollNode.view) {
+            return nil
         }
         return result
     }
-    
+
     public func updatePresentationData(_ presentationData: PresentationData) {
-        let theme = presentationData.theme
-        self.theme = theme
-        
-        self.iconNode.image = self.icon.imageForTheme(theme)
-        
-        let body = MarkdownAttributeSet(font: Font.regular(16.0), textColor: theme.list.itemPrimaryTextColor)
-        let link = MarkdownAttributeSet(font: Font.regular(16.0), textColor: theme.list.itemAccentColor, additionalAttributes: [TelegramTextAttributes.URL: ""])
-        self.textNode.attributedText = parseMarkdownIntoAttributedString(self.text.replacingOccurrences(of: "]", with: "]()"), attributes: MarkdownAttributes(body: body, bold: body, link: link, linkAttribute: { _ in nil }), textAlignment: .center)
-        self.textNode.accessibilityLabel = self.textNode.attributedText?.string
-        
-        if let subtitle = self.subtitleNode.attributedText?.string {
-            self.subtitleNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(13.0), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
-            self.subtitleNode.accessibilityLabel = subtitle
+        self.theme = presentationData.theme
+        self.fontSize = presentationData.listsFontSize.baseDisplaySize
+        if self.reduceMotion != presentationData.reduceMotion {
+            self.reduceMotion = presentationData.reduceMotion
+            if let animationNode = self.animationNode, case let .animation(name) = self.icon {
+                animationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: name), width: 320, height: 320, playbackMode: self.reduceMotion ? .still(.start) : .once, mode: .direct(cachePathPrefix: nil))
+            }
         }
-        if let footerText = self.footerNode.attributedText?.string {
-            self.footerNode.attributedText = NSAttributedString(string: footerText, font: Font.regular(13.0), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
-            self.footerNode.accessibilityLabel = footerText
-        }
-        
-        if let privacyPolicyTitle = self.privacyPolicyButton.attributedTitle(for: .normal)?.string {
-            self.privacyPolicyButton.setTitle(privacyPolicyTitle, with: Font.regular(16.0), with: theme.list.itemAccentColor, for: .normal)
-        }
-        
-        if let validLayout = self.validLayout {
-            self.updateLayout(size: validLayout.0, insets: validLayout.1, transition: .immediate)
+        self.updateText()
+        if let (size, insets) = self.validLayout {
+            self.updateLayout(size: size, insets: insets, transition: .immediate)
         }
     }
-    
+
     @objc private func privacyPolicyPressed() {
         self.openPrivacyPolicy?()
     }
-    
+
     public func updateLayout(size: CGSize, insets: UIEdgeInsets, transition: ContainedViewLayoutTransition) {
         self.validLayout = (size, insets)
-        
-        let sidePadding: CGFloat
-        let fontSize: CGFloat
-        if min(size.width, size.height) > 330.0 {
-            fontSize = 24.0
-            sidePadding = 36.0
-        } else {
-            fontSize = 20.0
-            sidePadding = 20.0
-        }
-        // Per side: beside a side strip (iPhone Duo) the insets differ, and everything centres in the band between
-        // them. Equal insets give the old symmetric padding and screen-centred frames.
-        let textWidth = size.width - sidePadding * 2.0 - insets.left - insets.right
-        let smallerTextWidth = size.width - 20.0 * 2.0 - insets.left - insets.right
-        func centeredX(_ width: CGFloat) -> CGFloat {
-            return floor((size.width - width + insets.left - insets.right) / 2.0)
-        }
-        
-        self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.bold(fontSize), textColor: self.theme.list.itemPrimaryTextColor)
-        self.titleNode.accessibilityLabel = self.title
-        
-        let titleSize = self.titleNode.updateLayout(CGSize(width: textWidth, height: .greatestFiniteMagnitude))
-        let subtitleSize = self.subtitleNode.updateLayout(CGSize(width: smallerTextWidth, height: .greatestFiniteMagnitude))
-        let textSize = self.textNode.updateLayout(CGSize(width: textWidth, height: .greatestFiniteMagnitude))
-        let buttonInset: CGFloat = 16.0
-        let buttonWidth = min(size.width, size.height) - buttonInset * 2.0 - insets.left - insets.right
+        let viewport = CGSize(width: max(1.0, size.width - insets.left - insets.right), height: max(1.0, size.height - insets.top - insets.bottom))
+        transition.updateFrame(node: self.scrollNode, frame: CGRect(origin: CGPoint(x: insets.left, y: insets.top), size: viewport))
+        let textWidth = max(1.0, min(520.0, viewport.width - 48.0))
+        let constraint = CGSize(width: textWidth, height: .greatestFiniteMagnitude)
+        let titleSize = self.titleNode.updateLayout(constraint)
+        let subtitleSize = self.subtitleNode.updateLayout(constraint)
+        let textSize = self.textNode.updateLayout(constraint)
+        let footerSize = self.footerNode.updateLayout(constraint)
+        let privacyLabelSize = self.privacyPolicyButton.measure(constraint)
+        let privacySize = self.openPrivacyPolicy == nil ? CGSize.zero : CGSize(width: max(44.0, privacyLabelSize.width), height: max(44.0, privacyLabelSize.height + 16.0))
+        self.privacyPolicyButton.isHidden = self.openPrivacyPolicy == nil
         let buttonSize = self.actionButton.update(
             transition: ComponentTransition(transition),
             component: AnyComponent(ButtonComponent(
-                background: ButtonComponent.Background(
-                    style: .glass,
-                    color: self.theme.list.itemCheckColors.fillColor,
-                    foreground: self.theme.list.itemCheckColors.foregroundColor,
-                    pressedColor: self.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9),
-                    cornerRadius: 26.0,
-                    isShimmering: true
-                ),
-                content: AnyComponentWithIdentity(
-                    id: AnyHashable(0),
-                    component: AnyComponent(Text(
-                        text: self.buttonTitle,
-                        font: Font.semibold(17.0),
-                        color: self.theme.list.itemCheckColors.foregroundColor
-                    ))
-                ),
+                background: ButtonComponent.Background(style: .glass, color: self.theme.list.itemCheckColors.fillColor, foreground: self.theme.list.itemCheckColors.foregroundColor, pressedColor: self.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9), cornerRadius: 26.0),
+                content: AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: self.buttonTitle, font: Font.semibold(self.fontSize), textColor: self.theme.list.itemCheckColors.foregroundColor)), horizontalAlignment: .center, maximumNumberOfLines: 0))),
+                fitToContentHeight: true,
+                accessibilityLabel: self.buttonTitle,
+                isEnabled: self.buttonAction != nil,
                 action: { [weak self] in
                     self?.buttonAction?()
                 }
             )),
             environment: {},
-            containerSize: CGSize(width: buttonWidth, height: 52.0)
+            containerSize: CGSize(width: min(420.0, textWidth), height: 52.0)
         )
-        let buttonHeight = buttonSize.height
-        let footerSize = self.footerNode.updateLayout(CGSize(width: smallerTextWidth, height: .greatestFiniteMagnitude))
-        let privacyButtonSize = self.privacyPolicyButton.measure(CGSize(width: textWidth, height: .greatestFiniteMagnitude))
-        
-        let availableHeight = floor(size.height - insets.top - insets.bottom - titleSize.height - subtitleSize.height - textSize.height - buttonHeight)
-        
-        let titleTextSpacing: CGFloat = max(15.0, floor(availableHeight * 0.045))
-        let titleSubtitleSpacing: CGFloat = 6.0
-        let buttonSpacing: CGFloat = max(19.0, floor(availableHeight * 0.075))
-        var contentHeight = titleSize.height + titleTextSpacing + textSize.height + buttonHeight + buttonSpacing
-        if subtitleSize.height > 0.0 {
-            contentHeight += titleSubtitleSpacing + subtitleSize.height
+        var illustrationSize = self.iconNode.image?.size ?? .zero
+        if self.animationNode != nil {
+            illustrationSize = CGSize(width: 220.0, height: 220.0)
         }
-        
-        var imageSize = CGSize()
-        var imageSpacing: CGFloat = 0.0
-        if let icon = self.iconNode.image, size.width < size.height {
-            imageSpacing = floor(availableHeight * 0.12)
-            imageSize = icon.size
-            contentHeight += imageSize.height + imageSpacing
+        if illustrationSize.width > textWidth {
+            illustrationSize.height *= textWidth / illustrationSize.width
+            illustrationSize.width = textWidth
         }
-        if let _ = self.animationNode, size.width < size.height {
-            imageSpacing = floor(availableHeight * 0.12)
-            imageSize = CGSize(width: 240.0, height: 240.0)
-            contentHeight += imageSize.height + imageSpacing
-        }
-        
-        let privacySpacing: CGFloat = max(30.0 + privacyButtonSize.height, (availableHeight - titleTextSpacing - buttonSpacing - imageSize.height - imageSpacing) / 2.0)
-        
-        var verticalOffset: CGFloat = 0.0
-        if size.height >= 568.0 {
-            verticalOffset = availableHeight * 0.05
-        }
-        
-        let contentOrigin = insets.top + floor((size.height - insets.top - insets.bottom - contentHeight) / 2.0) - verticalOffset
-        let iconFrame = CGRect(origin: CGPoint(x: centeredX(imageSize.width), y: contentOrigin), size: imageSize)
-        let animationFrame = CGRect(origin: CGPoint(x: centeredX(imageSize.width), y: contentOrigin), size: imageSize)
-        let titleFrame = CGRect(origin: CGPoint(x: centeredX(titleSize.width), y: iconFrame.maxY + imageSpacing), size: titleSize)
-        
-        let subtitleFrame: CGRect
-        if subtitleSize.height > 0.0 {
-            subtitleFrame = CGRect(origin: CGPoint(x: centeredX(subtitleSize.width), y: titleFrame.maxY + titleSubtitleSpacing), size: subtitleSize)
-        } else {
-            subtitleFrame = titleFrame
-        }
-        
-        let textFrame = CGRect(origin: CGPoint(x: centeredX(textSize.width), y: subtitleFrame.maxY + titleTextSpacing), size: textSize)
-        let footerFrame = CGRect(origin: CGPoint(x: centeredX(footerSize.width), y: size.height - footerSize.height - insets.bottom - 8.0), size: footerSize)
-        
-        let buttonFrame: CGRect
-        let privacyButtonFrame: CGRect
-        if self.textNode.textAlignment == .natural {
-            buttonFrame = CGRect(origin: CGPoint(x: centeredX(buttonWidth), y: max(textFrame.maxY + buttonSpacing ,size.height - buttonHeight - insets.bottom - 70.0)), size: CGSize(width: buttonWidth, height: buttonHeight))
-            privacyButtonFrame = CGRect(origin: CGPoint(x: centeredX(privacyButtonSize.width), y: buttonFrame.maxY + 29.0), size: privacyButtonSize)
-        } else {
-            buttonFrame = CGRect(origin: CGPoint(x: centeredX(buttonWidth), y: textFrame.maxY + buttonSpacing), size: CGSize(width: buttonWidth, height: buttonHeight))
-            privacyButtonFrame = CGRect(origin: CGPoint(x: centeredX(privacyButtonSize.width), y: buttonFrame.maxY + floor((privacySpacing - privacyButtonSize.height) / 2.0)), size: privacyButtonSize)
-        }
-        
-        transition.updateFrame(node: self.iconNode, frame: iconFrame)
+        let layout = PermissionContentLayout(viewport: viewport, illustrationSize: illustrationSize, titleSize: titleSize, subtitleSize: subtitleSize, textSize: textSize, buttonSize: buttonSize, privacySize: privacySize, footerSize: footerSize)
+        self.scrollNode.view.contentSize = layout.contentSize
+        self.scrollNode.view.isScrollEnabled = layout.contentSize.height > viewport.height
+        self.scrollNode.view.showsVerticalScrollIndicator = self.scrollNode.view.isScrollEnabled
+        let offset = self.scrollNode.view.contentOffset.y
+        self.scrollNode.view.contentOffset = CGPoint(x: 0.0, y: max(0.0, min(offset, layout.contentSize.height - viewport.height)))
+        transition.updateFrame(node: self.iconNode, frame: layout.illustrationFrame)
+        self.iconNode.isHidden = !layout.showsIllustration
         if let animationNode = self.animationNode {
-            transition.updateFrame(node: animationNode, frame: animationFrame)
-            animationNode.updateLayout(size: animationFrame.size)
+            transition.updateFrame(node: animationNode, frame: layout.illustrationFrame)
+            animationNode.isHidden = !layout.showsIllustration
+            animationNode.visibility = layout.showsIllustration
+            animationNode.updateLayout(size: illustrationSize)
         }
-        transition.updateFrame(node: self.titleNode, frame: titleFrame)
-        transition.updateFrame(node: self.subtitleNode, frame: subtitleFrame)
-        transition.updateFrame(node: self.textNode, frame: textFrame)
+        transition.updateFrame(node: self.titleNode, frame: layout.titleFrame)
+        transition.updateFrame(node: self.subtitleNode, frame: layout.subtitleFrame)
+        transition.updateFrame(node: self.textNode, frame: layout.textFrame)
+        transition.updateFrame(node: self.footerNode, frame: layout.footerFrame)
+        transition.updateFrame(node: self.privacyPolicyButton, frame: layout.privacyFrame)
         if let buttonView = self.actionButton.view {
             if buttonView.superview == nil {
-                self.view.addSubview(buttonView)
+                self.scrollNode.view.addSubview(buttonView)
             }
-            buttonView.isAccessibilityElement = true
-            buttonView.accessibilityLabel = self.buttonTitle
-            buttonView.accessibilityTraits = [.button]
-            transition.updateFrame(view: buttonView, frame: buttonFrame)
+            transition.updateFrame(view: buttonView, frame: layout.buttonFrame)
         }
-        transition.updateFrame(node: self.footerNode, frame: footerFrame)
-        transition.updateFrame(node: self.privacyPolicyButton, frame: privacyButtonFrame)
-        
-        self.footerNode.isHidden = size.height < 568.0
+        var accessibilityElements: [Any] = [self.titleNode.view]
+        if !self.subtitleNode.isHidden {
+            accessibilityElements.append(self.subtitleNode.view)
+        }
+        accessibilityElements.append(self.textNode.view)
+        if let buttonView = self.actionButton.view {
+            accessibilityElements.append(buttonView)
+        }
+        if !self.privacyPolicyButton.isHidden {
+            accessibilityElements.append(self.privacyPolicyButton.view)
+        }
+        if !self.footerNode.isHidden {
+            accessibilityElements.append(self.footerNode.view)
+        }
+        self.scrollNode.view.accessibilityElements = accessibilityElements
     }
 }

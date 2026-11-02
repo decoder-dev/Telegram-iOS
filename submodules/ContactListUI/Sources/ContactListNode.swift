@@ -2180,6 +2180,7 @@ public final class ContactListNode: ASDisplayNode {
                     }
                 } else if previousFontSize != presentationData.listsFontSize || previousReduceMotion != presentationData.reduceMotion {
                     strongSelf.presentationDataPromise.set(.single(presentationData))
+                    strongSelf.authorizationNode.updatePresentationData(presentationData)
                     if let (validLayout, headerInsets, storiesInset) = strongSelf.validLayout {
                         strongSelf.containerLayoutUpdated(validLayout, headerInsets: headerInsets, storiesInset: storiesInset, transition: .immediate)
                     }
