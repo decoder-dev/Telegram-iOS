@@ -150,23 +150,24 @@ private final class PeerInfoScreenSwitchItemNode: PeerInfoScreenItemNode {
         
         self.selectionNode.pressed = nil
         
-        let sideInset: CGFloat = 16.0 + safeInsets.left
+        let sideInset = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
         let leftInset = (item.icon == nil ? sideInset : sideInset + 29.0 + 16.0)
-        let rightInset: CGFloat = 56.0 + safeAreaInsets.right
+        let rightInset: CGFloat = 56.0 + safeInsets.right
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
         
         let textColorValue: UIColor = presentationData.theme.list.itemPrimaryTextColor
         
-        self.textNode.maximumNumberOfLines = 1
-        self.textNode.attributedText = NSAttributedString(string: item.text, font: Font.regular(17.0), textColor: textColorValue)
+        let fontSize = presentationData.listsFontSize.itemListBaseFontSize
+        self.textNode.maximumNumberOfLines = fontSize >= PresentationLayoutMetrics.multilineTextThreshold ? 0 : 1
+        self.textNode.attributedText = NSAttributedString(string: item.text, font: Font.regular(fontSize), textColor: textColorValue)
         
         self.activateArea.accessibilityLabel = item.text
         self.activateArea.accessibilityValue = item.value ? presentationData.strings.VoiceOver_Common_On : presentationData.strings.VoiceOver_Common_Off
         self.activateArea.accessibilityHint = item.isLocked ? nil : presentationData.strings.VoiceOver_Common_SwitchHint
         self.activateArea.accessibilityTraits = [.button]
         
-        let textSize = self.textNode.updateLayout(CGSize(width: width - leftInset - rightInset, height: .greatestFiniteMagnitude))
+        let textSize = self.textNode.updateLayout(CGSize(width: max(1.0, width - leftInset - rightInset), height: .greatestFiniteMagnitude))
         let textFrame = CGRect(origin: CGPoint(x: leftInset, y: 16.0), size: textSize)
         
         let height = textSize.height + 32.0

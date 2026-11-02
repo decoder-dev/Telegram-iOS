@@ -165,12 +165,20 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
             self.activateArea.activate = nil
         }
         
-        let sideInset: CGFloat = 16.0 + safeInsets.left
-        let sideInsetRight: CGFloat = 16.0 + safeInsets.right
+        let sideInset = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
+        let sideInsetRight = PresentationLayoutMetrics.listHorizontalInset + safeInsets.right
         let leftInset = (item.icon == nil && item.iconSignal == nil ? sideInset : sideInset + 29.0 + 16.0)
         let rightInset = sideInsetRight + (item.hasArrow ? 18.0 : 0.0)
         let separatorInset = item.icon == nil && item.iconSignal == nil ? sideInset : leftInset - 1.0
         let titleFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
+        let usesLargeTextLayout = titleFont.pointSize >= PresentationLayoutMetrics.multilineTextThreshold
+        let stacksLabel: Bool
+        switch item.label {
+        case .text, .coloredText:
+            stacksLabel = usesLargeTextLayout && !item.label.text.isEmpty && item.additionalBadgeLabel == nil
+        default:
+            stacksLabel = false
+        }
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
         
@@ -215,20 +223,26 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
         } else {
             self.labelNode.attributedText = NSAttributedString(string: item.label.text, font: labelFont, textColor: labelColorValue)
         }
-        self.textNode.maximumNumberOfLines = 1
+        self.textNode.maximumNumberOfLines = usesLargeTextLayout && (stacksLabel || item.label.text.isEmpty) ? 0 : 1
+        self.labelNode.maximumNumberOfLines = stacksLabel ? 0 : 1
         self.textNode.attributedText = NSAttributedString(string: item.text, font: titleFont, textColor: textColorValue)
         
-        let textSize = self.textNode.updateLayout(CGSize(width: width - (leftInset + rightInset), height: .greatestFiniteMagnitude))
+        let textSize = self.textNode.updateLayout(CGSize(width: max(1.0, width - (leftInset + rightInset)), height: .greatestFiniteMagnitude))
         var labelConstrainWidth = width - textSize.width - (leftInset + rightInset)
         if case .semitransparentBadge = item.label {
             labelConstrainWidth -= 16.0
         } else {
             labelConstrainWidth -= 8.0
         }
-        let labelSize = self.labelNode.updateLayout(CGSize(width: labelConstrainWidth, height: .greatestFiniteMagnitude))
-        
-        let height = textSize.height + 32.0
-        let textFrame = CGRect(origin: CGPoint(x: leftInset, y: floorToScreenPixels((height - textSize.height) / 2.0)), size: textSize)        
+        if stacksLabel {
+            labelConstrainWidth = width - leftInset - rightInset
+        }
+        let labelSize = self.labelNode.updateLayout(CGSize(width: max(1.0, labelConstrainWidth), height: .greatestFiniteMagnitude))
+
+        let labelSpacing: CGFloat = 3.0
+        let contentHeight = stacksLabel ? textSize.height + labelSpacing + labelSize.height : max(textSize.height, labelSize.height)
+        let height = max(PresentationLayoutMetrics.minimumInteractiveSize, contentHeight + 32.0)
+        let textFrame = CGRect(origin: CGPoint(x: leftInset, y: floorToScreenPixels((height - contentHeight) / 2.0)), size: textSize)
         
         if item.icon != nil || item.iconSignal != nil {
             if self.iconNode.supernode == nil {
@@ -344,7 +358,9 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
             badgeWidth += 2.0
         }
         let labelFrame: CGRect
-        if case .semitransparentBadge = item.label {
+        if stacksLabel {
+            labelFrame = CGRect(origin: CGPoint(x: leftInset, y: textFrame.maxY + labelSpacing), size: labelSize)
+        } else if case .semitransparentBadge = item.label {
             labelFrame = CGRect(origin: CGPoint(x: width - rightInset - badgeWidth + (badgeWidth - labelSize.width) / 2.0, y: floor((height - labelSize.height) / 2.0)), size: labelSize)
         } else if case .badge = item.label {
             labelFrame = CGRect(origin: CGPoint(x: width - rightInset - badgeWidth + (badgeWidth - labelSize.width) / 2.0, y: floor((height - labelSize.height) / 2.0)), size: labelSize)

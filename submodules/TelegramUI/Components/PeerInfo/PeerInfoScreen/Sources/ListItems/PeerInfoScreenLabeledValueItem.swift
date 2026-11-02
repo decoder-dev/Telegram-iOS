@@ -511,12 +511,14 @@ private final class PeerInfoScreenLabeledValueItemNode: PeerInfoScreenItemNode {
             textColorValue = presentationData.theme.list.itemAccentColor
         }
         
-        self.expandNode.attributedText = NSAttributedString(string: presentationData.strings.PeerInfo_BioExpand, font: Font.regular(17.0), textColor: presentationData.theme.list.itemAccentColor)
+        let bodyFontSize = presentationData.listsFontSize.itemListBaseFontSize
+        let captionFontSize = floor(bodyFontSize * 14.0 / 17.0)
+        self.expandNode.attributedText = NSAttributedString(string: presentationData.strings.PeerInfo_BioExpand, font: Font.regular(bodyFontSize), textColor: presentationData.theme.list.itemAccentColor)
         let expandSize = self.expandNode.updateLayout(CGSize(width: width, height: 100.0))
         
-        self.labelNode.attributedText = NSAttributedString(string: item.label, font: Font.regular(14.0), textColor: presentationData.theme.list.itemPrimaryTextColor)
+        self.labelNode.attributedText = NSAttributedString(string: item.label, font: Font.regular(captionFontSize), textColor: presentationData.theme.list.itemPrimaryTextColor)
         
-        self.rightLabelNode.attributedText = NSAttributedString(string: item.rightLabel ?? "", font: Font.regular(14.0), textColor: presentationData.theme.list.itemSecondaryTextColor)
+        self.rightLabelNode.attributedText = NSAttributedString(string: item.rightLabel ?? "", font: Font.regular(captionFontSize), textColor: presentationData.theme.list.itemSecondaryTextColor)
         
         if let icon = item.icon {
             let iconImage: UIImage?
@@ -554,9 +556,9 @@ private final class PeerInfoScreenLabeledValueItemNode: PeerInfoScreenItemNode {
             maxNumberOfLines = 1
             self.textNode.maximumNumberOfLines = maxNumberOfLines
             self.textNode.cutout = nil
-            self.textNode.attributedText = NSAttributedString(string: item.text, font: Font.regular(17.0), textColor: textColorValue)
+            self.textNode.attributedText = NSAttributedString(string: item.text, font: Font.regular(bodyFontSize), textColor: textColorValue)
             
-            let fontSize: CGFloat = 15.0
+            let fontSize = floor(bodyFontSize * 15.0 / 17.0)
             
             let baseFont = Font.regular(fontSize)
             let linkFont = baseFont
@@ -580,7 +582,7 @@ private final class PeerInfoScreenLabeledValueItemNode: PeerInfoScreenItemNode {
                 text = trimToLineCount(text, lineCount: 3)
             }
             
-            let fontSize: CGFloat = 17.0
+            let fontSize = bodyFontSize
             let baseFont = Font.regular(fontSize)
             let linkFont = baseFont
             let boldFont = Font.medium(fontSize)
@@ -618,8 +620,11 @@ private final class PeerInfoScreenLabeledValueItemNode: PeerInfoScreenItemNode {
         }
         
 
-        let labelSize = self.labelNode.updateLayout(CGSize(width: width - sideInset - sideInsetRight, height: .greatestFiniteMagnitude))
-        let rightLabelSize = self.rightLabelNode.updateLayout(CGSize(width: width - sideInset - sideInsetRight, height: .greatestFiniteMagnitude))
+        let headerWidth = max(1.0, width - sideInset - sideInsetRight)
+        let rightLabelWidth = item.label.isEmpty ? headerWidth : headerWidth * 0.5
+        let rightLabelSize = self.rightLabelNode.updateLayout(CGSize(width: rightLabelWidth, height: .greatestFiniteMagnitude))
+        let rightLabelInset = rightLabelSize.width > 0.0 ? rightLabelSize.width + 8.0 : 0.0
+        let labelSize = self.labelNode.updateLayout(CGSize(width: max(1.0, headerWidth - rightLabelInset), height: .greatestFiniteMagnitude))
         let textLayout = self.textNode.updateLayoutInfo(CGSize(width: width - sideInset - sideInsetRight - additionalSideInset, height: .greatestFiniteMagnitude))
         let textSize = textLayout.size
         
@@ -646,9 +651,10 @@ private final class PeerInfoScreenLabeledValueItemNode: PeerInfoScreenItemNode {
         var height = topOffset * 2.0
         let labelFrame = CGRect(origin: CGPoint(x: sideInset, y: topOffset), size: labelSize)
         let rightLabelFrame = CGRect(origin: CGPoint(x: width - sideInsetRight - rightLabelSize.width, y: topOffset), size: rightLabelSize)
-        if labelSize.height > 0.0 {
-            topOffset += labelSize.height + 3.0
-            height += labelSize.height + 3.0
+        let headerHeight = max(labelSize.height, rightLabelSize.height)
+        if headerHeight > 0.0 {
+            topOffset += headerHeight + 3.0
+            height += headerHeight + 3.0
         }
         var textFrame = CGRect(origin: CGPoint(x: sideInset, y: topOffset), size: textSize)
         if textSize.height > 0.0 {

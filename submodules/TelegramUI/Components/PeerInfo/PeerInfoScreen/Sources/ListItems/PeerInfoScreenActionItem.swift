@@ -113,8 +113,8 @@ private final class PeerInfoScreenActionItemNode: PeerInfoScreenItemNode {
             self.activateArea.activate = nil
         }
         
-        let sideInset: CGFloat = 16.0 + safeInsets.left
-        let sideInsetRight: CGFloat = 16.0 + safeInsets.right
+        let sideInset = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
+        let sideInsetRight = PresentationLayoutMetrics.listHorizontalInset + safeInsets.right
         var leftInset = (item.icon == nil && item.iconSignal == nil ? sideInset : sideInset + 29.0 + 16.0)
         var iconInset = sideInset
         if case .peerList = item.alignment {
@@ -135,11 +135,11 @@ private final class PeerInfoScreenActionItemNode: PeerInfoScreenItemNode {
             textColorValue = presentationData.theme.list.itemDestructiveColor
         }
         
-        self.textNode.maximumNumberOfLines = 1
+        self.textNode.maximumNumberOfLines = titleFont.pointSize >= PresentationLayoutMetrics.multilineTextThreshold ? 0 : 1
         self.textNode.attributedText = NSAttributedString(string: item.text, font: titleFont, textColor: textColorValue)
         self.activateArea.accessibilityLabel = item.text
         
-        let textSize = self.textNode.updateLayout(CGSize(width: width - (leftInset + rightInset), height: .greatestFiniteMagnitude))
+        let textSize = self.textNode.updateLayout(CGSize(width: max(1.0, width - (leftInset + rightInset)), height: .greatestFiniteMagnitude))
         let height = textSize.height + 32.0
         let textFrame = CGRect(origin: CGPoint(x: item.alignment == .center ? floorToScreenPixels((width - textSize.width) / 2.0) : leftInset, y: floorToScreenPixels((height - textSize.height) / 2.0)), size: textSize)
         
