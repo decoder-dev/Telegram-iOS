@@ -1192,6 +1192,12 @@ private let loginCodeRegex = try? NSRegularExpression(pattern: "\\b\\d{5,8}\\b",
 public class ChatListItemNode: ItemListRevealOptionsItemNode {
     /// How much smaller the avatar is in the compact chat list.
     static let compactAvatarDivisor: CGFloat = 1.3
+
+    private static func avatarDiameter(fontSize: PresentationFontSize, compact: Bool) -> CGFloat {
+        let maximum = PresentationLayoutMetrics.chatListAvatarDiameter
+        let diameter = min(maximum, floor(fontSize.baseDisplaySize * maximum / 17.0))
+        return compact ? floor(diameter / Self.compactAvatarDivisor) : diameter
+    }
     
     final class TopicItemNode: ASDisplayNode {
         let topicTitleNode: TextNode
@@ -2248,10 +2254,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 }
             }
             
-            var avatarDiameter = min(52.0, floor(item.presentationData.fontSize.baseDisplaySize * 52.0 / 17.0))
-            if ForkExtrasHotFlags.compactChatList {
-                avatarDiameter = floor(avatarDiameter / ChatListItemNode.compactAvatarDivisor)
-            }
+            var avatarDiameter = ChatListItemNode.avatarDiameter(fontSize: item.presentationData.fontSize, compact: ForkExtrasHotFlags.compactChatList)
             
             if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.commandPrefix != nil {
                 avatarDiameter = 40.0
@@ -2531,11 +2534,11 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             let compactChatList = hotFlags.compactChatList
             let compactMessagePreview = hotFlags.compactMessagePreview
 
-            let titleFont = Font.semibold(floor(item.presentationData.fontSize.itemListBaseFontSize * 16.0 / 17.0))
+            let titleFont = Font.semibold(item.presentationData.fontSize.itemListBaseFontSize)
             let textFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
             let italicTextFont = Font.italic(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
-            let dateFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 14.0 / 17.0))
-            let badgeFont = Font.with(size: floor(item.presentationData.fontSize.itemListBaseFontSize * 12.0 / 17.0), design: .regular, weight: .semibold, traits: [.monospacedNumbers])
+            let dateFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 13.0 / 17.0))
+            let badgeFont = Font.with(size: floor(item.presentationData.fontSize.itemListBaseFontSize * 13.0 / 17.0), design: .regular, weight: .semibold, traits: [.monospacedNumbers])
             let avatarBadgeFont = Font.with(size: floor(item.presentationData.fontSize.itemListBaseFontSize * 16.0 / 17.0), design: .regular, weight: .regular, traits: [.monospacedNumbers])
             
             let account = item.context.account
@@ -2811,10 +2814,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             let enableChatListPhotos = true
             
             // if changed, adjust setupItem accordingly
-            var avatarDiameter = min(52.0, floor(item.presentationData.fontSize.baseDisplaySize * 52.0 / 17.0))
-            if compactChatList {
-                avatarDiameter = floor(avatarDiameter / ChatListItemNode.compactAvatarDivisor)
-            }
+            var avatarDiameter = ChatListItemNode.avatarDiameter(fontSize: item.presentationData.fontSize, compact: compactChatList)
             let higChatListCardInset: CGFloat = {
                 if !useChatListLayout || item.useCommunityViewLayout || item.interaction.isInlineMode {
                     return 0.0
@@ -2824,7 +2824,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 }
                 return 0.0
             }()
-            let avatarLeftEdgeInset: CGFloat = item.useCommunityViewLayout ? 10.0 : (16.0 + higChatListCardInset)
+            let avatarLeftEdgeInset: CGFloat = item.useCommunityViewLayout ? 10.0 : (PresentationLayoutMetrics.listHorizontalInset + higChatListCardInset)
             let avatarLeftInset: CGFloat
             
             if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.commandPrefix != nil {
@@ -2838,9 +2838,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 } else if !useChatListLayout {
                     avatarLeftInset = 50.0
                 } else {
-                    // 16pt to the avatar + 52pt avatar + 6pt gap puts text and separator at
-                    // 74pt, the Messages alignment. rawContentRect adds the remaining 2pt.
-                    avatarLeftInset = 20.0 + avatarDiameter + higChatListCardInset
+                    avatarLeftInset = avatarLeftEdgeInset + avatarDiameter + PresentationLayoutMetrics.chatListAvatarTextSpacing - 2.0
                 }
             }
             
@@ -4368,18 +4366,16 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 itemHeight += titleSpacing
                 itemHeight += authorSpacing
             }
-            // HIG: interactive rows are at least 44 pt; regular chat rows match the ~76 pt mockup (52 pt avatar + 12 pt padding).
-            // Compact / overlay rows still have to clear the avatar, or the 52 pt circle clips the 44 pt min height.
             if compactChatList, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
                 // One line of title and one of text, with the padding of the regular row.
                 itemHeight = titleLayout.size.height + measureLayout.size.height + titleSpacing + 21.0 - 3.0
             }
-            itemHeight = max(itemHeight, 44.0)
+            itemHeight = max(itemHeight, PresentationLayoutMetrics.minimumInteractiveSize)
             itemHeight = max(itemHeight, avatarDiameter + 8.0)
             if !compactChatList, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
-                itemHeight = max(itemHeight, avatarDiameter + 24.0)
+                itemHeight = max(itemHeight, avatarDiameter + PresentationLayoutMetrics.chatListRowVerticalInset * 2.0)
             } else if !compactChatList, case .groupReference = item.content {
-                itemHeight = max(itemHeight, avatarDiameter + 24.0)
+                itemHeight = max(itemHeight, avatarDiameter + PresentationLayoutMetrics.chatListRowVerticalInset * 2.0)
             }
                         
             let rawContentRect = CGRect(origin: CGPoint(x: 2.0, y: layoutOffset + floor(item.presentationData.fontSize.itemListBaseFontSize * 8.0 / 17.0)), size: CGSize(width: rawContentWidth, height: itemHeight - 12.0 - 9.0))
