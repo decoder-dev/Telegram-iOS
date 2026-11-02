@@ -16,6 +16,7 @@ import ComponentDisplayAdapters
 import SwiftSignalKit
 import ChatListHeaderComponent
 import ButtonComponent
+import MultilineTextComponent
 
 final class ChatListEmptyNode: ASDisplayNode {
     enum Subject {
@@ -31,6 +32,10 @@ final class ChatListEmptyNode: ASDisplayNode {
     private let context: AccountContext
     private var theme: PresentationTheme
     private var strings: PresentationStrings
+    private var fontSize: CGFloat
+    private var reduceMotion: Bool
+    private let contentScrollNode = ASScrollNode()
+    private let buttonTitleMeasureNode = ImmediateTextNode()
     
     let subject: Subject
     private(set) var isLoading: Bool
@@ -39,7 +44,6 @@ final class ChatListEmptyNode: ASDisplayNode {
     private let animationNode: AnimatedStickerNode
     private let button = ComponentView<Empty>()
     private var buttonText: String?
-    private var buttonFrame: CGRect = .zero
     private let buttonIsShimmering: Bool
     private let secondaryButtonNode: HighlightableButtonNode
     private let activityIndicator: ActivityIndicator
@@ -55,10 +59,13 @@ final class ChatListEmptyNode: ASDisplayNode {
     private var globalPrivacySettings: GlobalPrivacySettings = .default
     private var archiveSettingsDisposable: Disposable?
     
-    init(context: AccountContext, subject: Subject, isLoading: Bool, theme: PresentationTheme, strings: PresentationStrings, action: @escaping () -> Void, secondaryAction: @escaping () -> Void, openArchiveSettings: @escaping () -> Void) {
+    init(context: AccountContext, subject: Subject, isLoading: Bool, presentationData: PresentationData, action: @escaping () -> Void, secondaryAction: @escaping () -> Void, openArchiveSettings: @escaping () -> Void) {
         self.context = context
+        let theme = presentationData.theme
         self.theme = theme
-        self.strings = strings
+        self.strings = presentationData.strings
+        self.fontSize = presentationData.listsFontSize.baseDisplaySize
+        self.reduceMotion = presentationData.reduceMotion
         
         self.action = action
         self.secondaryAction = secondaryAction
@@ -111,14 +118,20 @@ final class ChatListEmptyNode: ASDisplayNode {
         
         if case .archive = subject {
         } else {
-            self.addSubnode(self.animationNode)
-            self.addSubnode(self.textNode)
-            self.addSubnode(self.descriptionNode)
-            self.addSubnode(self.secondaryButtonNode)
+            self.addSubnode(self.contentScrollNode)
+            self.contentScrollNode.view.contentInsetAdjustmentBehavior = .never
+            self.contentScrollNode.view.scrollsToTop = false
+            self.contentScrollNode.view.showsVerticalScrollIndicator = false
+            self.contentScrollNode.view.isDirectionalLockEnabled = true
+            self.contentScrollNode.addSubnode(self.animationNode)
+            self.contentScrollNode.addSubnode(self.textNode)
+            self.contentScrollNode.addSubnode(self.descriptionNode)
+            self.contentScrollNode.addSubnode(self.secondaryButtonNode)
             self.addSubnode(self.activityIndicator)
             
+            self.animationNode.automaticallyLoadFirstFrame = true
             self.animationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: animationName), width: 248, height: 248, playbackMode: .once, mode: .direct(cachePathPrefix: nil))
-            self.animationNode.visibility = true
+            self.animationNode.visibility = !self.reduceMotion && !self.isLoading
         }
         
         self.animationNode.isHidden = self.isLoading
@@ -128,7 +141,7 @@ final class ChatListEmptyNode: ASDisplayNode {
         
         self.secondaryButtonNode.addTarget(self, action: #selector(self.secondaryButtonPressed), forControlEvents: .touchUpInside)
         
-        self.updateThemeAndStrings(theme: theme, strings: strings)
+        self.updatePresentationData(presentationData)
         
         self.animationNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.animationTapGesture(_:))))
         
@@ -165,18 +178,25 @@ final class ChatListEmptyNode: ASDisplayNode {
     @objc private func animationTapGesture(_ recognizer: UITapGestureRecognizer) {
         if case .ended = recognizer.state {
             if !self.animationNode.isPlaying {
-                self.animationNode.play(firstFrame: false, fromIndex: nil)
+                self.restartAnimation()
             }
         }
     }
     
     func restartAnimation() {
+        guard self.animationNode.visibility && !self.reduceMotion && !self.isLoading else {
+            return
+        }
         self.animationNode.play(firstFrame: false, fromIndex: nil)
     }
-    
-    func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
+
+    func updatePresentationData(_ presentationData: PresentationData) {
+        let theme = presentationData.theme
+        let strings = presentationData.strings
         self.theme = theme
         self.strings = strings
+        self.fontSize = presentationData.listsFontSize.baseDisplaySize
+        self.reduceMotion = presentationData.reduceMotion
         
         let text: String
         var descriptionText = ""
@@ -197,11 +217,21 @@ final class ChatListEmptyNode: ASDisplayNode {
                 buttonText = strings.ChatList_EmptyTopicsCreate
                 descriptionText = strings.ChatList_EmptyTopicsDescription
         }
-        let string = NSMutableAttributedString(string: text, font: Font.semibold(17.0), textColor: theme.list.itemPrimaryTextColor)
-        let descriptionString = NSAttributedString(string: descriptionText, font: Font.regular(14.0), textColor: theme.list.itemSecondaryTextColor)
+        let string = NSMutableAttributedString(string: text, font: Font.semibold(self.fontSize), textColor: theme.list.itemPrimaryTextColor)
+        let descriptionString = NSAttributedString(string: descriptionText, font: Font.regular(floor(self.fontSize * 15.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor)
        
         self.textNode.attributedText = string
         self.descriptionNode.attributedText = descriptionString
+        self.textNode.isAccessibilityElement = true
+        self.textNode.accessibilityTraits = .header
+        self.textNode.accessibilityLabel = text
+        self.descriptionNode.isAccessibilityElement = !descriptionText.isEmpty
+        self.descriptionNode.accessibilityLabel = descriptionText
+        self.buttonTitleMeasureNode.maximumNumberOfLines = 0
+        self.buttonTitleMeasureNode.attributedText = NSAttributedString(string: buttonText ?? "", font: Font.semibold(self.fontSize), textColor: theme.list.itemCheckColors.foregroundColor)
+        self.activityIndicator.isAccessibilityElement = self.isLoading
+        self.activityIndicator.accessibilityLabel = strings.Channel_NotificationLoading
+        self.contentScrollNode.isHidden = self.isLoading
         
         self.buttonText = buttonText
         self.button.view?.isHidden = buttonText == nil || self.buttonIsHidden || self.isLoading
@@ -227,29 +257,54 @@ final class ChatListEmptyNode: ASDisplayNode {
         self.descriptionNode.isHidden = self.isLoading
         self.button.view?.isHidden = self.buttonText == nil || self.buttonIsHidden || self.isLoading
         self.activityIndicator.isHidden = !self.isLoading
+        self.activityIndicator.isAccessibilityElement = self.isLoading
+        self.contentScrollNode.isHidden = self.isLoading
+        self.animationNode.visibility = !self.reduceMotion && !self.isLoading && self.animationNode.alpha > 0.0
     }
-    
+
     func updateLayout(size: CGSize, insets: UIEdgeInsets, transition: ContainedViewLayoutTransition) {
         self.validLayout = (size, insets)
-        // Centred in the band between the side insets when they differ (iPhone Duo's side strip); equal insets keep the
-        // full width.
-        let bandMinX: CGFloat = insets.left != insets.right ? insets.left : 0.0
-        let bandWidth: CGFloat = insets.left != insets.right ? size.width - insets.left - insets.right : size.width
-        
-        let indicatorSize = self.activityIndicator.measure(CGSize(width: 100.0, height: 100.0))
-        transition.updateFrame(node: self.activityIndicator, frame: CGRect(origin: CGPoint(x: bandMinX + floor((bandWidth - indicatorSize.width) / 2.0), y: insets.top + floor((size.height - insets.top - insets.bottom - indicatorSize.height - 50.0) / 2.0)), size: indicatorSize))
-        
-        let animationSpacing: CGFloat = 24.0
-        let descriptionSpacing: CGFloat = 8.0
-        
-        let textSize = self.textNode.updateLayout(CGSize(width: bandWidth - 40.0, height: size.height - insets.top - insets.bottom))
-        let descriptionSize = self.descriptionNode.updateLayout(CGSize(width: bandWidth - 40.0, height: size.height - insets.top - insets.bottom))
-                
-        let buttonSideInset: CGFloat = 32.0
-        let buttonWidth = min(270.0, bandWidth - buttonSideInset * 2.0)
-        let buttonHeight: CGFloat = 52.0
-        let buttonSize = CGSize(width: buttonWidth, height: buttonHeight)
-        if let buttonText = self.buttonText {
+        let bandMinX = insets.left != insets.right ? insets.left : 0.0
+        let bandWidth = max(0.0, insets.left != insets.right ? size.width - insets.left - insets.right : size.width)
+        let availableHeight = max(0.0, size.height - insets.top - insets.bottom)
+        let textWidth = max(1.0, bandWidth - 40.0)
+        let textSize = self.textNode.updateLayout(CGSize(width: textWidth, height: .greatestFiniteMagnitude))
+        let descriptionSize = self.descriptionNode.updateLayout(CGSize(width: textWidth, height: .greatestFiniteMagnitude))
+        let buttonWidth = max(1.0, min(270.0, bandWidth - 64.0))
+        let buttonTitleSize = self.buttonTitleMeasureNode.updateLayout(CGSize(width: max(1.0, buttonWidth - 26.0), height: .greatestFiniteMagnitude))
+        let hasButton = self.buttonText != nil && !self.buttonIsHidden
+        let buttonSize = CGSize(width: buttonWidth, height: hasButton ? max(52.0, buttonTitleSize.height + 24.0) : 0.0)
+        let secondaryButtonSize = self.secondaryButtonNode.measure(CGSize(width: buttonWidth, height: .greatestFiniteMagnitude))
+        let descriptionSpacing: CGFloat = descriptionSize.height > 0.0 ? 8.0 : 0.0
+        let buttonSpacing: CGFloat = hasButton ? 20.0 : 0.0
+        let secondarySpacing: CGFloat = secondaryButtonSize.height > 0.0 ? 12.0 : 0.0
+        let bodyHeight = textSize.height + descriptionSpacing + descriptionSize.height + buttonSpacing + buttonSize.height + secondarySpacing + secondaryButtonSize.height
+        let showAnimation = availableHeight >= bodyHeight + self.animationSize.height + 24.0 + 40.0
+        let illustrationHeight = showAnimation ? self.animationSize.height + 24.0 : 0.0
+        let contentHeight = max(availableHeight, illustrationHeight + bodyHeight + 40.0)
+        let contentTop = floor((contentHeight - illustrationHeight - bodyHeight) * 0.5)
+
+        transition.updateFrame(node: self.contentScrollNode, frame: CGRect(x: bandMinX, y: insets.top, width: bandWidth, height: availableHeight))
+        self.contentScrollNode.view.contentSize = CGSize(width: bandWidth, height: contentHeight)
+        self.contentScrollNode.view.isScrollEnabled = contentHeight > availableHeight
+        if self.contentScrollNode.view.contentOffset.y > contentHeight - availableHeight {
+            self.contentScrollNode.view.contentOffset.y = max(0.0, contentHeight - availableHeight)
+        }
+        self.contentScrollNode.isHidden = self.isLoading
+
+        let animationFrame = CGRect(origin: CGPoint(x: floor((bandWidth - self.animationSize.width) * 0.5), y: contentTop), size: self.animationSize)
+        self.animationNode.updateLayout(size: self.animationSize)
+        transition.updateFrame(node: self.animationNode, frame: animationFrame)
+        transition.updateAlpha(node: self.animationNode, alpha: showAnimation ? 1.0 : 0.0)
+        self.animationNode.visibility = showAnimation && !self.reduceMotion && !self.isLoading
+
+        let textFrame = CGRect(origin: CGPoint(x: floor((bandWidth - textSize.width) * 0.5), y: contentTop + illustrationHeight), size: textSize)
+        let descriptionFrame = CGRect(origin: CGPoint(x: floor((bandWidth - descriptionSize.width) * 0.5), y: textFrame.maxY + descriptionSpacing), size: descriptionSize)
+        transition.updateFrame(node: self.textNode, frame: textFrame)
+        transition.updateFrame(node: self.descriptionNode, frame: descriptionFrame)
+
+        let buttonFrame = CGRect(origin: CGPoint(x: floor((bandWidth - buttonSize.width) * 0.5), y: descriptionFrame.maxY + buttonSpacing), size: buttonSize)
+        if hasButton, let buttonText = self.buttonText {
             let _ = self.button.update(
                 transition: ComponentTransition(transition),
                 component: AnyComponent(ButtonComponent(
@@ -258,80 +313,38 @@ final class ChatListEmptyNode: ASDisplayNode {
                         color: self.theme.list.itemCheckColors.fillColor,
                         foreground: self.theme.list.itemCheckColors.foregroundColor,
                         pressedColor: self.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9),
-                        cornerRadius: buttonHeight * 0.5,
-                        isShimmering: self.buttonIsShimmering
+                        cornerRadius: 26.0,
+                        isShimmering: self.buttonIsShimmering && !self.reduceMotion
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(buttonText),
-                        component: AnyComponent(Text(
-                            text: buttonText,
-                            font: Font.semibold(17.0),
-                            color: self.theme.list.itemCheckColors.foregroundColor
+                        component: AnyComponent(MultilineTextComponent(
+                            text: .plain(NSAttributedString(string: buttonText, font: Font.semibold(self.fontSize), textColor: self.theme.list.itemCheckColors.foregroundColor)),
+                            horizontalAlignment: .center,
+                            maximumNumberOfLines: 0
                         ))
                     ),
-                    action: { [weak self] in
-                        self?.buttonPressed()
-                    }
+                    accessibilityLabel: buttonText,
+                    action: { [weak self] in self?.buttonPressed() }
                 )),
                 environment: {},
                 containerSize: buttonSize
             )
         }
-        
-        let secondaryButtonSize = self.secondaryButtonNode.measure(CGSize(width: buttonWidth, height: .greatestFiniteMagnitude))
-        
-        var threshold: CGFloat = 0.0
-        if case .forum = self.subject {
-            threshold = 80.0
-        }
-        
-        let contentHeight = self.animationSize.height + animationSpacing + textSize.height + buttonSize.height
-        var contentOffset: CGFloat = 0.0
-        if size.height - insets.top - insets.bottom < contentHeight + threshold {
-            contentOffset = -self.animationSize.height - animationSpacing + 44.0
-            transition.updateAlpha(node: self.animationNode, alpha: 0.0)
-        } else {
-            contentOffset = -40.0
-            transition.updateAlpha(node: self.animationNode, alpha: 1.0)
-        }
-        
-        let animationFrame = CGRect(origin: CGPoint(x: bandMinX + floor((bandWidth - self.animationSize.width) / 2.0), y: insets.top + floor((size.height - insets.top - insets.bottom - contentHeight) / 2.0) + contentOffset), size: self.animationSize)
-        let textFrame = CGRect(origin: CGPoint(x: bandMinX + floor((bandWidth - textSize.width) / 2.0), y: animationFrame.maxY + animationSpacing), size: textSize)
-        let descriptionFrame = CGRect(origin: CGPoint(x: bandMinX + floor((bandWidth - descriptionSize.width) / 2.0), y: textFrame.maxY + descriptionSpacing), size: descriptionSize)
-        
-        if !self.animationSize.width.isZero {
-            self.animationNode.updateLayout(size: self.animationSize)
-            transition.updateFrame(node: self.animationNode, frame: animationFrame)
-        }
-        
-        transition.updateFrame(node: self.textNode, frame: textFrame)
-        transition.updateFrame(node: self.descriptionNode, frame: descriptionFrame)
-        
-        var bottomInset: CGFloat = 20.0
-        
-        let secondaryButtonFrame = CGRect(origin: CGPoint(x: bandMinX + floor((bandWidth - secondaryButtonSize.width) / 2.0), y: size.height - insets.bottom - secondaryButtonSize.height - bottomInset), size: secondaryButtonSize)
-        transition.updateFrame(node: self.secondaryButtonNode, frame: secondaryButtonFrame)
-        
-        if secondaryButtonSize.height > 0.0 {
-            bottomInset += secondaryButtonSize.height + 23.0
-        }
-        
-        let buttonFrame: CGRect
-        if case .forum = self.subject {
-            buttonFrame = CGRect(origin: CGPoint(x: bandMinX + floor((bandWidth - buttonSize.width) / 2.0), y: descriptionFrame.maxY + 20.0), size: buttonSize)
-        } else {
-            buttonFrame = CGRect(origin: CGPoint(x: bandMinX + floor((bandWidth - buttonSize.width) / 2.0), y: size.height - insets.bottom - buttonHeight - bottomInset), size: buttonSize)
-        }
-        self.buttonFrame = buttonFrame
         if let buttonView = self.button.view {
             if buttonView.superview == nil {
-                self.view.addSubview(buttonView)
+                self.contentScrollNode.view.addSubview(buttonView)
             }
-            buttonView.isHidden = self.buttonText == nil || self.buttonIsHidden || self.isLoading
+            buttonView.isHidden = !hasButton || self.isLoading
             transition.updateFrame(view: buttonView, frame: buttonFrame)
         }
+        let secondaryFrame = CGRect(origin: CGPoint(x: floor((bandWidth - secondaryButtonSize.width) * 0.5), y: buttonFrame.maxY + secondarySpacing), size: secondaryButtonSize)
+        transition.updateFrame(node: self.secondaryButtonNode, frame: secondaryFrame)
+
+        let indicatorSize = self.activityIndicator.measure(CGSize(width: 100.0, height: 100.0))
+        transition.updateFrame(node: self.activityIndicator, frame: CGRect(origin: CGPoint(x: bandMinX + floor((bandWidth - indicatorSize.width) * 0.5), y: insets.top + max(0.0, floor((availableHeight - indicatorSize.height) * 0.5))), size: indicatorSize))
     }
-    
+
     func updateScrollingOffset(navigationHeight: CGFloat, offset: CGFloat, transition: ContainedViewLayoutTransition) {
         self.scrollingOffset = (navigationHeight, offset)
         
@@ -390,16 +403,30 @@ final class ChatListEmptyNode: ASDisplayNode {
     }
     
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        if let buttonView = self.button.view, !buttonView.isHidden, self.buttonFrame.insetBy(dx: -10.0, dy: -10.0).contains(point) {
-            return buttonView.hitTest(self.view.convert(point, to: buttonView), with: event)
-        }
-        if self.secondaryButtonNode.frame.contains(point), !self.secondaryButtonNode.isHidden {
-            return self.secondaryButtonNode.view.hitTest(self.view.convert(point, to: self.secondaryButtonNode.view), with: event)
+        if self.contentScrollNode.supernode === self && !self.contentScrollNode.isHidden && self.contentScrollNode.frame.contains(point) {
+            let scrollView = self.contentScrollNode.view
+            if scrollView.isScrollEnabled {
+                return scrollView.hitTest(self.view.convert(point, to: scrollView), with: event)
+            }
+            if let buttonView = self.button.view, !buttonView.isHidden {
+                let localPoint = self.view.convert(point, to: buttonView)
+                if buttonView.bounds.insetBy(dx: -10.0, dy: -10.0).contains(localPoint) {
+                    return buttonView.hitTest(localPoint, with: event)
+                }
+            }
+            if !self.secondaryButtonNode.isHidden {
+                if let result = self.secondaryButtonNode.view.hitTest(self.view.convert(point, to: self.secondaryButtonNode.view), with: event) {
+                    return result
+                }
+            }
+            if self.animationNode.alpha > 0.0 {
+                if let result = self.animationNode.view.hitTest(self.view.convert(point, to: self.animationNode.view), with: event) {
+                    return result
+                }
+            }
         }
         if let emptyArchiveView = self.emptyArchive?.view {
-            if let result = emptyArchiveView.hitTest(self.view.convert(point, to: emptyArchiveView), with: event) {
-                return result
-            }
+            return emptyArchiveView.hitTest(self.view.convert(point, to: emptyArchiveView), with: event)
         }
         return nil
     }

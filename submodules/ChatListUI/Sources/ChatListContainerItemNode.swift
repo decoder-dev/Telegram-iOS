@@ -147,7 +147,7 @@ final class ChatListContainerItemNode: ASDisplayNode {
                         }
                     }
                     
-                    let emptyNode = ChatListEmptyNode(context: context, subject: subject, isLoading: isLoading, theme: strongSelf.presentationData.theme, strings: strongSelf.presentationData.strings, action: {
+                    let emptyNode = ChatListEmptyNode(context: context, subject: subject, isLoading: isLoading, presentationData: strongSelf.presentationData, action: {
                         self?.emptyAction(filter)
                     }, secondaryAction: {
                         self?.secondaryEmptyAction()
@@ -310,7 +310,7 @@ final class ChatListContainerItemNode: ASDisplayNode {
         
         self.listNode.updateThemeAndStrings(theme: presentationData.theme, fontSize: presentationData.listsFontSize, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat, nameSortOrder: presentationData.nameSortOrder, nameDisplayOrder: presentationData.nameDisplayOrder, disableAnimations: true)
         
-        self.emptyNode?.updateThemeAndStrings(theme: presentationData.theme, strings: presentationData.strings)
+        self.emptyNode?.updatePresentationData(presentationData)
     }
     
     func updateLayout(size: CGSize, insets: UIEdgeInsets, visualNavigationHeight: CGFloat, originalNavigationHeight: CGFloat, inlineNavigationLocation: ChatListControllerLocation?, inlineNavigationTransitionFraction: CGFloat, storiesInset: CGFloat, transition: ContainedViewLayoutTransition) {

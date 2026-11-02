@@ -511,7 +511,7 @@ private final class PeerInfoScreenLabeledValueItemNode: PeerInfoScreenItemNode {
             textColorValue = presentationData.theme.list.itemAccentColor
         }
         
-        let bodyFontSize = presentationData.listsFontSize.itemListBaseFontSize
+        let bodyFontSize = presentationData.listsFontSize.baseDisplaySize
         let captionFontSize = floor(bodyFontSize * 14.0 / 17.0)
         self.expandNode.attributedText = NSAttributedString(string: presentationData.strings.PeerInfo_BioExpand, font: Font.regular(bodyFontSize), textColor: presentationData.theme.list.itemAccentColor)
         let expandSize = self.expandNode.updateLayout(CGSize(width: width, height: 100.0))

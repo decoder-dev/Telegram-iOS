@@ -158,7 +158,7 @@ private final class PeerInfoScreenSwitchItemNode: PeerInfoScreenItemNode {
         
         let textColorValue: UIColor = presentationData.theme.list.itemPrimaryTextColor
         
-        let fontSize = presentationData.listsFontSize.itemListBaseFontSize
+        let fontSize = presentationData.listsFontSize.baseDisplaySize
         self.textNode.maximumNumberOfLines = fontSize >= PresentationLayoutMetrics.multilineTextThreshold ? 0 : 1
         self.textNode.attributedText = NSAttributedString(string: item.text, font: Font.regular(fontSize), textColor: textColorValue)
         

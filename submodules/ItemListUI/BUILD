@@ -50,9 +50,14 @@ swift_library(
 swift_library(
     name = "SettingsRowLayoutTestsLib",
     testonly = True,
-    srcs = ["Tests/SettingsRowLayoutTests.swift"],
+    srcs = [
+        "Tests/SettingsRowLayoutTests.swift",
+        "Tests/ButtonAccessibilityTests.swift",
+    ],
     deps = [
         ":ItemListUI",
+        "//submodules/ComponentFlow",
+        "//submodules/TelegramUI/Components/ButtonComponent",
         "//submodules/AsyncDisplayKit:AsyncDisplayKit",
         "//submodules/Display:Display",
         "//submodules/TelegramPresentationData:TelegramPresentationData",

@@ -408,6 +408,7 @@ public final class ButtonComponent: Component {
     public let restrictContentAnimations: Bool
     public let contentInsets: UIEdgeInsets?
     public let fitToContentWidth: Bool
+    public let accessibilityLabel: String?
     public let isEnabled: Bool
     public let tintWhenDisabled: Bool
     public let allowActionWhenDisabled: Bool
@@ -421,6 +422,7 @@ public final class ButtonComponent: Component {
         restrictContentAnimations: Bool = false,
         contentInsets: UIEdgeInsets? = nil,
         fitToContentWidth: Bool = false,
+        accessibilityLabel: String? = nil,
         isEnabled: Bool = true,
         tintWhenDisabled: Bool = true,
         allowActionWhenDisabled: Bool = false,
@@ -433,6 +435,7 @@ public final class ButtonComponent: Component {
         self.restrictContentAnimations = restrictContentAnimations
         self.contentInsets = contentInsets
         self.fitToContentWidth = fitToContentWidth
+        self.accessibilityLabel = accessibilityLabel
         self.isEnabled = isEnabled
         self.tintWhenDisabled = tintWhenDisabled
         self.allowActionWhenDisabled = allowActionWhenDisabled
@@ -441,8 +444,15 @@ public final class ButtonComponent: Component {
         self.longPressAction = longPressAction
     }
 
+    private var canActivate: Bool {
+        return (self.isEnabled || self.allowActionWhenDisabled) && !self.displaysProgress
+    }
+
     public static func ==(lhs: ButtonComponent, rhs: ButtonComponent) -> Bool {
         if lhs.background != rhs.background {
+            return false
+        }
+        if lhs.accessibilityLabel != rhs.accessibilityLabel {
             return false
         }
         if lhs.content != rhs.content {
@@ -709,14 +719,14 @@ public final class ButtonComponent: Component {
         }
 
         @objc private func pressed() {
-            guard let component = self.component else {
+            guard let component = self.component, component.canActivate else {
                 return
             }
             component.action()
         }
 
         @objc private func longPressed(_ gesture: UILongPressGestureRecognizer) {
-            guard gesture.state == .began, let component = self.component else {
+            guard gesture.state == .began, let component = self.component, component.canActivate else {
                 return
             }
             component.longPressAction?()
@@ -730,9 +740,10 @@ public final class ButtonComponent: Component {
             self.component = component
             self.componentState = state
 
-            self.longPressGesture?.isEnabled = component.longPressAction != nil
+            self.longPressGesture?.isEnabled = component.longPressAction != nil && component.canActivate
             
-            self.button.isEnabled = (component.isEnabled || component.allowActionWhenDisabled) && !component.displaysProgress
+            self.button.isEnabled = component.canActivate
+            self.button.accessibilityLabel = component.accessibilityLabel
                         
             var contentAlpha: CGFloat = 1.0
             if component.displaysProgress {
