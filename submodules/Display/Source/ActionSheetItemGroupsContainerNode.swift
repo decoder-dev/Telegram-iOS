@@ -3,6 +3,13 @@ import AsyncDisplayKit
 
 private let groupSpacing: CGFloat = 8.0
 
+func actionSheetGroupHeightLimit(totalHeight: CGFloat, usedHeight: CGFloat, groupCount: Int, remainingGroupCount: Int, spacing: CGFloat) -> CGFloat {
+    let usableHeight = max(0.0, totalHeight - CGFloat(max(0, groupCount - 1)) * spacing)
+    let minimumHeight = min(44.0, usableHeight / CGFloat(max(1, groupCount)))
+    let reservedHeight = CGFloat(max(0, remainingGroupCount - 1)) * (minimumHeight + spacing)
+    return max(0.0, totalHeight - usedHeight - reservedHeight)
+}
+
 final class ActionSheetItemGroupsContainerNode: ASDisplayNode {
     var theme: ActionSheetControllerTheme {
         didSet {
@@ -125,12 +132,13 @@ final class ActionSheetItemGroupsContainerNode: ASDisplayNode {
         var groupsHeight: CGFloat = 0.0
         
         var calculatedSizes: [CGSize] = []
-        for groupNode in self.groupNodes.reversed() {
+        for (index, groupNode) in self.groupNodes.reversed().enumerated() {
             if CGFloat(0.0).isLess(than: groupsHeight) {
                 groupsHeight += groupSpacing
             }
             
-            let size = groupNode.updateLayout(constrainedSize: CGSize(width: constrainedSize.width, height: max(0.0, constrainedSize.height - groupsHeight)), transition: transition)
+            let heightLimit = actionSheetGroupHeightLimit(totalHeight: constrainedSize.height, usedHeight: groupsHeight, groupCount: self.groupNodes.count, remainingGroupCount: self.groupNodes.count - index, spacing: groupSpacing)
+            let size = groupNode.updateLayout(constrainedSize: CGSize(width: constrainedSize.width, height: heightLimit), transition: transition)
             calculatedSizes.insert(size, at: 0)
             
             groupsHeight += size.height

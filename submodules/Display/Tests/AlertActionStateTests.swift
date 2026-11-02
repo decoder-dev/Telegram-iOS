@@ -58,4 +58,18 @@ final class AlertActionStateTests: XCTestCase {
         let area = try XCTUnwrap(node.subnodes?.compactMap { $0 as? AccessibilityAreaNode }.first)
         XCTAssertEqual(area.accessibilityLabel, "Удалить все копии?")
     }
+
+    func testTallCancelGroupCannotHideThePrimaryGroup() {
+        let node = ActionSheetItemGroupsContainerNode(theme: self.sheetTheme())
+        node.setGroups([
+            ActionSheetItemGroup(items: [ActionSheetButtonItem(title: "Delete", action: {})]),
+            ActionSheetItemGroup(items: [ActionSheetButtonItem(title: Array(repeating: "Длинная подпись отмены", count: 12).joined(separator: " "), action: {})])
+        ])
+        let size = node.updateLayout(constrainedSize: CGSize(width: 272.0, height: 120.0), transition: .immediate)
+        XCTAssertLessThanOrEqual(size.height, 120.0)
+        XCTAssertEqual(node.groupNodes.count, 2)
+        for group in node.groupNodes {
+            XCTAssertGreaterThanOrEqual(group.frame.height, 44.0)
+        }
+    }
 }

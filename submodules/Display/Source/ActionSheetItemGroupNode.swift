@@ -140,7 +140,7 @@ final class ActionSheetItemGroupNode: ASDisplayNode, ASScrollViewDelegate {
             }
             previousHadSeparator = node.hasSeparator
             
-            let nodeSize = node.updateLayout(constrainedSize: CGSize(width: constrainedSize.width, height: constrainedSize.height - itemNodesHeight), transition: transition)
+            let nodeSize = node.updateLayout(constrainedSize: CGSize(width: constrainedSize.width, height: max(0.0, constrainedSize.height - itemNodesHeight)), transition: transition)
             node.frame = CGRect(origin: CGPoint(x: 0.0, y: itemNodesHeight), size: nodeSize)
             
             itemNodesHeight += nodeSize.height
