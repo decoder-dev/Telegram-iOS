@@ -1,0 +1,68 @@
+[
+  {
+    "screen": "02_chats",
+    "theme": "light",
+    "png_dimensions": [
+      1179,
+      2556
+    ],
+    "editable_text_nodes": 38,
+    "raster_images_in_svg": 0,
+    "status": "PASS"
+  },
+  {
+    "screen": "03_chat",
+    "theme": "light",
+    "png_dimensions": [
+      1179,
+      2556
+    ],
+    "editable_text_nodes": 15,
+    "raster_images_in_svg": 0,
+    "status": "PASS"
+  },
+  {
+    "screen": "24_settings",
+    "theme": "light",
+    "png_dimensions": [
+      1179,
+      2556
+    ],
+    "editable_text_nodes": 19,
+    "raster_images_in_svg": 0,
+    "status": "PASS"
+  },
+  {
+    "screen": "02_chats",
+    "theme": "dark",
+    "png_dimensions": [
+      1179,
+      2556
+    ],
+    "editable_text_nodes": 38,
+    "raster_images_in_svg": 0,
+    "status": "PASS"
+  },
+  {
+    "screen": "03_chat",
+    "theme": "dark",
+    "png_dimensions": [
+      1179,
+      2556
+    ],
+    "editable_text_nodes": 15,
+    "raster_images_in_svg": 0,
+    "status": "PASS"
+  },
+  {
+    "screen": "24_settings",
+    "theme": "dark",
+    "png_dimensions": [
+      1179,
+      2556
+    ],
+    "editable_text_nodes": 19,
+    "raster_images_in_svg": 0,
+    "status": "PASS"
+  }
+]

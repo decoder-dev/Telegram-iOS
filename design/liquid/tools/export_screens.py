@@ -1,6 +1,9 @@
 """Export the three reference compositions as editable SVG and 3× PNG."""
 
 from pathlib import Path
+import json
+import struct
+import xml.etree.ElementTree as ET
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -97,6 +100,7 @@ SVG_EXPORT = r"""root => {
 
 
 def export():
+    evidence = []
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width":1440,"height":1100},device_scale_factor=3)
@@ -106,10 +110,21 @@ def export():
             for screen in ["02_chats", "03_chat", "24_settings"]:
                 page.goto("about:blank")
                 page.goto((ROOT/"prototype/index.html").as_uri()+f"#screen={screen}&theme={theme}")
+                # Fractional page positioning otherwise adds pixels at capture edges.
+                page.add_style_tag(content='.device { position:fixed !important; left:0 !important; top:0 !important; }')
                 device = page.locator('.device')
-                device.screenshot(path=str(folder/f"{screen}.png"))
-                (folder/f"{screen}.svg").write_text(device.evaluate(SVG_EXPORT))
+                png_path = folder/f"{screen}.png"
+                svg_path = folder/f"{screen}.svg"
+                device.screenshot(path=str(png_path))
+                svg_path.write_text(device.evaluate(SVG_EXPORT))
+                dimensions = struct.unpack('>II', png_path.read_bytes()[16:24])
+                assert dimensions == (1179,2556), (png_path, dimensions)
+                tree = ET.parse(svg_path)
+                texts = tree.findall('.//{http://www.w3.org/2000/svg}text')
+                assert len(texts)>10 and not tree.findall('.//{http://www.w3.org/2000/svg}image')
+                evidence.append(dict(screen=screen,theme=theme,png_dimensions=dimensions,editable_text_nodes=len(texts),raster_images_in_svg=0,status='PASS'))
         browser.close()
+    (ROOT/'qa/exports.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
     print('Exported 6 editable SVG and 6 PNG at 3×. Typography and Figma import remain unapproved.')
 
 
