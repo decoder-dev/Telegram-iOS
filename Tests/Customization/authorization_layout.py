@@ -54,5 +54,5 @@ print("Authorization layout: \(cases) sizes and five boundary regressions passed
 
 with tempfile.TemporaryDirectory(prefix='liquid-authorization-') as directory:
     path = pathlib.Path(directory) / 'main.swift'
-    path.write_text(SOURCE.read_text() + '\n' + CHECKS)
+    path.write_text('#if canImport(CoreGraphics)\nimport CoreGraphics\n#endif\n' + SOURCE.read_text() + '\n' + CHECKS)
     subprocess.run(['swift', str(path)], check=True, cwd=ROOT)
