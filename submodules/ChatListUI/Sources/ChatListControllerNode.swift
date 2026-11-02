@@ -104,6 +104,17 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
         }
     }
     
+    var headerScrollHeight: CGFloat? {
+        didSet {
+            guard oldValue != self.headerScrollHeight, let headerScrollHeight = self.headerScrollHeight else {
+                return
+            }
+            for itemNode in self.itemNodes.values {
+                itemNode.listNode.scrollHeightTopInset = headerScrollHeight
+            }
+            self.pendingItemNode?.1.listNode.scrollHeightTopInset = headerScrollHeight
+        }
+    }
     var initialScrollingOffset: CGFloat?
     
     public private(set) var transitionFraction: CGFloat = 0.0
@@ -536,7 +547,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
             self?.secondaryEmptyAction()
         }, openArchiveSettings: { [weak self] in
             self?.openArchiveSettings()
-        }, autoSetReady: true, isMainTab: nil)
+        }, autoSetReady: true, isMainTab: nil, headerScrollHeight: self.headerScrollHeight)
         self.itemNodes[.all] = itemNode
         self.addSubnode(itemNode)
         
@@ -940,7 +951,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                     self?.secondaryEmptyAction()
                 }, openArchiveSettings: { [weak self] in
                     self?.openArchiveSettings()
-                }, autoSetReady: !animated, isMainTab: index == 0)
+                }, autoSetReady: !animated, isMainTab: index == 0, headerScrollHeight: self.headerScrollHeight)
                 self.pendingItemNode?.2.dispose()
                 let disposable = MetaDisposable()
                 self.pendingItemNode = (id, itemNode, disposable)
@@ -1090,7 +1101,7 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
                         self?.secondaryEmptyAction()
                     }, openArchiveSettings: { [weak self] in
                         self?.openArchiveSettings()
-                    }, autoSetReady: false, isMainTab: i == 0)
+                    }, autoSetReady: false, isMainTab: i == 0, headerScrollHeight: self.headerScrollHeight)
                     itemNode.listNode.tempTopInset = self.tempTopInset
                     self.itemNodes[id] = itemNode
                 }
@@ -1185,6 +1196,12 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     private var tapRecognizer: UITapGestureRecognizer?
     var navigationBar: NavigationBar?
     let navigationBarView = ComponentView<Empty>()
+    var navigationHeaderScrollHeight: CGFloat {
+        if let navigationBar = self.navigationBarView.view as? ChatListNavigationBar.View {
+            return navigationBar.scrollHeight
+        }
+        return BananaChatListHeader.current.hidesSearch && self.location == .chatList(groupId: .root) ? 0.0 : ChatListNavigationBar.searchScrollHeight
+    }
     private var folderSettingsDisposable: Disposable?
     private var foldersAtBottom = false
     private var bottomFoldersPanel: ComponentView<Empty>?
@@ -1395,8 +1412,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             let hidesSearch = BananaChatListHeader.current.hidesSearch
             if self.location == .chatList(groupId: .root), self.lastHideSearch != hidesSearch {
                 self.lastHideSearch = hidesSearch
-                self.mainContainerNode.currentItemNode.scrollHeightTopInset = (hidesSearch ? 0.0 : ChatListNavigationBar.searchScrollHeight) + ChatListNavigationBar.storiesScrollHeight
-                let _ = self.mainContainerNode.currentItemNode.scrollToOffsetFromTop(hidesSearch ? 0.0 : ChatListNavigationBar.searchScrollHeight, animated: false)
+                let _ = self.mainContainerNode.currentItemNode.scrollToOffsetFromTop(0.0, animated: false)
             }
             self.controller?.requestLayout(transition: .immediate)
         }
@@ -1794,6 +1810,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 leftInset: layout.safeInsets.left,
                 rightInset: layout.safeInsets.right,
                 trailingButtonsInset: layout.navigationBarTrailingButtonsInset,
+                largeTitle: self.location == .chatList(groupId: .root) && !self.isEditing && !self.isReorderingFilters && !(self.controller?.previewing ?? false) ? "BananaGram" : nil,
                 search: BananaChatListHeader.current.hidesSearch && self.location == .chatList(groupId: .root) ? nil : ChatListNavigationBar.Search(isEnabled: true),
                 activeSearch: self.isSearchDisplayControllerActive,
                 primaryContent: headerContent?.primaryContent,
@@ -1852,6 +1869,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         self.updateBottomFolders(layout: layout, tabs: bottomFolderTabs, transition: transition)
 
         if let navigationBarComponentView = self.navigationBarView.view as? ChatListNavigationBar.View {
+            self.mainContainerNode.headerScrollHeight = navigationBarComponentView.primaryScrollHeight + ChatListNavigationBar.storiesScrollHeight
             if deferScrollApplication {
                 navigationBarComponentView.deferScrollApplication = true
             }
@@ -1927,7 +1945,8 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         
         self.mainContainerNode.updateScrollingOffset(navigationHeight: navigationHeight, offset: mainOffset, transition: transition)
         
-        mainOffset = min(mainOffset, ChatListNavigationBar.searchScrollHeight)
+        let primaryScrollHeight = (self.navigationBarView.view as? ChatListNavigationBar.View)?.primaryScrollHeight ?? self.navigationHeaderScrollHeight
+        mainOffset = min(mainOffset, primaryScrollHeight)
         if abs(mainOffset) < 0.1 {
             mainOffset = 0.0
         }
@@ -2012,7 +2031,8 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         var storiesInset = storiesInset
         
         let navigationBarLayout = self.updateNavigationBar(layout: layout, deferScrollApplication: true, transition: ComponentTransition(transition))
-        self.mainContainerNode.initialScrollingOffset = (BananaChatListHeader.current.hidesSearch && self.location == .chatList(groupId: .root) ? 0.0 : ChatListNavigationBar.searchScrollHeight) + navigationBarLayout.storiesInset
+        let hasLargeTitle = (self.navigationBarView.view as? ChatListNavigationBar.View)?.hasLargeTitle ?? false
+        self.mainContainerNode.initialScrollingOffset = hasLargeTitle ? 0.0 : self.navigationHeaderScrollHeight + navigationBarLayout.storiesInset
         
         navigationBarHeight = navigationBarLayout.navigationHeight
         visualNavigationHeight = navigationBarLayout.navigationHeight
@@ -2439,7 +2459,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         
         if let clippedScrollOffset = navigationBarComponentView.clippedScrollOffset {
             let searchScrollOffset = clippedScrollOffset
-            if searchScrollOffset > 0.0 && searchScrollOffset < ChatListNavigationBar.searchScrollHeight {
+            if navigationBarComponentView.scrollSnapOffset(for: searchScrollOffset) != nil {
                 return true
             } else if clippedScrollOffset < 0.0 && clippedScrollOffset > -listView.tempTopInset {
                 return true
@@ -2481,12 +2501,8 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         
         if let clippedScrollOffset = navigationBarComponentView.clippedScrollOffset {
             let searchScrollOffset = clippedScrollOffset
-            if searchScrollOffset > 0.0 && searchScrollOffset < ChatListNavigationBar.searchScrollHeight {
-                if searchScrollOffset < ChatListNavigationBar.searchScrollHeight * 0.5 {
-                    let _ = listView.scrollToOffsetFromTop(0.0, animated: true)
-                } else {
-                    let _ = listView.scrollToOffsetFromTop(ChatListNavigationBar.searchScrollHeight, animated: true)
-                }
+            if let targetOffset = navigationBarComponentView.scrollSnapOffset(for: searchScrollOffset) {
+                let _ = listView.scrollToOffsetFromTop(targetOffset, animated: true)
                 return true
             } else if clippedScrollOffset < 0.0 && clippedScrollOffset > -listView.tempTopInset {
                 if navigationBarComponentView.storiesUnlocked {

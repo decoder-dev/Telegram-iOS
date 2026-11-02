@@ -50,6 +50,11 @@ public struct NetworkStatusTitle: Equatable {
 public final class ChatListTitleView: UIView, NavigationBarTitleView, NavigationBarTitleTransitionNode {
     private let context: AccountContext
     public let titleNode: ImmediateTextNode
+    public var titleTextAlpha: CGFloat = 1.0 {
+        didSet {
+            self.titleNode.alpha = self.titleTextAlpha * (self.buttonView.isHighlighted ? 0.4 : 1.0)
+        }
+    }
     private let lockView: ChatListTitleLockView
     private weak var lockSnapshotView: UIView?
     private let activityIndicator: ActivityIndicator
@@ -281,12 +286,12 @@ public final class ChatListTitleView: UIView, NavigationBarTitleView, Navigation
                 if highlighted && !strongSelf.lockView.isHidden && strongSelf.activityIndicator.isHidden {
                     strongSelf.titleNode.layer.removeAnimation(forKey: "opacity")
                     strongSelf.lockView.layer.removeAnimation(forKey: "opacity")
-                    strongSelf.titleNode.alpha = 0.4
+                    strongSelf.titleNode.alpha = 0.4 * strongSelf.titleTextAlpha
                     strongSelf.lockView.alpha = 0.4
                 } else {
-                    if !strongSelf.titleNode.alpha.isEqual(to: 1.0) {
-                        strongSelf.titleNode.alpha = 1.0
-                        strongSelf.titleNode.layer.animateAlpha(from: 0.4, to: 1.0, duration: 0.2)
+                    if !strongSelf.titleNode.alpha.isEqual(to: strongSelf.titleTextAlpha) {
+                        strongSelf.titleNode.alpha = strongSelf.titleTextAlpha
+                        strongSelf.titleNode.layer.animateAlpha(from: 0.4 * strongSelf.titleTextAlpha, to: strongSelf.titleTextAlpha, duration: 0.2)
                     }
                     if !strongSelf.lockView.alpha.isEqual(to: 1.0) {
                         strongSelf.lockView.alpha = 1.0

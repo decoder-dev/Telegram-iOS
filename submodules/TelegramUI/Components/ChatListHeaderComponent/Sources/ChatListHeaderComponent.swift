@@ -261,6 +261,12 @@ public final class ChatListHeaderComponent: Component {
             }
         }
 
+        public func updateTitleTextAlpha(_ alpha: CGFloat) {
+            let titleAlpha: CGFloat = self.component?.primaryContent?.chatListTitle?.activity == true ? 1.0 : alpha
+            self.findTitleView()?.titleTextAlpha = titleAlpha
+            self.storyPeerListView()?.titleTextAlpha = titleAlpha
+        }
+
         public func findTitleView() -> ChatListTitleView? {
             return (self.navigationBarView?.primaryTitleView as? ChatListTitleComponent.View)?.titleView
         }

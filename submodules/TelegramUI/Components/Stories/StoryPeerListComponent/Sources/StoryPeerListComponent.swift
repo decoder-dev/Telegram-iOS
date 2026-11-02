@@ -348,7 +348,12 @@ public final class StoryPeerListComponent: Component {
         
         private var titleLockView: ChatListTitleLockView?
         private var titleLockButton: HighlightTrackingButton?
+        private let titleTextContainer = UIView()
         private let titleView: UIImageView
+        public var titleTextAlpha: CGFloat {
+            get { return self.titleTextContainer.alpha }
+            set { self.titleTextContainer.alpha = newValue }
+        }
         private var titleState: TitleState?
         private var titleViewAnimation: TitleAnimationState?
         
@@ -435,7 +440,9 @@ public final class StoryPeerListComponent: Component {
             self.addSubview(self.scrollView)
             self.addSubview(self.scrollContainerView)
             self.addSubview(self.collapsedButton)
-            self.addSubview(self.titleView)
+            self.titleTextContainer.isUserInteractionEnabled = false
+            self.addSubview(self.titleTextContainer)
+            self.titleTextContainer.addSubview(self.titleView)
             
             self.collapsedButton.highligthedChanged = { [weak self] highlighted in
                 guard let self else {
@@ -1655,6 +1662,7 @@ public final class StoryPeerListComponent: Component {
         }
         
         func update(component: StoryPeerListComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            self.titleTextContainer.frame = CGRect(origin: .zero, size: availableSize)
             let incomingAnimation = transition.animation
             var transition = transition
             transition.animation = .none
@@ -1723,7 +1731,7 @@ public final class StoryPeerListComponent: Component {
                             toFraction: 0.0,
                             imageView: previousImageView
                         ))
-                        self.insertSubview(previousImageView, belowSubview: self.titleView)
+                        self.titleTextContainer.insertSubview(previousImageView, belowSubview: self.titleView)
                     }
                     
                     self.titleViewAnimation = TitleAnimationState(

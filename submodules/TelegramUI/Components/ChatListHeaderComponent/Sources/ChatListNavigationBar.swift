@@ -63,6 +63,7 @@ public final class ChatListNavigationBar: Component {
     public let rightInset: CGFloat
     /// iPhone Duo: see `ChatListHeaderComponent.trailingButtonsInset`.
     public let trailingButtonsInset: CGFloat
+    public let largeTitle: String?
     public let search: Search?
     public let activeSearch: ActiveSearch?
     public let primaryContent: ChatListHeaderComponent.Content?
@@ -95,6 +96,7 @@ public final class ChatListNavigationBar: Component {
         leftInset: CGFloat,
         rightInset: CGFloat,
         trailingButtonsInset: CGFloat = 0.0,
+        largeTitle: String? = nil,
         search: Search?,
         activeSearch: ActiveSearch?,
         primaryContent: ChatListHeaderComponent.Content?,
@@ -124,6 +126,7 @@ public final class ChatListNavigationBar: Component {
         self.leftInset = leftInset
         self.rightInset = rightInset
         self.trailingButtonsInset = trailingButtonsInset
+        self.largeTitle = largeTitle
         self.search = search
         self.activeSearch = activeSearch
         self.primaryContent = primaryContent
@@ -167,6 +170,9 @@ public final class ChatListNavigationBar: Component {
             return false
         }
         if lhs.trailingButtonsInset != rhs.trailingButtonsInset {
+            return false
+        }
+        if lhs.largeTitle != rhs.largeTitle {
             return false
         }
         if lhs.search != rhs.search {
@@ -236,6 +242,35 @@ public final class ChatListNavigationBar: Component {
 
     public final class View: UIView {
         private let edgeEffectView: EdgeEffectView
+        private let largeTitleContainer = UIView()
+        private let largeTitleLabel = UILabel()
+        private var largeTitleHeight: CGFloat = 0.0
+        private var fullLargeTitleHeight: CGFloat = 0.0
+
+        public var primaryScrollHeight: CGFloat {
+            guard let component = self.component else {
+                return 0.0
+            }
+            return self.fullLargeTitleHeight + (component.search == nil ? 0.0 : ChatListNavigationBar.searchScrollHeight)
+        }
+
+        public var scrollHeight: CGFloat {
+            guard let component = self.component else {
+                return 0.0
+            }
+            return self.largeTitleHeight + (component.search == nil ? 0.0 : ChatListNavigationBar.searchScrollHeight)
+        }
+
+        public func scrollSnapOffset(for offset: CGFloat) -> CGFloat? {
+            guard let component = self.component else {
+                return nil
+            }
+            return ChatListHeaderScrollGeometry(offset: offset, largeTitleHeight: self.largeTitleHeight, searchHeight: component.search == nil ? 0.0 : ChatListNavigationBar.searchScrollHeight).snappingOffset
+        }
+
+        public var hasLargeTitle: Bool {
+            return self.component?.largeTitle != nil
+        }
 
         // Layout remains in navigation bar coordinates when this view is hosted externally.
         public var edgeEffectBackgroundView: UIView {
@@ -318,6 +353,12 @@ public final class ChatListNavigationBar: Component {
             self.addSubview(self.contentView)
             self.contentView.addSubview(self.edgeEffectView)
             self.contentView.addSubview(self.bottomContentsContainer)
+            self.largeTitleContainer.clipsToBounds = true
+            self.largeTitleContainer.isUserInteractionEnabled = false
+            self.largeTitleLabel.accessibilityTraits = .header
+            self.largeTitleLabel.numberOfLines = 1
+            self.largeTitleContainer.addSubview(self.largeTitleLabel)
+            self.contentView.addSubview(self.largeTitleContainer)
 
             self.glassHold.changed = { [weak self] in
                 self?.applyGlassVisibility()
@@ -349,6 +390,9 @@ public final class ChatListNavigationBar: Component {
                 if let result = columnView.hitTest(self.convert(point, to: columnView), with: event) {
                     return result
                 }
+            }
+            if self.largeTitleContainer.alpha > 0.0 && self.largeTitleContainer.frame.contains(point) {
+                return nil
             }
             if point.y >= self.currentHeight {
                 return nil
@@ -461,16 +505,8 @@ public final class ChatListNavigationBar: Component {
             self.scrollSearch = component.search
             self.scrollHasOwnGlassContainer = component.hasOwnGlassContainer
             
-            let searchOffsetDistance: CGFloat = ChatListNavigationBar.searchScrollHeight
-            
-            let minContentOffset: CGFloat
-            if component.search != nil {
-                minContentOffset = ChatListNavigationBar.searchScrollHeight
-            } else {
-                minContentOffset = 0.0
-            }
-            
-            let clippedScrollOffset = min(minContentOffset, offset)
+            let geometry = ChatListHeaderScrollGeometry(offset: offset, largeTitleHeight: self.largeTitleHeight, searchHeight: component.search == nil ? 0.0 : ChatListNavigationBar.searchScrollHeight)
+            let clippedScrollOffset = geometry.clippedOffset
             if self.clippedScrollOffset == clippedScrollOffset
                 && !self.hasDeferredScrollOffset
                 && !forceUpdate
@@ -545,8 +581,7 @@ public final class ChatListNavigationBar: Component {
                     searchFrame.origin.y -= component.accessoryPanelContainerHeight
                 }
                 
-                let clippedSearchOffset = max(0.0, min(clippedScrollOffset, searchOffsetDistance))
-                let searchOffsetFraction = clippedSearchOffset / searchOffsetDistance
+                let searchOffsetFraction = 1.0 - geometry.searchFraction
                 searchContentNode.expansionProgress = 1.0 - searchOffsetFraction
                 embeddedSearchBarExpansionHeight = 60.0 - floorToScreenPixels((1.0 - searchOffsetFraction) * searchSize.height)
                 if searchOffsetFraction > 0.0 {
@@ -576,7 +611,7 @@ public final class ChatListNavigationBar: Component {
                 }
             }
             
-            var edgeEffectHeight: CGFloat = currentLayout.size.height + 14.0
+            var edgeEffectHeight: CGFloat = currentLayout.size.height + 14.0 - geometry.titleOffset
             if component.search != nil {
                 if component.activeSearch != nil {
                 } else {
@@ -728,6 +763,17 @@ public final class ChatListNavigationBar: Component {
                 }
             }
             
+            let titleWidth = max(1.0, currentLayout.size.width - component.leftInset - component.rightInset - 32.0)
+            let visibleTitleHeight = max(0.0, self.largeTitleHeight - geometry.titleOffset)
+            transition.setFrame(view: self.largeTitleContainer, frame: CGRect(x: component.leftInset + 16.0, y: headerContentFrame.maxY, width: titleWidth, height: visibleTitleHeight))
+            let labelHeight = ceil(self.largeTitleLabel.font.lineHeight)
+            transition.setFrame(view: self.largeTitleLabel, frame: CGRect(x: 0.0, y: floor((self.largeTitleHeight - labelHeight) * 0.5) - geometry.titleOffset, width: titleWidth, height: labelHeight))
+            let storiesTitleFraction = component.storySubscriptions == nil ? 0.0 : min(1.0, storiesOffsetFraction)
+            let largeTitleAlpha = geometry.titleFraction * max(0.0, min(1.0, 1.0 - component.secondaryTransition)) * (1.0 - storiesTitleFraction)
+            transition.setAlpha(view: self.largeTitleContainer, alpha: largeTitleAlpha)
+            self.largeTitleLabel.isAccessibilityElement = largeTitleAlpha > 0.5
+            (self.headerContent.view as? ChatListHeaderComponent.View)?.updateTitleTextAlpha(max(1.0 - geometry.titleFraction, storiesTitleFraction))
+
             self.updateSideColumn(component: component, transition: transition)
             
             let bottomContentsContainerPosition: CGPoint
@@ -850,6 +896,7 @@ public final class ChatListNavigationBar: Component {
                     leftInset: component.leftInset,
                     rightInset: component.rightInset,
                     trailingButtonsInset: component.trailingButtonsInset,
+                    largeTitle: component.largeTitle,
                     search: component.search,
                     activeSearch: component.activeSearch,
                     primaryContent: component.primaryContent,
@@ -947,7 +994,17 @@ public final class ChatListNavigationBar: Component {
             
             self.component = component
             self.state = state
-            
+            self.largeTitleLabel.text = component.largeTitle
+            self.largeTitleLabel.textColor = component.theme.rootController.navigationBar.primaryTextColor
+            self.largeTitleLabel.font = Font.bold(UIFont.preferredFont(forTextStyle: .largeTitle).pointSize)
+            self.largeTitleLabel.textAlignment = self.effectiveUserInterfaceLayoutDirection == .rightToLeft ? .right : .left
+            if component.largeTitle != nil && component.activeSearch == nil {
+                self.fullLargeTitleHeight = max(52.0, ceil(self.largeTitleLabel.font.lineHeight) + 8.0)
+            } else {
+                self.fullLargeTitleHeight = 0.0
+            }
+            self.largeTitleHeight = self.fullLargeTitleHeight * (1.0 - max(0.0, min(1.0, component.secondaryTransition)))
+
             var contentHeight = component.statusBarHeight
             contentHeight += 3.0
             if let activeSearch = component.activeSearch {
@@ -957,6 +1014,7 @@ public final class ChatListNavigationBar: Component {
             } else {
                 contentHeight += 44.0
                 contentHeight += 9.0
+                contentHeight += self.largeTitleHeight
                 
                 if component.search != nil {
                     contentHeight += navigationBarSearchContentHeight + 2.0

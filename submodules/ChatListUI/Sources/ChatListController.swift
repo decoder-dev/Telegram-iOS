@@ -471,9 +471,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     }
                     let isFirstFilter = strongSelf.chatListDisplayNode.effectiveContainerNode.currentItemNode.chatListFilter == visibleFilters.first?.filter
                     
-                    if offset <= ChatListNavigationBar.searchScrollHeight + 1.0 && strongSelf.chatListDisplayNode.inlineStackContainerNode != nil {
+                    if offset <= strongSelf.chatListDisplayNode.navigationHeaderScrollHeight + 1.0 && strongSelf.chatListDisplayNode.inlineStackContainerNode != nil {
                         strongSelf.setInlineChatList(location: nil)
-                    } else if offset <= ChatListNavigationBar.searchScrollHeight + 1.0 && !isFirstFilter {
+                    } else if offset <= strongSelf.chatListDisplayNode.navigationHeaderScrollHeight + 1.0 && !isFirstFilter {
                         var firstFilters = strongSelf.chatListDisplayNode.effectiveContainerNode.availableFilters
                         if ForkExtrasHotFlags.hideAllChats && firstFilters.count > 1 {
                             firstFilters.removeAll { $0 == .all }

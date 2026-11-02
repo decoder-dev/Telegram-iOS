@@ -1,5 +1,6 @@
 import pathlib
 import subprocess
+import sys
 import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[2]
@@ -58,3 +59,5 @@ with tempfile.TemporaryDirectory(prefix='telegram-customization-') as tmp:
     file = pathlib.Path(tmp) / 'main.swift'
     file.write_text(fixture + source[begin:end] + '\n' + theme_source[policy_begin:policy_end] + tests, encoding='utf-8')
     subprocess.run(['swift', str(file)], check=True)
+
+subprocess.run([sys.executable, str(root / 'Tests/Customization/header_scroll.py')], check=True)
