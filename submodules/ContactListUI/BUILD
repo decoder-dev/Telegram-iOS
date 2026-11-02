@@ -1,4 +1,6 @@
 load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
+load("@build_bazel_rules_apple//apple:ios.bzl", "ios_unit_test")
+load("@build_bazel_rules_apple//apple/testing/default_runner:ios_test_runner.bzl", "ios_test_runner")
 
 swift_library(
     name = "ContactListUI",
@@ -57,4 +59,34 @@ swift_library(
     visibility = [
         "//visibility:public",
     ],
+)
+
+swift_library(
+    name = "ContactRowLayoutTestsLib",
+    testonly = True,
+    srcs = ["Tests/ContactRowLayoutTests.swift"],
+    deps = [
+        ":ContactListUI",
+        "//submodules/AsyncDisplayKit:AsyncDisplayKit",
+        "//submodules/Display:Display",
+        "//submodules/ItemListUI:ItemListUI",
+        "//submodules/AccountContext:AccountContext",
+        "//submodules/TelegramPresentationData:TelegramPresentationData",
+        "//Telegram:PresentationStrings",
+    ],
+)
+
+ios_test_runner(
+    name = "ContactRowLayoutTestRunner",
+    device_type = "iPhone 17",
+    os_version = "26.5",
+)
+
+ios_unit_test(
+    name = "ContactRowLayoutTests",
+    minimum_os_version = "15.0",
+    runner = ":ContactRowLayoutTestRunner",
+    data = ["//Telegram:GeneratedPresentationStrings/Resources/PresentationStrings.data"],
+    deps = [":ContactRowLayoutTestsLib"],
+    visibility = ["//visibility:public"],
 )

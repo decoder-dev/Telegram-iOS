@@ -70,3 +70,4 @@ subprocess.run([sys.executable, str(root / 'Tests/Customization/settings_input_e
 subprocess.run([sys.executable, str(root / 'Tests/Customization/localized_title_segments.py')], check=True)
 subprocess.run([sys.executable, str(root / 'Tests/Customization/settings_actions.py')], check=True)
 subprocess.run([sys.executable, str(root / 'Tests/Customization/call_list_layout.py')], check=True)
+subprocess.run([sys.executable, str(root / 'Tests/Customization/presentation_updates.py')], check=True)

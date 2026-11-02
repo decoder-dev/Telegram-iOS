@@ -100,7 +100,8 @@ public class LimitedPermissionItemNode: ListViewItemNode {
         self.activateArea.accessibilityTraits = .staticText
         
         self.actionButton = HighlightableButtonNode()
-        self.actionButton.hitTestSlop = UIEdgeInsets(top: -8.0, left: 0.0, bottom: -8.0, right: 0.0)
+        self.actionButton.isAccessibilityElement = true
+        self.actionButton.accessibilityTraits = .button
         
         self.actionButtonBackgroundNode = ASImageNode()
         self.actionButtonBackgroundNode.displaysAsynchronously = false
@@ -145,7 +146,8 @@ public class LimitedPermissionItemNode: ListViewItemNode {
             let leftInset: CGFloat = 16.0 + params.leftInset
             let rightInset: CGFloat = 16.0 + params.rightInset
             
-            let textFont = Font.regular(15.0)
+            let fontSize = floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0)
+            let textFont = Font.regular(fontSize)
     
             var updatedTheme: PresentationTheme?
             if currentItem?.presentationData.theme !== item.presentationData.theme {
@@ -165,11 +167,15 @@ public class LimitedPermissionItemNode: ListViewItemNode {
             
             let attributedText = NSAttributedString(string: item.text, font: textFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor)
 
-            let (buttonTextLayout, buttonTextApply) = makeButtonTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Contacts_LimitedAccess_Manage, font: Font.semibold(15.0), textColor: item.presentationData.theme.list.itemCheckColors.foregroundColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-
-            let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: attributedText, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - rightInset - buttonTextLayout.size.width - 20.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-                        
-            let contentSize = CGSize(width: params.width, height: textLayout.size.height + 20.0)
+            let contentWidth = max(1.0, params.width - leftInset - rightInset)
+            let stacksButton = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+            let buttonTextWidth = max(1.0, (stacksButton ? contentWidth : contentWidth * 0.45) - 26.0)
+            let (buttonTextLayout, buttonTextApply) = makeButtonTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Contacts_LimitedAccess_Manage, font: Font.semibold(fontSize), textColor: item.presentationData.theme.list.itemCheckColors.foregroundColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: buttonTextWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
+            let actionButtonSize = CGSize(width: max(buttonTextLayout.size.width + 26.0, 44.0), height: max(44.0, buttonTextLayout.size.height + 16.0))
+            let textWidth = stacksButton ? contentWidth : max(1.0, contentWidth - actionButtonSize.width - 12.0)
+            let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: attributedText, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: textWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let contentHeight = stacksButton ? textLayout.size.height + 12.0 + actionButtonSize.height + 24.0 : max(textLayout.size.height, actionButtonSize.height) + 20.0
+            let contentSize = CGSize(width: params.width, height: contentHeight)
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             
             return (layout, { [weak self] in
@@ -185,7 +191,7 @@ public class LimitedPermissionItemNode: ListViewItemNode {
                         strongSelf.bottomStripeNode.backgroundColor = itemSeparatorColor
                         strongSelf.backgroundNode.backgroundColor = itemBackgroundColor
                         
-                        strongSelf.actionButtonBackgroundNode.image = generateStretchableFilledCircleImage(diameter: 14.0 * 2.0, color: item.presentationData.theme.list.itemCheckColors.fillColor, strokeColor: nil, strokeWidth: nil, backgroundColor: nil)
+                        strongSelf.actionButtonBackgroundNode.backgroundColor = item.presentationData.theme.list.itemCheckColors.fillColor
                     }
 
                     let _ = textApply()
@@ -228,12 +234,16 @@ public class LimitedPermissionItemNode: ListViewItemNode {
                     strongSelf.topStripeNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: params.width, height: separatorHeight))
                     strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height - separatorHeight), size: CGSize(width: params.width - bottomStripeInset, height: separatorHeight))
                                                             
-                    strongSelf.textNode.frame = CGRect(origin: CGPoint(x: leftInset, y: 10.0), size: textLayout.size)
+                    let textY: CGFloat = stacksButton ? 12.0 : floor((contentSize.height - textLayout.size.height) * 0.5)
+                    strongSelf.textNode.frame = CGRect(origin: CGPoint(x: leftInset, y: textY), size: textLayout.size)
                     
-                    let actionButtonSize = CGSize(width: max(buttonTextLayout.size.width + 26.0, 44.0), height: 28.0)
-                    let actionButtonFrame = CGRect(origin: CGPoint(x: params.width - params.rightInset - actionButtonSize.width - 10.0, y: floor((layout.size.height - actionButtonSize.height) / 2.0)), size: actionButtonSize)
+                    let actionButtonY = stacksButton ? strongSelf.textNode.frame.maxY + 12.0 : floor((contentSize.height - actionButtonSize.height) * 0.5)
+                    let actionButtonFrame = CGRect(origin: CGPoint(x: params.width - rightInset - actionButtonSize.width, y: actionButtonY), size: actionButtonSize)
                     strongSelf.actionButton.frame = actionButtonFrame
+                    strongSelf.actionButton.accessibilityLabel = item.presentationData.strings.Contacts_LimitedAccess_Manage
+                    strongSelf.actionButton.isEnabled = item.action != nil
                     strongSelf.actionButtonBackgroundNode.frame = actionButtonFrame
+                    strongSelf.actionButtonBackgroundNode.cornerRadius = actionButtonFrame.height * 0.5
                     strongSelf.actionButtonTitleNode.frame = CGRect(origin: CGPoint(x: actionButtonFrame.minX + floorToScreenPixels((actionButtonFrame.width - buttonTextLayout.size.width) / 2.0), y: actionButtonFrame.minY + floorToScreenPixels((actionButtonFrame.height - buttonTextLayout.size.height) / 2.0) + 1.0 - UIScreenPixel), size: buttonTextLayout.size)
                 }
             })

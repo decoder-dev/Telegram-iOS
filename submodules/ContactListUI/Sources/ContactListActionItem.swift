@@ -225,17 +225,24 @@ class ContactListActionItemNode: ListViewItemNode {
             }
             let subtitleFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 13.0 / 17.0))
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - 10.0 - leftInset - params.rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let inlineIconWidth: CGFloat
+            if case .inline = item.icon {
+                inlineIconWidth = (item.icon.image?.size.width ?? 0.0) + 4.0
+            } else {
+                inlineIconWidth = 0.0
+            }
+            let textWidth = max(1.0, params.width - 16.0 - leftInset - params.rightInset - inlineIconWidth)
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: textWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let subtitleAttributedString = item.subtitle.flatMap { NSAttributedString(string: $0, font: subtitleFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor) }
             
-            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: subtitleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - 10.0 - leftInset - params.rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: subtitleAttributedString, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: textWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let subtitleHeightComponent: CGFloat
             if subtitleAttributedString == nil {
                 subtitleHeightComponent = 0.0
             } else {
-                subtitleHeightComponent = -1.0 + subtitleLayout.size.height
+                subtitleHeightComponent = 2.0 + subtitleLayout.size.height
             }
             
             let contentHeight: CGFloat
@@ -244,11 +251,11 @@ class ContactListActionItemNode: ListViewItemNode {
                 verticalInset += 4.0
             }
             if case .tall = item.height {
-                contentHeight = 50.0
+                contentHeight = max(50.0, verticalInset * 2.0 + titleLayout.size.height + subtitleHeightComponent)
             } else if case .alpha = item.highlight {
-                contentHeight = 50.0
+                contentHeight = max(50.0, verticalInset * 2.0 + titleLayout.size.height + subtitleHeightComponent)
             } else {
-                contentHeight = verticalInset * 2.0 + titleLayout.size.height + subtitleHeightComponent
+                contentHeight = max(PresentationLayoutMetrics.minimumInteractiveSize, verticalInset * 2.0 + titleLayout.size.height + subtitleHeightComponent)
             }
             
             let contentSize = CGSize(width: params.width, height: contentHeight)
@@ -262,6 +269,8 @@ class ContactListActionItemNode: ListViewItemNode {
                     strongSelf.item = item
                     
                     strongSelf.activateArea.accessibilityLabel = item.title
+                    strongSelf.activateArea.accessibilityValue = item.subtitle
+                    strongSelf.activateArea.accessibilityTraits = .button
                     strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 0.0), size: CGSize(width: layout.contentSize.width - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     
                     if let _ = updatedTheme {
@@ -300,7 +309,7 @@ class ContactListActionItemNode: ListViewItemNode {
                                 switch position {
                                 case .left:
                                     iconFrame = CGRect(origin: CGPoint(x: params.leftInset + floor((contentSize.width - params.leftInset - params.rightInset - totalWidth) / 2.0), y: floor((contentSize.height - image.size.height) / 2.0)), size: image.size)
-                                    titleOffset = iconFrame.minX + iconSpacing
+                                    titleOffset = iconFrame.maxX + iconSpacing
                                 case .right:
                                     iconFrame = CGRect(origin: CGPoint(x: params.leftInset + floor((contentSize.width - params.leftInset - params.rightInset - totalWidth) / 2.0) + totalWidth - image.size.width, y: floor((contentSize.height - image.size.height) / 2.0)), size: image.size)
                                     titleOffset = iconFrame.maxX - totalWidth
@@ -351,7 +360,7 @@ class ContactListActionItemNode: ListViewItemNode {
                     }
                     strongSelf.titleNode.frame = titleFrame
                     
-                    let subtitleFrame = CGRect(origin: CGPoint(x: titleOffset, y: titleFrame.maxY - 1.0), size: subtitleLayout.size)
+                    let subtitleFrame = CGRect(origin: CGPoint(x: titleOffset, y: titleFrame.maxY + 2.0), size: subtitleLayout.size)
                     strongSelf.subtitleNode.frame = subtitleFrame
                     
                     strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: stripExcessLeft, y: -UIScreenPixel), size: CGSize(width: params.width - stripExcessLeft - stripExcessRight, height: contentSize.height + UIScreenPixel + UIScreenPixel))

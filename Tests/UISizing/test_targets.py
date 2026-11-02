@@ -28,9 +28,25 @@ class TouchTargets(unittest.TestCase):
 
     def test_contacts_action(self):
         text = source('submodules/ContactListUI/Sources/LimitedPermissionItem.swift')
-        top, _, bottom, _ = slop(text, 'self.actionButton')
-        height = float(re.search(r'let actionButtonSize = CGSize\(.*?height: ([\d.]+)\)', text)[1])
-        self.assertGreaterEqual(height - top - bottom, 44)
+        button = re.search(r'^\s*let actionButtonSize = .*$', text, re.MULTILINE)[0]
+        fixture = '''import Foundation
+struct LabelLayout { let size: CGSize }
+for width: CGFloat in [0, 24, 120, 200] {
+    for height: CGFloat in [0, 18, 32, 72, 120] {
+        let buttonTextLayout = LabelLayout(size: CGSize(width: width, height: height))
+'''
+        fixture += button
+        fixture += '''
+        precondition(actionButtonSize.width >= 44)
+        precondition(actionButtonSize.height >= 44)
+        precondition(actionButtonSize.height >= buttonTextLayout.size.height + 16)
+    }
+}
+'''
+        with tempfile.TemporaryDirectory(prefix='contacts-targets-') as directory:
+            path = pathlib.Path(directory) / 'main.swift'
+            path.write_text(fixture)
+            subprocess.run(['swift', str(path)], check=True)
 
     def test_join_call(self):
         text = source('submodules/CallListUI/Sources/CallListGroupCallItem.swift')

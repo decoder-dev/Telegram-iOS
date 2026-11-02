@@ -167,10 +167,12 @@ public final class CallListController: TelegramBaseController {
             if let strongSelf = self {
                 let previousTheme = strongSelf.presentationData.theme
                 let previousStrings = strongSelf.presentationData.strings
+                let previousFontSize = strongSelf.presentationData.listsFontSize
+                let previousReduceMotion = strongSelf.presentationData.reduceMotion
                 
                 strongSelf.presentationData = presentationData
                 
-                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
+                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings || previousFontSize != presentationData.listsFontSize || previousReduceMotion != presentationData.reduceMotion {
                     strongSelf.updateThemeAndStrings()
                 }
             }

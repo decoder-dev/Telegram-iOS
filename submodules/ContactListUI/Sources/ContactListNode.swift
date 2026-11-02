@@ -902,8 +902,8 @@ private func contactListNodeEntries(
     return entries
 }
 
-private func preparedContactListNodeTransition(context: AccountContext, presentationData: PresentationData, from fromEntries: [ContactListNodeEntry], to toEntries: [ContactListNodeEntry], interaction: ContactListNodeInteraction, firstTime: Bool, isEmpty: Bool, hasOptions: Bool, generateIndexSections: Bool, animation: ContactListAnimation, isSearch: Bool, listStyle: ItemListStyle) -> ContactsListNodeTransition {
-    let (deleteIndices, indicesAndItems, updateIndices) = mergeListsStableWithUpdates(leftList: fromEntries, rightList: toEntries)
+private func preparedContactListNodeTransition(context: AccountContext, presentationData: PresentationData, forceUpdate: Bool, from fromEntries: [ContactListNodeEntry], to toEntries: [ContactListNodeEntry], interaction: ContactListNodeInteraction, firstTime: Bool, isEmpty: Bool, hasOptions: Bool, generateIndexSections: Bool, animation: ContactListAnimation, isSearch: Bool, listStyle: ItemListStyle) -> ContactsListNodeTransition {
+    let (deleteIndices, indicesAndItems, updateIndices) = mergeListsStableWithUpdates(leftList: fromEntries, rightList: toEntries, allUpdated: forceUpdate)
     
     let deletions = deleteIndices.map { ListViewDeleteItem(index: $0, directionHint: nil) }
     let insertions = indicesAndItems.map { ListViewInsertItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(context: context, presentationData: presentationData, interaction: interaction, isSearch: isSearch, listStyle: listStyle), directionHint: nil) }
@@ -1345,6 +1345,7 @@ public final class ContactListNode: ASDisplayNode {
         
         let processingQueue = Queue()
         let previousEntries = Atomic<[ContactListNodeEntry]?>(value: nil)
+        let previousPresentationData = Atomic<PresentationData?>(value: nil)
         let previousSelectionState = Atomic<ContactListNodeGroupSelectionState?>(value: nil)
         let previousPendingRemovalPeerIds = Atomic<Set<EnginePeer.Id>?>(value: nil)
         
@@ -1829,7 +1830,9 @@ public final class ContactListNode: ASDisplayNode {
                                 interaction: interaction
                             )
                             let previous = previousEntries.swap(entries)
-                            return .single(preparedContactListNodeTransition(context: context, presentationData: presentationData, from: previous ?? [], to: entries, interaction: interaction, firstTime: previous == nil, isEmpty: false, hasOptions: false, generateIndexSections: generateSections, animation: .none, isSearch: isSearch, listStyle: listStyle))
+                            let previousData = previousPresentationData.swap(presentationData)
+                            let forceUpdate = previousData?.listsFontSize != presentationData.listsFontSize || previousData?.reduceMotion != presentationData.reduceMotion
+                            return .single(preparedContactListNodeTransition(context: context, presentationData: presentationData, forceUpdate: forceUpdate, from: previous ?? [], to: entries, interaction: interaction, firstTime: previous == nil, isEmpty: false, hasOptions: false, generateIndexSections: generateSections, animation: .none, isSearch: isSearch, listStyle: listStyle))
                         }
                         
                         if OSAtomicCompareAndSwap32(1, 0, &firstTime) {
@@ -2071,6 +2074,8 @@ public final class ContactListNode: ASDisplayNode {
                                 interaction: interaction
                             )
                             let previous = previousEntries.swap(entries)
+                            let previousData = previousPresentationData.swap(presentationData)
+                            let forceUpdate = previousData?.listsFontSize != presentationData.listsFontSize || previousData?.reduceMotion != presentationData.reduceMotion
                             let previousSelection = previousSelectionState.swap(selectionState)
                             let previousPendingRemovalPeerIds = previousPendingRemovalPeerIds.swap(pendingRemovalPeerIds)
                             
@@ -2110,7 +2115,7 @@ public final class ContactListNode: ASDisplayNode {
                                 animation = .none
                             }
                             
-                            return .single(preparedContactListNodeTransition(context: context, presentationData: presentationData, from: previous ?? [], to: entries, interaction: interaction, firstTime: previous == nil, isEmpty: isEmpty, hasOptions: optionsCount != 0, generateIndexSections: generateSections, animation: animation, isSearch: isSearch, listStyle: listStyle))
+                            return .single(preparedContactListNodeTransition(context: context, presentationData: presentationData, forceUpdate: forceUpdate, from: previous ?? [], to: entries, interaction: interaction, firstTime: previous == nil, isEmpty: isEmpty, hasOptions: optionsCount != 0, generateIndexSections: generateSections, animation: animation, isSearch: isSearch, listStyle: listStyle))
                         }
             
                     if OSAtomicCompareAndSwap32(1, 0, &firstTime) {
@@ -2132,6 +2137,8 @@ public final class ContactListNode: ASDisplayNode {
             if let strongSelf = self {
                 let previousTheme = strongSelf.presentationData.theme
                 let previousStrings = strongSelf.presentationData.strings
+                let previousFontSize = strongSelf.presentationData.listsFontSize
+                let previousReduceMotion = strongSelf.presentationData.reduceMotion
                 
                 strongSelf.presentationData = presentationData
                 
@@ -2168,6 +2175,11 @@ public final class ContactListNode: ASDisplayNode {
                         }
                     })
                     
+                    if let (validLayout, headerInsets, storiesInset) = strongSelf.validLayout {
+                        strongSelf.containerLayoutUpdated(validLayout, headerInsets: headerInsets, storiesInset: storiesInset, transition: .immediate)
+                    }
+                } else if previousFontSize != presentationData.listsFontSize || previousReduceMotion != presentationData.reduceMotion {
+                    strongSelf.presentationDataPromise.set(.single(presentationData))
                     if let (validLayout, headerInsets, storiesInset) = strongSelf.validLayout {
                         strongSelf.containerLayoutUpdated(validLayout, headerInsets: headerInsets, storiesInset: storiesInset, transition: .immediate)
                     }

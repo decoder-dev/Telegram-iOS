@@ -135,6 +135,8 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             if let strongSelf = self {
                 let previousTheme = strongSelf.presentationData.theme
                 let previousStrings = strongSelf.presentationData.strings
+                let previousFontSize = strongSelf.presentationData.listsFontSize
+                let previousReduceMotion = strongSelf.presentationData.reduceMotion
                 
                 strongSelf.presentationData = presentationData
                 
@@ -142,7 +144,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                     strongSelf.stringsPromise.set(.single(presentationData.strings))
                 }
                 
-                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
+                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings || previousFontSize != presentationData.listsFontSize || previousReduceMotion != presentationData.reduceMotion {
                     strongSelf.updateThemeAndStrings()
                 }
             }
