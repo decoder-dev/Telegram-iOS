@@ -159,3 +159,11 @@ Fixtures расширены исполнением production Drawing delegate (
 SearchBarNode использует системные magnifyingglass/number/dollarsign/xmark.circle.fill с прежними ресурсами как fallback. У Cancel фактический frame не меньше 44 pt, у clear расширена область касания до 44 pt; editable field резервирует место под неё также во время перехода из placeholder. Clear исключается из accessibility и отключается при скрытии. Keyboard delete для prefix/tokens сохраняет прежний обработчик.
 
 Добавлен SearchBarLayoutTests: реальные hitTest рядом с clear glyph, очистка и её accessibility state для четырёх стилей/трёх ширин, размер Cancel и его callback. Swift parse проходит; UIKit tests NOT RUN на Linux. До записи ожидается: field/clear/Cancel не перехватывают касания друг друга; появление clear не двигает левый край запроса; вход/выход поиска не оставляет двойных иконок. Проверить light/dark, token/prefix deletion, inline navigation, RTL и safe insets. Визуальная приёмка ещё не выполнялась.
+
+## Действия и варианты выбора в настройках
+
+Action rows переносят длинные подписи, выравнивают многострочный текст по назначению действия и учитывают обе safe insets. Checkbox rows переносят title/subtitle, резервируют отдельное место под правую отметку и центрируют текстовую группу по высоте. Обе строки имеют минимум 44 pt. VoiceOver получает subtitle и системный selected trait вместо жёстко заданного английского Selected.
+
+Disabled action больше не выполняется через selected/long press; добавлен отдельный VoiceOver activation с той же проверкой. Disabled checkbox также блокирует VoiceOver, который раньше обходил enabled. Foundation fixture исполняет production selection/activation/long press paths, включая повторное использование: PASS. Добавлены четыре ChoiceRowLayoutTests для actual TextNode layout, safe insets и VoiceOver/reuse; NOT RUN. Swift syntax parse проходит.
+
+До записи ожидается: длинные действия хранения/защиты/уведомлений читаются полностью; отметка не пересекает текст; multiline строки разделены одинаковыми отступами; disabled controls не подсвечиваются и не выполняются. Проверить privacy exceptions, notification tone lists, archive scope, destructive actions и обычные/крупные размеры текста в обеих темах. Нативной приёмки ещё не было.

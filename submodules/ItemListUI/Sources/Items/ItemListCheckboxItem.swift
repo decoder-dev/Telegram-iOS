@@ -97,7 +97,9 @@ public class ItemListCheckboxItem: ListViewItem, ItemListItem {
         }
     }
     
-    public var selectable: Bool = true
+    public var selectable: Bool {
+        return self.enabled
+    }
     
     public func selected(listView: ListView){
         listView.clearHighlightAnimated(true)
@@ -186,7 +188,10 @@ public class ItemListCheckboxItemNode: ItemListRevealOptionsItemNode {
         self.addSubnode(self.activateArea)
         
         self.activateArea.activate = { [weak self] in
-            self?.item?.action()
+            guard let item = self?.item, item.enabled else {
+                return false
+            }
+            item.action()
             return true
         }
     }
@@ -219,7 +224,7 @@ public class ItemListCheckboxItemNode: ItemListRevealOptionsItemNode {
                 }
             }
             
-            let trailingInset: CGFloat = max(28.0, 28.0 + params.rightInset - params.leftInset)
+            let trailingInset: CGFloat = params.rightInset + (item.style == .right ? 48.0 : 16.0)
             
             let titleFont = Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
             let subtitleFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
@@ -236,9 +241,9 @@ public class ItemListCheckboxItemNode: ItemListRevealOptionsItemNode {
                 titleColor = item.presentationData.theme.list.itemDisabledTextColor
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - trailingInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: max(1.0, params.width - leftInset - trailingInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
-            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.subtitle ?? "", font: subtitleFont, textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - trailingInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.subtitle ?? "", font: subtitleFont, textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: max(1.0, params.width - leftInset - trailingInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let separatorHeight = UIScreenPixel
             let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
@@ -256,6 +261,7 @@ public class ItemListCheckboxItemNode: ItemListRevealOptionsItemNode {
             if item.subtitle != nil {
                 contentSize.height += subtitleLayout.size.height
             }
+            contentSize.height = max(PresentationLayoutMetrics.minimumInteractiveSize, contentSize.height)
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             
@@ -287,16 +293,15 @@ public class ItemListCheckboxItemNode: ItemListRevealOptionsItemNode {
                     strongSelf.contentContainerNode.frame = CGRect(origin: CGPoint(x: strongSelf.contentContainerNode.frame.minX, y: 0.0), size: CGSize(width: params.width, height: layout.contentSize.height))
                     
                     strongSelf.activateArea.accessibilityLabel = item.title
+                    strongSelf.activateArea.accessibilityValue = item.subtitle
+                    var accessibilityTraits: UIAccessibilityTraits = .button
                     if item.checked {
-                        strongSelf.activateArea.accessibilityValue = "Selected"
-                    } else {
-                        strongSelf.activateArea.accessibilityValue = ""
+                        accessibilityTraits.insert(.selected)
                     }
-                    if item.enabled {
-                        strongSelf.activateArea.accessibilityTraits = []
-                    } else {
-                        strongSelf.activateArea.accessibilityTraits = [.notEnabled]
+                    if !item.enabled {
+                        accessibilityTraits.insert(.notEnabled)
                     }
+                    strongSelf.activateArea.accessibilityTraits = accessibilityTraits
                     
                     strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 0.0), size: CGSize(width: params.width - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     
@@ -372,7 +377,7 @@ public class ItemListCheckboxItemNode: ItemListRevealOptionsItemNode {
                     strongSelf.topStripeNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: params.width, height: separatorHeight))
                     strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height - separatorHeight), size: CGSize(width: params.width - params.rightInset - bottomStripeInset - separatorRightInset, height: separatorHeight))
                     
-                    strongSelf.titleNode.frame = CGRect(origin: CGPoint(x: leftInset, y: verticalInset + 1.0), size: titleLayout.size)
+                    strongSelf.titleNode.frame = CGRect(origin: CGPoint(x: leftInset, y: floorToScreenPixels((contentSize.height - titleLayout.size.height - subtitleLayout.size.height) * 0.5)), size: titleLayout.size)
                     strongSelf.subtitleNode.frame = CGRect(origin: CGPoint(x: leftInset, y: strongSelf.titleNode.frame.maxY), size: subtitleLayout.size)
                     
                     if let icon = item.icon {

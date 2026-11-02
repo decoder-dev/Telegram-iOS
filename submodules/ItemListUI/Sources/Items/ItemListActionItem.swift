@@ -77,9 +77,14 @@ public class ItemListActionItem: ListViewItem, ItemListItem {
         }
     }
     
-    public var selectable: Bool = true
+    public var selectable: Bool {
+        return self.kind != .disabled
+    }
     
     public func selected(listView: ListView){
+        guard self.selectable else {
+            return
+        }
         if self.clearHighlightAutomatically {
             listView.clearHighlightAnimated(true)
         }
@@ -134,6 +139,14 @@ public class ItemListActionItemNode: ListViewItemNode, ItemListItemNode {
         self.addSubnode(self.titleNode)
         
         self.addSubnode(self.activateArea)
+
+        self.activateArea.activate = { [weak self] in
+            guard let item = self?.item, item.selectable else {
+                return false
+            }
+            item.action()
+            return true
+        }
     }
     
     public func displayHighlight() {
@@ -176,7 +189,7 @@ public class ItemListActionItemNode: ListViewItemNode, ItemListItemNode {
                 textColor = item.presentationData.theme.list.itemDisabledTextColor
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: textColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.leftInset - params.rightInset - 20.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: textColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: max(1.0, params.width - params.leftInset - params.rightInset - 32.0), height: CGFloat.greatestFiniteMagnitude), alignment: item.alignment == .center ? .center : .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let contentSize: CGSize
             let insets: UIEdgeInsets
@@ -197,12 +210,12 @@ public class ItemListActionItemNode: ListViewItemNode, ItemListItemNode {
             case .plain:
                 itemBackgroundColor = item.presentationData.theme.list.plainBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemPlainSeparatorColor
-                contentSize = CGSize(width: params.width, height: titleLayout.size.height + verticalInset * 2.0)
+                contentSize = CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, titleLayout.size.height + verticalInset * 2.0))
                 insets = itemListNeighborsPlainInsets(neighbors)
             case .blocks:
                 itemBackgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemBlocksSeparatorColor
-                contentSize = CGSize(width: params.width, height: titleLayout.size.height + verticalInset * 2.0)
+                contentSize = CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, titleLayout.size.height + verticalInset * 2.0))
                 insets = itemListNeighborsGroupedInsets(neighbors, params)
             }
             
@@ -358,10 +371,13 @@ public class ItemListActionItemNode: ListViewItemNode, ItemListItemNode {
     }
     
     override public func longTapped() {
-        self.item?.longTapAction?()
+        guard let item = self.item, item.selectable else {
+            return
+        }
+        item.longTapAction?()
     }
     
     override public var canBeLongTapped: Bool {
-        return self.item?.longTapAction != nil
+        return self.item?.selectable == true && self.item?.longTapAction != nil
     }
 }

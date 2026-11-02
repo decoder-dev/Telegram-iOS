@@ -54,6 +54,7 @@ swift_library(
         "Tests/SettingsRowLayoutTests.swift",
         "Tests/ButtonAccessibilityTests.swift",
         "Tests/InputRowLayoutTests.swift",
+        "Tests/ChoiceRowLayoutTests.swift",
     ],
     deps = [
         ":ItemListUI",
