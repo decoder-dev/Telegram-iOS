@@ -1131,7 +1131,10 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         }
         
         var updated = textField.text ?? ""
-        guard let stringRange = Range(range, in: updated), NSRange(stringRange, in: updated) == range else {
+        guard let stringRange = Range(range, in: updated),
+              NSRange(stringRange, in: updated) == range,
+              stringRange.lowerBound.samePosition(in: updated.unicodeScalars) != nil,
+              stringRange.upperBound.samePosition(in: updated.unicodeScalars) != nil else {
             return false
         }
         updated.replaceSubrange(stringRange, with: string)
