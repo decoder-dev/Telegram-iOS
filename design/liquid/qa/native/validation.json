@@ -1,0 +1,50 @@
+{
+  "host": "Linux",
+  "source_base": "b285884816512198693e08a2c4f36859de286c86",
+  "working_tree": "native patch under review",
+  "checks": [
+    {
+      "name": "branding",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "Tests/Branding",
+        "-p",
+        "test_*.py"
+      ],
+      "exit_code": 0,
+      "status": "PASS",
+      "log": "branding.log"
+    },
+    {
+      "name": "glass-bubbles",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "Tests.Upstream13.glass_bubbles"
+      ],
+      "exit_code": 0,
+      "status": "PASS",
+      "log": "glass-bubbles.log"
+    },
+    {
+      "name": "bubble-geometry",
+      "command": [
+        "python3",
+        "Tests/Customization/run.py"
+      ],
+      "exit_code": 1,
+      "status": "BLOCKED",
+      "log": "bubble-geometry.log"
+    }
+  ],
+  "native_build": {
+    "status": "BLOCKED",
+    "reason": "Linux host without Xcode/Simulator; Make.py stopped before compilation because downloaded Linux Bazel digest does not match the toolchain pin. Check was not bypassed."
+  },
+  "visual_native": "NOT_RUN"
+}

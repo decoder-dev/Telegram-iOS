@@ -1,6 +1,6 @@
 # Текущий gate
 
-Статус пакета: DESIGN_IN_PROGRESS / PROTOTYPE_PARTIAL / CODE_NOT_STARTED / NATIVE_NOT_TESTED.
+Статус пакета: DESIGN_IN_PROGRESS / PROTOTYPE_PARTIAL / NATIVE_IMPLEMENTATION_STARTED / NATIVE_NOT_TESTED.
 
 Ветка `liquid` создана от актуального `origin/main` `6f8d479c19ec5448722f440662f3a57550fae78d`. SHA удалённой ветки дополнительно проверен через `git ls-remote` 2 ноября 2026 года.
 
@@ -24,4 +24,4 @@
 - нативные build, smoke, security, клавиатура и покадровая анимация: BLOCKED Linux-хостом без Xcode/Simulator;
 - окончательный полный handoff ZIP: ещё не сформирован, финальная приёмка не пройдена.
 
-Swift, Objective-C, MTProto, storage, entitlements и app settings не изменялись. Работа не считается завершённой.
+Начата нативная реализация: изменены Swift-фабрики тем, флаг хвостиков и заголовок списка. Подробности — `research/NATIVE_IMPLEMENTATION.md`, фактические результаты — `qa/native/validation.json`. MTProto, storage, entitlements и сохранённые app settings не изменялись. Работа не считается завершённой.

@@ -332,7 +332,11 @@ code rather than left to settings. Treat these as invariants — several of them
 - **The BananaGram themes style the chat screen too** (incoming/outgoing bubbles, input bar, send button, scroll-down
   button, branded pattern wallpaper), not just lists. Accent foregrounds are picked for contrast (white on Cream's dark
   gold, near-black on Graphite's yellow); `Tests/Branding/test_themes.py` checks the palette against WCAG AA.
-- **Bubble radius is 18/4 with no tails** — `higChatBubbleCorners`, same file.
+- **Bubble geometry honours saved settings.** `higChatBubbleCorners` clamps the main radius to 4–30,
+  derives its auxiliary radius and preserves the merge setting. The `liquid` redesign restores message tails.
+- **Classic White / Black use the Liquid palette.** `LiquidPresentationTheme.swift` updates their existing
+  presentation roles for lists, messages, reactions and composer controls. Cream, Graphite and Halloween
+  continue to start from the stock theme builders, then apply their own palettes. Stored themes are not migrated.
 - **Settings has a "Customization" row** (`PeerInfoSettingsItems.swift`) that opens the Appearance
   controller (themes, wallpaper, bubble geometry, app icons).
 - **The call screen follows the theme.** `CallScreenPalette` (`CallScreen/Sources/CallScreenPalette.swift`) holds the three

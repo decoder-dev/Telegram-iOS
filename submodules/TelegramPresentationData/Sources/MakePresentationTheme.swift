@@ -9,11 +9,11 @@ public func makeDefaultPresentationTheme(reference: PresentationBuiltinThemeRefe
     let theme: PresentationTheme
     switch reference {
         case .dayClassic:
-            theme = makeDefaultDayPresentationTheme(extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, day: false, preview: preview)
+            theme = makeLiquidPresentationTheme(makeDefaultDayPresentationTheme(extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, day: false, preview: preview))
         case .day:
-            theme = makeDefaultDayPresentationTheme(extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, day: true, preview: preview)
+            theme = makeLiquidPresentationTheme(makeDefaultDayPresentationTheme(extendingThemeReference: extendingThemeReference, serviceBackgroundColor: serviceBackgroundColor, day: true, preview: preview))
         case .night:
-            theme = makeDefaultDarkPresentationTheme(extendingThemeReference: extendingThemeReference, preview: preview)
+            theme = makeLiquidPresentationTheme(makeDefaultDarkPresentationTheme(extendingThemeReference: extendingThemeReference, preview: preview))
         case .nightAccent:
             theme = makeDefaultDarkTintedPresentationTheme(extendingThemeReference: extendingThemeReference, preview: preview)
         case .bananaGramCream:
@@ -52,7 +52,9 @@ private func makeBananaGramTheme(dark: Bool, halloween: Bool = false) -> Present
         intensity: halloween ? -22 : dark ? -42 : 32
     )
     
-    let base = makeDefaultPresentationTheme(reference: dark ? .night : .day, serviceBackgroundColor: nil)
+    let base = dark
+        ? makeDefaultDarkPresentationTheme(extendingThemeReference: nil, preview: false)
+        : makeDefaultDayPresentationTheme(extendingThemeReference: nil, serviceBackgroundColor: nil, day: true, preview: false)
     let theme = customizePresentationTheme(base, editing: false, title: title, accentColor: accent, outgoingAccentColor: outgoingAccent, backgroundColors: [], bubbleColors: outgoingBubbleColors, animateBubbleColors: false, wallpaper: wallpaper)
     
     // Pressed rows, the faint chevrons and disabled text, and the field boxes: the stock Day / Night values are neutral greys

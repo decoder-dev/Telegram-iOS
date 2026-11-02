@@ -1,8 +1,8 @@
 # BananaGram Liquid
 
-Рабочая ветка: `liquid`. Этап: дизайн и прототипирование (MODE A).
+Рабочая ветка: `liquid`. По отдельному запросу владельца начата нативная реализация (MODE B).
 
-Исходники приложения не менялись. Текущий пакет не является готовым редизайном, нативной сборкой или утверждённым дизайном.
+Первый нативный этап описан в [NATIVE_IMPLEMENTATION.md](research/NATIVE_IMPLEMENTATION.md). Текущий пакет не является готовым редизайном или проверенной нативной сборкой.
 
 Начните с [источников решений](research/SOURCE_OF_TRUTH.md), [аудита checkout](research/REPOSITORY_AUDIT.md) и [расхождений](research/DESIGN_GAPS.md).
 Карта 54 исходных сцен: [SCREEN_INVENTORY.csv](research/SCREEN_INVENTORY.csv). Привязки к объявлениям в коде: [CODE_TO_SCREEN_MAP.csv](research/CODE_TO_SCREEN_MAP.csv).

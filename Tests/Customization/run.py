@@ -26,7 +26,7 @@ for radius: Int32 in [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30] {
     precondition(corners.mainRadius == CGFloat(radius), "Saved radius ignored: \\(radius) -> \\(corners.mainRadius)")
     let expectedAux = floor(4.0 + (CGFloat(radius) - 4.0) * 0.4)
     precondition(corners.auxiliaryRadius == expectedAux, "Auxiliary mismatch at \\(radius): expected \\(expectedAux) got \\(corners.auxiliaryRadius)")
-    precondition(!corners.mergeBubbleCorners && !corners.hasTails)
+    precondition(!corners.mergeBubbleCorners && corners.hasTails)
 }
 for radius: Int32 in [Int32.min, -1, 0, 4, 30, Int32.max] {
     let corners = higChatBubbleCorners(from: .init(mainRadius: radius, auxiliaryRadius: Int32.max, mergeBubbleCorners: true))

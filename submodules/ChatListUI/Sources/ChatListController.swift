@@ -7412,7 +7412,7 @@ private final class ChatListLocationContext {
         switch location {
         case let .chatList(groupId):
             if groupId == .root {
-                defaultTitle = presentationData.strings.DialogList_Title
+                defaultTitle = "BananaGram"
             } else {
                 defaultTitle = presentationData.strings.ChatList_ArchivedChatsTitle
             }
