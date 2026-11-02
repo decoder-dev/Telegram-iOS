@@ -137,7 +137,14 @@ public final class LocationPickerController: ViewController, AttachmentContainab
         
         self.presentationDataDisposable = ((updatedPresentationData?.signal ?? context.sharedContext.presentationData)
         |> deliverOnMainQueue).start(next: { [weak self] presentationData in
-            guard let strongSelf = self, strongSelf.presentationData.theme !== presentationData.theme else {
+            guard let strongSelf = self else {
+                return
+            }
+            let previousTheme = strongSelf.presentationData.theme
+            let previousStrings = strongSelf.presentationData.strings
+            let previousFontSize = strongSelf.presentationData.listsFontSize
+            let previousReduceMotion = strongSelf.presentationData.reduceMotion
+            guard previousTheme !== presentationData.theme || previousStrings !== presentationData.strings || previousFontSize != presentationData.listsFontSize || previousReduceMotion != presentationData.reduceMotion else {
                 return
             }
             strongSelf.presentationData = presentationData

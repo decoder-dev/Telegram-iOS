@@ -48,6 +48,8 @@ swift_library(
         "//submodules/AnimatedStickerNode:AnimatedStickerNode",
         "//submodules/TelegramAnimatedStickerNode:TelegramAnimatedStickerNode",
         "//submodules/ComponentFlow",
+        "//submodules/Components/ComponentDisplayAdapters",
+        "//submodules/TelegramUI/Components/EmptyStateIndicatorComponent",
         "//submodules/Components/BundleIconComponent",
         "//submodules/Components/SheetComponent",
         "//submodules/Components/ViewControllerComponent",

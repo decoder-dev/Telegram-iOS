@@ -10,6 +10,7 @@ controllers = [
     'ChatListUI/Sources/ChatListController.swift',
     'TelegramPermissionsUI/Sources/PermissionController.swift',
     'MediaPickerUI/Sources/MediaPickerScreen.swift',
+    'LocationUI/Sources/LocationPickerController.swift',
     'ContactListUI/Sources/ContactsController.swift',
     'ContactListUI/Sources/ContactsControllerNode.swift',
 ]
@@ -24,7 +25,7 @@ struct Data {
 '''
 for index, path in enumerate(controllers):
     source = (root / 'submodules' / path).read_text()
-    condition = re.search(r'if (previousTheme !== presentationData.theme[^\n]+) \{', source)[1]
+    condition = re.search(r'(?:if|guard) (previousTheme !== presentationData.theme[^\n]+)', source)[1].removesuffix(' {').removesuffix(' else')
     fixture += f'''func updates{index}(_ old: Data, _ presentationData: Data) -> Bool {{
     let previousTheme = old.theme
     let previousStrings = old.strings
@@ -37,7 +38,7 @@ fixture += '''
 let theme = Identity()
 let strings = Identity()
 let original = Data(theme: theme, strings: strings, listsFontSize: 17, reduceMotion: false)
-for updates in [updates0, updates1, updates2, updates3, updates4, updates5] {
+for updates in [updates0, updates1, updates2, updates3, updates4, updates5, updates6] {
     precondition(!updates(original, original))
     precondition(updates(original, Data(theme: theme, strings: strings, listsFontSize: 23, reduceMotion: false)))
     precondition(updates(original, Data(theme: theme, strings: strings, listsFontSize: 17, reduceMotion: true)))

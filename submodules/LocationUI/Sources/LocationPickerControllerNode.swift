@@ -210,8 +210,8 @@ private enum LocationPickerEntry: Comparable, Identifiable {
     }
 }
 
-private func preparedTransition(from fromEntries: [LocationPickerEntry], to toEntries: [LocationPickerEntry], isLoading: Bool, isEmpty: Bool, crossFade: Bool, engine: TelegramEngine, presentationData: PresentationData, interaction: LocationPickerInteraction?) -> LocationPickerTransaction {
-    let (deleteIndices, indicesAndItems, updateIndices) = mergeListsStableWithUpdates(leftList: fromEntries, rightList: toEntries)
+private func preparedTransition(forceUpdate: Bool, from fromEntries: [LocationPickerEntry], to toEntries: [LocationPickerEntry], isLoading: Bool, isEmpty: Bool, crossFade: Bool, engine: TelegramEngine, presentationData: PresentationData, interaction: LocationPickerInteraction?) -> LocationPickerTransaction {
+    let (deleteIndices, indicesAndItems, updateIndices) = mergeListsStableWithUpdates(leftList: fromEntries, rightList: toEntries, allUpdated: forceUpdate)
     
     let deletions = deleteIndices.map { ListViewDeleteItem(index: $0, directionHint: nil) }
     let insertions = indicesAndItems.map { ListViewInsertItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(engine: engine, presentationData: presentationData, interaction: interaction), directionHint: nil) }
@@ -609,6 +609,7 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
         let previousUserLocation = Atomic<CLLocation?>(value: nil)
         let previousAnnotations = Atomic<[LocationPinAnnotation]>(value: [])
         let previousEntries = Atomic<[LocationPickerEntry]?>(value: nil)
+        let previousPresentationData = Atomic<PresentationData?>(value: nil)
         
         self.disposable = (combineLatest(self.presentationDataPromise.get(), self.statePromise.get(), userLocation, venues, foundVenues, self.locationContext.locationAccess())
         |> deliverOnMainQueue).start(next: { [weak self] presentationData, state, userLocation, venues, foundVenuesAndLocation, access in
@@ -743,6 +744,8 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                     }
                 }
                 let previousEntries = previousEntries.swap(entries)
+                let previousData = previousPresentationData.swap(presentationData)
+                let forceUpdate = previousData?.listsFontSize != presentationData.listsFontSize || previousData?.reduceMotion != presentationData.reduceMotion
                 let previousState = previousState.swap(state)
                 
                 var crossFade = false
@@ -750,7 +753,7 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                     crossFade = true
                 }
                 
-                let transition = preparedTransition(from: previousEntries ?? [], to: entries, isLoading: displayedVenues == nil, isEmpty: displayedVenues?.isEmpty ?? false, crossFade: crossFade, engine: context.engine, presentationData: presentationData, interaction: strongSelf.interaction)
+                let transition = preparedTransition(forceUpdate: forceUpdate, from: previousEntries ?? [], to: entries, isLoading: displayedVenues == nil, isEmpty: displayedVenues?.isEmpty ?? false, crossFade: crossFade, engine: context.engine, presentationData: presentationData, interaction: strongSelf.interaction)
                 strongSelf.enqueueTransition(transition)
                       
                 var displayingPlacesButton = false
@@ -1096,6 +1099,9 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
         self.shadeNode.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
         self.innerShadeNode.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
         self.searchContainerNode?.updatePresentationData(self.presentationData)
+        if let (layout, navigationHeight) = self.validLayout {
+            self.containerLayoutUpdated(layout, navigationHeight: navigationHeight, transition: .immediate)
+        }
     }
     
     func updateState(_ f: (LocationPickerState) -> LocationPickerState) {
@@ -1322,7 +1328,7 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                 }
                 self.placeholderBackgroundNode = backgroundNode
                 
-                placeholderNode = LocationPlaceholderNode(content: .intro, lottieSettings: self.context.lottieRenderingSettings)
+                placeholderNode = LocationPlaceholderNode(context: self.context)
                 placeholderNode.settingsPressed = { [weak self] in
                     self?.context.sharedContext.applicationBindings.openSettings()
                 }
@@ -1331,7 +1337,7 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                 
                 placeholderTransition = .immediate
             }
-            placeholderNode.update(layout: layout, theme: self.presentationData.theme, strings: self.presentationData.strings, transition: placeholderTransition)
+            placeholderNode.update(layout: layout, navigationHeight: navigationHeight, presentationData: self.presentationData, transition: placeholderTransition)
             placeholderTransition.updateFrame(node: placeholderNode, frame: CGRect(origin: CGPoint(), size: layout.size))
             
             let placeholderFrame = CGRect(origin: CGPoint(), size: layout.size)
