@@ -437,7 +437,10 @@ private class ColorFieldComponent: Component {
         
         func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
             var updated = textField.text ?? ""
-            guard let replacementRange = Range(range, in: updated) else {
+            guard let replacementRange = Range(range, in: updated),
+                  NSRange(replacementRange, in: updated) == range,
+                  replacementRange.lowerBound.samePosition(in: updated.unicodeScalars) != nil,
+                  replacementRange.upperBound.samePosition(in: updated.unicodeScalars) != nil else {
                 return false
             }
             updated.replaceSubrange(replacementRange, with: string)
