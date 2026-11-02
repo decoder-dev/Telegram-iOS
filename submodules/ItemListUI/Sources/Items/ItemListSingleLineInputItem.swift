@@ -569,7 +569,10 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
             return false
         }
         let currentText = textField.text ?? ""
-        guard let replacementRange = Range(range, in: currentText) else {
+        guard let replacementRange = Range(range, in: currentText),
+              NSRange(replacementRange, in: currentText) == range,
+              replacementRange.lowerBound.samePosition(in: currentText.unicodeScalars) != nil,
+              replacementRange.upperBound.samePosition(in: currentText.unicodeScalars) != nil else {
             return false
         }
         if let item = self.item {
