@@ -1,0 +1,24 @@
+/tmp/tmpzugfds28/main.swift:74:18: warning: weak variable 'weakLoading' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+72 |         var loading: ChatLoadingNode? = ChatLoadingNode()
+73 |         var wallpaper: WallpaperBackgroundNode? = WallpaperBackgroundNode()
+74 |         weak var weakLoading = loading
+   |                  `- warning: weak variable 'weakLoading' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+75 |         weak var weakWallpaper = wallpaper
+76 |         layoutParameters = LayoutParameters(interfaceState: state, subject: .customGreeting, loadingNode: loading, backgroundNode: wallpaper, size: size, insets: insets, leftInset: 17, rightInset: 23)
+
+/tmp/tmpzugfds28/main.swift:75:18: warning: weak variable 'weakWallpaper' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+73 |         var wallpaper: WallpaperBackgroundNode? = WallpaperBackgroundNode()
+74 |         weak var weakLoading = loading
+75 |         weak var weakWallpaper = wallpaper
+   |                  `- warning: weak variable 'weakWallpaper' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+76 |         layoutParameters = LayoutParameters(interfaceState: state, subject: .customGreeting, loadingNode: loading, backgroundNode: wallpaper, size: size, insets: insets, leftInset: 17, rightInset: 23)
+77 |         updateGreetingStickerVisibility(true)
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+Production greeting live replay: toggle, duplicate, custom subject, safe area, weak nodes passed
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.322s
+
+OK

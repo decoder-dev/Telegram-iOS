@@ -1,0 +1,629 @@
+[
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/parse.py"
+    ],
+    "exit_code": 0,
+    "seconds": 9.7,
+    "log": "release-regressions/01.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/migration.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.36,
+    "log": "release-regressions/02.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/own_features.py"
+    ],
+    "exit_code": 1,
+    "seconds": 2.18,
+    "log": "release-regressions/03.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/audio_rich_text.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.64,
+    "log": "release-regressions/04.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "Tests/Upstream13",
+      "-p",
+      "donut*.py"
+    ],
+    "exit_code": 1,
+    "seconds": 6.75,
+    "log": "release-regressions/05.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "Tests/Upstream13",
+      "-p",
+      "regram*.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.07,
+    "log": "release-regressions/06.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "Tests.Upstream13.madgram_features",
+      "Tests.Upstream13.whitegram_features",
+      "Tests.Upstream13.glass_bubbles",
+      "Tests.Upstream13.share_link_guard"
+    ],
+    "exit_code": 0,
+    "seconds": 0.05,
+    "log": "release-regressions/07.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/sticker_settings.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.04,
+    "log": "release-regressions/08.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/queued_reads.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.36,
+    "log": "release-regressions/09.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Customization/greeting_live.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.36,
+    "log": "release-regressions/10.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/passcode.py"
+    ],
+    "exit_code": 1,
+    "seconds": 0.24,
+    "log": "release-regressions/11.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/passcode_codec.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.45,
+    "log": "release-regressions/12.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/proxy_switching.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.3,
+    "log": "release-regressions/13.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/web_codecs.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.8,
+    "log": "release-regressions/14.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Upstream13/siri_objc_names.py"
+    ],
+    "exit_code": 1,
+    "seconds": 0.15,
+    "log": "release-regressions/15.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "Tests/VoiceOverContracts"
+    ],
+    "exit_code": 0,
+    "seconds": 0.05,
+    "log": "release-regressions/16.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "Tests/BuildTools"
+    ],
+    "exit_code": 0,
+    "seconds": 0.13,
+    "log": "release-regressions/17.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ArchiveLock/run.py"
+    ],
+    "exit_code": 1,
+    "seconds": 2.57,
+    "log": "release-regressions/18.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/MessageSaving/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.81,
+    "log": "release-regressions/19.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Camera/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.62,
+    "log": "release-regressions/20.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Camera/native_zoom.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.24,
+    "log": "release-regressions/21.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Camera/round_video_layout.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.19,
+    "log": "release-regressions/22.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/WalletDiagnostics/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.24,
+    "log": "release-regressions/23.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/StreamingDrafts/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.66,
+    "log": "release-regressions/24.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ApiLayer/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.02,
+    "log": "release-regressions/25.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "Tests/UISizing"
+    ],
+    "exit_code": 0,
+    "seconds": 0.04,
+    "log": "release-regressions/26.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ArchiveLock/password_flow.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.54,
+    "log": "release-regressions/27.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ArchiveLock/theme_lifetime.py"
+    ],
+    "exit_code": 1,
+    "seconds": 2.2,
+    "log": "release-regressions/28.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ArchiveLock/migration.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.17,
+    "log": "release-regressions/29.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ArchiveLock/wiring.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.02,
+    "log": "release-regressions/30.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Security/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.32,
+    "log": "release-regressions/31.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Security/url_codec.py"
+    ],
+    "exit_code": 0,
+    "seconds": 2.01,
+    "log": "release-regressions/32.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ManagedProxy/run.py"
+    ],
+    "exit_code": 1,
+    "seconds": 2.19,
+    "log": "release-regressions/33.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ManagedProxy/probe_queue.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.36,
+    "log": "release-regressions/34.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ManagedProxy/bootstrap.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.29,
+    "log": "release-regressions/35.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ManagedProxy/automatic.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.36,
+    "log": "release-regressions/36.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Customization/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.72,
+    "log": "release-regressions/37.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ClientAdditions/run.py"
+    ],
+    "exit_code": 1,
+    "seconds": 0.34,
+    "log": "release-regressions/38.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ClientAdditions/quality.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.78,
+    "log": "release-regressions/39.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ClientAdditions/spotlight.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.04,
+    "log": "release-regressions/40.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ClientAdditions/menu_layout.py"
+    ],
+    "exit_code": 0,
+    "seconds": 3.66,
+    "log": "release-regressions/41.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ClientAdditions/donor_updates.py"
+    ],
+    "exit_code": 0,
+    "seconds": 1.25,
+    "log": "release-regressions/42.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ClientAdditions/parallel_downloads.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.29,
+    "log": "release-regressions/43.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ClientAdditions/push_environment.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.25,
+    "log": "release-regressions/44.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/ChatListSync/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.32,
+    "log": "release-regressions/45.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Customization/theme_selection.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.76,
+    "log": "release-regressions/46.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Customization/shadow_ban.py"
+    ],
+    "exit_code": 1,
+    "seconds": 1.9,
+    "log": "release-regressions/47.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/Customization/appearance.py"
+    ],
+    "exit_code": 0,
+    "seconds": 1.24,
+    "log": "release-regressions/48.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "Tests/Branding"
+    ],
+    "exit_code": 0,
+    "seconds": 0.41,
+    "log": "release-regressions/49.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/GhostMode/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.59,
+    "log": "release-regressions/50.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/MenuPresentation/run.py"
+    ],
+    "exit_code": 1,
+    "seconds": 2.23,
+    "log": "release-regressions/51.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/NetworkPolicies/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.21,
+    "log": "release-regressions/52.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/NetworkRecovery/run.py"
+    ],
+    "exit_code": 1,
+    "seconds": 0.91,
+    "log": "release-regressions/53.log",
+    "source_commit": "186b357a3e",
+    "status": "FAIL_ON_LINUX"
+  },
+  {
+    "command": [
+      "python3",
+      "Tests/GiftHistory/run.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.98,
+    "log": "release-regressions/54.log",
+    "source_commit": "186b357a3e",
+    "status": "PASS"
+  }
+]

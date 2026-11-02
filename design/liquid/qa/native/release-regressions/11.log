@@ -1,0 +1,14 @@
+/tmp/tmph7f_o59b/main.swift:2:8: error: no such module 'Darwin'
+  1 | import Foundation
+  2 | import Darwin
+    |        `- error: no such module 'Darwin'
+  3 | enum PasscodeKind { case digits6 }
+  4 | typealias PasscodeCredentialReference = String
+Traceback (most recent call last):
+  File "/home/filosof/Telegram-iOS/Tests/Upstream13/passcode.py", line 87, in <module>
+    subprocess.run(['swiftc', str(path / 'main.swift'), '-o', str(path / 'test')], check=True, timeout=60)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['swiftc', '/tmp/tmph7f_o59b/main.swift', '-o', '/tmp/tmph7f_o59b/test']' returned non-zero exit status 1.

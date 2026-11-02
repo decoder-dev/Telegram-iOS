@@ -1,0 +1,40 @@
+Actual clipboard reader: empty/invalid rich fallback and representation priority passed
+.Account-scoped ghost exceptions: isolation/persistence/revocation/override window passed
+./tmp/tmpqjdzapvi/main.swift:53:65: error: value of type 'URL' has no member 'startAccessingSecurityScopedResource'
+ 51 | func iCloudFileDescription(_ url: URL) -> Signal<ICloudFileDescription?, NoError> {
+ 52 |     return Signal { subscriber in
+ 53 |         let access = SecurityScopedAccess(url: url, active: url.startAccessingSecurityScopedResource())
+    |                                                                 `- error: value of type 'URL' has no member 'startAccessingSecurityScopedResource'
+ 54 |         let finished = Atomic<Bool>(value: false)
+ 55 |         let coordinator = FakeFileCoordinator(filePresenter: nil)
+EAvatar glow: actual mask geometry passed
+.Document picker: actual completion-once delegate passed
+................................................./tmp/tmp6b2geke2/fit0.swift:19:19: warning: immutable value 'imageHorizontalOffset' was never used; consider replacing with '_' or removing it [#NoUsage]
+17 |               let avatarInset: CGFloat = incoming ? 42 : 0
+18 |               let deliveryFailedInset: CGFloat = 24
+19 |               let imageHorizontalOffset: CGFloat = 12
+   |                   `- warning: immutable value 'imageHorizontalOffset' was never used; consider replacing with '_' or removing it [#NoUsage]
+20 |               let imageInset: CGFloat = 10
+21 |               var imageSize = CGSize(width: requested, height: requested * 0.75)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+...........................
+======================================================================
+ERROR: test_actual_file_preparation_success_error_timeout_and_cancel (__main__.ForkIntegration.test_actual_file_preparation_success_error_timeout_and_cancel)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/filosof/Telegram-iOS/Tests/Upstream13/own_features.py", line 256, in test_actual_file_preparation_success_error_timeout_and_cancel
+    self.run_swift_fixture(fixture)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/home/filosof/Telegram-iOS/Tests/Upstream13/own_features.py", line 263, in run_swift_fixture
+    subprocess.run(['swiftc', str(source), '-o', str(binary)], check=True, timeout=120)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['swiftc', '/tmp/tmpqjdzapvi/main.swift', '-o', '/tmp/tmpqjdzapvi/fixture']' returned non-zero exit status 1.
+
+----------------------------------------------------------------------
+Ran 80 tests in 2.129s
+
+FAILED (errors=1)

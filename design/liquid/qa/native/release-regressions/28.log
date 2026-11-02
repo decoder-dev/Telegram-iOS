@@ -1,0 +1,143 @@
+Building for debugging...
+[Planning deferred tasks]
+[39 / 50] SwiftSignalKit
+error: SwiftCompile normal x86_64 failed with a nonzero exit code. Command line:     cd /tmp
+    
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Disposable.swift:11:24: error: cannot find 'os_unfair_lock' in scope
+  9 |     private let file: String
+ 10 |     private let line: Int
+ 11 |     private var lock = os_unfair_lock()
+    |                        `- error: cannot find 'os_unfair_lock' in scope
+ 12 |     private var isDisposed = false
+ 13 | 
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Disposable.swift:50:24: error: cannot find 'os_unfair_lock' in scope
+ 48 | 
+ 49 | public final class ActionDisposable : Disposable {
+ 50 |     private var lock = os_unfair_lock()
+    |                        `- error: cannot find 'os_unfair_lock' in scope
+ 51 | 
+ 52 |     private var action: (() -> Void)?
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Disposable.swift:71:24: error: cannot find 'os_unfair_lock' in scope
+ 69 | 
+ 70 | public final class MetaDisposable : Disposable {
+ 71 |     private var lock = os_unfair_lock()
+    |                        `- error: cannot find 'os_unfair_lock' in scope
+ 72 |     private var disposed = false
+ 73 |     private var disposable: Disposable! = nil
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Disposable.swift:124:24: error: cannot find 'os_unfair_lock' in scope
+122 | 
+123 | public final class DisposableSet : Disposable {
+124 |     private var lock = os_unfair_lock()
+    |                        `- error: cannot find 'os_unfair_lock' in scope
+125 |     private var disposed = false
+126 |     private var disposables: [Disposable] = []
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Promise.swift:6:24: error: cannot find 'os_unfair_lock' in scope
+  4 |     private var initializeOnFirstAccess: Signal<T, NoError>?
+  5 |     private var value: T?
+  6 |     private var lock = os_unfair_lock()
+    |                        `- error: cannot find 'os_unfair_lock' in scope
+  7 |     private let disposable = MetaDisposable()
+  8 |     private let subscribers = Bag<(T) -> Void>()
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Combine.swift:4:24: error: cannot find 'os_unfair_lock' in scope
+  2 | 
+  3 | private final class CombineLatestState<E, R> {
+  4 |     private var lock = os_unfair_lock()
+    |                        `- error: cannot find 'os_unfair_lock' in scope
+  5 |     private let count: Int
+  6 |     private var values: [Any?]
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Combine.swift:151:24: error: cannot find 'os_unfair_lock' in scope
+149 | 
+150 | private final class CombineLatestArrayState<T, E> {
+151 |     private var lock = os_unfair_lock()
+    |                        `- error: cannot find 'os_unfair_lock' in scope
+152 |     private let count: Int
+153 |     private var values: [T?]
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Loop.swift:9:24: error: cannot find 'os_unfair_lock' in scope
+ 7 | 
+ 8 | private final class FeedbackLoopContinuation {
+ 9 |     private var lock = os_unfair_lock()
+   |                        `- error: cannot find 'os_unfair_lock' in scope
+10 |     private var action: (() -> Void)?
+11 |     
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Meta.swift:4:24: error: cannot find 'os_unfair_lock' in scope
+  2 | 
+  3 | final class SignalQueueFlag {
+  4 |     private var lock = os_unfair_lock()
+    |                        `- error: cannot find 'os_unfair_lock' in scope
+  5 |     private var _value = false
+  6 |     
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Meta.swift:27:24: error: cannot find 'os_unfair_lock' in scope
+ 25 | 
+ 26 | private final class SignalQueueState<T, E>: Disposable {
+ 27 |     private var lock = os_unfair_lock()
+    |                        `- error: cannot find 'os_unfair_lock' in scope
+ 28 |     private var executingSignal = false
+ 29 |     private var terminated = false
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Reduce.swift:46:16: error: cannot find 'os_unfair_lock' in scope
+ 44 | 
+ 45 | private final class ReduceQueueState<T, E> : Disposable {
+ 46 |     var lock = os_unfair_lock()
+    |                `- error: cannot find 'os_unfair_lock' in scope
+ 47 |     var executingSignal = false
+ 48 |     var terminated = false
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Subscriber.swift:30:24: error: cannot find 'os_unfair_lock' in scope
+ 28 | 
+ 29 | final class SubscriberCore<T, E>: Disposable, CustomStringConvertible {
+ 30 |     private var lock = os_unfair_lock()
+    |                        `- error: cannot find 'os_unfair_lock' in scope
+ 31 | 
+ 32 |     private var next: ((T) -> Void)!
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/ThreadPool.swift:61:2: error: Objective-C interoperability is disabled
+ 59 | }
+ 60 | 
+ 61 | @objc public final class ThreadPool: NSObject {
+    |  `- error: Objective-C interoperability is disabled
+ 62 |     private var threads: [Thread] = []
+ 63 |     private var queues: [ThreadPoolQueue] = []
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/ThreadPool.swift:68:6: error: Objective-C interoperability is disabled
+ 66 |     private var condition: pthread_cond_t
+ 67 |     
+ 68 |     @objc class func threadEntryPoint(_ threadPool: ThreadPool) {
+    |      `- error: Objective-C interoperability is disabled
+ 69 |         var queue: ThreadPoolQueue!
+ 70 |         
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Timer.swift:4:24: error: cannot find 'os_unfair_lock' in scope
+ 2 | 
+ 3 | public final class Timer {
+ 4 |     private var lock = os_unfair_lock()
+   |                        `- error: cannot find 'os_unfair_lock' in scope
+ 5 |     private var timer: DispatchSourceTimer?
+ 6 |     private let timeout: Double
+
+/home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/ValuePipe.swift:4:24: error: cannot find 'os_unfair_lock' in scope
+ 2 | 
+ 3 | public final class ValuePipe<T> {
+ 4 |     private var lock = os_unfair_lock()
+   |                        `- error: cannot find 'os_unfair_lock' in scope
+ 5 |     private let subscribers = Bag<(T) -> Void>()
+ 6 |     
+Failed frontend command:
+/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend -frontend -emit-module -experimental-skip-non-inlinable-function-bodies-without-types /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Atomic.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Bag.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Disposable.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Lock.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Multicast.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Promise.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Queue.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/QueueLocalObject.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Catch.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Combine.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Dispatch.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Loop.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Mapping.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Materialize.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Merge.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Meta.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Reduce.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_SideEffects.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Single.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Take.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Signal_Timing.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Subscriber.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/ThreadPool.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/Timer.swift /home/filosof/Telegram-iOS/submodules/SSignalKit/SwiftSignalKit2/Source/ValuePipe.swift -target x86_64-unknown-linux-gnu -disable-objc-interop -I /tmp/archive-theme-ywffbxlm/.build/out/Products/Debug-linux-x86_64 -module-cache-path /tmp/archive-theme-ywffbxlm/.build/out/ModuleCache.noindex -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=4 -swift-version 5 -Onone -D SWIFT_PACKAGE -D DEBUG -D SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -external-plugin-path /home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/lib/swift/host/plugins/testing\#/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-plugin-server -validate-clang-modules-once -clang-build-session-file /tmp/archive-theme-ywffbxlm/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /tmp -enable-anonymous-context-mangled-names -file-compilation-dir /tmp -Xcc -fno-omit-frame-pointer -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/tmp/archive-theme-ywffbxlm/.build/out/Products/Debug-linux-x86_64/include -Xcc -I/tmp/archive-theme-ywffbxlm/.build/out/Intermediates.noindex/SSignalKit.build/Debug-linux-x86_64/SwiftSignalKit-t.build/DerivedSources-normal/x86_64 -Xcc -I/tmp/archive-theme-ywffbxlm/.build/out/Intermediates.noindex/SSignalKit.build/Debug-linux-x86_64/SwiftSignalKit-t.build/DerivedSources/x86_64 -Xcc -I/tmp/archive-theme-ywffbxlm/.build/out/Intermediates.noindex/SSignalKit.build/Debug-linux-x86_64/SwiftSignalKit-t.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name SwiftSignalKit -const-gather-protocols-file /tmp/archive-theme-ywffbxlm/.build/out/Intermediates.noindex/SSignalKit.build/Debug-linux-x86_64/SwiftSignalKit-t.build/Objects-normal/x86_64/SwiftSignalKit_const_extract_protocols.json -in-process-plugin-server-path /home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/lib/swift/host/libSwiftInProcPluginServer.so -plugin-path /home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/lib/swift/host/plugins -plugin-path /home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/local/lib/swift/host/plugins -emit-module-doc-path /tmp/archive-theme-ywffbxlm/.build/out/Intermediates.noindex/SSignalKit.build/Debug-linux-x86_64/SwiftSignalKit-t.build/Objects-normal/x86_64/Modules/SwiftSignalKit.swiftdoc -emit-module-source-info-path /tmp/archive-theme-ywffbxlm/.build/out/Intermediates.noindex/SSignalKit.build/Debug-linux-x86_64/SwiftSignalKit-t.build/Objects-normal/x86_64/Modules/SwiftSignalKit.swiftsourceinfo -emit-objc-header-path /tmp/archive-theme-ywffbxlm/.build/out/Intermediates.noindex/SSignalKit.build/Debug-linux-x86_64/SwiftSignalKit-t.build/Objects-normal/x86_64/SwiftSignalKit-Swift.h -serialize-diagnostics-path /tmp/archive-theme-ywffbxlm/.build/out/Intermediates.noindex/SSignalKit.build/Debug-linux-x86_64/SwiftSignalKit-t.build/Objects-normal/x86_64/SwiftSignalKit-primary-emit-module.dia -emit-dependencies-path /tmp/archive-theme-ywffbxlm/.build/out/Intermediates.noindex/SSignalKit.build/Debug-linux-x86_64/SwiftSignalKit-t.build/Objects-normal/x86_64/SwiftSignalKit-primary-emit-module.d -parse-as-library -o /tmp/archive-theme-ywffbxlm/.build/out/Intermediates.noindex/SSignalKit.build/Debug-linux-x86_64/SwiftSignalKit-t.build/Objects-normal/x86_64/Modules/SwiftSignalKit.swiftmodule
+error: Build failed
+Traceback (most recent call last):
+  File "/home/filosof/Telegram-iOS/Tests/ArchiveLock/theme_lifetime.py", line 100, in <module>
+    subprocess.run(['swift', 'run', '--package-path', tmp, 'Checks'], check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['swift', 'run', '--package-path', '/tmp/archive-theme-ywffbxlm', 'Checks']' returned non-zero exit status 1.

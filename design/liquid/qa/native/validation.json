@@ -1,7 +1,15 @@
 {
-  "host": "Linux",
-  "source_base": "b285884816512198693e08a2c4f36859de286c86",
-  "working_tree": "native patch under review",
+  "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
+  "base_commit": "6f8d479c19ec5448722f440662f3a57550fae78d",
+  "branch": "liquid",
+  "host": "Linux x86_64",
+  "status": "IN_PROGRESS",
+  "scope": "Local source checks and Foundation fixtures; no claim of full app validation",
+  "toolchain": {
+    "compiler": "Swift version 6.4.2 (swift-6.4.2-RELEASE)\nTarget: x86_64-unknown-linux-gnu",
+    "location": "/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin",
+    "archive_signature": "Verified with official Swift 6.x signing key 52BB7E3DE28A71BE22EC05FFEF80A866B47A981F"
+  },
   "checks": [
     {
       "name": "branding",
@@ -15,8 +23,10 @@
         "-p",
         "test_*.py"
       ],
+      "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
       "exit_code": 0,
       "status": "PASS",
+      "seconds": 0.51,
       "log": "branding.log"
     },
     {
@@ -27,24 +37,175 @@
         "unittest",
         "Tests.Upstream13.glass_bubbles"
       ],
+      "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
       "exit_code": 0,
       "status": "PASS",
+      "seconds": 0.05,
       "log": "glass-bubbles.log"
     },
     {
-      "name": "bubble-geometry",
+      "name": "customization",
       "command": [
         "python3",
         "Tests/Customization/run.py"
       ],
-      "exit_code": 1,
-      "status": "BLOCKED",
-      "log": "bubble-geometry.log"
+      "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 3.14,
+      "log": "customization.log"
+    },
+    {
+      "name": "voiceover",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "Tests/VoiceOverContracts",
+        "-p",
+        "test_*.py"
+      ],
+      "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 0.05,
+      "log": "voiceover.log"
+    },
+    {
+      "name": "ui-sizing",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "Tests/UISizing",
+        "-p",
+        "test_*.py"
+      ],
+      "source_commit": "a02a9f17a1376df5781b0035aa63713a9802c2d9",
+      "exit_code": 0,
+      "status": "PASS",
+      "seconds": 0.28,
+      "log": "ui-sizing.log"
     }
   ],
-  "native_build": {
-    "status": "BLOCKED",
-    "reason": "Linux host without Xcode/Simulator; Make.py stopped before compilation because downloaded Linux Bazel digest does not match the toolchain pin. Check was not bypassed."
+  "swift_syntax": {
+    "status": "PASS",
+    "files": 83,
+    "report": "swift-syntax.json",
+    "limitation": "Syntax only; UIKit imports, API availability and Swift types are not checked"
   },
-  "visual_native": "NOT_RUN"
+  "earlier_broad_regression_sweep": {
+    "source_commit": "186b357a3e",
+    "command_groups": 54,
+    "passed": 43,
+    "failed_on_linux": 11,
+    "report": "release-regressions.json",
+    "limitations": [
+      "Missing Darwin, CoreGraphics, CryptoKit and Objective-C interop",
+      "os_unfair_lock unavailable in SwiftSignalKit on Linux",
+      "UserDefaults Int64 values bridge to Int under Swift Corelibs; two assertion failures were investigated and attributed to this platform difference"
+    ],
+    "checks_disabled": false
+  },
+  "native_tests": {
+    "status": "NOT_RUN",
+    "prepared_methods": 40,
+    "files": [
+      {
+        "file": "submodules/AuthorizationUI/Tests/AuthorizationFormTests.swift",
+        "test_methods": 6,
+        "status": "NOT_RUN"
+      },
+      {
+        "file": "submodules/ContactListUI/Tests/ContactRowLayoutTests.swift",
+        "test_methods": 2,
+        "status": "NOT_RUN"
+      },
+      {
+        "file": "submodules/Display/Tests/AlertActionStateTests.swift",
+        "test_methods": 4,
+        "status": "NOT_RUN"
+      },
+      {
+        "file": "submodules/ItemListUI/Tests/ButtonAccessibilityTests.swift",
+        "test_methods": 2,
+        "status": "NOT_RUN"
+      },
+      {
+        "file": "submodules/ItemListUI/Tests/ChoiceRowLayoutTests.swift",
+        "test_methods": 4,
+        "status": "NOT_RUN"
+      },
+      {
+        "file": "submodules/ItemListUI/Tests/InputRowLayoutTests.swift",
+        "test_methods": 4,
+        "status": "NOT_RUN"
+      },
+      {
+        "file": "submodules/ItemListUI/Tests/SettingsRowLayoutTests.swift",
+        "test_methods": 3,
+        "status": "NOT_RUN"
+      },
+      {
+        "file": "submodules/SearchBarNode/Tests/SearchBarLayoutTests.swift",
+        "test_methods": 2,
+        "status": "NOT_RUN"
+      },
+      {
+        "file": "submodules/TelegramPresentationData/Tests/LiquidThemeTests.swift",
+        "test_methods": 12,
+        "status": "NOT_RUN"
+      },
+      {
+        "file": "submodules/TelegramPresentationData/Tests/SystemTextSizeTests.swift",
+        "test_methods": 1,
+        "status": "NOT_RUN"
+      }
+    ],
+    "targets": [
+      "//submodules/TelegramPresentationData:LiquidThemeTests",
+      "//submodules/AuthorizationUI:AuthorizationFormTests",
+      "//submodules/ItemListUI:SettingsRowLayoutTests",
+      "//submodules/SearchBarNode:SearchBarLayoutTests",
+      "//submodules/ContactListUI:ContactRowLayoutTests",
+      "//submodules/Display:DisplayTests"
+    ]
+  },
+  "native_build": {
+    "status": "NOT_RUN_ON_CURRENT_HEAD",
+    "reason": "Linux host has no Xcode or iOS SDK. CI is deferred at the user request until screen implementation is ready.",
+    "previous_attempt": "Make.py stopped before compilation: downloaded Linux Bazel digest did not match the pin; verification was not bypassed"
+  },
+  "visual_native": {
+    "status": "NOT_RUN",
+    "recordings": 0,
+    "acceptance_expectations": "../../research/NATIVE_IMPLEMENTATION.md",
+    "required_evidence": "simctl recordVideo, timestamped frame sheets and evaluation per AGENTS.md"
+  },
+  "coverage": {
+    "catalog_scenes": 54,
+    "native_scenes_accepted": 0,
+    "all_screens_complete": false,
+    "discovery_candidates_are_not_verified_screens": true
+  },
+  "remaining": [
+    "Native build and all prepared UIKit tests",
+    "Visual acceptance for all screens, states and animations",
+    "Phone confirmation card and full Dynamic Type in numeric/phone slots",
+    "Media/stories/calls/mini apps and protected-state interaction coverage",
+    "Sheet/alert font scaling policy with manual preferences and live system changes"
+  ],
+  "publication": {
+    "push_performed": false,
+    "ci_dispatched": false,
+    "release_published": false
+  },
+  "previous_snapshot": {
+    "source_base": "b285884816512198693e08a2c4f36859de286c86",
+    "note": "The former local Swift-unavailable blocker is resolved by the signed user-local Swift toolchain; UIKit validation remains unavailable"
+  }
 }

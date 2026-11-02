@@ -1,0 +1,15 @@
+Saved bubble geometry and boundary values: passed
+Liquid defaults, explicit colours and custom themes: 112 combinations passed
+Header geometry: 96 boundary cases and four snap decisions passed
+Authorization layout: 96 sizes and five boundary regressions passed
+Authorization editing: 9 Unicode ranges and five state checks passed
+Drawing input: UTF-16 replacement, invalid boundary and validation callback passed
+Authorization submission: seven delivery methods, incomplete/full/busy code passed
+Settings input: processed paste, Unicode usernames, caret ownership, invalid ranges and disabled/length/validation gates passed
+Sticker title/slug: Unicode range, normalized caret, disabled state and invalid boundary passed
+Localized animation segments: 90 Unicode/order/ending cases and 15 metadata cases passed
+Settings actions: touch, VoiceOver, long press and reuse respect disabled state
+Call empty state: 192 viewport/text/button combinations passed
+Presentation updates: font/motion/theme/language delivery and contact merge reuse passed
+Alert actions: touch, keyboard and VoiceOver activation preserve disabled state
+Permission layout: 800 viewport/text/optional-content combinations passed

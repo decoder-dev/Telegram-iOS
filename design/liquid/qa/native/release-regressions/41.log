@@ -1,0 +1,6 @@
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.004s
+
+OK
+Actual Extras factory: 576 preference/device/language combinations, unique ordered IDs, destinations and persisted audio values passed

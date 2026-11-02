@@ -1,0 +1,17 @@
+Production WebSocket handshake: stale, active and closed completion checks passed
+Endpoint cooldown, probe ownership, EOF permutations and active cache ownership: passed
+WebSocket connect coalescing across candidate gaps and terminal close: passed
+/tmp/telegram-recovery-jg32c0ii/main.swift:2:8: error: no such module 'Darwin'
+  1 | import Foundation
+  2 | import Darwin
+    |        `- error: no such module 'Darwin'
+  3 | 
+  4 | // Monotonic elapsed time including device sleep. systemUptime excludes sleep and
+Traceback (most recent call last):
+  File "/home/filosof/Telegram-iOS/Tests/NetworkRecovery/run.py", line 155, in <module>
+    subprocess.run(['swift', str(file)], check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['swift', '/tmp/telegram-recovery-jg32c0ii/main.swift']' returned non-zero exit status 1.

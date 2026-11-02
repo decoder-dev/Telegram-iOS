@@ -1,0 +1,4 @@
+Saved bubble geometry and boundary values: passed
+Liquid defaults, explicit colours and custom themes: 112 combinations passed
+Header geometry: 96 boundary cases and four snap decisions passed
+Authorization layout: 96 sizes and five boundary regressions passed

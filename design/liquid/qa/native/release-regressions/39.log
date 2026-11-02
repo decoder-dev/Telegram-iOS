@@ -1,0 +1,13 @@
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.004s
+
+OK
+/tmp/banana-quality-dn9dbexv/main.swift:187:24: warning: forced cast of 'UISwitch' to same type has no effect
+185 |             // The dark on-accent thumb is legible on Graphite's yellow ON track. OFF keeps the
+186 |             // system thumb, so a dark thumb does not disappear against the dark disabled track.
+187 |             (self.view as! UISwitch).thumbTintColor = self._isOn ? self.handleColor : nil
+    |                        `- warning: forced cast of 'UISwitch' to same type has no effect
+188 |         }
+189 |     }
+KeepAlive failure/success/disable/ownership; content choices; icon errors/overlap/success; thumb states passed

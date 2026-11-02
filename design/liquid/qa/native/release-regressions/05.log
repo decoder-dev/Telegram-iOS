@@ -1,0 +1,127 @@
+................................../tmp/tmps9te2ohk/main.swift:2:8: error: no such module 'Darwin'
+  1 | import Foundation
+  2 | import Darwin
+    |        `- error: no such module 'Darwin'
+  3 | class URLSession { var invalidations = 0; func finishTasksAndInvalidate() { invalidations += 1 } }
+  4 | class URLSessionTask {}
+E.............fixture/main.swift:50: Precondition failed
+
+*** Signal 4: Backtracing from 0x7433e0d0b8cf... done ***
+
+*** Program crashed: Illegal instruction at 0x00007433e0d0b8cf ***
+
+Platform: x86_64 Linux (SecureOS 26.04.1 LTS)
+
+Thread 0 "fixture" crashed:
+
+0      0x00007433e0d0b8cf _assertionFailure(_:_:file:line:flags:) + 303 in libswiftCore.so
+1 [ra] 0x00005f0e0b1e132e main + 3917 in fixture
+2 [ra] 0x00007433df42a601 __libc_start_call_main + 128 in libc.so.6 at ../sysdeps/nptl/libc_start_call_main.h:59:16
+3 [ra] 0x00007433df42a718 __libc_start_main@GLIBC_2.2.5 + 135 in libc.so.6 at ../csu/libc-start.c:360:3
+
+
+Registers:
+
+rax 0x0000000000000000  0
+rdx 0x0000000000000002  2
+rcx 0x00005f0bb3f9c90f  104503868770575
+rbx 0x000000000000000d  13
+rsi 0x8000000000000000  9223372036854775808
+rdi 0x00005f0e431d61b0  0d 00 0e 00 0f 00 0d 00 0e 00 0f 00 0f 00 0f 00  ················
+rbp 0x00007ffc95a88f30  f0 9c a8 95 fc 7f 00 00 2e 13 1e 0b 0e 5f 00 00  ð·¨·ü···.····_··
+rsp 0x00007ffc95a88f10  00 00 00 00 00 00 00 00 4a 00 00 00 00 00 00 00  ········J·······
+ r8 0x0000000000000020  32
+ r9 0xdc420f72f992c8b8  15871265023294884024
+r10 0x0000000000000021  33
+r11 0x0000000000000000  0
+r12 0x00007ffc95a89e42  a8 95 fc 7f 00 00 a5 aa a8 95 fc 7f 00 00 e6 aa  ¨·ü···¥ª¨·ü···æª
+r13 0x00007433e0508de8  00 00 00 00 00 00 00 00 28 ed 4f e0 33 74 00 00  ········(íOà3t··
+r14 0x00007433e12df077  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ················
+r15 0x00005f0e0b1e6c19  0c 03 e1 33 74 00 00 00 00 00 00 00 00 00 00 b0  ··á3t··········°
+rip 0x00007433e0d0b8cf  0f 0b 48 83 ec 08 48 8d 05 74 4d 30 00 48 8d 3d  ··H·ì·H··tM0·H·=
+
+rflags 0x0000000000010202  
+
+cs 0x0033  fs 0x0000  gs 0x0000
+
+
+Images (19 omitted):
+
+0x00005f0e0b1dc000–0x00005f0e0b1e4789 040226b771d4b348aabf1f7fbf9defc9ef0e3839 fixture         /tmp/tmpr7xndbhu/fixture
+0x00007433df400000–0x00007433df5bf7d9 066527e430a32768d82741e00b81eebb1a872294 libc.so.6       /usr/lib/x86_64-linux-gnu/libc.so.6
+0x00007433e0a00000–0x00007433e0fde620 6da470321f1f609b2f2bfa5d988655b317693128 libswiftCore.so /home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/lib/swift/linux/libswiftCore.so
+
+Backtrace took 0.56s
+
+E................banned chat archive checks passed
+./tmp/banana-donut18-w3mbcoxb/main.swift:3:8: error: no such module 'CryptoKit'
+   1 | import Foundation
+   2 | import CoreFoundation
+   3 | import CryptoKit
+     |        `- error: no such module 'CryptoKit'
+   4 | 
+   5 | 
+E...............................
+======================================================================
+ERROR: test_bot_download_status_lifecycle_and_redirects (donut_oct13.DonutAdaptation.test_bot_download_status_lifecycle_and_redirects)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/filosof/Telegram-iOS/Tests/Upstream13/donut_oct13.py", line 167, in test_bot_download_status_lifecycle_and_redirects
+            execute('''import Foundation
+            ~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+    import Darwin
+    ^^^^^^^^^^^^^
+    ...<54 lines>...
+    checkRedirects()
+    ^^^^^^^^^^^^^^^^
+    ''')
+    ^^^^
+  File "/home/filosof/Telegram-iOS/Tests/Upstream13/donut_oct13.py", line 28, in execute
+    subprocess.run(['swiftc', str(path), '-o', str(binary)], check=True, timeout=120)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['swiftc', '/tmp/tmps9te2ohk/main.swift', '-o', '/tmp/tmps9te2ohk/fixture']' returned non-zero exit status 1.
+
+======================================================================
+ERROR: test_web_store_recovers_corrupt_identifiers_without_merging_accounts (donut_oct13.DonutAdaptation.test_web_store_recovers_corrupt_identifiers_without_merging_accounts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/filosof/Telegram-iOS/Tests/Upstream13/donut_oct13.py", line 94, in test_web_store_recovers_corrupt_identifiers_without_merging_accounts
+            execute('''import Foundation
+            ~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+    struct AccountId { let int64: Int64 }
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<38 lines>...
+    precondition(pwaIdentifier(path: directory.path) == recoveredUtf8)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ''')
+    ^^^^
+  File "/home/filosof/Telegram-iOS/Tests/Upstream13/donut_oct13.py", line 29, in execute
+    subprocess.run([str(binary)], check=True, timeout=30)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/tmp/tmpr7xndbhu/fixture']' died with <Signals.SIGILL: 4>.
+
+======================================================================
+ERROR: test_tiktok_sources_errors_cookies_and_sanitized_fallback (donut_oct18.Behavioral.test_tiktok_sources_errors_cookies_and_sanitized_fallback)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/filosof/Telegram-iOS/Tests/Upstream13/donut_oct18.py", line 91, in test_tiktok_sources_errors_cookies_and_sanitized_fallback
+    execute('\n'.join(parts))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/filosof/Telegram-iOS/Tests/Upstream13/donut_oct18.py", line 25, in execute
+    subprocess.run(['swiftc', '-warnings-as-errors', str(path), '-o', str(binary)], check=True, timeout=120)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['swiftc', '-warnings-as-errors', '/tmp/banana-donut18-w3mbcoxb/main.swift', '-o', '/tmp/banana-donut18-w3mbcoxb/check']' returned non-zero exit status 1.
+
+----------------------------------------------------------------------
+Ran 98 tests in 6.693s
+
+FAILED (errors=3)

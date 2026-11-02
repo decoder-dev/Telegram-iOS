@@ -1,0 +1,248 @@
+main/main.swift:198: Precondition failed
+Stack dump:
+0.	Program arguments: /home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend -frontend -interpret /tmp/tmpown4olg7/main.swift -disable-objc-interop -no-color-diagnostics -Xcc -fno-color-diagnostics -swift-version 5 -empty-abi-descriptor -no-auto-bridging-header-chaining -module-name main -in-process-plugin-server-path /home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/lib/swift/host/libSwiftInProcPluginServer.so -plugin-path /home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/lib/swift/host/plugins -plugin-path /home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/local/lib/swift/host/plugins
+1.	Swift version 6.4.2 (swift-6.4.2-RELEASE)
+2.	Compiling with effective version 5.10
+3.	While running user code "/tmp/tmpown4olg7/main.swift"
+ #0 0x00005dd612897128 llvm::sys::PrintStackTrace(llvm::raw_ostream&, int) (/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend+0x763c128)
+ #1 0x00005dd612894b65 llvm::sys::RunSignalHandlers() (/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend+0x7639b65)
+ #2 0x00005dd612897d81 SignalHandler(int, siginfo_t*, void*) Signals.cpp:0:0
+ #3 0x00007ce766e45cb0 (/usr/lib/x86_64-linux-gnu/libc.so.6+0x45cb0)
+ #4 0x00007ce768b0b8cf $ss17_assertionFailure__4file4line5flagss5NeverOs12StaticStringV_SSAHSus6UInt32VtF (/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/lib/swift/linux/libswiftCore.so+0x30b8cf)
+ #5 0x00007ce764eb1ae3
+ #6 0x00005dd60c064dfd llvm::orc::runAsMain(int (*)(int, char**), llvm::ArrayRef<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>>, std::optional<llvm::StringRef>) (/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend+0xe09dfd)
+ #7 0x00005dd60bebfe14 swift::SwiftJIT::runMain(llvm::ArrayRef<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>>) (/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend+0xc64e14)
+ #8 0x00005dd60bebdc72 swift::RunImmediately(swift::CompilerInstance&, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>>> const&, swift::IRGenOptions const&, swift::SILOptions const&, std::unique_ptr<swift::SILModule, std::default_delete<swift::SILModule>>&&) (/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend+0xc62c72)
+ #9 0x00005dd60be3ada0 processCommandLineAndRunImmediately(swift::CompilerInstance&, std::unique_ptr<swift::SILModule, std::default_delete<swift::SILModule>>&&, llvm::PointerUnion<swift::ModuleDecl*, swift::SourceFile*>, swift::FrontendObserver*, int&) FrontendTool.cpp:0:0
+#10 0x00005dd60be340e8 performCompileStepsPostSILGen(swift::CompilerInstance&, std::unique_ptr<swift::SILModule, std::default_delete<swift::SILModule>>, llvm::PointerUnion<swift::ModuleDecl*, swift::SourceFile*>, swift::PrimarySpecificPaths const&, int&, swift::FrontendObserver*, llvm::ArrayRef<char const*>, llvm::ArrayRef<swift::PrimarySpecificPaths>) FrontendTool.cpp:0:0
+#11 0x00005dd60be33703 swift::performCompileStepsPostSema(swift::CompilerInstance&, int&, swift::FrontendObserver*, llvm::ArrayRef<char const*>) (/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend+0xbd8703)
+#12 0x00005dd60be46f7a withSemanticAnalysis(swift::CompilerInstance&, swift::FrontendObserver*, llvm::function_ref<bool (swift::CompilerInstance&)>, bool) FrontendTool.cpp:0:0
+#13 0x00005dd60be3881c performCompile(swift::CompilerInstance&, int&, swift::FrontendObserver*, llvm::ArrayRef<char const*>) FrontendTool.cpp:0:0
+#14 0x00005dd60be350d8 swift::performFrontend(llvm::ArrayRef<char const*>, char const*, void*, swift::FrontendObserver*) (/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend+0xbda0d8)
+#15 0x00005dd60bb7195a swift::mainEntry(int, char const**) (/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend+0x91695a)
+#16 0x00007ce766e2a601 __libc_start_call_main ./csu/../sysdeps/nptl/libc_start_call_main.h:83:3
+#17 0x00007ce766e2a718 call_init ./csu/../csu/libc-start.c:128:20
+#18 0x00007ce766e2a718 __libc_start_main ./csu/../csu/libc-start.c:347:5
+#19 0x00005dd60bb70ed5 _start (/home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/bin/swift-frontend+0x915ed5)
+
+*** Signal 4: Backtracing from 0x7ce766f34acd... done ***
+
+*** Program crashed: Illegal instruction at 0x00007ce768b0b8cf ***
+
+Platform: x86_64 Linux (SecureOS 26.04.1 LTS)
+
+Thread 0 "swift-frontend" crashed:
+
+0  0x00007ce766f34acd syscall + 29 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall.S:38
+
+Thread 1 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 2 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 3 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 4 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 5 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 6 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766f378b5 epoll_wait + 36 in libc.so.6 at ../sysdeps/unix/sysv/linux/epoll_wait.c:30:10
+2 [ra] 0x00007ce76751a537 _dispatch_event_loop_drain + 54 in libdispatch.so
+3 [ra] 0x00007ce767510022 _dispatch_mgr_invoke + 129 in libdispatch.so
+4 [ra] 0x00007ce76750ff8d _dispatch_mgr_thread + 108 in libdispatch.so
+5 [ra] 0x00007ce7675131b5 _dispatch_worker_thread + 660 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 7 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 8 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 9 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 10 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 11 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 12 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 13 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 14 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 15 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 16 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+Thread 17 "DispatchWorker":
+
+0      0x00007ce766eac802 __syscall_cancel_arch + 50 in libc.so.6 at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+1 [ra] 0x00007ce766ea06e7 __futex_abstimed_wait_cancelable64 + 70 in libc.so.6 at ./nptl/futex-internal.c:57:12
+2 [ra] 0x00007ce766eac4eb __new_sem_wait_slow64.constprop.0 + 154 in libc.so.6 at ./nptl/sem_waitcommon.c:183:10
+3 [ra] 0x00007ce76751ac31 _dispatch_sema4_timedwait + 80 in libdispatch.so
+4 [ra] 0x00007ce767513a21 _dispatch_semaphore_wait_slow + 32 in libdispatch.so
+5 [ra] 0x00007ce76751334e _dispatch_worker_thread + 1069 in libdispatch.so
+6 [ra] 0x00007ce766ea3dfa start_thread + 761 in libc.so.6 at ./nptl/pthread_create.c:454:8
+
+
+Registers:
+
+rax 0x0000000000000000  0
+rdx 0x0000000000000004  4
+rcx 0x00007ce766f34acd  48 3d 01 f0 ff ff 73 01 c3 48 8b 0d 0b d3 0d 00  H=·ðÿÿs·ÃH···Ó··
+rbx 0x0000000000000004  4
+rsi 0x0000000000183ce3  1588451
+rdi 0x0000000000183ce3  1588451
+rbp 0x0000000000183ce3  1588451
+rsp 0x00005dd6331924e8  ab 7d 89 12 d6 5d 00 00 70 27 19 33 d6 5d 00 00  «}··Ö]··p'·3Ö]··
+ r8 0x00005dd633192770  04 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00  ················
+ r9 0x00005dd633192770  04 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00  ················
+r10 0x00005dd633192770  04 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00  ················
+r11 0x0000000000000246  582
+r12 0x0000000000000000  0
+r13 0x00007ce768de65f0  00 02 00 00 00 00 00 00 0c 0e e3 68 e7 7c 00 00  ··········ãhç|··
+r14 0x0000000000000000  0
+r15 0x00005dd633192588  ff ff ff 7f fe ff ff ff 00 00 00 00 00 00 00 00  ÿÿÿ·þÿÿÿ········
+rip 0x00007ce766f34acd  48 3d 01 f0 ff ff 73 01 c3 48 8b 0d 0b d3 0d 00  H=·ðÿÿs·ÃH···Ó··
+
+rflags 0x0000000000000246  ZF PF
+
+cs 0x0033  fs 0x0000  gs 0x0000
+
+
+Images (47 omitted):
+
+0x00007ce766e00000–0x00007ce766fbf7d9 066527e430a32768d82741e00b81eebb1a872294 libc.so.6      /usr/lib/x86_64-linux-gnu/libc.so.6
+0x00007ce7674de000–0x00007ce7675260d0 32c5d68a3529a5319e8f8a46d81d6197f3a086e8 libdispatch.so /home/filosof/.local/share/bananagram-tools/swift-6.4.2/usr/lib/swift/linux/libdispatch.so
+
+Backtrace took 1.30s
+
+Traceback (most recent call last):
+  File "/home/filosof/Telegram-iOS/Tests/Customization/shadow_ban.py", line 53, in <module>
+    subprocess.run(["swift", "-swift-version", "5", str(path)], check=True, timeout=120)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['swift', '-swift-version', '5', '/tmp/tmpown4olg7/main.swift']' died with <Signals.SIGILL: 4>.
