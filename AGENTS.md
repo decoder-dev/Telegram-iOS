@@ -118,3 +118,20 @@ crop and raise `--tile-width` until the motion being judged is visible.
 Report findings with their evidence, by frame: "#23–#31 (t=0.512–0.645): the list stays at rest while the buttons
 overshoot 9 pt" names something another agent or the user can open and check. A claim about an animation without frame
 references has not been verified.
+
+## Cursor Cloud specific instructions
+
+Cloud Agent VMs are Linux. The Telegram iOS app is built with Bazel and Xcode 26.6 on macOS 26 (`versions.json`). That app build is not available here.
+
+`install` puts Swift 6.4.2 on `PATH` as `swift` and `swiftc`, plus the system libraries the official Linux toolchain needs. Those two commands also see a Clang module for zlib, which `build-system/SwiftTL` imports.
+
+Useful checks from the repo root:
+
+- Theme and branding: `python3 -m unittest discover -s Tests/Branding -p 'test_*.py'`
+- Build tooling: `python3 -m unittest discover -s Tests/BuildTools -p 'test_*.py'`
+- Postbox import check: `python3 -m unittest discover -s build-system/Make/tests -v`
+- SwiftTL schema compiler: `swift test --package-path build-system/SwiftTL --filter 'SchemaBlobTests|SwiftCodeGenerationTests|SwiftFileSplitTests|TLLayoutTests|FixtureGenerationTests'`
+- Generate the SwiftPM TelegramApi sources from `swift_scheme.tl`: `bash submodules/TelegramApi/generate-swiftpm.sh` (writes gitignored files under `submodules/TelegramApi`)
+- Login-code detector, compiled and executed: `python3 Tests/Security/run.py`
+
+`ObjCCodeGenerationTests` invokes `xcrun` and does not pass on Linux. Nothing in this environment starts a server.
