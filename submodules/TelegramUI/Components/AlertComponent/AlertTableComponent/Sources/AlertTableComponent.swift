@@ -43,7 +43,8 @@ public final class AlertTableComponent: Component {
                     TableComponent(
                         theme: environment.theme,
                         items: component.items,
-                        semiTransparent: true
+                        semiTransparent: true,
+                        fontSize: environment.fontSize
                     )
                 ),
                 environment: {},

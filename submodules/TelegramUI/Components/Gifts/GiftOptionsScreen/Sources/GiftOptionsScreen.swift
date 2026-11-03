@@ -1077,8 +1077,8 @@ final class GiftOptionsScreenComponent: Component {
             let textColor = theme.list.itemPrimaryTextColor
             let accentColor = theme.list.itemAccentColor
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             
             let bottomContentInset: CGFloat = 24.0
             // iPhone Duo: one side's safe inset is the side strip; the right margin is its own and centered
@@ -1246,7 +1246,7 @@ final class GiftOptionsScreenComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: strings.Stars_Purchase_Balance,
-                        font: Font.regular(14.0),
+                        font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                         textColor: theme.actionSheet.primaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -1257,7 +1257,7 @@ final class GiftOptionsScreenComponent: Component {
             
             let formattedBalance = formatStarsAmountText(self.starsState?.balance ?? StarsAmount.zero, dateTimeFormat: environment.dateTimeFormat)
             let smallLabelFont = Font.regular(11.0)
-            let labelFont = Font.semibold(14.0)
+            let labelFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
             let balanceText = tonAmountAttributedString(formattedBalance, integralFont: labelFont, fractionalFont: smallLabelFont, color: theme.actionSheet.primaryTextColor, decimalSeparator: environment.dateTimeFormat.decimalSeparator)
             
             var balanceInset: CGFloat = 16.0

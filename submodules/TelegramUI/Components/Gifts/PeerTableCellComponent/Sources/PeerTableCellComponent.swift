@@ -64,6 +64,8 @@ public final class PeerTableCellComponent: Component {
         func update(component: PeerTableCellComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.state = state
+            
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                                     
             let avatarSize = CGSize(width: 22.0, height: 22.0)
             let spacing: CGFloat = 6.0
@@ -89,7 +91,7 @@ public final class PeerTableCellComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: peerName, font: Font.regular(15.0), textColor: component.peer != nil ? component.theme.list.itemAccentColor : component.theme.list.itemPrimaryTextColor, paragraphAlignment: .left))
+                        text: .plain(NSAttributedString(string: peerName, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: component.peer != nil ? component.theme.list.itemAccentColor : component.theme.list.itemPrimaryTextColor, paragraphAlignment: .left))
                     )
                 ),
                 environment: {},

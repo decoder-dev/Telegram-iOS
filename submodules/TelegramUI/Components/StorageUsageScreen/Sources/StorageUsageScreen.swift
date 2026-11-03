@@ -3662,7 +3662,7 @@ private class StorageUsageClearProgressOverlayNode: ASDisplayNode {
         let descriptionTextSize = self.descriptionText.update(
             transition: .immediate,
             component: AnyComponent(BalancedTextComponent(
-                text: .plain(NSAttributedString(string: self.presentationData.strings.ClearCache_KeepOpenedDescription, font: Font.regular(15.0), textColor: self.presentationData.theme.actionSheet.primaryTextColor)),
+                text: .plain(NSAttributedString(string: self.presentationData.strings.ClearCache_KeepOpenedDescription, font: Font.regular(floor(self.presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: self.presentationData.theme.actionSheet.primaryTextColor)),
                 balanced: true,
                 horizontalAlignment: .center,
                 maximumNumberOfLines: 0,

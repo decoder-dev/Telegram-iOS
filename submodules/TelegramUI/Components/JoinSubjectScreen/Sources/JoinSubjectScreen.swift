@@ -223,6 +223,7 @@ private final class JoinSubjectSheetContentComponent: Component {
             }
 
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let themeUpdated = self.environment?.theme !== environment.theme
 
             // iPhone Duo: one side's safe inset is the side strip; the right margin is its own and centered
@@ -433,7 +434,7 @@ private final class JoinSubjectSheetContentComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleString, font: Font.bold(24.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: titleString, font: Font.bold(floor(fontSize * 24.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: max(1.0, availableSize.width - sideInset - rightSideInset - titleIconWidth), height: 100.0)
@@ -469,9 +470,9 @@ private final class JoinSubjectSheetContentComponent: Component {
                         text: .markdown(
                             text: subtitleString,
                             attributes: MarkdownAttributes(
-                                body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemSecondaryTextColor),
-                                bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.itemSecondaryTextColor),
-                                link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                                body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor),
+                                bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor),
+                                link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                                 linkAttribute: { url in
                                     return ("URL", url)
                                 }
@@ -514,9 +515,9 @@ private final class JoinSubjectSheetContentComponent: Component {
                         text: .markdown(
                             text: descriptionTextString,
                             attributes: MarkdownAttributes(
-                                body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                                bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                                link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                                body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                                bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                                link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                                 linkAttribute: { url in
                                     return ("URL", url)
                                 }
@@ -667,9 +668,9 @@ private final class JoinSubjectSheetContentComponent: Component {
                         text: .markdown(
                         text: previewPeersString,
                         attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                            bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                            link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                             linkAttribute: { url in
                                 return ("URL", url)
                             }
@@ -733,7 +734,7 @@ private final class JoinSubjectSheetContentComponent: Component {
                                 selected: self.callMicrophoneIsEnabled
                             ))),
                             AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: environment.strings.Invitation_JoinGroupCall_EnableMicrophone, font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                                text: .plain(NSAttributedString(string: environment.strings.Invitation_JoinGroupCall_EnableMicrophone, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor))
                             )))
                         ], spacing: 10.0)),
                         effectAlignment: .center,
@@ -855,7 +856,7 @@ private final class JoinSubjectSheetContentComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: requestDescriptionString,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: environment.theme.list.itemSecondaryTextColor
                         )),
                         horizontalAlignment: .center,

@@ -134,9 +134,11 @@ private final class GiftMessagePublicToggleComponent: Component {
                 self.checkNode.setSelected(component.isSelected, animated: previousComponent != nil && !transition.animation.isImmediate)
             }
 
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+
             self.textNode.attributedText = NSAttributedString(
                 string: component.title,
-                font: Font.medium(13.0),
+                font: Font.medium(floor(fontSize * 13.0 / 17.0)),
                 textColor: foregroundColor
             )
             let textSize = self.textNode.updateLayout(CGSize(width: max(0.0, availableSize.width - 48.0), height: 30.0))

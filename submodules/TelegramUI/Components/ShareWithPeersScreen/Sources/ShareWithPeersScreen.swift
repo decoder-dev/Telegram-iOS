@@ -1046,6 +1046,8 @@ final class ShareWithPeersScreenComponent: Component {
                 return
             }
             
+            let baseDisplaySize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             var isSendAsGroup = false
             if let sendAsPeerId = self.sendAsPeerId, sendAsPeerId.isGroupOrChannel == true {
                 if let selectedPeer = stateValue.sendAsPeers.first(where: { $0.id == sendAsPeerId }) {
@@ -1514,9 +1516,9 @@ final class ShareWithPeersScreenComponent: Component {
                         self.visibleSectionFooters[section.id] = sectionFooter
                     }
                     
-                    let body = MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor)
-                    let bold = MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.freeTextColor)
-                    let link = MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor)
+                    let body = MarkdownAttributeSet(font: Font.regular(floor(baseDisplaySize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)
+                    let bold = MarkdownAttributeSet(font: Font.semibold(floor(baseDisplaySize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)
+                    let link = MarkdownAttributeSet(font: Font.regular(floor(baseDisplaySize * 13.0 / 17.0)), textColor: environment.theme.list.itemAccentColor)
                     
                     let footerText: String
                     if let grayListPeers = component.stateContext.stateValue?.grayListPeers, !grayListPeers.isEmpty {
@@ -1833,7 +1835,7 @@ final class ShareWithPeersScreenComponent: Component {
                     let footerSize = sectionFooter.update(
                         transition: sectionFooterTransition,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: footerText, font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor)),
+                            text: .plain(NSAttributedString(string: footerText, font: Font.regular(floor(baseDisplaySize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)),
                             maximumNumberOfLines: 0,
                             lineSpacing: 0.2
                         )),
@@ -1999,7 +2001,7 @@ final class ShareWithPeersScreenComponent: Component {
                     let footerSize = sectionFooter.update(
                         transition: sectionFooterTransition,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: footerText, font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor)),
+                            text: .plain(NSAttributedString(string: footerText, font: Font.regular(floor(baseDisplaySize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)),
                             maximumNumberOfLines: 0,
                             lineSpacing: 0.2
                         )),
@@ -2129,7 +2131,7 @@ final class ShareWithPeersScreenComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: environment.strings.Contacts_Search_NoResultsQueryDescription(searchQuery).string, font: Font.regular(15.0), textColor: environment.theme.list.itemSecondaryTextColor)),
+                            text: .plain(NSAttributedString(string: environment.strings.Contacts_Search_NoResultsQueryDescription(searchQuery).string, font: Font.regular(floor(baseDisplaySize * 15.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor)),
                             horizontalAlignment: .center,
                             maximumNumberOfLines: 0
                         )
@@ -2337,9 +2339,9 @@ final class ShareWithPeersScreenComponent: Component {
             }
             
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize
-            let listFontSize = fontSize.itemListBaseFontSize
-            let baseDisplaySize = fontSize.baseDisplaySize
+            let listsFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize
+            let listFontSize = listsFontSize.itemListBaseFontSize
+            let baseDisplaySize = listsFontSize.baseDisplaySize
             let themeUpdated = self.environment?.theme !== environment.theme
             
             // iPhone Duo: the list and the header keep to the band beside the side strip (and clear of the status corner
@@ -2652,9 +2654,9 @@ final class ShareWithPeersScreenComponent: Component {
                         
             var footersTotalHeight: CGFloat = 0.0
             if case let .stories(editing, _) = component.stateContext.subject {
-                let body = MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor)
-                let bold = MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.freeTextColor)
-                let link = MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor)
+                let body = MarkdownAttributeSet(font: Font.regular(floor(baseDisplaySize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)
+                let bold = MarkdownAttributeSet(font: Font.semibold(floor(baseDisplaySize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)
+                let link = MarkdownAttributeSet(font: Font.regular(floor(baseDisplaySize * 13.0 / 17.0)), textColor: environment.theme.list.itemAccentColor)
                 
                 let footerInset: CGFloat = 7.0
                 if hasCategories {
@@ -2903,7 +2905,7 @@ final class ShareWithPeersScreenComponent: Component {
                         ),
                         AnyComponentWithIdentity(
                             id: "subtitle",
-                            component: AnyComponent(Text(text: subtitle, font: Font.regular(13.0), color: environment.theme.rootController.navigationBar.secondaryTextColor))
+                            component: AnyComponent(Text(text: subtitle, font: Font.regular(floor(baseDisplaySize * 13.0 / 17.0)), color: environment.theme.rootController.navigationBar.secondaryTextColor))
                         )
                     ],
                     centerAlignment: true)

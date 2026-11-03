@@ -1265,10 +1265,11 @@ private final class GiftSetupScreenComponent: Component {
                         
             let giftConfiguration = GiftConfiguration.with(appConfiguration: component.context.currentAppConfiguration.with { $0 })
                     
+            let footerFontSize = floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)
             let footerAttributes = MarkdownAttributes(
-                body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor),
-                bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.freeTextColor),
-                link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
+                body: MarkdownAttributeSet(font: Font.regular(footerFontSize), textColor: environment.theme.list.freeTextColor),
+                bold: MarkdownAttributeSet(font: Font.semibold(footerFontSize), textColor: environment.theme.list.freeTextColor),
+                link: MarkdownAttributeSet(font: Font.regular(footerFontSize), textColor: environment.theme.list.itemAccentColor),
                 linkAttribute: { contents in
                     return (TelegramTextAttributes.URL, contents)
                 }

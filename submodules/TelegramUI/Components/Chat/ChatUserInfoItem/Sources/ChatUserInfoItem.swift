@@ -297,6 +297,14 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
             let primaryTextColor = serviceMessageColorComponents(theme: item.presentationData.theme.theme, wallpaper: item.presentationData.theme.wallpaper).primaryText
             let subtitleColor = primaryTextColor.withAlphaComponent(item.presentationData.theme.theme.overallDarkAppearance ? 0.7 : 0.8)
             
+            let fontSize = item.presentationData.listsFontSize.baseDisplaySize
+            let regular13 = Font.regular(floor(fontSize * 13.0 / 17.0))
+            let semibold13 = Font.semibold(floor(fontSize * 13.0 / 17.0))
+            let semibold15 = Font.semibold(floor(fontSize * 15.0 / 17.0))
+            let italic13 = Font.italic(floor(fontSize * 13.0 / 17.0))
+            let semiboldItalic13 = Font.semiboldItalic(floor(fontSize * 13.0 / 17.0))
+            let monospace13 = Font.monospace(floor(fontSize * 13.0 / 17.0))
+            
             backgroundSize.height += verticalInset
             
             let constrainedWidth = params.width - (horizontalInset + horizontalContentInset) * 2.0
@@ -324,8 +332,8 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
                     }
                     phoneCountryText = countryName
                 }
-                phoneCountryTitleLayoutAndApply = makePhoneCountryTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_NonContactUser_PhoneNumber, font: Font.regular(13.0), textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
-                phoneCountryValueLayoutAndApply = makePhoneCountryValueLayout(TextNodeLayoutArguments(attributedString: countryFlagAndNameAttributedString(countryId: phoneCountry, name: phoneCountryText ?? "", font: Font.semibold(13.0), textColor: primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
+                phoneCountryTitleLayoutAndApply = makePhoneCountryTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_NonContactUser_PhoneNumber, font: regular13, textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
+                phoneCountryValueLayoutAndApply = makePhoneCountryValueLayout(TextNodeLayoutArguments(attributedString: countryFlagAndNameAttributedString(countryId: phoneCountry, name: phoneCountryText ?? "", font: semibold13, textColor: primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
                 backgroundSize.height += verticalSpacing
                 backgroundSize.height += phoneCountryValueLayoutAndApply?.0.size.height ?? 0
                 
@@ -352,8 +360,8 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
                         registrationDateText = ""
                     }
                 }
-                registrationDateTitleLayoutAndApply = makeRegistrationDateTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_NonContactUser_Registration, font: Font.regular(13.0), textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
-                registrationDateValueLayoutAndApply = makeRegistrationDateValueLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: registrationDateText ?? "", font: Font.semibold(13.0), textColor: primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
+                registrationDateTitleLayoutAndApply = makeRegistrationDateTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_NonContactUser_Registration, font: regular13, textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
+                registrationDateValueLayoutAndApply = makeRegistrationDateValueLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: registrationDateText ?? "", font: semibold13, textColor: primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
                 backgroundSize.height += verticalSpacing
                 backgroundSize.height += registrationDateValueLayoutAndApply?.0.size.height ?? 0
                 
@@ -372,16 +380,16 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
             let groupsInCommonCount = item.groupsInCommonCount
             var estimatedValueOffset: CGFloat = 0.0
             if groupsInCommonCount > 0 {
-                groupsValueText = NSMutableAttributedString(string: item.presentationData.strings.Chat_NonContactUser_GroupsCount(groupsInCommonCount), font: Font.semibold(13.0), textColor: primaryTextColor)
+                groupsValueText = NSMutableAttributedString(string: item.presentationData.strings.Chat_NonContactUser_GroupsCount(groupsInCommonCount), font: semibold13, textColor: primaryTextColor)
                 estimatedValueOffset = avatarImageSize + CGFloat(min(2, max(0, item.groupsInCommonCount - 1))) * avatarSpacing + 4.0 + 10.0
             } else {
-                groupsValueText = NSMutableAttributedString(string: "", font: Font.semibold(13.0), textColor: primaryTextColor)
+                groupsValueText = NSMutableAttributedString(string: "", font: semibold13, textColor: primaryTextColor)
             }
                 
             let groupsTitleLayoutAndApply: (TextNodeLayout, () -> TextNode)?
             let groupsValueLayoutAndApply: (TextNodeLayout, () -> TextNode)?
             if !groupsValueText.string.isEmpty {
-                groupsTitleLayoutAndApply = makeGroupsTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_NonContactUser_Groups, font: Font.regular(13.0), textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
+                groupsTitleLayoutAndApply = makeGroupsTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_NonContactUser_Groups, font: regular13, textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
                 groupsValueLayoutAndApply = makeGroupsValueLayout(TextNodeLayoutArguments(attributedString: groupsValueText, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: infoConstrainedSize, alignment: .center, cutout: nil, insets: UIEdgeInsets()))
                 backgroundSize.height += verticalSpacing
                 backgroundSize.height += groupsValueLayoutAndApply?.0.size.height ?? 0.0
@@ -394,11 +402,11 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
             }
             
             let titleConstrainedWidth = maxTitleWidth + attributeSpacing + maxValueWidth
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.peer.displayTitle(strings: item.presentationData.strings, displayOrder: item.presentationData.nameDisplayOrder), font: Font.semibold(15.0), textColor: primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 3, truncationType: .end, constrainedSize: CGSize(width: titleConstrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.peer.displayTitle(strings: item.presentationData.strings, displayOrder: item.presentationData.nameDisplayOrder), font: semibold15, textColor: primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 3, truncationType: .end, constrainedSize: CGSize(width: titleConstrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             backgroundSize.height += titleLayout.size.height
             backgroundSize.height += verticalSpacing
             
-            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_NonContactUser_Subtitle, font: Font.regular(13.0), textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: titleConstrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_NonContactUser_Subtitle, font: regular13, textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: titleConstrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             backgroundSize.height += subtitleLayout.size.height
             backgroundSize.height += verticalSpacing + paragraphSpacing
 
@@ -406,7 +414,7 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
             
             let disclaimerText: NSMutableAttributedString
             if let verification = item.verification {
-                let textFont = Font.regular(13.0)
+                let textFont = regular13
                 let iconPrefix = " #  "
                 let iconPrefixLength = (iconPrefix as NSString).length
                 let descriptionEntities = verification.descriptionEntities.map { entity in
@@ -422,10 +430,10 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
                     linkColor: subtitleColor,
                     baseFont: textFont,
                     linkFont: textFont,
-                    boldFont: Font.semibold(13.0),
-                    italicFont: Font.italic(13.0),
-                    boldItalicFont: Font.semiboldItalic(13.0),
-                    fixedFont: Font.monospace(13.0),
+                    boldFont: semibold13,
+                    italicFont: italic13,
+                    boldItalicFont: semiboldItalic13,
+                    fixedFont: monospace13,
                     blockQuoteFont: textFont,
                     message: nil,
                     paragraphAlignment: .center
@@ -436,7 +444,7 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
                     disclaimerText.addAttribute(.baselineOffset, value: 2.0, range: NSRange(range, in: disclaimerText.string))
                 }
             } else {
-                disclaimerText = NSMutableAttributedString(string: " #   \(item.presentationData.strings.Chat_NonContactUser_Disclaimer)", font: Font.regular(13.0), textColor: subtitleColor)
+                disclaimerText = NSMutableAttributedString(string: " #   \(item.presentationData.strings.Chat_NonContactUser_Disclaimer)", font: regular13, textColor: subtitleColor)
                 if let range = disclaimerText.string.range(of: "#") {
                     disclaimerText.addAttribute(.attachment, value: PresentationResourcesChat.chatUserInfoWarningIcon(item.presentationData.theme.theme)!, range: NSRange(range, in: disclaimerText.string))
                     disclaimerText.addAttribute(.foregroundColor, value: subtitleColor, range: NSRange(range, in: disclaimerText.string))

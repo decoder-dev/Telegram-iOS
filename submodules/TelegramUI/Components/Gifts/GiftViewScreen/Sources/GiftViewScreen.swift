@@ -5540,7 +5540,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                 let table = table.update(
                     component: TableComponent(
                         theme: theme,
-                        items: tableItems
+                        items: tableItems,
+                        fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                     ),
                     availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: .greatestFiniteMagnitude),
                     transition: context.transition

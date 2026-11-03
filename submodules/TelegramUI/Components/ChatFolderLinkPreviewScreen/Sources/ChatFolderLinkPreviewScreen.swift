@@ -84,7 +84,8 @@ private func chatFolderLinkPreviewResolvedData(
     component: ChatFolderLinkPreviewScreenComponent,
     theme: PresentationTheme,
     strings: PresentationStrings,
-    selectedItems: Set<EnginePeer.Id>
+    selectedItems: Set<EnginePeer.Id>,
+    fontSize: CGFloat
 ) -> ChatFolderLinkPreviewResolvedData {
     let isLinkList: Bool
     if case .linkList = component.subject {
@@ -92,6 +93,10 @@ private func chatFolderLinkPreviewResolvedData(
     } else {
         isLinkList = false
     }
+
+    let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+    let descriptionFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+    let descriptionBoldFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
 
     var allChatsAdded = false
     var canAddChatCount = 0
@@ -136,35 +141,35 @@ private func chatFolderLinkPreviewResolvedData(
         descriptionText = NSAttributedString(string: strings.FolderLinkPreview_TextLinkList)
     } else if let linkContents = component.linkContents {
         if case .remove = component.subject {
-            descriptionText = NSAttributedString(string: strings.FolderLinkPreview_TextRemoveFolder, font: Font.regular(15.0), textColor: theme.list.freeTextColor)
+            descriptionText = NSAttributedString(string: strings.FolderLinkPreview_TextRemoveFolder, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.freeTextColor)
         } else if allChatsAdded {
-            descriptionText = NSAttributedString(string: strings.FolderLinkPreview_TextAllAdded, font: Font.regular(15.0), textColor: theme.list.freeTextColor)
+            descriptionText = NSAttributedString(string: strings.FolderLinkPreview_TextAllAdded, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.freeTextColor)
         } else if linkContents.localFilterId == nil {
-            descriptionText = NSAttributedString(string: strings.FolderLinkPreview_TextAddFolder, font: Font.regular(15.0), textColor: theme.list.freeTextColor)
+            descriptionText = NSAttributedString(string: strings.FolderLinkPreview_TextAddFolder, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.freeTextColor)
         } else if let title = linkContents.title {
             let chatCountString = strings.FolderLinkPreview_TextAddChatsCount(Int32(canAddChatCount))
 
             let textValue = NSMutableAttributedString(string: strings.FolderLinkPreview_TextAddChatsV2)
             textValue.addAttributes([
-                .font: Font.regular(15.0),
+                .font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                 .foregroundColor: theme.list.freeTextColor
             ], range: NSRange(location: 0, length: textValue.length))
 
             let folderRange = (textValue.string as NSString).range(of: "{folder}")
             if folderRange.location != NSNotFound {
                 textValue.replaceCharacters(in: folderRange, with: "")
-                textValue.insert(title.attributedString(font: Font.semibold(15.0), textColor: theme.list.freeTextColor), at: folderRange.location)
+                textValue.insert(title.attributedString(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.freeTextColor), at: folderRange.location)
             }
 
             let chatsRange = (textValue.string as NSString).range(of: "{chats}")
             if chatsRange.location != NSNotFound {
                 textValue.replaceCharacters(in: chatsRange, with: "")
-                textValue.insert(NSAttributedString(string: chatCountString, font: Font.semibold(15.0), textColor: theme.list.freeTextColor), at: chatsRange.location)
+                textValue.insert(NSAttributedString(string: chatCountString, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.freeTextColor), at: chatsRange.location)
             }
 
             descriptionText = textValue
         } else {
-            descriptionText = NSAttributedString(string: " ", font: Font.regular(15.0), textColor: theme.list.freeTextColor)
+            descriptionText = NSAttributedString(string: " ", font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.freeTextColor)
         }
     } else {
         descriptionText = NSAttributedString(string: " ")
@@ -392,6 +397,7 @@ private final class ChatFolderLinkPreviewContentComponent: Component {
             var contentHeight: CGFloat = 58.0
             
             let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize
+            let fontSize = listFontSize.baseDisplaySize
 
             let topIconSize = self.topIcon.update(
                 transition: transition,
@@ -618,7 +624,7 @@ private final class ChatFolderLinkPreviewContentComponent: Component {
                 self.items.removeValue(forKey: id)
             }
 
-            let listHeaderBody = MarkdownAttributeSet(font: Font.with(size: 13.0, design: .regular, traits: [.monospacedNumbers]), textColor: component.theme.list.freeTextColor)
+            let listHeaderBody = MarkdownAttributeSet(font: Font.with(size: floor(fontSize * 13.0 / 17.0), design: .regular, traits: [.monospacedNumbers]), textColor: component.theme.list.freeTextColor)
             let listHeaderTextSize = self.listHeaderText.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
@@ -648,7 +654,7 @@ private final class ChatFolderLinkPreviewContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(AnimatedCounterComponent(
-                        font: Font.regular(13.0),
+                        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                         color: component.theme.list.itemAccentColor,
                         alignment: .right,
                         items: component.resolvedData.listHeaderActionItems
@@ -945,7 +951,8 @@ private final class ChatFolderLinkPreviewScreenComponent: Component {
                 component: component,
                 theme: environment.theme.withModalBlocksBackground(),
                 strings: environment.strings,
-                selectedItems: state.selectedItems
+                selectedItems: state.selectedItems,
+                fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             )
 
             if case let .remove(folderId, _) = component.subject {
@@ -1415,7 +1422,8 @@ private final class ChatFolderLinkPreviewScreenComponent: Component {
                 component: component,
                 theme: theme,
                 strings: environmentValue.strings,
-                selectedItems: state.selectedItems
+                selectedItems: state.selectedItems,
+                fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             )
 
             let bottomItem: AnyComponent<Empty>?

@@ -206,7 +206,8 @@ private final class GiftUpgradeCostScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(TableComponent(
                     theme: environment.theme,
-                    items: tableItems
+                    items: tableItems,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset - rightSideInset, height: .greatestFiniteMagnitude)

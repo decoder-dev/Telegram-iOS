@@ -466,7 +466,8 @@ private final class GiftAuctionAcquiredScreenComponent: Component {
                     component: AnyComponent(
                         TableComponent(
                             theme: environment.theme,
-                            items: items
+                            items: items,
+                            fontSize: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                         )
                     ),
                     environment: {},

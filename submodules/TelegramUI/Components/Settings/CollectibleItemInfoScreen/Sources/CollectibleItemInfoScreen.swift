@@ -68,6 +68,7 @@ private final class PeerBadgeComponent: Component {
         }
         
         func update(component: PeerBadgeComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let height: CGFloat = 32.0
             let avatarPadding: CGFloat = 1.0
             
@@ -78,7 +79,7 @@ private final class PeerBadgeComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: component.strings, displayOrder: .firstLast), font: Font.medium(15.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: component.strings, displayOrder: .firstLast), font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - avatarPadding - avatarDiameter - avatarTextSpacing - rightTextInset, height: height)
@@ -183,6 +184,7 @@ private final class CollectibleItemInfoScreenContentComponent: Component {
             self.component = component
             
             let environment = environment[EnvironmentType.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.environment = environment
             
             let sideInset: CGFloat = 16.0
@@ -238,7 +240,7 @@ private final class CollectibleItemInfoScreenContentComponent: Component {
             switch component.initialData.subject {
             case let .username(username):
                 let rawTitleString = environment.strings.CollectibleItemInfo_UsernameTitle("@\(username.username)")
-                titleText.append(NSAttributedString(string: rawTitleString.string, font: Font.semibold(16.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                titleText.append(NSAttributedString(string: rawTitleString.string, font: Font.semibold(floor(fontSize * 16.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor))
                 for range in rawTitleString.ranges {
                     titleText.addAttributes([
                         .foregroundColor: environment.theme.list.itemAccentColor,
@@ -252,15 +254,15 @@ private final class CollectibleItemInfoScreenContentComponent: Component {
                 let currencyText = formatTonUsdValue(username.info.currencyAmount, divide: false, rate: 0.01, dateTimeFormat: environment.dateTimeFormat)
                 
                 let rawTextString = environment.strings.CollectibleItemInfo_UsernameText("@\(username.username)", environment.strings.CollectibleItemInfo_StoreName, dateText, "~\(cryptoCurrencyText)", currencyText)
-                textText.append(NSAttributedString(string: rawTextString.string, font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                textText.append(NSAttributedString(string: rawTextString.string, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor))
                 for range in rawTextString.ranges {
                     switch range.index {
                     case 0:
-                        textText.addAttribute(.font, value: Font.semibold(15.0), range: range.range)
+                        textText.addAttribute(.font, value: Font.semibold(floor(fontSize * 15.0 / 17.0)), range: range.range)
                     case 1:
-                        textText.addAttribute(.font, value: Font.semibold(15.0), range: range.range)
+                        textText.addAttribute(.font, value: Font.semibold(floor(fontSize * 15.0 / 17.0)), range: range.range)
                     case 3:
-                        textText.addAttribute(.font, value: Font.semibold(15.0), range: range.range)
+                        textText.addAttribute(.font, value: Font.semibold(floor(fontSize * 15.0 / 17.0)), range: range.range)
                     default:
                         break
                     }
@@ -269,7 +271,7 @@ private final class CollectibleItemInfoScreenContentComponent: Component {
                 let formattedPhoneNumber = formatPhoneNumber(context: component.context, number: phoneNumber.phoneNumber)
                 
                 let rawTitleString = environment.strings.CollectibleItemInfo_PhoneTitle("\(formattedPhoneNumber)")
-                titleText.append(NSAttributedString(string: rawTitleString.string, font: Font.semibold(16.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                titleText.append(NSAttributedString(string: rawTitleString.string, font: Font.semibold(floor(fontSize * 16.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor))
                 for range in rawTitleString.ranges {
                     titleText.addAttributes([
                         .foregroundColor: environment.theme.list.itemAccentColor,
@@ -283,15 +285,15 @@ private final class CollectibleItemInfoScreenContentComponent: Component {
                 let currencyText = formatTonUsdValue(phoneNumber.info.currencyAmount, divide: false, rate: 0.01, dateTimeFormat: environment.dateTimeFormat)
                 
                 let rawTextString = environment.strings.CollectibleItemInfo_PhoneText("\(formattedPhoneNumber)", environment.strings.CollectibleItemInfo_StoreName, dateText, "~\(cryptoCurrencyText)", currencyText)
-                textText.append(NSAttributedString(string: rawTextString.string, font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                textText.append(NSAttributedString(string: rawTextString.string, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor))
                 for range in rawTextString.ranges {
                     switch range.index {
                     case 0:
-                        textText.addAttribute(.font, value: Font.semibold(15.0), range: range.range)
+                        textText.addAttribute(.font, value: Font.semibold(floor(fontSize * 15.0 / 17.0)), range: range.range)
                     case 1:
-                        textText.addAttribute(.font, value: Font.semibold(15.0), range: range.range)
+                        textText.addAttribute(.font, value: Font.semibold(floor(fontSize * 15.0 / 17.0)), range: range.range)
                     case 3:
-                        textText.addAttribute(.font, value: Font.semibold(15.0), range: range.range)
+                        textText.addAttribute(.font, value: Font.semibold(floor(fontSize * 15.0 / 17.0)), range: range.range)
                     default:
                         break
                     }
@@ -326,7 +328,7 @@ private final class CollectibleItemInfoScreenContentComponent: Component {
                         self.width = width
                     }
                 }
-                let font = Font.semibold(15.0)
+                let font = Font.semibold(floor(fontSize * 15.0 / 17.0))
                 let runDelegateData = RunDelegateData(
                     ascent: font.ascender,
                     descent: font.descender,

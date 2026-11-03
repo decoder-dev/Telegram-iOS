@@ -44,17 +44,20 @@ public final class FilterSelectorComponent: Component {
     public let theme: PresentationTheme
     public let items: [Item]
     public let selectedItemId: AnyHashable?
+    public let fontSize: CGFloat
     
     public init(
         context: AccountContext? = nil,
         theme: PresentationTheme,
         items: [Item],
-        selectedItemId: AnyHashable?
+        selectedItemId: AnyHashable?,
+        fontSize: CGFloat = 17.0
     ) {
         self.context = context
         self.theme = theme
         self.items = items
         self.selectedItemId = selectedItemId
+        self.fontSize = fontSize
     }
     
     public static func ==(lhs: FilterSelectorComponent, rhs: FilterSelectorComponent) -> Bool {
@@ -68,6 +71,9 @@ public final class FilterSelectorComponent: Component {
             return false
         }
         if lhs.selectedItemId != rhs.selectedItemId {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -127,7 +133,7 @@ public final class FilterSelectorComponent: Component {
             
             var spacing: CGFloat = 6.0
             
-            let itemFont = Font.medium(14.0)
+            let itemFont = Font.medium(floor(component.fontSize * 14.0 / 17.0))
             let allowScroll = true
             
             var innerContentWidth: CGFloat = 0.0

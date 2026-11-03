@@ -492,6 +492,8 @@ private final class GiftDemoListComponent: CombinedComponent {
         return { context in
             let theme = context.component.theme
             let strings = context.component.context.sharedContext.currentPresentationData.with { $0 }.strings
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let descriptionFont = Font.regular(floor(fontSize * 15.0 / 17.0))
             
             let titleColor = theme.list.itemPrimaryTextColor
             let textColor = theme.list.itemSecondaryTextColor
@@ -512,7 +514,7 @@ private final class GiftDemoListComponent: CombinedComponent {
             
             let description = description.update(
                 component: BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: strings.Gift_Demo_Description, font: Font.regular(15.0), textColor: textColor)),
+                    text: .plain(NSAttributedString(string: strings.Gift_Demo_Description, font: descriptionFont, textColor: textColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.2
@@ -537,7 +539,8 @@ private final class GiftDemoListComponent: CombinedComponent {
                         textColor: textColor,
                         accentColor: iconColor,
                         iconName: "Premium/Collectible/Unique",
-                        iconColor: iconColor
+                        iconColor: iconColor,
+                        fontSize: fontSize
                     ))
                 )
             )
@@ -551,7 +554,8 @@ private final class GiftDemoListComponent: CombinedComponent {
                         textColor: textColor,
                         accentColor: iconColor,
                         iconName: "Premium/Collectible/Transferable",
-                        iconColor: iconColor
+                        iconColor: iconColor,
+                        fontSize: fontSize
                     ))
                 )
             )
@@ -565,7 +569,8 @@ private final class GiftDemoListComponent: CombinedComponent {
                         textColor: textColor,
                         accentColor: iconColor,
                         iconName: "Premium/Collectible/Tradable",
-                        iconColor: iconColor
+                        iconColor: iconColor,
+                        fontSize: fontSize
                     ))
                 )
             )

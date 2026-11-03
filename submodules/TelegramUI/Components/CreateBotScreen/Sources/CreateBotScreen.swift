@@ -261,7 +261,7 @@ final class CreateBotContentComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: environment.strings.CreateBot_Title, font: Font.bold(24.0), textColor: environment.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: environment.strings.CreateBot_Title, font: Font.bold(floor(fontSize * 24.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.12
@@ -280,8 +280,8 @@ final class CreateBotContentComponent: Component {
             contentHeight += titleSize.height
             contentHeight += 10.0
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let textColor = environment.theme.actionSheet.primaryTextColor
             let linkColor = environment.theme.actionSheet.controlAccentColor
             let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: boldTextFont, textColor: linkColor), linkAttribute: { contents in
@@ -318,7 +318,7 @@ final class CreateBotContentComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.CreateBot_SectionName,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -386,9 +386,9 @@ final class CreateBotContentComponent: Component {
             let footerLinkColor = environment.theme.list.itemAccentColor
             let footerString: (String, UIColor) -> NSMutableAttributedString = { text, color in
                 return NSMutableAttributedString(attributedString: parseMarkdownIntoAttributedString(text, attributes: MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: color),
-                    bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: color),
-                    link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: footerLinkColor),
+                    body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: color),
+                    bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: color),
+                    link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: footerLinkColor),
                     linkAttribute: { contents in
                         return ("URL", contents)
                     }
@@ -442,7 +442,7 @@ final class CreateBotContentComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.CreateBot_SectionUsername,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -717,9 +717,9 @@ private final class CreateBotSheetComponent: Component {
                         text = environment.strings.CreateBot_UsernameStatus_LimitExceeded(Int32(limits.maxBotsCreated))
                     case .suffixNotAllowed:
                         text = parseMarkdownIntoAttributedString(createBotUsernameHint(endings: endings, strings: environment.strings), attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: .black),
-                            bold: MarkdownAttributeSet(font: Font.regular(13.0), textColor: .black),
-                            link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: .black),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .black),
+                            bold: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .black),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .black),
                             linkAttribute: { _ in
                                 return nil
                             }

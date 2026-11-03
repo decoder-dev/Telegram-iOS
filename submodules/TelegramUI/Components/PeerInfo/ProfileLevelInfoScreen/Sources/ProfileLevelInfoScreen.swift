@@ -105,6 +105,7 @@ private final class SheetContent: Component {
             self.component = component
             self.state = state
             self.environment = environment
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                                     
             var contentHeight: CGFloat = 0.0
 
@@ -303,9 +304,9 @@ private final class SheetContent: Component {
                 }
                 
                 let secondaryDescriptionAttributedString = NSMutableAttributedString(attributedString: parseMarkdownIntoAttributedString(secondaryDescriptionTextString, attributes: MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: secondaryTextColor),
-                    bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: secondaryTextColor),
-                    link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
+                    body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: secondaryTextColor),
+                    bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: secondaryTextColor),
+                    link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                     linkAttribute: { url in
                         return ("URL", url)
                     }
@@ -384,9 +385,9 @@ private final class SheetContent: Component {
                     text: .markdown(
                         text: descriptionTextString,
                         attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                            bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                            link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                             linkAttribute: { url in
                                 return ("URL", url)
                             }
@@ -462,6 +463,7 @@ private final class SheetContent: Component {
                     transition: .immediate,
                     component: AnyComponent(ItemComponent(
                         theme: environment.theme,
+                        fontSize: fontSize,
                         title: item.title,
                         text: item.text,
                         badge: item.badgeText,
@@ -697,6 +699,7 @@ public final class ProfileLevelInfoScreen: ViewControllerComponentContainer {
 
 private final class ItemComponent: Component {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let title: String
     let text: String
     let badge: String
@@ -705,6 +708,7 @@ private final class ItemComponent: Component {
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat,
         title: String,
         text: String,
         badge: String,
@@ -712,6 +716,7 @@ private final class ItemComponent: Component {
         icon: String
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.title = title
         self.text = text
         self.badge = badge
@@ -721,6 +726,9 @@ private final class ItemComponent: Component {
     
     static func ==(lhs: ItemComponent, rhs: ItemComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.title != rhs.title {
@@ -757,6 +765,7 @@ private final class ItemComponent: Component {
         }
         
         func update(component: ItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.fontSize
             let leftInset: CGFloat = 44.0
             let titleSpacing: CGFloat = 5.0
             let badgeInsets = UIEdgeInsets(top: 2.0, left: 4.0, bottom: 2.0, right: 4.0)
@@ -765,7 +774,7 @@ private final class ItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(15.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor)),
                     maximumNumberOfLines: 0
                 )),
                 environment: {},
@@ -784,7 +793,7 @@ private final class ItemComponent: Component {
             let textSize = self.text.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.text, font: Font.regular(15.0), textColor: component.theme.list.itemSecondaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.text, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor)),
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.2,
                     cutout: TextNodeCutout(topLeft: CGSize(width: badgeInsets.left + badgeTextSize.width + badgeInsets.right + badgeSpacing, height: 6.0))

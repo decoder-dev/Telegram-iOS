@@ -62,17 +62,20 @@ public final class TableComponent: CombinedComponent {
     private let items: [Item]
     private let semiTransparent: Bool
     private let rightColumnBackgroundColor: UIColor?
+    private let fontSize: CGFloat
     
     public init(
         theme: PresentationTheme,
         items: [Item],
         semiTransparent: Bool = false,
-        rightColumnBackgroundColor: UIColor? = nil
+        rightColumnBackgroundColor: UIColor? = nil,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.items = items
         self.semiTransparent = semiTransparent
         self.rightColumnBackgroundColor = rightColumnBackgroundColor
+        self.fontSize = fontSize
     }
 
     public static func ==(lhs: TableComponent, rhs: TableComponent) -> Bool {
@@ -86,6 +89,9 @@ public final class TableComponent: CombinedComponent {
             return false
         }
         if lhs.rightColumnBackgroundColor != rhs.rightColumnBackgroundColor {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -135,6 +141,7 @@ public final class TableComponent: CombinedComponent {
             var updatedBorderChildren: [_UpdatedChildComponent] = []
             
             var i = 0
+            let titleFontSize = floor(context.component.fontSize * 15.0 / 17.0)
             for item in context.component.items {
                 guard let title = item.title else {
                     i += 1
@@ -142,7 +149,7 @@ public final class TableComponent: CombinedComponent {
                 }
                 let titleChild = titleChildren[item.id].update(
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: title, font: item.titleFont == .bold ? Font.semibold(15.0) : Font.regular(15.0), textColor: context.component.theme.list.itemPrimaryTextColor))
+                        text: .plain(NSAttributedString(string: title, font: item.titleFont == .bold ? Font.semibold(titleFontSize) : Font.regular(titleFontSize), textColor: context.component.theme.list.itemPrimaryTextColor))
                     )),
                     availableSize: context.availableSize,
                     transition: context.transition

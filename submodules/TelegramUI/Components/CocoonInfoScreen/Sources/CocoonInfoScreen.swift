@@ -111,12 +111,13 @@ private final class CocoonInfoSheetContent: CombinedComponent {
             
             let theme = environment.theme
             let strings = environment.strings
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let sideInset: CGFloat = 30.0 + environment.safeInsets.left
             let textSideInset: CGFloat = 30.0 + environment.safeInsets.left
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             
             let textColor = theme.actionSheet.primaryTextColor
             let secondaryTextColor = theme.actionSheet.secondaryTextColor
@@ -231,6 +232,7 @@ private final class CocoonInfoSheetContent: CombinedComponent {
                 AnyComponentWithIdentity(
                     id: "private",
                     component: AnyComponent(ParagraphComponent(
+                        fontSize: fontSize,
                         title: strings.CocoonInfo_Private_Title,
                         titleColor: textColor,
                         text: strings.CocoonInfo_Private_Text,
@@ -247,6 +249,7 @@ private final class CocoonInfoSheetContent: CombinedComponent {
                 AnyComponentWithIdentity(
                     id: "efficient",
                     component: AnyComponent(ParagraphComponent(
+                        fontSize: fontSize,
                         title: strings.CocoonInfo_Efficient_Title,
                         titleColor: textColor,
                         text: strings.CocoonInfo_Efficient_Text,
@@ -263,6 +266,7 @@ private final class CocoonInfoSheetContent: CombinedComponent {
                 AnyComponentWithIdentity(
                     id: "for_everyone",
                     component: AnyComponent(ParagraphComponent(
+                        fontSize: fontSize,
                         title: strings.CocoonInfo_ForEveryone_Title,
                         titleColor: textColor,
                         text: strings.CocoonInfo_ForEveryone_Text,
@@ -301,9 +305,9 @@ private final class CocoonInfoSheetContent: CombinedComponent {
             let attributedAdditionalText = parseMarkdownIntoAttributedString(
                 strings.CocoonInfo_IntergrateInfo,
                 attributes: MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: secondaryTextColor),
-                    bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: secondaryTextColor),
-                    link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: linkColor),
+                    body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: secondaryTextColor),
+                    bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: secondaryTextColor),
+                    link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: linkColor),
                     linkAttribute: { contents in
                         return (TelegramTextAttributes.URL, contents)
                     }
@@ -578,6 +582,7 @@ public final class CocoonInfoScreen: ViewControllerComponentContainer {
 }
 
 private final class ParagraphComponent: CombinedComponent {
+    let fontSize: CGFloat
     let title: String
     let titleColor: UIColor
     let text: String
@@ -588,6 +593,7 @@ private final class ParagraphComponent: CombinedComponent {
     let action: (([NSAttributedString.Key: Any], Int) -> Void)?
     
     public init(
+        fontSize: CGFloat,
         title: String,
         titleColor: UIColor,
         text: String,
@@ -597,6 +603,7 @@ private final class ParagraphComponent: CombinedComponent {
         iconColor: UIColor,
         action: (([NSAttributedString.Key: Any], Int) -> Void)?
     ) {
+        self.fontSize = fontSize
         self.title = title
         self.titleColor = titleColor
         self.text = text
@@ -608,6 +615,9 @@ private final class ParagraphComponent: CombinedComponent {
     }
     
     static func ==(lhs: ParagraphComponent, rhs: ParagraphComponent) -> Bool {
+        if lhs.fontSize != rhs.fontSize {
+            return false
+        }
         if lhs.title != rhs.title {
             return false
         }
@@ -639,6 +649,7 @@ private final class ParagraphComponent: CombinedComponent {
         
         return { context in
             let component = context.component
+            let fontSize = component.fontSize
             
             let leftInset: CGFloat = 32.0
             let rightInset: CGFloat = 24.0
@@ -651,7 +662,7 @@ private final class ParagraphComponent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.title,
-                        font: Font.semibold(15.0),
+                        font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                         textColor: component.titleColor,
                         paragraphAlignment: .natural
                     )),
@@ -662,8 +673,8 @@ private final class ParagraphComponent: CombinedComponent {
                 transition: .immediate
             )
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let textColor = component.textColor
             let accentColor = component.accentColor
             let markdownAttributes = MarkdownAttributes(

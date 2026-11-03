@@ -624,7 +624,7 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                                     translation: CGPoint(x: 0.0, y: 1.0 + UIScreenPixel)
                                 ))),
                                 AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
-                                    text: .plain(NSAttributedString(string: revenueString, font: Font.regular(13.0), textColor: environment.theme.list.itemDisclosureActions.constructive.foregroundColor))
+                                    text: .plain(NSAttributedString(string: revenueString, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemDisclosureActions.constructive.foregroundColor))
                                 )))
                             ], spacing: 2.0)),
                             insets: UIEdgeInsets(top: 3.0, left: 6.0, bottom: 3.0, right: 6.0),
@@ -658,7 +658,7 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                                 ))
                             ),
                             AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: "\(formatPermille(component.commissionPermille))%", font: Font.regular(13.0), textColor: environment.theme.list.itemCheckColors.foregroundColor))
+                                text: .plain(NSAttributedString(string: "\(formatPermille(component.commissionPermille))%", font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemCheckColors.foregroundColor))
                             )))
                         ], spacing: 2.0)),
                         insets: UIEdgeInsets(top: 3.0, left: 6.0, bottom: 3.0, right: 6.0),
@@ -763,7 +763,7 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                                     scaleFactor: 1.0
                                 ))),
                                 AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
-                                    text: .plain(NSAttributedString(string: "\(active.bot.participants)", font: Font.bold(14.0), textColor: .white))
+                                    text: .plain(NSAttributedString(string: "\(active.bot.participants)", font: Font.bold(floor(fontSize * 14.0 / 17.0)), textColor: .white))
                                 )))
                             ], spacing: 4.0)),
                             insets: UIEdgeInsets(top: 4.0, left: 9.0, bottom: 4.0, right: 8.0),
@@ -833,7 +833,7 @@ private final class JoinAffiliateProgramScreenComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleString, font: Font.bold(24.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: titleString, font: Font.bold(floor(fontSize * 24.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset - rightSideInset, height: 100.0)
@@ -866,7 +866,7 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                     translation: CGPoint(x: 0.0, y: 1.0)))))
             }
             openBotComponents.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: environment.strings.AffiliateProgram_OpenBot(component.sourcePeer.compactDisplayTitle).string, font: Font.medium(15.0), textColor: environment.theme.list.itemInputField.primaryColor))
+                text: .plain(NSAttributedString(string: environment.strings.AffiliateProgram_OpenBot(component.sourcePeer.compactDisplayTitle).string, font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemInputField.primaryColor))
             ))))
             openBotComponents.append(AnyComponentWithIdentity(id: 2, component: AnyComponent(TransformContents(
                 content: AnyComponent(BundleIconComponent(
@@ -936,9 +936,9 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                     text: .markdown(
                         text: subtitleString,
                         attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                            bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                            link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                             linkAttribute: { url in
                                 return ("URL", url)
                             }
@@ -990,9 +990,9 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                 }
                 
                 let attributedDailyRevenueString = NSMutableAttributedString(attributedString: parseMarkdownIntoAttributedString(dailyRevenueString, attributes: MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                    bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                    link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                    body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                    bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                    link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                     linkAttribute: { url in
                         return ("URL", url)
                     }
@@ -1011,8 +1011,8 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                     }
                     
                     let runDelegateData = RunDelegateData(
-                        ascent: Font.regular(15.0).ascender,
-                        descent: Font.regular(15.0).descender,
+                        ascent: Font.regular(floor(fontSize * 15.0 / 17.0)).ascender,
+                        descent: Font.regular(floor(fontSize * 15.0 / 17.0)).descender,
                         width: starImage.size.width + 2.0
                     )
                     var callbacks = CTRunDelegateCallbacks(
@@ -1084,7 +1084,7 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                 let targetTextSize = self.targetText.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.AffiliateProgram_CommistionDestinationText, font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: environment.strings.AffiliateProgram_CommistionDestinationText, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0,
                         lineSpacing: 0.2
@@ -1247,9 +1247,9 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                     text: .markdown(
                         text: termsString,
                         attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemSecondaryTextColor),
-                            bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.itemSecondaryTextColor),
-                            link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                             linkAttribute: { contents in
                                 return (TelegramTextAttributes.URL, contents)
                             }
@@ -1320,8 +1320,8 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                     toast = ComponentView()
                     self.toast = toast
                 }
-                let body = MarkdownAttributeSet(font: Font.regular(14.0), textColor: .white)
-                let bold = MarkdownAttributeSet(font: Font.semibold(14.0), textColor: .white)
+                let body = MarkdownAttributeSet(font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: .white)
+                let bold = MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: .white)
                 let toastSize = toast.update(
                     transition: transition,
                     component: AnyComponent(ToastContentComponent(
@@ -1529,6 +1529,8 @@ private final class PeerBadgeComponent: Component {
         }
         
         func update(component: PeerBadgeComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+
             self.component = component
             
             self.isEnabled = component.action != nil
@@ -1543,7 +1545,7 @@ private final class PeerBadgeComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: component.strings, displayOrder: .firstLast), font: Font.medium(15.0), textColor: component.action != nil ? component.theme.list.itemInputField.primaryColor : component.theme.list.itemInputField.primaryColor))
+                    text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: component.strings, displayOrder: .firstLast), font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: component.action != nil ? component.theme.list.itemInputField.primaryColor : component.theme.list.itemInputField.primaryColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - avatarPadding - avatarDiameter - avatarTextSpacing - rightTextInset, height: height)
@@ -1866,21 +1868,27 @@ private final class BorderedBadgeComponent: Component {
 
 final class AffiliatePeerSubtitleComponent: Component {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let percentText: String
     let text: String
 
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat,
         percentText: String,
         text: String
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.percentText = percentText
         self.text = text
     }
 
     static func ==(lhs: AffiliatePeerSubtitleComponent, rhs: AffiliatePeerSubtitleComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.percentText != rhs.percentText {
@@ -1909,6 +1917,8 @@ final class AffiliatePeerSubtitleComponent: Component {
         }
         
         func update(component: AffiliatePeerSubtitleComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.fontSize
+
             self.component = component
             self.state = state
             
@@ -1918,7 +1928,7 @@ final class AffiliatePeerSubtitleComponent: Component {
             let badgeTextSize = self.badgeText.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.percentText, font: Font.regular(13.0), textColor: component.theme.list.itemCheckColors.foregroundColor))
+                    text: .plain(NSAttributedString(string: component.percentText, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemCheckColors.foregroundColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -1929,7 +1939,7 @@ final class AffiliatePeerSubtitleComponent: Component {
             let textSize = self.text.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.text, font: Font.regular(15.0), textColor: component.theme.list.itemSecondaryTextColor))
+                    text: .plain(NSAttributedString(string: component.text, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -1988,17 +1998,20 @@ final class AffiliatePeerSubtitleComponent: Component {
 final class BotSectionSortButtonComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let sortMode: EngineSuggestedStarRefBotsContext.SortMode
     let action: (UIView) -> Void
 
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: CGFloat,
         sortMode: EngineSuggestedStarRefBotsContext.SortMode,
         action: @escaping (UIView) -> Void
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.sortMode = sortMode
         self.action = action
     }
@@ -2008,6 +2021,9 @@ final class BotSectionSortButtonComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.sortMode != rhs.sortMode {
@@ -2040,6 +2056,8 @@ final class BotSectionSortButtonComponent: Component {
         }
         
         func update(component: BotSectionSortButtonComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.fontSize
+
             self.component = component
             
             let sortByString: String
@@ -2055,9 +2073,9 @@ final class BotSectionSortButtonComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
                     text: .markdown(text: sortByString, attributes: MarkdownAttributes(
-                        body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.list.freeTextColor),
-                        bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: component.theme.list.freeTextColor),
-                        link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.list.itemAccentColor),
+                        body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.freeTextColor),
+                        bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.freeTextColor),
+                        link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemAccentColor),
                         linkAttribute: { url in
                             return ("URL", url)
                         }

@@ -214,6 +214,8 @@ final class AffiliateProgramSetupScreenComponent: Component {
             } else {
                 durationTitle = environment.strings.AffiliateProgram_DurationLifetime
             }
+            
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                         
             var content: [AnyComponentWithIdentity<AlertComponentEnvironment>] = []
             content.append(AnyComponentWithIdentity(
@@ -231,10 +233,10 @@ final class AffiliateProgramSetupScreenComponent: Component {
             
             let tableItems: [TableComponent.Item] = [
                 TableComponent.Item(id: 0, title: environment.strings.AffiliateSetup_AlertApply_SectionCommission, component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: commissionTitle, font: Font.regular(15.0), textColor: environment.theme.actionSheet.primaryTextColor))
+                    text: .plain(NSAttributedString(string: commissionTitle, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.actionSheet.primaryTextColor))
                 ))),
                 TableComponent.Item(id: 1, title: environment.strings.AffiliateSetup_AlertApply_SectionDuration, component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: durationTitle, font: Font.regular(15.0), textColor: environment.theme.actionSheet.primaryTextColor))
+                    text: .plain(NSAttributedString(string: durationTitle, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.actionSheet.primaryTextColor))
                 )))
             ]
             content.append(AnyComponentWithIdentity(
@@ -265,6 +267,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                 return
             }
             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             self.environment?.controller()?.present(textAlertController(
                 context: component.context,
                 title: environment.strings.AffiliateSetup_AlertTerminate_Title,
@@ -339,6 +342,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                 self.isApplying = false
                 
                 let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
                 
                 if let navigationController = controller.navigationController, let index = navigationController.viewControllers.firstIndex(where: { $0 === controller }), index != 0 {
                     if let previousController = navigationController.viewControllers[index - 1] as? ViewController {
@@ -432,6 +436,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                             }
                             UIPasteboard.general.string = bot.url
                             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
                             self.environment?.controller()?.present(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: presentationData.strings.AffiliateProgram_ToastLinkCopied_Title, text: presentationData.strings.AffiliateProgram_ToastLinkCopied_Text(formatPermille(bot.commissionPermille), bot.peer.compactDisplayTitle).string), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
                         }
                     ))
@@ -494,6 +499,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             let contextController = makeContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, actionsOnTop: false)), items: .single(ContextController.Items(id: AnyHashable(0), content: .list(items))), gesture: nil)
             controller.presentInGlobalOverlay(contextController)
         }
@@ -538,6 +544,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
             self.environment = environment
             
             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             
             if themeUpdated {
                 self.backgroundColor = environment.theme.list.blocksBackgroundColor
@@ -693,7 +700,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleValue, font: Font.bold(30.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: titleValue, font: Font.bold(floor(fontSize * 30.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width + 140.0, height: 1000.0)
@@ -722,9 +729,9 @@ final class AffiliateProgramSetupScreenComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(BalancedTextComponent(
                     text: .markdown(text: subtitleValue, attributes: MarkdownAttributes(
-                        body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                        bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                        link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                        body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                        bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                        link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                         linkAttribute: { url in
                             return ("URL", url)
                         }
@@ -837,7 +844,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                 let titleSize = itemTitle.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: item.title, font: Font.semibold(15.0), textColor: environment.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: item.title, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor)),
                         maximumNumberOfLines: 0
                     )),
                     environment: {},
@@ -846,7 +853,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                 let textSize = itemText.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: item.text, font: Font.regular(15.0), textColor: environment.theme.list.itemSecondaryTextColor)),
+                        text: .plain(NSAttributedString(string: item.text, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor)),
                         maximumNumberOfLines: 0
                     )),
                     environment: {},
@@ -916,7 +923,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                         header: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.AffiliateSetup_SectionCommission,
-                                font: Font.regular(13.0),
+                                font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -924,7 +931,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.AffiliateSetup_SectionCommissionFooter,
-                                font: Font.regular(13.0),
+                                font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -988,7 +995,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                             AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: environment.strings.AffiliateSetup_SectionDuration,
-                                    font: Font.regular(13.0),
+                                    font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                                     textColor: environment.theme.list.freeTextColor
                                 )),
                                 maximumNumberOfLines: 0
@@ -996,7 +1003,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                             AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: textForDurationMonths(strings: environment.strings, value: Int(durationItems[selectedDurationIndex])).full,
-                                    font: Font.regular(13.0),
+                                    font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                                     textColor: environment.theme.list.freeTextColor
                                 )),
                                 maximumNumberOfLines: 0
@@ -1005,7 +1012,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.AffiliateSetup_SectionDurationFooter,
-                                font: Font.regular(13.0),
+                                font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -1057,7 +1064,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.AffiliateSetup_ExistingPrograms_Footer,
-                                font: Font.regular(13.0),
+                                font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -1164,9 +1171,9 @@ final class AffiliateProgramSetupScreenComponent: Component {
                         text: .markdown(
                             text: environment.strings.AffiliateSetup_TermsFooter,
                             attributes: MarkdownAttributes(
-                                body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemSecondaryTextColor),
-                                bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.itemSecondaryTextColor),
-                                link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
+                                body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor),
+                                bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor),
+                                link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                                 linkAttribute: { url in
                                     return ("URL", url)
                                 }
@@ -1271,6 +1278,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                     return
                                 }
                                 let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
                                 
                                 var itemList: [ContextMenuItem] = []
                                 
@@ -1325,6 +1333,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                     }
                                     
                                     let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
                                     
                                     UIPasteboard.general.string = item.url
                                     environment.controller()?.present(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: environment.strings.AffiliateProgram_ToastLinkCopied_Title, text: environment.strings.AffiliateProgram_ToastLinkCopied_Text(formatPermille(item.commissionPermille), item.peer.compactDisplayTitle ).string), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
@@ -1370,6 +1379,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                 subtitle: nil,
                                 subtitleComponent: AnyComponent(AffiliatePeerSubtitleComponent(
                                     theme: environment.theme,
+                                    fontSize: fontSize,
                                     percentText: commissionTitle,
                                     text: durationTitle
                                 )),
@@ -1411,7 +1421,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                 header: AnyComponent(MultilineTextComponent(
                                     text: .plain(NSAttributedString(
                                         string: environment.strings.AffiliateSetup_ConnectedSectionTitle,
-                                        font: Font.regular(13.0),
+                                        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                                         textColor: environment.theme.list.freeTextColor
                                     )),
                                     maximumNumberOfLines: 0
@@ -1442,7 +1452,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                             suggestedSectionItems.append(AnyComponentWithIdentity(id: "empty", component: AnyComponent(ZStack([
                                 AnyComponentWithIdentity(id: 0, component: AnyComponent(Rectangle(color: .clear, width: nil, height: 100.0))),
                                 AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
-                                    text: .plain(NSAttributedString(string: environment.strings.AffiliateSetup_SuggestedSectionEmpty, font: Font.regular(15.0), textColor: environment.theme.list.itemSecondaryTextColor)),
+                                    text: .plain(NSAttributedString(string: environment.strings.AffiliateSetup_SuggestedSectionEmpty, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor)),
                                     horizontalAlignment: .center,
                                     maximumNumberOfLines: 0,
                                     lineSpacing: 0.2
@@ -1475,6 +1485,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                 subtitle: nil,
                                 subtitleComponent: AnyComponent(AffiliatePeerSubtitleComponent(
                                     theme: environment.theme,
+                                    fontSize: fontSize,
                                     percentText: commissionTitle,
                                     text: durationTitle
                                 )),
@@ -1539,7 +1550,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                         suggestedHeaderItems.append(AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.AffiliateSetup_SuggestedSectionTitle,
-                                font: Font.regular(13.0),
+                                font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -1548,6 +1559,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                             suggestedHeaderItems.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(BotSectionSortButtonComponent(
                                 theme: environment.theme,
                                 strings: environment.strings,
+                                fontSize: fontSize,
                                 sortMode: suggestedStarBots.sortMode,
                                 action: { [weak self] sourceView in
                                     guard let self else {

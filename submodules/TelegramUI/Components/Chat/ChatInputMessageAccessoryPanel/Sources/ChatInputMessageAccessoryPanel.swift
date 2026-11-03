@@ -444,6 +444,11 @@ public final class ChatInputMessageAccessoryPanel: Component {
             
             let secondaryTextColor = environment.theme.chat.inputPanel.inputPlaceholderColor
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.chatFontSize.baseDisplaySize
+            let regular14 = Font.regular(floor(fontSize * 14.0 / 17.0))
+            let medium14 = Font.medium(floor(fontSize * 14.0 / 17.0))
+            let italic14 = Font.italic(floor(fontSize * 14.0 / 17.0))
+            
             var textString: NSAttributedString
             var isPhoto = false
             if self.messages.count == 1, let message = self.messages.first {
@@ -536,10 +541,10 @@ public final class ChatInputMessageAccessoryPanel: Component {
                     isText = false
                 }
                 
-                let textFont = Font.regular(14.0)
+                let textFont = regular14
                 let messageText: NSAttributedString
                 if isText, message.richText != nil {
-                    messageText = styleInstantPagePreview(attributedText, font: textFont, italicFont: Font.italic(14.0), textColor: environment.theme.chat.inputPanel.primaryTextColor)
+                    messageText = styleInstantPagePreview(attributedText, font: textFont, italicFont: italic14, textColor: environment.theme.chat.inputPanel.primaryTextColor)
                 } else if isText {
                     let entities = (message._asMessage().textEntitiesAttribute?.entities ?? []).filter { entity in
                         switch entity.type {
@@ -556,7 +561,7 @@ public final class ChatInputMessageAccessoryPanel: Component {
                         messageText = NSAttributedString(string: text, font: textFont, textColor: isMedia ? secondaryTextColor : environment.theme.chat.inputPanel.primaryTextColor)
                     }
                 } else {
-                    messageText = NSAttributedString(string: text, font: Font.regular(14.0), textColor: isMedia ? secondaryTextColor : environment.theme.chat.inputPanel.primaryTextColor)
+                    messageText = NSAttributedString(string: text, font: regular14, textColor: isMedia ? secondaryTextColor : environment.theme.chat.inputPanel.primaryTextColor)
                 }
                 textString = messageText
             } else {
@@ -583,8 +588,8 @@ public final class ChatInputMessageAccessoryPanel: Component {
                 } else {
                     titleStringValue = environment.strings.Conversation_EditingMessagePanelTitle
                 }
-                titleText = [.text(NSAttributedString(string: titleStringValue, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
-                textString = renderInstantPagePreviewIcons(textString, font: Font.regular(14.0), textColor: environment.theme.chat.inputPanel.primaryTextColor)
+                titleText = [.text(NSAttributedString(string: titleStringValue, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
+                textString = renderInstantPagePreviewIcons(textString, font: regular14, textColor: environment.theme.chat.inputPanel.primaryTextColor)
             case let .reply(reply):
                 if let peer = self.messages.first?.peers[reply.id.peerId] as? TelegramChannel, case .broadcast = peer.info {
                     let icon: UIImage?
@@ -602,16 +607,16 @@ public final class ChatInputMessageAccessoryPanel: Component {
                             
                             let rawNsString = rawString.string as NSString
                             if nameRange.range.lowerBound != 0 {
-                                titleText.append(.text(NSAttributedString(string: rawNsString.substring(with: NSRange(location: 0, length: nameRange.range.lowerBound)), font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
+                                titleText.append(.text(NSAttributedString(string: rawNsString.substring(with: NSRange(location: 0, length: nameRange.range.lowerBound)), font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
                             }
                             titleText.append(.icon(icon, .zero))
-                            titleText.append(.text(NSAttributedString(string: peer.debugDisplayTitle, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
+                            titleText.append(.text(NSAttributedString(string: peer.debugDisplayTitle, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
                             
                             if nameRange.range.upperBound != rawNsString.length {
-                                titleText.append(.text(NSAttributedString(string: rawNsString.substring(with: NSRange(location: nameRange.range.upperBound, length: rawNsString.length - nameRange.range.upperBound)), font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
+                                titleText.append(.text(NSAttributedString(string: rawNsString.substring(with: NSRange(location: nameRange.range.upperBound, length: rawNsString.length - nameRange.range.upperBound)), font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
                             }
                         } else {
-                            titleText.append(.text(NSAttributedString(string: rawString.string, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
+                            titleText.append(.text(NSAttributedString(string: rawString.string, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
                         }
                     }
                 } else {
@@ -628,16 +633,16 @@ public final class ChatInputMessageAccessoryPanel: Component {
                     
                     if case .todoItem = reply.innerSubject {
                         let string = environment.strings.Chat_ReplyPanel_ReplyToTodoItem
-                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
+                        titleText = [.text(NSAttributedString(string: string, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
                     } else if case .pollOption = reply.innerSubject {
                         let string = environment.strings.Chat_ReplyPanel_ReplyToPollOption
-                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
+                        titleText = [.text(NSAttributedString(string: string, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
                     } else if let _ = reply.quote {
                         let string = environment.strings.Chat_ReplyPanel_ReplyToQuoteBy(authorName).string
-                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
+                        titleText = [.text(NSAttributedString(string: string, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
                     } else {
                         let string = environment.strings.Conversation_ReplyMessagePanelTitle(authorName).string
-                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
+                        titleText = [.text(NSAttributedString(string: string, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
                     }
                     
                     if reply.id.namespace == Namespaces.Message.EphemeralLocal {
@@ -655,13 +660,13 @@ public final class ChatInputMessageAccessoryPanel: Component {
                             }
                             if let iconImage = generateTintedImage(image: icon, color: environment.theme.chat.inputPanel.panelControlAccentColor) {
                                 titleText.append(.icon(iconImage, .zero))
-                                titleText.append(.text(NSAttributedString(string: peer.debugDisplayTitle, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
+                                titleText.append(.text(NSAttributedString(string: peer.debugDisplayTitle, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
                             }
                         }
                     }
                     
                     if let message = self.messages.first {
-                        let textFont = Font.regular(14.0)
+                        let textFont = regular14
                         if let quote = reply.quote {
                             let textColor = environment.theme.chat.inputPanel.primaryTextColor
                             textString = stringWithAppliedEntities(trimToLineCount(quote.text, lineCount: 1), entities: quote.entities, baseColor: textColor, linkColor: textColor, baseFont: textFont, linkFont: textFont, boldFont: textFont, italicFont: textFont, boldItalicFont: textFont, fixedFont: textFont, blockQuoteFont: textFont, underlineLinks: false, message: message._asMessage())
@@ -674,7 +679,7 @@ public final class ChatInputMessageAccessoryPanel: Component {
                         }
                     }
                 }
-                textString = renderInstantPagePreviewIcons(textString, font: Font.regular(14.0), textColor: environment.theme.chat.inputPanel.primaryTextColor)
+                textString = renderInstantPagePreviewIcons(textString, font: regular14, textColor: environment.theme.chat.inputPanel.primaryTextColor)
             case let .forward(forward):
                 var title = ""
                 var authors = ""
@@ -699,9 +704,9 @@ public final class ChatInputMessageAccessoryPanel: Component {
                     title = environment.strings.Conversation_ForwardOptions_ForwardTitleSingle
                     let (string, entities, _) = textStringForForwardedMessage(messages[0], strings: environment.strings, dateTimeFormat: environment.dateTimeFormat)
                     
-                    text = NSMutableAttributedString(attributedString: NSAttributedString(string: "\(authors): ", font: Font.regular(14.0), textColor: secondaryTextColor))
+                    text = NSMutableAttributedString(attributedString: NSAttributedString(string: "\(authors): ", font: regular14, textColor: secondaryTextColor))
                     
-                    let additionalText = NSMutableAttributedString(attributedString: styleInstantPagePreview(string, font: Font.regular(14.0), italicFont: Font.italic(14.0), textColor: secondaryTextColor))
+                    let additionalText = NSMutableAttributedString(attributedString: styleInstantPagePreview(string, font: regular14, italicFont: italic14, textColor: secondaryTextColor))
                     for entity in entities {
                         switch entity.type {
                         case let .CustomEmoji(_, fileId):
@@ -714,18 +719,18 @@ public final class ChatInputMessageAccessoryPanel: Component {
                         }
                     }
                     
-                    text.append(renderInstantPagePreviewIcons(additionalText, font: Font.regular(14.0), textColor: secondaryTextColor))
+                    text.append(renderInstantPagePreviewIcons(additionalText, font: regular14, textColor: secondaryTextColor))
                 } else {
                     title = environment.strings.Conversation_ForwardOptions_ForwardTitle(Int32(messages.count))
-                    text = NSMutableAttributedString(attributedString: NSAttributedString(string: environment.strings.Conversation_ForwardFrom(authors).string, font: Font.regular(14.0), textColor: secondaryTextColor))
+                    text = NSMutableAttributedString(attributedString: NSAttributedString(string: environment.strings.Conversation_ForwardFrom(authors).string, font: regular14, textColor: secondaryTextColor))
                 }
                 
                 if forward.forwardOptionsState?.hideNames == true {
-                    text = NSMutableAttributedString(attributedString: NSAttributedString(string: environment.strings.Conversation_ForwardOptions_SenderNamesRemoved, font: Font.regular(14.0), textColor: secondaryTextColor))
+                    text = NSMutableAttributedString(attributedString: NSAttributedString(string: environment.strings.Conversation_ForwardOptions_SenderNamesRemoved, font: regular14, textColor: secondaryTextColor))
                 }
-                text = NSMutableAttributedString(attributedString: renderInstantPagePreviewIcons(text, font: Font.regular(14.0), textColor: secondaryTextColor))
+                text = NSMutableAttributedString(attributedString: renderInstantPagePreviewIcons(text, font: regular14, textColor: secondaryTextColor))
                 
-                titleText = [.text(NSAttributedString(string: title, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
+                titleText = [.text(NSAttributedString(string: title, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
                 textString = text
             case let .linkPreview(linkPreview):
                 var authorName = ""
@@ -766,16 +771,16 @@ public final class ChatInputMessageAccessoryPanel: Component {
                     }
                 }
                 
-                titleText = [.text(NSAttributedString(string: authorName, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
-                textString = NSAttributedString(string: text, font: Font.regular(14.0), textColor: environment.theme.chat.inputPanel.primaryTextColor)
+                titleText = [.text(NSAttributedString(string: authorName, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor))]
+                textString = NSAttributedString(string: text, font: regular14, textColor: environment.theme.chat.inputPanel.primaryTextColor)
             case let .suggestPost(suggestPost):
                 if suggestPost.state.editingOriginalMessageId != nil {
-                    titleText.append(.text(NSAttributedString(string: environment.strings.Chat_PostSuggestion_Suggest_InputEditTitle, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
+                    titleText.append(.text(NSAttributedString(string: environment.strings.Chat_PostSuggestion_Suggest_InputEditTitle, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
                 } else {
-                    titleText.append(.text(NSAttributedString(string: environment.strings.Chat_PostSuggestion_Suggest_InputTitle, font: Font.medium(14.0), textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
+                    titleText.append(.text(NSAttributedString(string: environment.strings.Chat_PostSuggestion_Suggest_InputTitle, font: medium14, textColor: environment.theme.chat.inputPanel.panelControlAccentColor)))
                 }
                 
-                let textFont = Font.regular(14.0)
+                let textFont = regular14
                 
                 if let price = suggestPost.state.price, price.amount != .zero {
                     let currencySymbol: String
@@ -877,8 +882,8 @@ public final class ChatInputMessageAccessoryPanel: Component {
                         }
                         
                         let runDelegateData = RunDelegateData(
-                            ascent: Font.regular(14.0).ascender,
-                            descent: Font.regular(14.0).descender,
+                            ascent: regular14.ascender,
+                            descent: regular14.descender,
                             width: currencyImage.size.width + 2.0
                         )
                         var callbacks = CTRunDelegateCallbacks(

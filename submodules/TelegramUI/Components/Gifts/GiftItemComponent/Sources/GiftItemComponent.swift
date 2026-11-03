@@ -583,6 +583,12 @@ public final class GiftItemComponent: Component {
         }
         
         func update(component: GiftItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let titleFont13 = Font.medium(floor(fontSize * 13.0 / 17.0))
+            let titleFont14 = Font.semibold(floor(fontSize * 14.0 / 17.0))
+            let subtitleFont14 = Font.regular(floor(fontSize * 14.0 / 17.0))
+            let titleFont15 = Font.semibold(floor(fontSize * 15.0 / 17.0))
+            let subtitleFont13 = Font.regular(floor(fontSize * 13.0 / 17.0))
             let isFirstTime = self.component == nil
             let previousComponent = self.component
             self.component = component
@@ -1004,7 +1010,7 @@ public final class GiftItemComponent: Component {
                         transition: transition,
                         component: AnyComponent(
                             MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: title, font: Font.medium(13.0), textColor: isColored ? .white : component.theme.list.itemPrimaryTextColor)),
+                                text: .plain(NSAttributedString(string: title, font: titleFont13, textColor: isColored ? .white : component.theme.list.itemPrimaryTextColor)),
                                 horizontalAlignment: .center
                             )
                         ),
@@ -1090,7 +1096,7 @@ public final class GiftItemComponent: Component {
                         transition: transition,
                         component: AnyComponent(
                             MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: title, font: Font.semibold(14.0), textColor: .white)),
+                                text: .plain(NSAttributedString(string: title, font: titleFont14, textColor: .white)),
                                 horizontalAlignment: .center
                             )
                         ),
@@ -1111,7 +1117,7 @@ public final class GiftItemComponent: Component {
                         transition: transition,
                         component: AnyComponent(
                             MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: subtitle, font: Font.regular(14.0), textColor: .white.withAlphaComponent(0.5))),
+                                text: .plain(NSAttributedString(string: subtitle, font: subtitleFont14, textColor: .white.withAlphaComponent(0.5))),
                                 horizontalAlignment: .center
                             )
                         ),
@@ -1167,7 +1173,7 @@ public final class GiftItemComponent: Component {
                         transition: transition,
                         component: AnyComponent(
                             MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: title, font: Font.semibold(15.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                                text: .plain(NSAttributedString(string: title, font: titleFont15, textColor: component.theme.list.itemPrimaryTextColor)),
                                 horizontalAlignment: .center
                             )
                         ),
@@ -1188,7 +1194,7 @@ public final class GiftItemComponent: Component {
                         transition: transition,
                         component: AnyComponent(
                             MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: subtitle, font: Font.regular(13.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                                text: .plain(NSAttributedString(string: subtitle, font: subtitleFont13, textColor: component.theme.list.itemPrimaryTextColor)),
                                 horizontalAlignment: .center
                             )
                         ),

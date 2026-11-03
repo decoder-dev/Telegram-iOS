@@ -512,10 +512,13 @@ private final class PeerComponent: Component {
                 peerTitle = component.strings.SendStarReactions_UserLabelAnonymous
             }
             
+            let listsFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let regular11 = Font.regular(floor(listsFontSize * 11.0 / 17.0))
+            
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: peerTitle, font: Font.regular(11.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: peerTitle, font: regular11, textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: avatarSize.width + 10.0 * 2.0, height: 100.0)
@@ -547,19 +550,22 @@ private final class SliderBackgroundComponent: Component {
     let value: CGFloat
     let topCutoff: CGFloat?
     let color: UIColor
+    let listsFontSize: CGFloat
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
         value: CGFloat,
         topCutoff: CGFloat?,
-        color: UIColor
+        color: UIColor,
+        listsFontSize: CGFloat
     ) {
         self.theme = theme
         self.strings = strings
         self.value = value
         self.topCutoff = topCutoff
         self.color = color
+        self.listsFontSize = listsFontSize
     }
     
     static func ==(lhs: SliderBackgroundComponent, rhs: SliderBackgroundComponent) -> Bool {
@@ -576,6 +582,9 @@ private final class SliderBackgroundComponent: Component {
             return false
         }
         if lhs.color != rhs.color {
+            return false
+        }
+        if lhs.listsFontSize != rhs.listsFontSize {
             return false
         }
         return true
@@ -693,10 +702,12 @@ private final class SliderBackgroundComponent: Component {
             topLineFrameTransition.setFrame(layer: self.topBackgroundLine, frame: topLineFrame)
             topLineAlphaTransition.setAlpha(layer: self.topBackgroundLine, alpha: topLineAlpha)
             
+            let semibold15 = Font.semibold(floor(component.listsFontSize * 15.0 / 17.0))
+            
             let topTextSize = self.topForegroundText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.SendStarReactions_SliderTop, font: Font.semibold(15.0), textColor: UIColor(white: 1.0, alpha: 0.4)))
+                    text: .plain(NSAttributedString(string: component.strings.SendStarReactions_SliderTop, font: semibold15, textColor: UIColor(white: 1.0, alpha: 0.4)))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -704,7 +715,7 @@ private final class SliderBackgroundComponent: Component {
             let _ = self.topBackgroundText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.SendStarReactions_SliderTop, font: Font.semibold(15.0), textColor: component.theme.overallDarkAppearance ? UIColor(white: 1.0, alpha: 0.22) : UIColor(white: 0.0, alpha: 0.2)))
+                    text: .plain(NSAttributedString(string: component.strings.SendStarReactions_SliderTop, font: semibold15, textColor: component.theme.overallDarkAppearance ? UIColor(white: 1.0, alpha: 0.22) : UIColor(white: 0.0, alpha: 0.2)))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -1416,6 +1427,8 @@ private final class ChatSendStarsScreenComponent: Component {
             }
             let sideInset: CGFloat = floor((availableSize.width - fillingSize) * 0.5) + 16.0
             
+            let listsFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             var isOnlyDisplay = false
             switch component.initialData.subjectInitialData {
             case let .react(reactData):
@@ -1696,7 +1709,8 @@ private final class ChatSendStarsScreenComponent: Component {
                     strings: environment.strings,
                     value: progressFraction,
                     topCutoff: topCutoffFraction,
-                    color: sliderColor
+                    color: sliderColor,
+                    listsFontSize: listsFontSize
                 )),
                 environment: {},
                 containerSize: sliderBackgroundFrame.size
@@ -1807,7 +1821,8 @@ private final class ChatSendStarsScreenComponent: Component {
                         component: AnyComponent(LiveStreamPerkComponent(
                             title: perk.0,
                             subtitle: perk.1,
-                            theme: environment.theme
+                            theme: environment.theme,
+                            listsFontSize: listsFontSize
                         )),
                         environment: {},
                         containerSize: perkFrame.size
@@ -1940,11 +1955,16 @@ private final class ChatSendStarsScreenComponent: Component {
             }
             
             var subtitleSize: CGSize?
+            let regular12 = Font.regular(floor(listsFontSize * 12.0 / 17.0))
+            let semibold15 = Font.semibold(floor(listsFontSize * 15.0 / 17.0))
+            let regular15 = Font.regular(floor(listsFontSize * 15.0 / 17.0))
+            let regular13 = Font.regular(floor(listsFontSize * 13.0 / 17.0))
+            let semibold13 = Font.semibold(floor(listsFontSize * 13.0 / 17.0))
             if let subtitleText {
                 subtitleSize = self.subtitle.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(12.0), textColor: environment.theme.list.itemSecondaryTextColor))
+                        text: .plain(NSAttributedString(string: subtitleText, font: regular12, textColor: environment.theme.list.itemSecondaryTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
@@ -1962,7 +1982,7 @@ private final class ChatSendStarsScreenComponent: Component {
             let titleSize = title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(listsFontSize), textColor: environment.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
@@ -2010,8 +2030,8 @@ private final class ChatSendStarsScreenComponent: Component {
             }
             
             let addDescriptionText: () -> Void = {
-                let body = MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor)
-                let bold = MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.itemPrimaryTextColor)
+                let body = MarkdownAttributeSet(font: regular15, textColor: environment.theme.list.itemPrimaryTextColor)
+                let bold = MarkdownAttributeSet(font: semibold15, textColor: environment.theme.list.itemPrimaryTextColor)
                 
                 let descriptionTextSize = descriptionText.update(
                     transition: .immediate,
@@ -2187,7 +2207,7 @@ private final class ChatSendStarsScreenComponent: Component {
                         let topPeersTitleSize = topPeersTitle.update(
                             transition: .immediate,
                             component: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: environment.strings.SendStarReactions_SectionTop, font: Font.semibold(15.0), textColor: .white))
+                                text: .plain(NSAttributedString(string: environment.strings.SendStarReactions_SectionTop, font: semibold15, textColor: .white))
                             )),
                             environment: {},
                             containerSize: CGSize(width: 300.0, height: 100.0)
@@ -2673,9 +2693,9 @@ private final class ChatSendStarsScreenComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
                         text: .markdown(text: isOnlyDisplay ? environment.strings.SendStarReactions_OwnLiveStreamInfoText : environment.strings.SendStarReactions_TermsOfServiceFooter, attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemSecondaryTextColor),
-                            bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.itemSecondaryTextColor),
-                            link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
+                            body: MarkdownAttributeSet(font: regular13, textColor: environment.theme.list.itemSecondaryTextColor),
+                            bold: MarkdownAttributeSet(font: semibold13, textColor: environment.theme.list.itemSecondaryTextColor),
+                            link: MarkdownAttributeSet(font: regular13, textColor: environment.theme.list.itemAccentColor),
                             linkAttribute: { contents in
                                 return (TelegramTextAttributes.URL, contents)
                             }
@@ -3606,15 +3626,18 @@ private final class LiveStreamPerkComponent: Component {
     let title: String
     let subtitle: String
     let theme: PresentationTheme
+    let listsFontSize: CGFloat
     
     init(
         title: String,
         subtitle: String,
-        theme: PresentationTheme
+        theme: PresentationTheme,
+        listsFontSize: CGFloat
     ) {
         self.title = title
         self.subtitle = subtitle
         self.theme = theme
+        self.listsFontSize = listsFontSize
     }
     
     static func ==(lhs: LiveStreamPerkComponent, rhs: LiveStreamPerkComponent) -> Bool {
@@ -3625,6 +3648,9 @@ private final class LiveStreamPerkComponent: Component {
             return false
         }
         if lhs.theme != rhs.theme {
+            return false
+        }
+        if lhs.listsFontSize != rhs.listsFontSize {
             return false
         }
         return true
@@ -3644,6 +3670,8 @@ private final class LiveStreamPerkComponent: Component {
         }
         
         func update(component: LiveStreamPerkComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let semibold20 = Font.semibold(floor(component.listsFontSize * 20.0 / 17.0))
+            let regular11 = Font.regular(floor(component.listsFontSize * 11.0 / 17.0))
             let backgroundFrame = CGRect(origin: CGPoint(), size: availableSize)
             let _ = self.background.update(
                 transition: transition,
@@ -3665,7 +3693,7 @@ private final class LiveStreamPerkComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(20.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: semibold20, textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: backgroundFrame.size
@@ -3674,7 +3702,7 @@ private final class LiveStreamPerkComponent: Component {
             let subtitleSize = self.subtitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.subtitle, font: Font.regular(11.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.subtitle, font: regular11, textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: backgroundFrame.size

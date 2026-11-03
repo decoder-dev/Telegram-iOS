@@ -1095,7 +1095,8 @@ public final class GiftStoreContentComponent: Component {
                     context: component.context,
                     theme: theme,
                     items: filterItems,
-                    selectedItemId: self.selectedFilterId
+                    selectedItemId: self.selectedFilterId,
+                    fontSize: fontSize
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - 10.0 * 2.0, height: 50.0)
@@ -1494,7 +1495,7 @@ final class GiftStoreScreenComponent: Component {
             let subtitleSize = self.subtitle.update(
                 transition: transition,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: effectiveCount == 0 ? environment.strings.Gift_Store_ForResaleNoResults :  environment.strings.Gift_Store_ForResale(effectiveCount), font: Font.regular(13.0), textColor: theme.rootController.navigationBar.secondaryTextColor)),
+                    text: .plain(NSAttributedString(string: effectiveCount == 0 ? environment.strings.Gift_Store_ForResaleNoResults :  environment.strings.Gift_Store_ForResale(effectiveCount), font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.rootController.navigationBar.secondaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 1
                 )),

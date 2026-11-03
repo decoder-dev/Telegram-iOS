@@ -894,6 +894,9 @@ final class QrStudioScreenComponent: Component {
         }
 
         private func showToast(_ icon: QrStudioToastIcon, _ text: String, action: QrStudioToast.Action? = nil) {
+            if let component = self.component {
+                self.toastView.fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            }
             if self.toastView.superview == nil {
                 if let component = self.component {
                     self.toastView.lottieSettings = component.context.lottieRenderingSettings

@@ -455,6 +455,7 @@ final class DataUsageScreenComponent: Component {
         
         func update(component: DataUsageScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: ComponentTransition) -> CGSize {
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             if self.component == nil {
                 if let controller = environment.controller() as? DataUsageScreen, let focusOnItemTag = controller.focusOnItemTag {
                     switch focusOnItemTag {
@@ -786,8 +787,8 @@ final class DataUsageScreenComponent: Component {
             
             contentHeight += 6.0
             
-            let body = MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor)
-            let bold = MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.freeTextColor)
+            let body = MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)
+            let bold = MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)
             
             let timestampString: String
             if let allStats = self.allStats, allStats.resetTimestamp != 0 {

@@ -13,6 +13,7 @@ import EmojiStatusComponent
 
 private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDelegate {
     private var theme: PresentationTheme
+    private var baseFontSize: CGFloat
     private let backgroundNode: ASImageNode
     private let textInputNode: EditableTextNode
     private let placeholderNode: ASTextNode
@@ -27,24 +28,29 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
     private let backgroundInsets = UIEdgeInsets(top: 8.0, left: 16.0, bottom: 15.0, right: 16.0)
     private let inputInsets: UIEdgeInsets
     
+    private var inputFont: UIFont {
+        Font.regular(floor(self.baseFontSize * 13.0 / 17.0))
+    }
+    
     var text: String {
         get {
             return self.textInputNode.attributedText?.string ?? ""
         }
         set {
-            self.textInputNode.attributedText = NSAttributedString(string: newValue, font: Font.regular(13.0), textColor: self.theme.actionSheet.inputTextColor)
+            self.textInputNode.attributedText = NSAttributedString(string: newValue, font: self.inputFont, textColor: self.theme.actionSheet.inputTextColor)
             self.placeholderNode.isHidden = !newValue.isEmpty
         }
     }
     
     var placeholder: String = "" {
         didSet {
-            self.placeholderNode.attributedText = NSAttributedString(string: self.placeholder, font: Font.regular(13.0), textColor: self.theme.actionSheet.inputPlaceholderColor)
+            self.placeholderNode.attributedText = NSAttributedString(string: self.placeholder, font: self.inputFont, textColor: self.theme.actionSheet.inputPlaceholderColor)
         }
     }
     
-    init(theme: PresentationTheme, placeholder: String, characterLimit: Int) {
+    init(theme: PresentationTheme, placeholder: String, characterLimit: Int, baseFontSize: CGFloat) {
         self.theme = theme
+        self.baseFontSize = baseFontSize
         self.characterLimit = characterLimit
         
         self.inputInsets = UIEdgeInsets(top: 9.0, left: 17.0, bottom: 9.0, right: 16.0)
@@ -56,7 +62,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 16.0, color: theme.actionSheet.inputHollowBackgroundColor, strokeColor: theme.actionSheet.inputBorderColor, strokeWidth: 1.0)
         
         self.textInputNode = EditableTextNode()
-        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(13.0), NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: self.inputFont, NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
         self.textInputNode.clipsToBounds = true
         self.textInputNode.hitTestSlop = UIEdgeInsets(top: -5.0, left: -5.0, bottom: -5.0, right: -5.0)
         self.textInputNode.textContainerInset = UIEdgeInsets(top: self.inputInsets.top, left: self.inputInsets.left, bottom: self.inputInsets.bottom, right: self.inputInsets.right)
@@ -70,7 +76,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         self.placeholderNode = ASTextNode()
         self.placeholderNode.isUserInteractionEnabled = false
         self.placeholderNode.displaysAsynchronously = false
-        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(13.0), textColor: self.theme.actionSheet.inputPlaceholderColor)
+        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: self.inputFont, textColor: self.theme.actionSheet.inputPlaceholderColor)
         
         super.init()
         
@@ -86,8 +92,18 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         
         self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 16.0, color: self.theme.actionSheet.inputHollowBackgroundColor, strokeColor: self.theme.actionSheet.inputBorderColor, strokeWidth: 1.0)
         self.textInputNode.keyboardAppearance = self.theme.rootController.keyboardColor.keyboardAppearance
-        self.placeholderNode.attributedText = NSAttributedString(string: self.placeholderNode.attributedText?.string ?? "", font: Font.regular(13.0), textColor: self.theme.actionSheet.inputPlaceholderColor)
+        self.placeholderNode.attributedText = NSAttributedString(string: self.placeholderNode.attributedText?.string ?? "", font: self.inputFont, textColor: self.theme.actionSheet.inputPlaceholderColor)
         self.textInputNode.tintColor = self.theme.actionSheet.controlAccentColor
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: self.inputFont, NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
+    }
+    
+    func updateBaseFontSize(_ baseFontSize: CGFloat) {
+        self.baseFontSize = baseFontSize
+        if let text = self.textInputNode.attributedText?.string {
+            self.textInputNode.attributedText = NSAttributedString(string: text, font: self.inputFont, textColor: self.theme.actionSheet.inputTextColor)
+        }
+        self.placeholderNode.attributedText = NSAttributedString(string: self.placeholder, font: self.inputFont, textColor: self.theme.actionSheet.inputPlaceholderColor)
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: self.inputFont, NSAttributedString.Key.foregroundColor.rawValue: self.theme.actionSheet.inputTextColor]
     }
     
     func updateLayout(width: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
@@ -123,7 +139,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         let characterLimitSize = self.characterLimitView.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: characterLimitString, font: Font.regular(13.0), textColor: characterLimitColor))
+                text: .plain(NSAttributedString(string: characterLimitString, font: self.inputFont, textColor: characterLimitColor))
             )),
             environment: {},
             containerSize: CGSize(width: 100.0, height: 100.0)
@@ -241,7 +257,7 @@ private final class SavedTagNameAlertContentNode: AlertContentNode {
         self.file = file
         self.titleFont = titleFont
         
-        self.inputFieldNode = PromptInputFieldNode(theme: ptheme, placeholder: strings.Chat_EditTagTitle_Placeholder, characterLimit: characterLimit)
+        self.inputFieldNode = PromptInputFieldNode(theme: ptheme, placeholder: strings.Chat_EditTagTitle_Placeholder, characterLimit: characterLimit, baseFontSize: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
         self.inputFieldNode.text = value ?? ""
         
         self.actionNodesSeparator = ASDisplayNode()
@@ -323,6 +339,10 @@ private final class SavedTagNameAlertContentNode: AlertContentNode {
         size.width = min(size.width, 270.0)
         let measureSize = CGSize(width: size.width - 16.0 * 2.0, height: CGFloat.greatestFiniteMagnitude)
         
+        let listsFontSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        self.inputFieldNode.updateBaseFontSize(listsFontSize)
+        let regular13 = Font.regular(floor(listsFontSize * 13.0 / 17.0))
+        
         let hadValidLayout = self.validLayout != nil
         
         self.validLayout = size
@@ -334,7 +354,7 @@ private final class SavedTagNameAlertContentNode: AlertContentNode {
         let textSize = self.textView.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: self.text, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: self.theme.primaryColor)),
+                text: .plain(NSAttributedString(string: self.text, font: Font.semibold(listsFontSize), textColor: self.theme.primaryColor)),
                 horizontalAlignment: .center,
                 maximumNumberOfLines: 0
             )),
@@ -353,7 +373,7 @@ private final class SavedTagNameAlertContentNode: AlertContentNode {
         let subtextSize = self.subtextView.update(
             transition: .immediate,
             component: AnyComponent(BalancedTextComponent(
-                text: .plain(NSAttributedString(string: self.subtext, font: Font.regular(13.0), textColor: self.theme.primaryColor)),
+                text: .plain(NSAttributedString(string: self.subtext, font: regular13, textColor: self.theme.primaryColor)),
                 horizontalAlignment: .center,
                 maximumNumberOfLines: 0
             )),
@@ -539,6 +559,7 @@ public func savedTagNameAlertController(context: AccountContext, updatedPresenta
     let presentationDataDisposable = (updatedPresentationData?.signal ?? context.sharedContext.presentationData).start(next: { [weak controller, weak contentNode] presentationData in
         controller?.theme = AlertControllerTheme(presentationData: presentationData)
         contentNode?.inputFieldNode.updateTheme(presentationData.theme)
+        contentNode?.inputFieldNode.updateBaseFontSize(presentationData.listsFontSize.baseDisplaySize)
     })
     controller.dismissed = { _ in
         presentationDataDisposable.dispose()

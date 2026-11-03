@@ -19,6 +19,7 @@ public final class InfoParagraphComponent: CombinedComponent {
     let iconName: String
     let iconColor: UIColor
     let badge: String?
+    let fontSize: CGFloat
     let action: () -> Void
     
     public init(
@@ -31,6 +32,7 @@ public final class InfoParagraphComponent: CombinedComponent {
         iconName: String,
         iconColor: UIColor,
         badge: String? = nil,
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void = {}
     ) {
         self.title = title
@@ -42,6 +44,7 @@ public final class InfoParagraphComponent: CombinedComponent {
         self.iconName = iconName
         self.iconColor = iconColor
         self.badge = badge
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -71,6 +74,9 @@ public final class InfoParagraphComponent: CombinedComponent {
             return false
         }
         if lhs.badge != rhs.badge {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -141,8 +147,8 @@ public final class InfoParagraphComponent: CombinedComponent {
                 }
             }
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(component.fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(component.fontSize * 15.0 / 17.0))
             let textColor = component.textColor
             let accentColor = component.accentColor
             let markdownAttributes = MarkdownAttributes(

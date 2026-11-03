@@ -93,7 +93,7 @@ private final class SheetContent: CombinedComponent {
             let textSideInset: CGFloat = 30.0 + environment.safeInsets.left
 
             let titleFont = Font.semibold(20.0)
-            let textFont = Font.regular(15.0)
+            let textFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0))
 
             let textColor = theme.actionSheet.primaryTextColor
             let secondaryTextColor = theme.actionSheet.secondaryTextColor
@@ -205,7 +205,8 @@ private final class SheetContent: CombinedComponent {
                             textColor: secondaryTextColor,
                             accentColor: linkColor,
                             iconName: "Ads/Privacy",
-                            iconColor: linkColor
+                            iconColor: linkColor,
+                            fontSize: presentationData.listsFontSize.baseDisplaySize
                         )
                     )
                 )
@@ -223,7 +224,8 @@ private final class SheetContent: CombinedComponent {
                                 textColor: secondaryTextColor,
                                 accentColor: linkColor,
                                 iconName: "Ads/Split",
-                                iconColor: linkColor
+                                iconColor: linkColor,
+                                fontSize: presentationData.listsFontSize.baseDisplaySize
                             )
                         )
                     )
@@ -241,6 +243,7 @@ private final class SheetContent: CombinedComponent {
                             accentColor: linkColor,
                             iconName: "Premium/BoostPerk/NoAds",
                             iconColor: linkColor,
+                            fontSize: presentationData.listsFontSize.baseDisplaySize,
                             action: {
                                 component.openPremium()
                             }
@@ -363,6 +366,7 @@ private final class ParagraphComponent: CombinedComponent {
     let accentColor: UIColor
     let iconName: String
     let iconColor: UIColor
+    let fontSize: CGFloat
     let action: () -> Void
 
     init(
@@ -373,6 +377,7 @@ private final class ParagraphComponent: CombinedComponent {
         accentColor: UIColor,
         iconName: String,
         iconColor: UIColor,
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void = {}
     ) {
         self.title = title
@@ -382,6 +387,7 @@ private final class ParagraphComponent: CombinedComponent {
         self.accentColor = accentColor
         self.iconName = iconName
         self.iconColor = iconColor
+        self.fontSize = fontSize
         self.action = action
     }
 
@@ -407,6 +413,9 @@ private final class ParagraphComponent: CombinedComponent {
         if lhs.iconColor != rhs.iconColor {
             return false
         }
+        if lhs.fontSize != rhs.fontSize {
+            return false
+        }
         return true
     }
 
@@ -429,7 +438,7 @@ private final class ParagraphComponent: CombinedComponent {
                     text: .plain(
                         NSAttributedString(
                             string: component.title,
-                            font: Font.semibold(15.0),
+                            font: Font.semibold(floor(component.fontSize * 15.0 / 17.0)),
                             textColor: component.titleColor,
                             paragraphAlignment: .natural
                         )
@@ -441,8 +450,8 @@ private final class ParagraphComponent: CombinedComponent {
                 transition: .immediate
             )
 
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(component.fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(component.fontSize * 15.0 / 17.0))
             let textColor = component.textColor
             let accentColor = component.accentColor
             let markdownAttributes = MarkdownAttributes(
