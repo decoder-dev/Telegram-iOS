@@ -129,7 +129,6 @@ private final class SendInviteLinkContentComponent: Component {
             let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = environment[EnvironmentType.self].value
             let theme = component.theme
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             self.component = component
             self.state = state
