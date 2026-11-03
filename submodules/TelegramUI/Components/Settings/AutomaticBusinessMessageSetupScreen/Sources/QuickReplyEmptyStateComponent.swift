@@ -143,7 +143,7 @@ final class QuickReplyEmptyStateComponent: Component {
             let textSize = self.text.update(
                 transition: .immediate,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.QuickReplies_EmptyState_Text, font: Font.regular(15.0), textColor: component.theme.list.itemSecondaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.strings.QuickReplies_EmptyState_Text, font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 20,
                     lineSpacing: 0.2

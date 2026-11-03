@@ -15,8 +15,9 @@ final class QrStudioCardComponent: Component {
     let isLight: Bool
     let bounceToken: String
     let fillSource: QrStudioThemeBackgroundView?
+    let fontSize: CGFloat
 
-    init(link: String, username: String?, expires: Int32?, reservesTimer: Bool, animatesLinkChange: Bool, ink: QrStudioColor, isLight: Bool, bounceToken: String, fillSource: QrStudioThemeBackgroundView?) {
+    init(link: String, username: String?, expires: Int32?, reservesTimer: Bool, animatesLinkChange: Bool, ink: QrStudioColor, isLight: Bool, bounceToken: String, fillSource: QrStudioThemeBackgroundView?, fontSize: CGFloat) {
         self.link = link
         self.username = username
         self.expires = expires
@@ -26,6 +27,7 @@ final class QrStudioCardComponent: Component {
         self.isLight = isLight
         self.bounceToken = bounceToken
         self.fillSource = fillSource
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: QrStudioCardComponent, rhs: QrStudioCardComponent) -> Bool {
@@ -54,6 +56,9 @@ final class QrStudioCardComponent: Component {
             return false
         }
         if lhs.fillSource !== rhs.fillSource {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true

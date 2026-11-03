@@ -133,6 +133,7 @@ final class PasskeysScreenIntroComponent: Component {
             let sideIconInset: CGFloat = 40.0
             let itemsSideInset: CGFloat = sideInset + 20.0
             let contentWidth: CGFloat = availableSize.width - component.insets.left - component.insets.right
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
 
             var contentHeight: CGFloat = 0.0
 
@@ -161,7 +162,7 @@ final class PasskeysScreenIntroComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.Passkeys_Into_Title, font: Font.bold(27.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.strings.Passkeys_Into_Title, font: Font.bold(floor(fontSize * 27.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0
                 )),
@@ -182,7 +183,7 @@ final class PasskeysScreenIntroComponent: Component {
             let subtitleSize = self.subtitle.update(
                 transition: .immediate,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.Passkeys_Subtitle, font: Font.regular(16.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.strings.Passkeys_Subtitle, font: Font.regular(floor(fontSize * 16.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.2
@@ -250,7 +251,7 @@ final class PasskeysScreenIntroComponent: Component {
                 let titleSize = item.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: itemDesc.title, font: Font.semibold(15.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: itemDesc.title, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor)),
                         maximumNumberOfLines: 0,
                         lineSpacing: 0.2
                     )),
@@ -260,7 +261,7 @@ final class PasskeysScreenIntroComponent: Component {
                 let textSize = item.text.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: itemDesc.text, font: Font.regular(15.0), textColor: component.theme.list.itemSecondaryTextColor)),
+                        text: .plain(NSAttributedString(string: itemDesc.text, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor)),
                         maximumNumberOfLines: 0,
                         lineSpacing: 0.18
                     )),
@@ -306,7 +307,7 @@ final class PasskeysScreenIntroComponent: Component {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Passkeys_ButtonCreate, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemCheckColors.foregroundColor))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Passkeys_ButtonCreate, font: Font.semibold(fontSize), textColor: component.theme.list.itemCheckColors.foregroundColor))))
                     ),
                     action: { [weak self] in
                         guard let self, let component = self.component else {
@@ -340,7 +341,7 @@ final class PasskeysScreenIntroComponent: Component {
                         ),
                         content: AnyComponentWithIdentity(
                             id: AnyHashable(0),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Passkeys_ButtonSkip, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemCheckColors.foregroundColor))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Passkeys_ButtonSkip, font: Font.semibold(fontSize), textColor: component.theme.list.itemCheckColors.foregroundColor))))
                         ),
                         action: { [weak self] in
                             guard let self, let component = self.component else {

@@ -582,6 +582,7 @@ private final class PeerWalletOverlayComponent: Component {
             }
             let cardHeightLimit = max(1.0, buttonTop - 24.0 - cardTopLimit)
             let cardWidth = min(430.0, max(1.0, contentWidth - 44.0), cardHeightLimit * 370.0 / 220.0)
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let cardSize = self.card.update(
                 transition: transition,
                 component: AnyComponent(WalletCardComponent(
@@ -590,6 +591,7 @@ private final class PeerWalletOverlayComponent: Component {
                     fiatCurrency: state.fiatCurrency,
                     fiatRate: state.fiatRate,
                     dateTimeFormat: environment.dateTimeFormat,
+                    fontSize: fontSize,
                     name: state.peer.debugDisplayTitle.uppercased(),
                     address: state.address ?? "",
                     isVisible: environment.isVisible,

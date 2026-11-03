@@ -109,11 +109,12 @@ private final class ChatRankInfoSheetContent: CombinedComponent {
             let strings = environment.strings
             
             let textSideInset: CGFloat = 30.0 + environment.safeInsets.left
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                                     
-            let titleFont = Font.bold(24.0)
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
-            let additionalTextFont = Font.regular(13.0)
+            let titleFont = Font.bold(floor(fontSize * 24.0 / 17.0))
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
+            let additionalTextFont = Font.regular(floor(fontSize * 13.0 / 17.0))
             let textColor = theme.actionSheet.primaryTextColor
             let secondaryTextColor = theme.actionSheet.secondaryTextColor
                         

@@ -228,6 +228,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
             let component = context.component
             let theme = environment.theme
             let strings = environment.strings
+            let presentationData = component.sharedContext.currentPresentationData.with { $0 }
             let state = context.state
             if state.controller == nil {
                 state.controller = environment.controller() as? ProxyServerPreviewScreen
@@ -270,7 +271,8 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                 transition: .immediate
             )
     
-            let tableFont = Font.regular(15.0)
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
+            let tableFont = Font.regular(floor(fontSize * 15.0 / 17.0))
             let tableTextColor = theme.list.itemPrimaryTextColor
             let tableLinkColor = theme.list.itemAccentColor
             var tableItems: [TableComponent.Item] = []
@@ -307,7 +309,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                 id: "type-description",
                 title: "",
                 component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: typeDescription, font: Font.regular(13.0), textColor: theme.list.itemSecondaryTextColor)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: typeDescription, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor)))
                 )
             ))
             // For VLESS, surface the protocol details parsed from the share link
@@ -356,7 +358,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                         id: "vless-insecure",
                         title: "",
                         component: AnyComponent(
-                            MultilineTextComponent(text: .plain(NSAttributedString(string: warning, font: Font.regular(13.0), textColor: environment.theme.list.itemDestructiveColor)), maximumNumberOfLines: 0)
+                            MultilineTextComponent(text: .plain(NSAttributedString(string: warning, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemDestructiveColor)), maximumNumberOfLines: 0)
                         )
                     ))
                 }

@@ -45,6 +45,7 @@ public final class WalletCardComponent: Component {
     public let fiatCurrency: WalletContext.FiatCurrency
     public let fiatRate: WalletContext.FiatRate?
     public let dateTimeFormat: PresentationDateTimeFormat
+    public let fontSize: CGFloat
     public let name: String
     public let address: String
     public let isVisible: Bool
@@ -57,6 +58,7 @@ public final class WalletCardComponent: Component {
         fiatCurrency: WalletContext.FiatCurrency,
         fiatRate: WalletContext.FiatRate?,
         dateTimeFormat: PresentationDateTimeFormat,
+        fontSize: CGFloat,
         name: String,
         address: String,
         isVisible: Bool,
@@ -68,6 +70,7 @@ public final class WalletCardComponent: Component {
         self.fiatCurrency = fiatCurrency
         self.fiatRate = fiatRate
         self.dateTimeFormat = dateTimeFormat
+        self.fontSize = fontSize
         self.name = name
         self.address = address
         self.isVisible = isVisible
@@ -86,6 +89,9 @@ public final class WalletCardComponent: Component {
             return false
         }
         if lhs.dateTimeFormat != rhs.dateTimeFormat {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.name != rhs.name {
@@ -908,20 +914,21 @@ public final class WalletCardComponent: Component {
             )
             self.qrFrame = qrFrame
             let balanceRightEdge = qrFrame.minX - 10.0 * scale
+            let fontSize = component.fontSize
             let integralFont = Font.with(
-                size: 22.0 * scale,
+                size: floor(fontSize * 22.0 / 17.0) * scale,
                 design: .round,
                 weight: .semibold,
                 traits: .monospacedNumbers
             )
             let fractionalFont = Font.with(
-                size: 18.0 * scale,
+                size: floor(fontSize * 18.0 / 17.0) * scale,
                 design: .round,
                 weight: .semibold,
                 traits: .monospacedNumbers
             )
             let currencyFont = Font.with(
-                size: 22.0 * scale,
+                size: floor(fontSize * 22.0 / 17.0) * scale,
                 design: .round,
                 weight: .semibold
             )
@@ -1074,7 +1081,7 @@ public final class WalletCardComponent: Component {
                 transition: transition,
                 component: AnyComponent(AnimatedTextComponent(
                     font: Font.with(
-                        size: 14.0 * scale,
+                        size: floor(fontSize * 14.0 / 17.0) * scale,
                         design: .round,
                         weight: .semibold,
                         traits: .monospacedNumbers
@@ -1177,7 +1184,7 @@ public final class WalletCardComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.name,
-                        font: Font.with(size: 14.0 * scale, design: .monospace, weight: .semibold),
+                        font: Font.with(size: floor(fontSize * 14.0 / 17.0) * scale, design: .monospace, weight: .semibold),
                         textColor: mainColor
                     )),
                     maximumNumberOfLines: 1
@@ -1215,7 +1222,7 @@ public final class WalletCardComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: addressText.uppercased(),
-                        font: Font.monospace(11.0 * scale),
+                        font: Font.monospace(floor(fontSize * 11.0 / 17.0) * scale),
                         textColor: UIColor(rgb: 0xffffff, alpha: 0.1)
                     )),
                     maximumNumberOfLines: 2,
@@ -1229,7 +1236,7 @@ public final class WalletCardComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: addressText.uppercased(),
-                        font: Font.monospace(11.0 * scale),
+                        font: Font.monospace(floor(fontSize * 11.0 / 17.0) * scale),
                         textColor: self.giftAddressColor
                     )),
                     maximumNumberOfLines: 2,

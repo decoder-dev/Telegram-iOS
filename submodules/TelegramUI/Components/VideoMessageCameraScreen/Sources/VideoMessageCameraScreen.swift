@@ -114,7 +114,7 @@ private final class RoundVideoZoomDialView: UIView {
 
     private let valueLabel = UILabel()
     private let fadeMaskLayer = CAGradientLayer()
-    private let labelFont = Font.with(size: 11.0, design: .round, weight: .medium)
+    private var labelFont = Font.with(size: 11.0, design: .round, weight: .medium)
     private var labels: [Label] = []
 
     private var lensValues: [CGFloat] = []
@@ -133,7 +133,6 @@ private final class RoundVideoZoomDialView: UIView {
         self.contentMode = .redraw
 
         // Monospaced digits, so the centered value doesn't wobble sideways as it changes.
-        self.valueLabel.font = Font.with(size: 13.0, design: .round, weight: .semibold, traits: .monospacedNumbers)
         self.valueLabel.textAlignment = .center
         self.addSubview(self.valueLabel)
 
@@ -149,8 +148,10 @@ private final class RoundVideoZoomDialView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func update(lensValues: [CGFloat], minimumValue: CGFloat, maximumValue: CGFloat, value: CGFloat, decimalSeparator: String, controlColor: UIColor, accentColor: UIColor) {
-        let labelsChanged = self.lensValues != lensValues || self.minimumValue != minimumValue || self.maximumValue != maximumValue || self.decimalSeparator != decimalSeparator
+    func update(lensValues: [CGFloat], minimumValue: CGFloat, maximumValue: CGFloat, value: CGFloat, decimalSeparator: String, controlColor: UIColor, accentColor: UIColor, fontSize: CGFloat) {
+        let nextLabelFont = Font.with(size: floor(fontSize * 11.0 / 17.0), design: .round, weight: .medium)
+        let nextValueFont = Font.with(size: floor(fontSize * 13.0 / 17.0), design: .round, weight: .semibold, traits: .monospacedNumbers)
+        let labelsChanged = self.lensValues != lensValues || self.minimumValue != minimumValue || self.maximumValue != maximumValue || self.decimalSeparator != decimalSeparator || self.labelFont.pointSize != nextLabelFont.pointSize
         var changed = labelsChanged || self.value != value
         changed = changed || !self.controlColor.isEqual(controlColor) || !self.accentColor.isEqual(accentColor)
         self.lensValues = lensValues
@@ -160,6 +161,8 @@ private final class RoundVideoZoomDialView: UIView {
         self.decimalSeparator = decimalSeparator
         self.controlColor = controlColor
         self.accentColor = accentColor
+        self.labelFont = nextLabelFont
+        self.valueLabel.font = nextValueFont
         self.valueLabel.text = roundVideoZoomTitle(value, decimalSeparator: decimalSeparator)
         self.valueLabel.textColor = accentColor
         if labelsChanged {
@@ -266,8 +269,8 @@ private final class RoundVideoZoomControl: UIView {
     private var buttonValues: [CGFloat] = []
     // The other lenses get a smaller font rather than a scaled-down button, which would shrink their touch area too.
     // Monospaced digits keep the live value from wobbling sideways.
-    private let activeButtonFont = Font.with(size: 13.0, design: .round, weight: .semibold, traits: .monospacedNumbers)
-    private let inactiveButtonFont = Font.with(size: 12.0, design: .round, weight: .semibold)
+    private var activeButtonFont = Font.with(size: 13.0, design: .round, weight: .semibold, traits: .monospacedNumbers)
+    private var inactiveButtonFont = Font.with(size: 12.0, design: .round, weight: .semibold)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -303,13 +306,15 @@ private final class RoundVideoZoomControl: UIView {
         }
     }
 
-    func update(buttonValues: [CGFloat], lensValues: [CGFloat], minimumValue: CGFloat, maximumValue: CGFloat, value: CGFloat, isExpanded: Bool, theme: PresentationTheme, decimalSeparator: String, transition: ComponentTransition) {
+    func update(buttonValues: [CGFloat], lensValues: [CGFloat], minimumValue: CGFloat, maximumValue: CGFloat, value: CGFloat, isExpanded: Bool, theme: PresentationTheme, decimalSeparator: String, fontSize: CGFloat, transition: ComponentTransition) {
         let controlColor = theme.chat.inputPanel.panelControlColor
         let accentColor = theme.chat.inputPanel.panelControlAccentColor
         let buttonSize: CGFloat = 34.0
         let buttonSpacing: CGFloat = 2.0
         let buttonInset: CGFloat = 3.0
         let collapsedHeight: CGFloat = 40.0
+        self.activeButtonFont = Font.with(size: floor(fontSize * 13.0 / 17.0), design: .round, weight: .semibold, traits: .monospacedNumbers)
+        self.inactiveButtonFont = Font.with(size: floor(fontSize * 12.0 / 17.0), design: .round, weight: .semibold)
 
         if self.buttonValues != buttonValues {
             self.buttonValues = buttonValues
@@ -362,7 +367,7 @@ private final class RoundVideoZoomControl: UIView {
             transition.setBackgroundColor(view: button, color: controlColor.withAlphaComponent(isActive ? 0.15 : 0.0))
         }
 
-        self.dialView.update(lensValues: lensValues, minimumValue: minimumValue, maximumValue: maximumValue, value: value, decimalSeparator: decimalSeparator, controlColor: controlColor, accentColor: accentColor)
+        self.dialView.update(lensValues: lensValues, minimumValue: minimumValue, maximumValue: maximumValue, value: value, decimalSeparator: decimalSeparator, controlColor: controlColor, accentColor: accentColor, fontSize: fontSize)
     }
 }
 
@@ -1853,6 +1858,7 @@ public class VideoMessageCameraScreen: ViewController {
                 isExpanded: self.zoomControlsExpanded,
                 theme: self.presentationData.theme,
                 decimalSeparator: decimalSeparator,
+                fontSize: self.presentationData.listsFontSize.baseDisplaySize,
                 transition: transition
             )
             // The zoom range comes in after the screen is already up, so the strip fades in instead of popping up.

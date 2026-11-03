@@ -3359,6 +3359,7 @@ private final class WalletScreenComponent: Component {
                     fiatCurrency: fiatCurrency,
                     fiatRate: fiatRate,
                     dateTimeFormat: environment.dateTimeFormat,
+                    fontSize: fontSize,
                     name: self.accountName,
                     address: walletAddress ?? "",
                     isVisible: environment.isVisible,

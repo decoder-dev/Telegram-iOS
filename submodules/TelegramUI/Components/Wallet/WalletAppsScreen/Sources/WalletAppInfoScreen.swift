@@ -49,6 +49,7 @@ private final class WalletAppInfoContentComponent: CombinedComponent {
             let component = context.component
             let environment = context.environment[EnvironmentType.self].value
             let theme = environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let contentWidth = max(1.0, context.availableSize.width - environment.safeInsets.left - environment.safeInsets.right)
             let centerX = environment.safeInsets.left + contentWidth / 2.0
             let textWidth = max(1.0, contentWidth - 48.0)
@@ -68,7 +69,7 @@ private final class WalletAppInfoContentComponent: CombinedComponent {
 
             let title = title.update(
                 component: BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: component.manifest.name, font: Font.bold(22.0), textColor: theme.actionSheet.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.manifest.name, font: Font.bold(floor(fontSize * 22.0 / 17.0)), textColor: theme.actionSheet.primaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0
                 ),
@@ -82,7 +83,7 @@ private final class WalletAppInfoContentComponent: CombinedComponent {
                 component: ButtonComponent(
                     background: ButtonComponent.Background(color: .clear, foreground: theme.actionSheet.controlAccentColor, pressedColor: .clear),
                     content: AnyComponentWithIdentity(id: "domain", component: AnyComponent(BalancedTextComponent(
-                        text: .plain(NSAttributedString(string: component.manifest.domain, font: Font.semibold(15.0), textColor: theme.actionSheet.controlAccentColor)),
+                        text: .plain(NSAttributedString(string: component.manifest.domain, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: theme.actionSheet.controlAccentColor)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 2
                     ))),
@@ -111,7 +112,7 @@ private final class WalletAppInfoContentComponent: CombinedComponent {
 
             let description = description.update(
                 component: BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: environment.strings.Wallet_Apps_Permissions, font: Font.regular(15.0), textColor: theme.actionSheet.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: environment.strings.Wallet_Apps_Permissions, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.actionSheet.primaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.2
@@ -134,7 +135,7 @@ private final class WalletAppInfoContentComponent: CombinedComponent {
                     ),
                     content: AnyComponentWithIdentity(id: "disconnect", component: AnyComponent(Text(
                         text: environment.strings.Wallet_Apps_Disconnect,
-                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
+                        font: Font.semibold(fontSize),
                         color: theme.list.itemCheckColors.foregroundColor
                     ))),
                     isEnabled: !component.isDisconnecting,

@@ -289,7 +289,6 @@ private final class WalletConnectSheetContent: CombinedComponent {
         let closeButton = Child(GlassBarButtonComponent.self)
 
         return { context in
-            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let component = context.component
             let state = context.state
             let environment = context.environment[EnvironmentType.self].value
@@ -417,6 +416,7 @@ private final class WalletConnectSheetContent: CombinedComponent {
                     fiatCurrency: fiatCurrency,
                     fiatRate: fiatRate,
                     dateTimeFormat: environment.dateTimeFormat,
+                    fontSize: fontSize,
                     name: state.accountName,
                     address: walletInfo?.address ?? "",
                     isVisible: environment.isVisible,

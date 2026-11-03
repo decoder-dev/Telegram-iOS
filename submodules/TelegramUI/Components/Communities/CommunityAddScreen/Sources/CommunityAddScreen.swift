@@ -122,13 +122,14 @@ private final class CommunityAddPeerItemComponent: Component {
 
             let textLeft = 16.0 + avatarSize.width + 16.0
             let textWidth = max(1.0, availableSize.width - textLeft - 16.0)
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
 
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.peer.compactDisplayTitle,
-                        font: Font.semibold(18.0),
+                        font: Font.semibold(floor(fontSize * 18.0 / 17.0)),
                         textColor: component.theme.list.itemPrimaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -144,7 +145,7 @@ private final class CommunityAddPeerItemComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: component.strings.Conversation_StatusMembers(memberCount),
-                            font: Font.regular(15.0),
+                            font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                             textColor: component.theme.list.itemSecondaryTextColor
                         )),
                         maximumNumberOfLines: 1
@@ -278,7 +279,7 @@ private final class CommunityAddContentComponent: Component {
                     AnyComponentWithIdentity(id: "subtitle", component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: subtitle,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)),
                             textColor: theme.list.itemSecondaryTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -411,7 +412,7 @@ private final class CommunityAddContentComponent: Component {
                     footer: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.Community_Add_VisibilityInfo,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)),
                             textColor: theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0

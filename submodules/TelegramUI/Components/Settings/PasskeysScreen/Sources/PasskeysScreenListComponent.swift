@@ -123,7 +123,9 @@ final class PasskeysScreenListComponent: Component {
             let sideInset: CGFloat = 16.0 + component.insets.left
             let rightSideInset: CGFloat = 16.0 + component.insets.right
             let bandCenterX: CGFloat = component.insets.left + (availableSize.width - component.insets.left - component.insets.right) * 0.5
-            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.itemListBaseFontSize
+            let listsFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize
+            let listFontSize = listsFontSize.itemListBaseFontSize
+            let fontSize = listsFontSize.baseDisplaySize
 
             var contentHeight: CGFloat = 0.0
             contentHeight += component.insets.top
@@ -154,7 +156,7 @@ final class PasskeysScreenListComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.Passkeys_Title, font: Font.bold(27.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.strings.Passkeys_Title, font: Font.bold(floor(fontSize * 27.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0
                 )),
@@ -175,7 +177,7 @@ final class PasskeysScreenListComponent: Component {
             let subtitleSize = self.subtitle.update(
                 transition: .immediate,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.Passkeys_Subtitle, font: Font.regular(16.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.strings.Passkeys_Subtitle, font: Font.regular(floor(fontSize * 16.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.2
@@ -257,7 +259,7 @@ final class PasskeysScreenListComponent: Component {
                         AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: subtitleString,
-                                font: Font.regular(14.0),
+                                font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                                 textColor: component.theme.list.itemSecondaryTextColor
                             )),
                             maximumNumberOfLines: 1
@@ -321,7 +323,7 @@ final class PasskeysScreenListComponent: Component {
                     footer: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: component.strings.Passkeys_ListFooter,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: component.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0

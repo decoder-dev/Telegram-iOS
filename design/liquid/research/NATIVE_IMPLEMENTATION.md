@@ -371,3 +371,7 @@ StoryAuthorInfo/LiveChat/Footer, GiftItem badges/labels, GiftRemove/Move/Offer/P
 ## Auth phone confirm, Call status bar, chat nav badges
 
 PhoneConfirmationController принимает listsFontSize (исправлен отсутствующий sharedContext). CallStatusBar subtitle fonts от listsFontSize. ChatHistoryNavigation badge — `listsFontSizeBase` из chat fontSize. Dead GlobalAutoremoveHeader titleFont удалён. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Passkeys, RankInfo, Proxy, Community, Wallet panes
+
+Passkeys intro/list, ChatRankInfo, ProxyServerPreview table, CommunityAdd peer/visibility, PeerInfo story pane, VideoMessageCamera labels, Wallet card/app info/connect/screen/peer wallet — Dynamic Type от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.

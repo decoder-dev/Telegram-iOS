@@ -161,13 +161,13 @@ private struct Month: Equatable {
     }
 }
 
-private let durationFont: UIFont = {
-    Font.semibold(11.0)
-}()
+private func durationFont(fontSize: CGFloat) -> UIFont {
+    Font.semibold(floor(fontSize * 11.0 / 17.0))
+}
 
-private let avatarFont: UIFont = {
-    avatarPlaceholderFont(size: 10.0)
-}()
+private func avatarFont(fontSize: CGFloat) -> UIFont {
+    avatarPlaceholderFont(size: floor(fontSize * 10.0 / 17.0))
+}
 
 private let minDurationImage: UIImage = {
     let image = generateImage(CGSize(width: 20.0, height: 20.0), rotatedContext: { size, context in
@@ -342,7 +342,7 @@ private final class DurationLayer: SimpleLayer {
         return nullAction
     }
     
-    func update(viewCount: Int32, isMin: Bool) {
+    func update(viewCount: Int32, isMin: Bool, fontSize: CGFloat) {
         if isMin {
             self.contents = nil
         } else {
@@ -354,7 +354,7 @@ private final class DurationLayer: SimpleLayer {
             } else {
                 countString = "\(viewCount)"
             }
-            let string = NSAttributedString(string: countString, font: durationFont, textColor: .white)
+            let string = NSAttributedString(string: countString, font: durationFont(fontSize: fontSize), textColor: .white)
             let bounds = string.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
             let textSize = CGSize(width: ceil(bounds.width), height: ceil(bounds.height))
             let sideInset: CGFloat = 6.0
@@ -455,7 +455,7 @@ private final class DurationLayer: SimpleLayer {
         avatarLayer.contents = other.avatarLayer?.contents
     }
     
-    func update(directMediaImageCache: DirectMediaImageCache, author: EnginePeer, constrainedWidth: CGFloat, synchronous: SparseItemGrid.Synchronous) {
+    func update(directMediaImageCache: DirectMediaImageCache, author: EnginePeer, constrainedWidth: CGFloat, synchronous: SparseItemGrid.Synchronous, fontSize: CGFloat) {
         let avatarLayer: SimpleLayer
         if let current = self.avatarLayer {
             avatarLayer = current
@@ -470,7 +470,7 @@ private final class DurationLayer: SimpleLayer {
         }
         
         if self.authorPeerId != author.id {
-            let string = NSAttributedString(string: author.debugDisplayTitle, font: durationFont, textColor: .white)
+            let string = NSAttributedString(string: author.debugDisplayTitle, font: durationFont(fontSize: fontSize), textColor: .white)
             let bounds = string.boundingRect(with: CGSize(width: constrainedWidth - 24.0, height: 20.0), options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], context: nil)
             let textSize = CGSize(width: ceil(bounds.width), height: ceil(bounds.height))
             let sideInset: CGFloat = 6.0
@@ -510,7 +510,7 @@ private final class DurationLayer: SimpleLayer {
                 self.avatarLayer?.contents = generateImage(CGSize(width: 24.0, height: 24.0), rotatedContext: { size, context in
                     context.clear(CGRect(origin: CGPoint(), size: size))
                     
-                    drawPeerAvatarLetters(context: context, size: size, font: avatarFont, letters: author.displayLetters, peerId: author.id, nameColor: author.nameColor)
+                    drawPeerAvatarLetters(context: context, size: size, font: avatarFont(fontSize: fontSize), letters: author.displayLetters, peerId: author.id, nameColor: author.nameColor)
                 })?.cgImage
             }
         }
