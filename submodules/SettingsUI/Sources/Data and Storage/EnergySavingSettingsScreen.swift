@@ -193,6 +193,7 @@ private enum EnergeSavingSettingsScreenEntry: ItemListNodeEntry {
                 systemStyle: .glass,
                 theme: presentationData.theme,
                 strings: presentationData.strings,
+                listFontSize: presentationData.fontSize.baseDisplaySize,
                 value: value,
                 sectionId: self.section,
                 updated: { value in

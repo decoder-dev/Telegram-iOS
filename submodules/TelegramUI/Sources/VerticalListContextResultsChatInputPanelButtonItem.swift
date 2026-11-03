@@ -141,7 +141,7 @@ final class VerticalListContextResultsChatInputPanelButtonItemNode: ListViewItem
             let titleFont: UIFont
             switch item.style {
             case .regular:
-                titleFont = Font.regular(15.0)
+                titleFont = Font.regular(floor(item.titleFontSize * 15.0 / 17.0))
             case .round:
                 titleFont = Font.regular(item.titleFontSize)
             }

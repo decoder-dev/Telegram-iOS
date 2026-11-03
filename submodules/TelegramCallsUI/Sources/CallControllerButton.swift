@@ -7,8 +7,6 @@ import AppBundle
 import SemanticStatusNode
 import AnimationUI
 
-private let labelFont = Font.regular(13.0)
-
 final class CallControllerButtonItemNode: HighlightTrackingButtonNode {
     struct Content: Equatable {
         enum Appearance: Equatable {
@@ -77,6 +75,7 @@ final class CallControllerButtonItemNode: HighlightTrackingButtonNode {
     private var size: CGSize?
     private(set) var currentContent: Content?
     private(set) var currentText: String = ""
+    private var currentLabelFontSize: CGFloat = 13.0
     
     init(largeButtonSize: CGFloat = 72.0) {
         self.largeButtonSize = largeButtonSize
@@ -139,10 +138,11 @@ final class CallControllerButtonItemNode: HighlightTrackingButtonNode {
         self.wrapperNode.frame = self.bounds
     }
     
-    func update(size: CGSize, content: Content, text: String, transition: ContainedViewLayoutTransition) {
+    func update(size: CGSize, content: Content, text: String, transition: ContainedViewLayoutTransition, labelFontSize: CGFloat = 13.0) {
         let scaleFactor = size.width / self.largeButtonSize
         
         let isSmall = self.largeButtonSize > size.width
+        let resolvedLabelFontSize = max(11.0, labelFontSize)
         
         self.effectView.frame = CGRect(origin: CGPoint(), size: CGSize(width: self.largeButtonSize, height: self.largeButtonSize))
         self.contentBackgroundNode.frame = CGRect(origin: CGPoint(), size: CGSize(width: self.largeButtonSize, height: self.largeButtonSize))
@@ -385,8 +385,8 @@ final class CallControllerButtonItemNode: HighlightTrackingButtonNode {
             transition.updateTransformScale(node: animationNode, scale: isSmall ? 1.35 : 1.12)
         }
         
-        if self.currentText != text {
-            self.textNode.attributedText = NSAttributedString(string: text, font: labelFont, textColor: .white)
+        if self.currentText != text || abs(self.currentLabelFontSize - resolvedLabelFontSize) > .ulpOfOne {
+            self.textNode.attributedText = NSAttributedString(string: text, font: Font.regular(resolvedLabelFontSize), textColor: .white)
         }
         let textSize = self.textNode.updateLayout(CGSize(width: 150.0, height: 100.0))
         let textFrame = CGRect(origin: CGPoint(x: floor((size.width - textSize.width) / 2.0), y: size.height + (isSmall ? 5.0 : 8.0)), size: textSize)
@@ -399,5 +399,6 @@ final class CallControllerButtonItemNode: HighlightTrackingButtonNode {
             transition.updateFrameAdditiveToCenter(node: self.textNode, frame: textFrame)
         }
         self.currentText = text
+        self.currentLabelFontSize = resolvedLabelFontSize
     }
 }

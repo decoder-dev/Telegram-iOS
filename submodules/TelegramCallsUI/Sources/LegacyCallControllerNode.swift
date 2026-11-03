@@ -96,7 +96,7 @@ final class LegacyCallControllerNode: ASDisplayNode, CallControllerNodeProtocol 
         
         self.statusNode = LegacyCallControllerStatusNode()
         
-        self.buttonsNode = LegacyCallControllerButtonsNode(strings: self.presentationData.strings)
+        self.buttonsNode = LegacyCallControllerButtonsNode(strings: self.presentationData.strings, labelFontSize: floor(self.presentationData.listsFontSize.baseDisplaySize * 14.5 / 17.0))
         self.keyButtonNode = HighlightableButtonNode()
         
         super.init()
@@ -447,7 +447,7 @@ final class LegacyCallControllerNode: ASDisplayNode, CallControllerNodeProtocol 
                 if let _ = self?.keyPreviewNode {
                     self?.backPressed()
                 }
-            })
+            }, contentFontSize: self.presentationData.listsFontSize.baseDisplaySize)
             
             self.containerNode.insertSubnode(keyPreviewNode, belowSubnode: self.statusNode)
             self.keyPreviewNode = keyPreviewNode

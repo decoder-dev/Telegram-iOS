@@ -112,7 +112,7 @@ final class CallControllerButtonsNode: ASDisplayNode {
         super.init()
     }
     
-    func updateLayout(strings: PresentationStrings, mode: CallControllerButtonsMode, constrainedWidth: CGFloat, bottomInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
+    func updateLayout(strings: PresentationStrings, mode: CallControllerButtonsMode, constrainedWidth: CGFloat, bottomInset: CGFloat, transition: ContainedViewLayoutTransition, labelFontSize: CGFloat = 13.0) -> CGFloat {
         self.validLayout = (constrainedWidth, bottomInset)
         
         self.mode = mode
@@ -558,7 +558,7 @@ final class CallControllerButtonsNode: ASDisplayNode {
                 }
             }
             buttonTransition.updateFrame(node: buttonNode, frame: button.frame, delay: buttonDelay)
-            buttonNode.update(size: button.frame.size, content: buttonContent, text: buttonText, transition: buttonTransition)
+            buttonNode.update(size: button.frame.size, content: buttonContent, text: buttonText, transition: buttonTransition, labelFontSize: labelFontSize)
             buttonNode.accessibilityLabel = buttonAccessibilityLabel
             buttonNode.accessibilityValue = buttonAccessibilityValue
             buttonNode.accessibilityTraits = buttonAccessibilityTraits

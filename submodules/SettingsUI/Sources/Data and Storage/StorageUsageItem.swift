@@ -19,13 +19,15 @@ struct StorageUsageCategory: Equatable {
 final class StorageUsageItem: ListViewItem, ItemListItem {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let listFontSize: CGFloat
     let dateTimeFormat: PresentationDateTimeFormat
     let categories: [StorageUsageCategory]
     let sectionId: ItemListSectionId
     
-    init(theme: PresentationTheme, strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, categories: [StorageUsageCategory], sectionId: ItemListSectionId) {
+    init(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0, dateTimeFormat: PresentationDateTimeFormat, categories: [StorageUsageCategory], sectionId: ItemListSectionId) {
         self.theme = theme
         self.strings = strings
+        self.listFontSize = listFontSize
         self.dateTimeFormat = dateTimeFormat
         self.categories = categories
         self.sectionId = sectionId
@@ -187,8 +189,9 @@ private final class StorageUsageItemNode: ListViewItemNode {
                 let makeTextLayout = makeNodesLayout[i]
                 let category = item.categories[i]
                 
-                let attributedString = NSMutableAttributedString(string: category.title, font: Font.regular(14.0), textColor: item.theme.list.itemPrimaryTextColor, paragraphAlignment: .natural)
-                attributedString.append(NSAttributedString(string: " • \(dataSizeString(category.size, forceDecimal: true, formatting: DataSizeStringFormatting(strings: item.strings, decimalSeparator: item.dateTimeFormat.decimalSeparator)))", font: Font.bold(14.0), textColor: item.theme.list.itemPrimaryTextColor))
+                let categoryFontSize = floor(item.listFontSize * 14.0 / 17.0)
+                let attributedString = NSMutableAttributedString(string: category.title, font: Font.regular(categoryFontSize), textColor: item.theme.list.itemPrimaryTextColor, paragraphAlignment: .natural)
+                attributedString.append(NSAttributedString(string: " • \(dataSizeString(category.size, forceDecimal: true, formatting: DataSizeStringFormatting(strings: item.strings, decimalSeparator: item.dateTimeFormat.decimalSeparator)))", font: Font.bold(categoryFontSize), textColor: item.theme.list.itemPrimaryTextColor))
                 
                 let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: attributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.leftInset - params.rightInset - 60.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 

@@ -15,14 +15,16 @@ class EnergyUsageBatteryLevelItem: ListViewItem, ItemListItem {
     let systemStyle: ItemListSystemStyle
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let listFontSize: CGFloat
     let value: Int32
     let sectionId: ItemListSectionId
     let updated: (Int32) -> Void
     
-    init(systemStyle: ItemListSystemStyle = .legacy, theme: PresentationTheme, strings: PresentationStrings, value: Int32, sectionId: ItemListSectionId, updated: @escaping (Int32) -> Void) {
+    init(systemStyle: ItemListSystemStyle = .legacy, theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0, value: Int32, sectionId: ItemListSectionId, updated: @escaping (Int32) -> Void) {
         self.systemStyle = systemStyle
         self.theme = theme
         self.strings = strings
+        self.listFontSize = listFontSize
         self.value = value
         self.sectionId = sectionId
         self.updated = updated
@@ -192,8 +194,10 @@ class EnergyUsageBatteryLevelItemNode: ListViewItemNode {
                     strongSelf.topStripeNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: layoutSize.width, height: separatorHeight))
                     strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height + bottomStripeOffset), size: CGSize(width: layoutSize.width - bottomStripeInset - params.rightInset - separatorRightInset, height: separatorHeight))
                     
-                    strongSelf.leftTextNode.attributedText = NSAttributedString(string: item.strings.PowerSaving_BatteryLevelLimit_Off, font: Font.regular(13.0), textColor: item.theme.list.itemSecondaryTextColor)
-                    strongSelf.rightTextNode.attributedText = NSAttributedString(string: item.strings.PowerSaving_BatteryLevelLimit_On, font: Font.regular(13.0), textColor: item.theme.list.itemSecondaryTextColor)
+                    let secondaryFont = Font.regular(floor(item.listFontSize * 13.0 / 17.0))
+                    let primaryFont = Font.regular(floor(item.listFontSize * 16.0 / 17.0))
+                    strongSelf.leftTextNode.attributedText = NSAttributedString(string: item.strings.PowerSaving_BatteryLevelLimit_Off, font: secondaryFont, textColor: item.theme.list.itemSecondaryTextColor)
+                    strongSelf.rightTextNode.attributedText = NSAttributedString(string: item.strings.PowerSaving_BatteryLevelLimit_On, font: secondaryFont, textColor: item.theme.list.itemSecondaryTextColor)
                     
                     let centralText: String
                     let centralMeasureText: String
@@ -211,8 +215,8 @@ class EnergyUsageBatteryLevelItemNode: ListViewItemNode {
                         strongSelf.batteryBackgroundNode.isHidden = false
                     }
                     strongSelf.batteryForegroundNode.isHidden = strongSelf.batteryBackgroundNode.isHidden
-                    strongSelf.centerTextNode.attributedText = NSAttributedString(string: centralText, font: Font.regular(16.0), textColor: item.theme.list.itemPrimaryTextColor)
-                    strongSelf.centerMeasureTextNode.attributedText = NSAttributedString(string: centralMeasureText, font: Font.regular(16.0), textColor: item.theme.list.itemPrimaryTextColor)
+                    strongSelf.centerTextNode.attributedText = NSAttributedString(string: centralText, font: primaryFont, textColor: item.theme.list.itemPrimaryTextColor)
+                    strongSelf.centerMeasureTextNode.attributedText = NSAttributedString(string: centralMeasureText, font: primaryFont, textColor: item.theme.list.itemPrimaryTextColor)
                     
                     let leftTextSize = strongSelf.leftTextNode.updateLayout(CGSize(width: 100.0, height: 100.0))
                     let rightTextSize = strongSelf.rightTextNode.updateLayout(CGSize(width: 100.0, height: 100.0))

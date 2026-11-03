@@ -108,8 +108,6 @@ private func timestampLabelWidthForDuration(_ timestamp: Double) -> CGFloat {
     return size.width
 }
 
-private let descriptionFont = Font.regular(15.0)
-
 private func stringsForDisplayData(_ data: SharedMediaPlaybackDisplayData?, presentationData: PresentationData) -> (NSAttributedString?, NSAttributedString?, Bool, NSAttributedString?) {
     var titleString: NSAttributedString?
     var descriptionString: NSAttributedString?
@@ -130,7 +128,8 @@ private func stringsForDisplayData(_ data: SharedMediaPlaybackDisplayData?, pres
                 subtitleText = ""
         }
         
-        titleString = NSAttributedString(string: titleText, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemPrimaryTextColor)
+        let descriptionFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0))
+        titleString = NSAttributedString(string: titleText, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemPrimaryTextColor)
         descriptionString = NSAttributedString(string: subtitleText, font: descriptionFont, textColor: presentationData.theme.list.itemSecondaryTextColor)
     }
     

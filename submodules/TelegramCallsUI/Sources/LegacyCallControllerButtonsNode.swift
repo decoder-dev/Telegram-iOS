@@ -45,19 +45,19 @@ final class LegacyCallControllerButtonsNode: ASDisplayNode {
     var toggleVideo: (() -> Void)?
     var rotateCamera: (() -> Void)?
     
-    init(strings: PresentationStrings) {
-        self.acceptButton = LegacyCallControllerButtonNode(type: .accept, label: strings.Call_Accept)
+    init(strings: PresentationStrings, labelFontSize: CGFloat = 14.5) {
+        self.acceptButton = LegacyCallControllerButtonNode(type: .accept, label: strings.Call_Accept, labelFontSize: labelFontSize)
         self.acceptButton.alpha = 0.0
-        self.declineButton = LegacyCallControllerButtonNode(type: .end, label: strings.Call_Decline)
+        self.declineButton = LegacyCallControllerButtonNode(type: .end, label: strings.Call_Decline, labelFontSize: labelFontSize)
         self.declineButton.alpha = 0.0
         
-        self.muteButton = LegacyCallControllerButtonNode(type: .mute, label: nil)
+        self.muteButton = LegacyCallControllerButtonNode(type: .mute, label: nil, labelFontSize: labelFontSize)
         self.muteButton.alpha = 0.0
-        self.endButton = LegacyCallControllerButtonNode(type: .end, label: nil)
+        self.endButton = LegacyCallControllerButtonNode(type: .end, label: nil, labelFontSize: labelFontSize)
         self.endButton.alpha = 0.0
-        self.speakerButton = LegacyCallControllerButtonNode(type: .speaker, label: nil)
+        self.speakerButton = LegacyCallControllerButtonNode(type: .speaker, label: nil, labelFontSize: labelFontSize)
         self.speakerButton.alpha = 0.0
-        self.swichCameraButton = LegacyCallControllerButtonNode(type: .switchCamera, label: nil)
+        self.swichCameraButton = LegacyCallControllerButtonNode(type: .switchCamera, label: nil, labelFontSize: labelFontSize)
         self.swichCameraButton.alpha = 0.0
         
         super.init()

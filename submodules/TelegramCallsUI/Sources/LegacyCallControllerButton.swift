@@ -73,8 +73,6 @@ private let emptyStroke = UIColor(white: 1.0, alpha: 0.8)
 private let emptyHighlightedFill = UIColor(white: 1.0, alpha: 0.3)
 private let invertedFill = UIColor(white: 1.0, alpha: 1.0)
 
-private let labelFont = Font.regular(14.5)
-
 final class LegacyCallControllerButtonNode: HighlightTrackingButtonNode {
     private var type: LegacyCallControllerButtonType
     
@@ -85,7 +83,7 @@ final class LegacyCallControllerButtonNode: HighlightTrackingButtonNode {
     private let backgroundNode: ASImageNode
     private let labelNode: ASTextNode?
     
-    init(type: LegacyCallControllerButtonType, label: String?) {
+    init(type: LegacyCallControllerButtonType, label: String?, labelFontSize: CGFloat = 14.5) {
         self.type = type
         
         self.backgroundNode = ASImageNode()
@@ -95,7 +93,7 @@ final class LegacyCallControllerButtonNode: HighlightTrackingButtonNode {
         
         if let label = label {
             let labelNode = ASTextNode()
-            labelNode.attributedText = NSAttributedString(string: label, font: labelFont, textColor: .white)
+            labelNode.attributedText = NSAttributedString(string: label, font: Font.regular(labelFontSize), textColor: .white)
             self.labelNode = labelNode
         } else {
             self.labelNode = nil

@@ -109,12 +109,13 @@ final class ChangePhoneNumberControllerNode: ASDisplayNode {
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = false
         self.titleNode.displaysAsynchronously = false
-        self.titleNode.attributedText = NSAttributedString(string: self.presentationData.strings.ChangePhoneNumberNumber_NewNumber, font: Font.regular(14.0), textColor: self.presentationData.theme.list.sectionHeaderTextColor)
+        let secondaryFont = Font.regular(floor(self.presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0))
+        self.titleNode.attributedText = NSAttributedString(string: self.presentationData.strings.ChangePhoneNumberNumber_NewNumber, font: secondaryFont, textColor: self.presentationData.theme.list.sectionHeaderTextColor)
         
         self.noticeNode = ASTextNode()
         self.noticeNode.isUserInteractionEnabled = false
         self.noticeNode.displaysAsynchronously = false
-        self.noticeNode.attributedText = NSAttributedString(string: self.presentationData.strings.ChangePhoneNumberNumber_Help, font: Font.regular(14.0), textColor: self.presentationData.theme.list.freeTextColor)
+        self.noticeNode.attributedText = NSAttributedString(string: self.presentationData.strings.ChangePhoneNumberNumber_Help, font: secondaryFont, textColor: self.presentationData.theme.list.freeTextColor)
         
         self.countryButton = CountryButtonNode()
         self.countryButton.setBackgroundImage(generateCountryButtonBackground(color: self.presentationData.theme.list.itemBlocksBackgroundColor, strokeColor: self.presentationData.theme.list.itemBlocksSeparatorColor), for: [])

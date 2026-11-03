@@ -420,14 +420,15 @@ private final class RecentSessionSheetContent: CombinedComponent {
                 navigationController.pushViewController(peerInfoController)
             }
             
+            let subtitleFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0))
             switch component.subject {
             case let .session(session):
                 titleString = session.deviceModel
                 if session.isCurrent {
-                    subtitleText = .plain(NSAttributedString(string: strings.Presence_online, font: Font.regular(15.0), textColor: theme.actionSheet.controlAccentColor))
+                    subtitleText = .plain(NSAttributedString(string: strings.Presence_online, font: subtitleFont, textColor: theme.actionSheet.controlAccentColor))
                 } else {
                     let timestamp = Int32(CFAbsoluteTimeGetCurrent() + NSTimeIntervalSince1970)
-                    subtitleText = .plain(NSAttributedString(string: stringForRelativeActivityTimestamp(strings: strings, dateTimeFormat: presentationData.dateTimeFormat, relativeTimestamp: session.activityDate, relativeTo: timestamp), font: Font.regular(15.0), textColor: theme.actionSheet.secondaryTextColor))
+                    subtitleText = .plain(NSAttributedString(string: stringForRelativeActivityTimestamp(strings: strings, dateTimeFormat: presentationData.dateTimeFormat, relativeTimestamp: session.activityDate, relativeTo: timestamp), font: subtitleFont, textColor: theme.actionSheet.secondaryTextColor))
                 }
                 subtitleHighlightAction = nil
                 subtitleTapAction = nil
@@ -445,7 +446,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                 connectedBot = nil
             case let .website(website, peer):
                 titleString = peer?.compactDisplayTitle ?? ""
-                subtitleText = .plain(NSAttributedString(string: website.domain, font: Font.regular(15.0), textColor: theme.actionSheet.secondaryTextColor))
+                subtitleText = .plain(NSAttributedString(string: website.domain, font: subtitleFont, textColor: theme.actionSheet.secondaryTextColor))
                 subtitleHighlightAction = nil
                 subtitleTapAction = nil
                 
@@ -481,16 +482,16 @@ private final class RecentSessionSheetContent: CombinedComponent {
                 
                 let subtitleString = strings.RecentSession_ConnectedBot_Subtitle
                 if botUsername.isEmpty {
-                    subtitleText = .plain(NSAttributedString(string: subtitleString, font: Font.regular(15.0), textColor: theme.actionSheet.secondaryTextColor))
+                    subtitleText = .plain(NSAttributedString(string: subtitleString, font: subtitleFont, textColor: theme.actionSheet.secondaryTextColor))
                     subtitleHighlightAction = nil
                     subtitleTapAction = nil
                 } else {
                     subtitleText = .markdown(
                         text: "\(subtitleString)\n[\(botUsername)](peer)",
                         attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: theme.actionSheet.secondaryTextColor),
-                            bold: MarkdownAttributeSet(font: Font.regular(15.0), textColor: theme.actionSheet.secondaryTextColor),
-                            link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: theme.actionSheet.controlAccentColor),
+                            body: MarkdownAttributeSet(font: subtitleFont, textColor: theme.actionSheet.secondaryTextColor),
+                            bold: MarkdownAttributeSet(font: subtitleFont, textColor: theme.actionSheet.secondaryTextColor),
+                            link: MarkdownAttributeSet(font: subtitleFont, textColor: theme.actionSheet.controlAccentColor),
                             linkAttribute: { _ in
                                 return (TelegramTextAttributes.URL, "peer")
                             }

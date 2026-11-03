@@ -211,7 +211,7 @@ private enum SaveIncomingMediaEntry: ItemListNodeEntry {
         case let .videoSizeHeader(title):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: title, sectionId: self.section)
         case let .videoSize(decimalSeparator, text, size):
-            return AutodownloadSizeLimitItem(theme: presentationData.theme, strings: presentationData.strings, systemStyle: .glass, decimalSeparator: decimalSeparator, text: text, value: size, range: nil/*2 * 1024 * 1024 ..< (4 * 1024 * 1024 * 1024)*/, sectionId: self.section, updated: { value in
+            return AutodownloadSizeLimitItem(theme: presentationData.theme, listFontSize: presentationData.listsFontSize.baseDisplaySize, strings: presentationData.strings, systemStyle: .glass, decimalSeparator: decimalSeparator, text: text, value: size, range: nil/*2 * 1024 * 1024 ..< (4 * 1024 * 1024 * 1024)*/, sectionId: self.section, updated: { value in
                 arguments.updateMaximumVideoSize(value)
             }, tag: SaveIncomingMediaEntryTag.maxVideoSize)
         case let .videoInfo(text):

@@ -315,3 +315,7 @@ WebApp/Game/Browser/VideoChat/Counter/RecentActions titles, ChatList empty info,
 ## Sessions, notifications, proxy и attachment captions
 
 Notification category rows stacking label при крупном тексте; Recent Session/Website multiline; Account switcher min 44 pt; Proxy server height от measured layout; Attachment tab captions и Storage clear button — metrics. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Passcode, calls и storage chrome
+
+PasscodeSetup titles/subtitles на listsFontSize; PasscodeEntry title/subtitle Dynamic Type + Face/Touch ID через SF Symbols с bundle fallback и 44 pt hit; CallController/Legacy call button labels и KeyPreview info fonts масштабируются; RecentSession subtitle, ChangePhone headers, Autodownload/EnergyUsage/KeepMedia/DataUsage/MaximumCache/CalculatingCache/StorageUsage/BubbleRadius labels, Vertical context results, Overlay audio subtitle, Premium-required panel — metrics. Branding Liquid: 7 pass. Simulator NOT RUN.

@@ -28,13 +28,15 @@ private let keepMediaTimeoutValues: [Int32] = [
 final class KeepMediaDurationPickerItem: ListViewItem, ItemListItem {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let listFontSize: CGFloat
     let value: Int32
     let sectionId: ItemListSectionId
     let updated: (Int32) -> Void
     
-    init(theme: PresentationTheme, strings: PresentationStrings, value: Int32, sectionId: ItemListSectionId, updated: @escaping (Int32) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0, value: Int32, sectionId: ItemListSectionId, updated: @escaping (Int32) -> Void) {
         self.theme = theme
         self.strings = strings
+        self.listFontSize = listFontSize
         self.value = value
         self.sectionId = sectionId
         self.updated = updated
@@ -180,7 +182,8 @@ private final class KeepMediaDurationPickerItemNode: ListViewItemNode {
                                     
             for i in 0 ..< makeTextLayouts.count {
                 let makeTextLayout = makeTextLayouts[i]
-                let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: stringForKeepMediaTimeout(strings: item.strings, timeout: keepMediaTimeoutValues[i]), font: Font.regular(13.0), textColor: item.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
+                let secondaryFont = Font.regular(floor(item.listFontSize * 13.0 / 17.0))
+                let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: stringForKeepMediaTimeout(strings: item.strings, timeout: keepMediaTimeoutValues[i]), font: secondaryFont, textColor: item.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
                 textLayouts.append(textLayout)
                 textApplies.append(textApply)
             }

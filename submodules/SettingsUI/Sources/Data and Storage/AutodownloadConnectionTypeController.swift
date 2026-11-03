@@ -176,7 +176,7 @@ private enum AutodownloadMediaCategoryEntry: ItemListNodeEntry {
             case let .dataUsageHeader(_, text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
             case let .dataUsageItem(theme, strings, value, customPosition, enabled):
-                return AutodownloadDataUsagePickerItem(theme: theme, strings: strings, systemStyle: .glass, value: value, customPosition: customPosition, enabled: enabled, sectionId: self.section, updated: { preset in
+                return AutodownloadDataUsagePickerItem(theme: theme, strings: strings, listFontSize: presentationData.fontSize.baseDisplaySize, systemStyle: .glass, value: value, customPosition: customPosition, enabled: enabled, sectionId: self.section, updated: { preset in
                     arguments.changePreset(preset)
                 }, tag: AutodownloadMediaCategoryEntryTag.usage)
             case let .typesHeader(_, text):

@@ -19,10 +19,15 @@ private extension CGRect {
     }
 }
 
-private let titleFont = Font.regular(20.0)
-private let subtitleFont = Font.regular(15.0)
-
 final class PasscodeEntryControllerNode: ASDisplayNode {
+    private var titleFont: UIFont {
+        Font.regular(floor(self.presentationData.listsFontSize.baseDisplaySize * 20.0 / 17.0))
+    }
+    
+    private var subtitleFont: UIFont {
+        Font.regular(floor(self.presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0))
+    }
+    
     private let accountManager: AccountManager<TelegramAccountManagerTypes>
     private var presentationData: PresentationData
     private var theme: PresentationTheme
@@ -144,12 +149,22 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
         self.deleteButtonNode.accessibilityTraits = [.button]
         
         if let biometricsType = self.biometricsType {
+            let symbolConfiguration = UIImage.SymbolConfiguration(pointSize: 36.0, weight: .regular)
+            let biometricImage: UIImage?
             switch biometricsType {
                 case .touchId:
-                    self.biometricButtonNode.setImage(generateTintedImage(image: UIImage(bundleImageName: "Settings/PasscodeTouchId"), color: .white), for: .normal)
+                    biometricImage = UIImage(systemName: "touchid", withConfiguration: symbolConfiguration) ?? UIImage(bundleImageName: "Settings/PasscodeTouchId")
                 case .faceId:
-                    self.biometricButtonNode.setImage(generateTintedImage(image: UIImage(bundleImageName: "Settings/PasscodeFaceId"), color: .white), for: .normal)
+                    biometricImage = UIImage(systemName: "faceid", withConfiguration: symbolConfiguration) ?? UIImage(bundleImageName: "Settings/PasscodeFaceId")
             }
+            self.biometricButtonNode.setImage(generateTintedImage(image: biometricImage, color: .white), for: .normal)
+            switch biometricsType {
+                case .touchId:
+                    self.biometricButtonNode.accessibilityLabel = strings.PasscodeSettings_UnlockWithTouchId
+                case .faceId:
+                    self.biometricButtonNode.accessibilityLabel = strings.PasscodeSettings_UnlockWithFaceId
+            }
+            self.biometricButtonNode.accessibilityTraits = [.button]
         }
         
         self.addSubnode(self.coverNode)
@@ -663,21 +678,22 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
         transition.updateFrame(node: self.deleteButtonNode, frame: CGRect(origin: CGPoint(x: floor(keyboardFrame.maxX - keyboardButtonSize.width / 2.0 - deleteSize.width / 2.0), y: bottomButtonY), size: deleteSize))
         
         if let biometricIcon = self.biometricButtonNode.image(for: .normal) {
-            var biometricX = layout.safeInsets.left + floor((layoutSize.width - biometricIcon.size.width) / 2.0)
+            let biometricSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, biometricIcon.size.width), height: max(PresentationLayoutMetrics.minimumInteractiveSize, biometricIcon.size.height))
+            var biometricX = layout.safeInsets.left + floor((layoutSize.width - biometricSize.width) / 2.0)
             var biometricY: CGFloat = 0.0
             if isLandscape {
                 if bottomInset > 0 && keyboardHidden {
                     biometricX = cancelX + cancelSize.width + 64.0
                 }
-                biometricY = cancelY + floor((cancelSize.height - biometricIcon.size.height) / 2.0)
+                biometricY = cancelY + floor((cancelSize.height - biometricSize.height) / 2.0)
             } else {
                 if bottomInset > 0 && keyboardHidden {
-                    biometricY = inputFieldFrame.maxY + floor((layout.size.height - bottomInset - inputFieldFrame.maxY - biometricIcon.size.height) / 2.0)
+                    biometricY = inputFieldFrame.maxY + floor((layout.size.height - bottomInset - inputFieldFrame.maxY - biometricSize.height) / 2.0)
                 } else {
                     biometricY = keyboardFrame.maxY + passcodeLayout.keyboard.biometricsOffset
                 }
             }
-            transition.updateFrame(node: self.biometricButtonNode, frame: CGRect(origin: CGPoint(x: biometricX, y: biometricY), size: biometricIcon.size))
+            transition.updateFrame(node: self.biometricButtonNode, frame: CGRect(origin: CGPoint(x: biometricX, y: biometricY), size: biometricSize))
         }
     }
 }

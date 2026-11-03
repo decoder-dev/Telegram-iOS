@@ -16,14 +16,16 @@ final class VerticalListContextResultsChatInputPanelItem: ListViewItem {
 
     fileprivate let engine: TelegramEngine
     fileprivate let theme: PresentationTheme
+    fileprivate let fontSize: CGFloat
     fileprivate let result: ChatContextResult
     fileprivate let resultSelected: (ChatContextResult, ASDisplayNode, CGRect) -> Bool
 
     let selectable: Bool = true
 
-    public init(engine: TelegramEngine, theme: PresentationTheme, result: ChatContextResult, resultSelected: @escaping (ChatContextResult, ASDisplayNode, CGRect) -> Bool) {
+    public init(engine: TelegramEngine, theme: PresentationTheme, fontSize: CGFloat = 17.0, result: ChatContextResult, resultSelected: @escaping (ChatContextResult, ASDisplayNode, CGRect) -> Bool) {
         self.engine = engine
         self.theme = theme
+        self.fontSize = fontSize
         self.result = result
         self.resultSelected = resultSelected
     }
@@ -76,9 +78,6 @@ final class VerticalListContextResultsChatInputPanelItem: ListViewItem {
     }
 }
 
-private let titleFont = Font.medium(16.0)
-private let textFont = Font.regular(15.0)
-private let iconFont = Font.medium(25.0)
 private let iconTextBackgroundImage = generateStretchableFilledCircleImage(radius: 2.0, color: UIColor(rgb: 0xdfdfdf))
 
 final class VerticalListContextResultsChatInputPanelItemNode: ListViewItemNode {
@@ -159,6 +158,9 @@ final class VerticalListContextResultsChatInputPanelItemNode: ListViewItemNode {
             let rightInset: CGFloat = 10.0 + params.rightInset
             
             let applyIconTextBackgroundImage = iconTextBackgroundImage
+            let titleFont = Font.medium(floor(item.fontSize * 16.0 / 17.0))
+            let textFont = Font.regular(floor(item.fontSize * 15.0 / 17.0))
+            let iconFont = Font.medium(floor(item.fontSize * 25.0 / 17.0))
             
             var titleString: NSAttributedString?
             var textString: NSAttributedString?

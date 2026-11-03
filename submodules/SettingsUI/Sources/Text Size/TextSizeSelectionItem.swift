@@ -23,6 +23,7 @@ func bubbleRadiusFromSliderValue(_ value: CGFloat) -> Int {
 class BubbleSettingsRadiusItem: ListViewItem, ItemListItem {
     let accessibilityLabel: String
     let theme: PresentationTheme
+    let listFontSize: CGFloat
     let value: Int
     let disableLeadingInset: Bool
     let displayIcons: Bool
@@ -33,9 +34,10 @@ class BubbleSettingsRadiusItem: ListViewItem, ItemListItem {
     let updated: (Int) -> Void
     let tag: ItemListItemTag?
     
-    init(theme: PresentationTheme, accessibilityLabel: String, value: Int, enabled: Bool = true, disableLeadingInset: Bool = false, displayIcons: Bool = true, disableDecorations: Bool = false, force: Bool = false, sectionId: ItemListSectionId, updated: @escaping (Int) -> Void, tag: ItemListItemTag? = nil) {
+    init(theme: PresentationTheme, accessibilityLabel: String, listFontSize: CGFloat = 17.0, value: Int, enabled: Bool = true, disableLeadingInset: Bool = false, displayIcons: Bool = true, disableDecorations: Bool = false, force: Bool = false, sectionId: ItemListSectionId, updated: @escaping (Int) -> Void, tag: ItemListItemTag? = nil) {
         self.accessibilityLabel = accessibilityLabel
         self.theme = theme
+        self.listFontSize = listFontSize
         self.value = value
         self.enabled = enabled
         self.disableLeadingInset = disableLeadingInset
@@ -209,7 +211,7 @@ class BubbleSettingsRadiusItemNode: ListViewItemNode, ItemListItemNode {
                     strongSelf.accessibilityArea.accessibilityLabel = item.accessibilityLabel
                     strongSelf.accessibilityArea.accessibilityValue = "\(radius)"
                     strongSelf.accessibilityArea.frame = CGRect(origin: .zero, size: layoutSize)
-                    strongSelf.valueNode.attributedText = NSAttributedString(string: "\(radius)", font: Font.regular(16.0), textColor: item.theme.list.itemPrimaryTextColor)
+                    strongSelf.valueNode.attributedText = NSAttributedString(string: "\(radius)", font: Font.regular(floor(item.listFontSize * 16.0 / 17.0)), textColor: item.theme.list.itemPrimaryTextColor)
                     let valueSize = strongSelf.valueNode.measure(CGSize(width: 40.0, height: PresentationLayoutMetrics.minimumInteractiveSize))
                     strongSelf.valueNode.frame = CGRect(x: params.width - params.rightInset - PresentationLayoutMetrics.listHorizontalInset - valueSize.width, y: floor((60.0 - valueSize.height) / 2.0), width: valueSize.width, height: valueSize.height)
                     

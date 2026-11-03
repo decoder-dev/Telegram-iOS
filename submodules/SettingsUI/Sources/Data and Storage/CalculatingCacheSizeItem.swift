@@ -11,12 +11,14 @@ import ActivityIndicator
 final class CalculatingCacheSizeItem: ListViewItem, ItemListItem {
     let theme: PresentationTheme
     let title: String
+    let listFontSize: CGFloat
     let sectionId: ItemListSectionId
     let style: ItemListStyle
     
-    init(theme: PresentationTheme, title: String, sectionId: ItemListSectionId, style: ItemListStyle) {
+    init(theme: PresentationTheme, title: String, listFontSize: CGFloat = 17.0, sectionId: ItemListSectionId, style: ItemListStyle) {
         self.theme = theme
         self.title = title
+        self.listFontSize = listFontSize
         self.sectionId = sectionId
         self.style = style
     }
@@ -54,8 +56,6 @@ final class CalculatingCacheSizeItem: ListViewItem, ItemListItem {
         }
     }
 }
-
-private let titleFont = Font.regular(14.0)
 
 private final class CalculatingCacheSizeItemNode: ListViewItemNode {
     private let backgroundNode: ASDisplayNode
@@ -107,6 +107,7 @@ private final class CalculatingCacheSizeItemNode: ListViewItemNode {
                 updatedTheme = item.theme
             }
             
+            let titleFont = Font.regular(floor(item.listFontSize * 14.0 / 17.0))
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - params.leftInset - params.rightInset - 20.0, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             
             let contentSize: CGSize

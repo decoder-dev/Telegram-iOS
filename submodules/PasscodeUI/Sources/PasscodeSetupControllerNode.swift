@@ -329,9 +329,10 @@ final class PasscodeSetupControllerNode: ASDisplayNode {
                             self.wrapperNode.layer.animatePosition(from: CGPoint(x: -self.wrapperNode.bounds.width, y: 0.0), to: CGPoint(), duration: 0.25, additive: true)
                             
                             self.inputFieldNode.reset(animated: false)
-                            self.titleNode.attributedText = NSAttributedString(string: self.presentationData.strings.EnterPasscode_EnterNewPasscodeChange, font: Font.regular(16.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
+                            let labelFont = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
+                            self.titleNode.attributedText = NSAttributedString(string: self.presentationData.strings.EnterPasscode_EnterNewPasscodeChange, font: labelFont, textColor: self.presentationData.theme.list.itemPrimaryTextColor)
                             self.subtitleNode.isHidden = false
-                            self.subtitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.PasscodeSettings_DoNotMatch, font: Font.regular(16.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
+                            self.subtitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.PasscodeSettings_DoNotMatch, font: labelFont, textColor: self.presentationData.theme.list.itemPrimaryTextColor)
                             self.modeButtonNode.isHidden = false
                             self.modeButtonNode.isAccessibilityElement = true
                             
@@ -354,7 +355,7 @@ final class PasscodeSetupControllerNode: ASDisplayNode {
                         self.wrapperNode.layer.animatePosition(from: CGPoint(x: self.wrapperNode.bounds.width, y: 0.0), to: CGPoint(), duration: 0.25, additive: true)
                         
                         self.inputFieldNode.reset(animated: false)
-                        self.titleNode.attributedText = NSAttributedString(string: self.presentationData.strings.EnterPasscode_RepeatNewPasscode, font: Font.regular(16.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
+                        self.titleNode.attributedText = NSAttributedString(string: self.presentationData.strings.EnterPasscode_RepeatNewPasscode, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
                         self.subtitleNode.isHidden = true
                         self.modeButtonNode.isHidden = true
                         self.modeButtonNode.isAccessibilityElement = false
@@ -404,7 +405,7 @@ final class PasscodeSetupControllerNode: ASDisplayNode {
             self.view.endEditing(true)
         }
         if let message {
-            self.subtitleNode.attributedText = NSAttributedString(string: message, font: Font.regular(16.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
+            self.subtitleNode.attributedText = NSAttributedString(string: message, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
             self.subtitleNode.isHidden = message.isEmpty
             if let validLayout = self.validLayout {
                 self.containerLayoutUpdated(validLayout.0, navigationBarHeight: validLayout.1, transition: .immediate)

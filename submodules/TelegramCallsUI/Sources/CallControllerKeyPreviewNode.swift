@@ -5,9 +5,6 @@ import AsyncDisplayKit
 import SwiftSignalKit
 import LegacyComponents
 
-private let emojiFont = Font.regular(28.0)
-private let textFont = Font.regular(15.0)
-
 final class CallControllerKeyPreviewNode: ASDisplayNode {
     private let keyTextNode: ASTextNode
     private let infoTextNode: ASTextNode
@@ -16,7 +13,7 @@ final class CallControllerKeyPreviewNode: ASDisplayNode {
     
     private let dismiss: () -> Void
     
-    init(keyText: String, infoText: String, dismiss: @escaping () -> Void) {
+    init(keyText: String, infoText: String, dismiss: @escaping () -> Void, contentFontSize: CGFloat = 17.0) {
         self.keyTextNode = ASTextNode()
         self.keyTextNode.displaysAsynchronously = false
         self.infoTextNode = ASTextNode()
@@ -32,9 +29,11 @@ final class CallControllerKeyPreviewNode: ASDisplayNode {
         
         super.init()
         
-        self.keyTextNode.attributedText = NSAttributedString(string: keyText, attributes: [NSAttributedString.Key.font: Font.regular(58.0), NSAttributedString.Key.kern: 11.0 as NSNumber])
+        let keyFontSize = floor(contentFontSize * 58.0 / 17.0)
+        let infoFontSize = floor(contentFontSize * 14.0 / 17.0)
+        self.keyTextNode.attributedText = NSAttributedString(string: keyText, attributes: [NSAttributedString.Key.font: Font.regular(keyFontSize), NSAttributedString.Key.kern: 11.0 as NSNumber])
         
-        self.infoTextNode.attributedText = NSAttributedString(string: infoText, font: Font.regular(14.0), textColor: UIColor.white, paragraphAlignment: .center)
+        self.infoTextNode.attributedText = NSAttributedString(string: infoText, font: Font.regular(infoFontSize), textColor: UIColor.white, paragraphAlignment: .center)
         
         self.view.addSubview(self.effectView)
         self.addSubnode(self.keyTextNode)

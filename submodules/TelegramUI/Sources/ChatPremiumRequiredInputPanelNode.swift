@@ -16,8 +16,6 @@ import ComponentDisplayAdapters
 import AccountContext
 import GlassBackgroundComponent
 
-private let labelFont = Font.regular(15.0)
-
 final class ChatPremiumRequiredInputPanelNode: ChatInputPanelNode {
     private struct Params: Equatable {
         var width: CGFloat
@@ -112,22 +110,23 @@ final class ChatPremiumRequiredInputPanelNode: ChatInputPanelNode {
         let buttonTitle: String = params.interfaceState.strings.Chat_MessagingRestrictedPlaceholder(peerTitle).string
         let buttonSubtitle: String = params.interfaceState.strings.Chat_MessagingRestrictedPlaceholderAction
         
+        let panelFont = Font.regular(floor(params.interfaceState.fontSize.baseDisplaySize * 13.0 / 17.0))
         var buttonContents: [AnyComponentWithIdentity<Empty>] = []
         var tintContents: [AnyComponentWithIdentity<Empty>] = []
         buttonContents.append(AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
-            text: .plain(NSAttributedString(string: buttonTitle, font: Font.regular(13.0), textColor: params.interfaceState.theme.rootController.navigationBar.secondaryTextColor))
+            text: .plain(NSAttributedString(string: buttonTitle, font: panelFont, textColor: params.interfaceState.theme.rootController.navigationBar.secondaryTextColor))
         ))))
         tintContents.append(AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
-            text: .plain(NSAttributedString(string: buttonTitle, font: Font.regular(13.0), textColor: .black))
+            text: .plain(NSAttributedString(string: buttonTitle, font: panelFont, textColor: .black))
         ))))
         if let context = self.context {
             let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
             if !premiumConfiguration.isPremiumDisabled {
                 buttonContents.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: buttonSubtitle, font: Font.regular(13.0), textColor: params.interfaceState.theme.rootController.navigationBar.accentTextColor))
+                    text: .plain(NSAttributedString(string: buttonSubtitle, font: panelFont, textColor: params.interfaceState.theme.rootController.navigationBar.accentTextColor))
                 ))))
                 tintContents.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: buttonSubtitle, font: Font.regular(13.0), textColor: .black))
+                    text: .plain(NSAttributedString(string: buttonSubtitle, font: panelFont, textColor: .black))
                 ))))
             }
         }
