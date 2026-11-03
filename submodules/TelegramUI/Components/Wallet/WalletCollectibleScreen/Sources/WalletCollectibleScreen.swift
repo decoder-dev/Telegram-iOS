@@ -156,7 +156,7 @@ private final class WalletCollectibleActionComponent: Component {
             transition: ComponentTransition
         ) -> CGSize {
             self.component = component
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let fontSize: CGFloat = 17.0
             let size = CGSize(width: availableSize.width, height: 58.0)
             self.backgroundView.backgroundColor = component.theme.list.itemModalBlocksBackgroundColor
             transition.setFrame(view: self.backgroundView, frame: CGRect(origin: .zero, size: size))
@@ -271,7 +271,7 @@ private final class WalletCollectibleHeaderButtonComponent: Component {
         }
 
         func update(component: WalletCollectibleHeaderButtonComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let fontSize: CGFloat = 17.0
             let bounds = CGRect(origin: .zero, size: availableSize)
             self.backgroundView.update(size: bounds.size, cornerRadius: 16.0, isDark: true, tintColor: .init(kind: .custom(style: .default, color: component.buttonColor)), isInteractive: true, transition: transition)
             transition.setFrame(view: self.backgroundView, frame: bounds)
@@ -456,9 +456,9 @@ public func makeWalletStyleRestrictionTooltip(context: AccountContext, gifts: [S
         }
     }
     let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
-    let font = Font.regular(floor(fontSize * 14.0 / 17.0))
+    let font = Font.regular(14.0)
     let linkColor = UIColor(rgb: 0x64d2ff)
-    let nameFont = Font.medium(floor(fontSize * 14.0 / 17.0))
+    let nameFont = Font.medium(14.0)
     let available = collections.compactMap { collection -> (String, StarGift.Gift)? in
         return giftsByCollection[collection].flatMap { (collection, $0) }
     }
@@ -1224,7 +1224,7 @@ private final class WalletCollectibleContentComponent: Component {
             transition: ComponentTransition
         ) -> CGSize {
             let environment = environment[EnvironmentType.self].value
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let fontSize: CGFloat = 17.0
             self.environment = environment
             self.componentState = state
             if self.configuredAddress != component.collectible.address {
@@ -1869,7 +1869,6 @@ private final class WalletCollectibleSheetComponent: CombinedComponent {
         let sheetExternalState = SheetComponent<EnvironmentType>.ExternalState()
 
         return { context in
-            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[EnvironmentType.self]
             let controller = environment.controller
             let sheetComponent = sheet.update(

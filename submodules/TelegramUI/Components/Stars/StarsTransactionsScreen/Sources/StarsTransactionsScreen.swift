@@ -782,7 +782,6 @@ final class StarsTransactionsScreenComponent: Component {
                             theme: environment.theme,
                             strings: environment.strings,
                             dateTimeFormat: environment.dateTimeFormat,
-                            fontSize: fontSize,
                             count: self.starsState?.balance ?? StarsAmount.zero,
                             currency: component.starsContext.ton ? .ton : .stars,
                             rate: nil,

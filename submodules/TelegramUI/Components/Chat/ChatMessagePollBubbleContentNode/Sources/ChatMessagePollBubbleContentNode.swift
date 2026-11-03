@@ -2904,7 +2904,7 @@ public class ChatMessagePollBubbleContentNode: ChatMessageBubbleContentNode {
                 } else {
                     viewResultsString = item.presentationData.strings.MessagePoll_ViewResults
                 }
-                let pollActionFontSize = item.presentationData.listsFontSize.baseDisplaySize
+                let pollActionFontSize: CGFloat = 17.0
                 let viewResultsAttributedString = NSMutableAttributedString(string: viewResultsString, font: Font.regular(pollActionFontSize), textColor: messageTheme.polls.bar)
                 if let range = viewResultsAttributedString.string.range(of: "<") {
                     let chevronImage = incoming ? PresentationResourcesChat.chatBubblePollChevronLeftIncomingIcon(item.presentationData.theme.theme) : PresentationResourcesChat.chatBubblePollChevronLeftOutgoingIcon(item.presentationData.theme.theme)
