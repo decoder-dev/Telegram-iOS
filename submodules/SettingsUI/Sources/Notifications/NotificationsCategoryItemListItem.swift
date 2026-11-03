@@ -193,7 +193,7 @@ public class NotificationsCategoryItemListItemNode: ListViewItemNode, ItemListIt
             let contentSize: CGSize
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor

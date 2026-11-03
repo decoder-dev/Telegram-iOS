@@ -14,6 +14,7 @@ import Markdown
 import TelegramStringFormatting
 import BundleIconComponent
 import GlassBarButtonComponent
+import TelegramPresentationData
 
 public final class ButtonSubtitleComponent: CombinedComponent {
     public let title: String
@@ -120,8 +121,11 @@ private final class StoryQualityUpgradeSheetContentComponent: Component {
             self.state = state
             
             let environment = environment[EnvironmentType.self].value
+            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let baseDisplaySize = presentationData.listsFontSize.baseDisplaySize
             
-            let sideInset: CGFloat = 16.0
+            let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset
+            let barButtonSize = PresentationLayoutMetrics.minimumInteractiveSize
             
             let cancelButton: ComponentView<Empty>
             if let current = self.cancelButton {
@@ -133,7 +137,7 @@ private final class StoryQualityUpgradeSheetContentComponent: Component {
             let cancelButtonSize = cancelButton.update(
                 transition: transition,
                 component: AnyComponent(GlassBarButtonComponent(
-                    size: CGSize(width: 44.0, height: 44.0),
+                    size: CGSize(width: barButtonSize, height: barButtonSize),
                     backgroundColor: nil,
                     isDark: environment.theme.overallDarkAppearance,
                     state: .glass,
@@ -148,13 +152,13 @@ private final class StoryQualityUpgradeSheetContentComponent: Component {
                     }
                 )),
                 environment: {},
-                containerSize: CGSize(width: 44.0, height: 44.0)
+                containerSize: CGSize(width: barButtonSize, height: barButtonSize)
             )
             if let cancelButtonView = cancelButton.view {
                 if cancelButtonView.superview == nil {
                     self.addSubview(cancelButtonView)
                 }
-                transition.setFrame(view: cancelButtonView, frame: CGRect(origin: CGPoint(x: 16.0, y: 16.0), size: cancelButtonSize))
+                transition.setFrame(view: cancelButtonView, frame: CGRect(origin: CGPoint(x: sideInset, y: sideInset), size: cancelButtonSize))
             }
             
             var contentHeight: CGFloat = 0.0
@@ -185,7 +189,7 @@ private final class StoryQualityUpgradeSheetContentComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: environment.strings.Story_UpgradeQuality_Title, font: Font.semibold(20.0), textColor: environment.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: environment.strings.Story_UpgradeQuality_Title, font: Font.semibold(floor(baseDisplaySize * 20.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0
                 )),
@@ -204,7 +208,7 @@ private final class StoryQualityUpgradeSheetContentComponent: Component {
             let textSize = self.text.update(
                 transition: transition,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: environment.strings.Story_UpgradeQuality_Text, font: Font.regular(14.0), textColor: environment.theme.list.itemSecondaryTextColor)),
+                    text: .plain(NSAttributedString(string: environment.strings.Story_UpgradeQuality_Text, font: Font.regular(floor(baseDisplaySize * 14.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.18
@@ -225,7 +229,7 @@ private final class StoryQualityUpgradeSheetContentComponent: Component {
 
             var buttonContents: [AnyComponentWithIdentity<Empty>] = []
             buttonContents.append(AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(
-                Text(text: environment.strings.Story_UpgradeQuality_Action, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor)
+                Text(text: environment.strings.Story_UpgradeQuality_Action, font: Font.semibold(baseDisplaySize), color: environment.theme.list.itemCheckColors.foregroundColor)
             )))
             
             buttonContents.append(AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(ButtonSubtitleComponent(
@@ -233,7 +237,8 @@ private final class StoryQualityUpgradeSheetContentComponent: Component {
                 color: environment.theme.list.itemCheckColors.foregroundColor.withMultipliedAlpha(0.7)
             ))))
             
-            let buttonInsets = ContainerViewLayout.concentricInsets(bottomInset: environment.safeInsets.bottom, innerDiameter: 52.0, sideInset: 30.0)
+            let buttonHeight = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, baseDisplaySize + 28.0)
+            let buttonInsets = ContainerViewLayout.concentricInsets(bottomInset: environment.safeInsets.bottom, innerDiameter: buttonHeight, sideInset: 30.0)
             let buttonSize = self.button.update(
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
@@ -258,7 +263,7 @@ private final class StoryQualityUpgradeSheetContentComponent: Component {
                     }
                 )),
                 environment: {},
-                containerSize: CGSize(width: availableSize.width - buttonInsets.left - buttonInsets.right, height: 52.0)
+                containerSize: CGSize(width: availableSize.width - buttonInsets.left - buttonInsets.right, height: buttonHeight)
             )
             let buttonFrame = CGRect(origin: CGPoint(x: buttonInsets.left, y: contentHeight), size: buttonSize)
             if let buttonView = self.button.view {

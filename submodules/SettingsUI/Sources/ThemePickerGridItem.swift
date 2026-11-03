@@ -474,7 +474,7 @@ class ThemeGridThemeItemNode: ListViewItemNode, ItemListItemNode {
                     let bottomStripeOffset: CGFloat
                     switch neighbors.bottom {
                         case .sameSection(false):
-                            bottomStripeInset = params.leftInset + 16.0
+                            bottomStripeInset = params.leftInset + PresentationLayoutMetrics.listHorizontalInset
                             bottomStripeOffset = -separatorHeight
                             strongSelf.bottomStripeNode.isHidden = false
                         default:

@@ -443,6 +443,7 @@ final class PostSuggestionsSettingsScreenComponent: Component {
                 itemGenerator: MessagePriceItem(
                     theme: environment.theme,
                     strings: environment.strings,
+                    fontSize: presentationData.listsFontSize,
                     isEnabled: true, minValue: 0, maxValue: 10000,
                     value: Int64(self.starCount),
                     price: price,

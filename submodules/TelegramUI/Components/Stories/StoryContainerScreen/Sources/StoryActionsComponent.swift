@@ -4,6 +4,7 @@ import Display
 import ComponentFlow
 import AppBundle
 import ComponentDisplayAdapters
+import TelegramPresentationData
 
 public final class StoryActionsComponent: Component {
     public struct Item: Equatable {
@@ -130,6 +131,7 @@ public final class StoryActionsComponent: Component {
             self.componentState = state
             
             var contentHeight: CGFloat = 0.0
+            let itemSize = PresentationLayoutMetrics.minimumInteractiveSize
             var validIds: [Item.Kind] = []
             for item in component.items {
                 validIds.append(item.kind)
@@ -146,14 +148,14 @@ public final class StoryActionsComponent: Component {
                     self.itemViews[item.kind] = itemView
                     self.addSubview(itemView)
                     
-                    itemView.maskBackgroundView.image = generateFilledCircleImage(diameter: 44.0, color: .white)
+                    itemView.maskBackgroundView.image = generateFilledCircleImage(diameter: itemSize, color: .white)
                     self.backgroundMaskView.addSubview(itemView.maskBackgroundView)
                 }
                 
                 if !contentHeight.isZero {
                     contentHeight += 10.0
                 }
-                let itemFrame = CGRect(origin: CGPoint(x: 0.0, y: contentHeight), size: CGSize(width: 44.0, height: 44.0))
+                let itemFrame = CGRect(origin: CGPoint(x: 0.0, y: contentHeight), size: CGSize(width: itemSize, height: itemSize))
                 itemView.update(item: item, size: itemFrame.size, transition: itemTransition)
                 itemTransition.setFrame(view: itemView, frame: itemFrame)
                 itemTransition.setPosition(view: itemView.maskBackgroundView, position: itemFrame.center)
@@ -162,7 +164,7 @@ public final class StoryActionsComponent: Component {
                 contentHeight += itemFrame.height
             }
             
-            let contentSize = CGSize(width: 44.0, height: contentHeight)
+            let contentSize = CGSize(width: itemSize, height: contentHeight)
             transition.setFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(), size: contentSize))
             self.backgroundView.updateColor(color: UIColor(white: 0.0, alpha: 0.3), transition: .immediate)
             self.backgroundView.update(size: contentSize, transition: transition.containedViewLayoutTransition)

@@ -30,10 +30,6 @@ private func generateButtonImage(backgroundColor: UIColor, highlightColor: UICol
     }, opaque: false)?.stretchableImage(withLeftCapWidth: 26, topCapHeight: 26)
 }
 
-private let titleFont = Font.bold(17.0)
-private let textFont = Font.regular(14.0)
-private let buttonFont = Font.regular(17.0)
-
 final class PrivacyIntroControllerNode: ViewControllerTracingNode {
     private let context: AccountContext
     private let mode: PrivacyIntroControllerMode
@@ -118,10 +114,14 @@ final class PrivacyIntroControllerNode: ViewControllerTracingNode {
         if self.animationNode.isHidden {
             self.iconNode.image = self.mode.icon(theme: presentationData.theme)
         }
-        self.titleNode.attributedText = NSAttributedString(string: self.mode.title(context: self.context, strings: presentationData.strings), font: titleFont, textColor: presentationData.theme.list.sectionHeaderTextColor, paragraphAlignment: .center)
-        self.textNode.attributedText = NSAttributedString(string: self.mode.text(strings: presentationData.strings), font: textFont, textColor: presentationData.theme.list.freeTextColor, paragraphAlignment: .center)
-        self.noticeNode.attributedText = NSAttributedString(string: self.mode.notice(strings: presentationData.strings), font: textFont, textColor: presentationData.theme.list.freeTextColor, paragraphAlignment: .center)
-        self.buttonTextNode.attributedText = NSAttributedString(string: self.mode.buttonTitle(strings: presentationData.strings), font: buttonFont, textColor: presentationData.theme.list.itemAccentColor, paragraphAlignment: .center)
+        let baseDisplaySize = presentationData.listsFontSize.baseDisplaySize
+        let titleFontSize = baseDisplaySize
+        let textFontSize = floor(baseDisplaySize * 14.0 / 17.0)
+        let buttonFontSize = baseDisplaySize
+        self.titleNode.attributedText = NSAttributedString(string: self.mode.title(context: self.context, strings: presentationData.strings), font: Font.bold(titleFontSize), textColor: presentationData.theme.list.sectionHeaderTextColor, paragraphAlignment: .center)
+        self.textNode.attributedText = NSAttributedString(string: self.mode.text(strings: presentationData.strings), font: Font.regular(textFontSize), textColor: presentationData.theme.list.freeTextColor, paragraphAlignment: .center)
+        self.noticeNode.attributedText = NSAttributedString(string: self.mode.notice(strings: presentationData.strings), font: Font.regular(textFontSize), textColor: presentationData.theme.list.freeTextColor, paragraphAlignment: .center)
+        self.buttonTextNode.attributedText = NSAttributedString(string: self.mode.buttonTitle(strings: presentationData.strings), font: Font.regular(buttonFontSize), textColor: presentationData.theme.list.itemAccentColor, paragraphAlignment: .center)
         self.buttonTextNode.isAccessibilityElement = false
         self.buttonNode.accessibilityLabel = self.buttonTextNode.attributedText?.string
         self.buttonBackgroundNode.image = generateButtonImage(backgroundColor: presentationData.theme.list.itemBlocksBackgroundColor, highlightColor: nil)
@@ -163,9 +163,11 @@ final class PrivacyIntroControllerNode: ViewControllerTracingNode {
         
         // iPhone Duo: everything is laid out in the band between the side insets (one of them is the side
         // strip); with equal insets the band is centered on the full width, as before.
-        let bandMargins = layout.listSideMargins(base: layout.size.width >= 320.0 ? max(16.0, floor((layout.size.width - 674.0) / 2.0)) : 0.0)
+        let bandMargins = layout.listSideMargins(base: layout.size.width >= 320.0 ? max(PresentationLayoutMetrics.listHorizontalInset, floor((layout.size.width - 674.0) / 2.0)) : 0.0)
         let bandWidth = layout.size.width - layout.safeInsets.left - layout.safeInsets.right
         let inset: CGFloat = 30.0
+        let baseDisplaySize = self.presentationData?.listsFontSize.baseDisplaySize ?? 17.0
+        let buttonHeight = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, baseDisplaySize + 28.0)
         let titleSize = self.titleNode.measure(CGSize(width: bandWidth - inset * 2.0, height: CGFloat.greatestFiniteMagnitude))
         let textSize = self.textNode.measure(CGSize(width: bandWidth - inset * 2.0, height: CGFloat.greatestFiniteMagnitude))
         let noticeSize = self.noticeNode.measure(CGSize(width: bandWidth - inset * 2.0, height: CGFloat.greatestFiniteMagnitude))
@@ -175,7 +177,7 @@ final class PrivacyIntroControllerNode: ViewControllerTracingNode {
             AuthorizationLayoutItem(node: self.animationNode, size: animationSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)),
             AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 20.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)),
             AuthorizationLayoutItem(node: self.textNode, size: textSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 16.0, maxValue: 16.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)),
-            AuthorizationLayoutItem(node: self.buttonNode, size: CGSize(width: layout.size.width - bandMargins.left - bandMargins.right, height: 52.0), spacingBefore: AuthorizationLayoutItemSpacing(weight: 40.0, maxValue: 40.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)),
+            AuthorizationLayoutItem(node: self.buttonNode, size: CGSize(width: layout.size.width - bandMargins.left - bandMargins.right, height: buttonHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 40.0, maxValue: 40.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)),
             AuthorizationLayoutItem(node: self.noticeNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 44.0, maxValue: 44.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 20.0, maxValue: 40.0))
         ]
         

@@ -165,7 +165,7 @@ private enum GlobalAutoremoveEntry: ItemListNodeEntry {
         case .priceHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.Privacy_Messages_MessagePrice, sectionId: self.section)
         case let .price(value, maxValue, price, isEnabled):
-            return MessagePriceItem(theme: presentationData.theme, strings: presentationData.strings, systemStyle: .glass, isEnabled: isEnabled, minValue: 1, maxValue: maxValue, value: value, price: price, sectionId: self.section, updated: { value, _ in
+            return MessagePriceItem(theme: presentationData.theme, strings: presentationData.strings, fontSize: presentationData.fontSize, systemStyle: .glass, isEnabled: isEnabled, minValue: 1, maxValue: maxValue, value: value, price: price, sectionId: self.section, updated: { value, _ in
                 arguments.updateValue(.paidMessages(StarsAmount(value: value, nanos: 0)))
             }, openSetCustom: {
                 arguments.openSetCustomStarsAmount()

@@ -14,6 +14,7 @@ import BundleIconComponent
 import Markdown
 import TelegramStringFormatting
 import GlassBarButtonComponent
+import TelegramPresentationData
 
 private final class StoryStealthModeSheetContentComponent: Component {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
@@ -133,8 +134,11 @@ private final class StoryStealthModeSheetContentComponent: Component {
             }
             
             let environment = environment[EnvironmentType.self].value
+            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let baseDisplaySize = presentationData.listsFontSize.baseDisplaySize
             
-            let sideInset: CGFloat = 16.0
+            let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset
+            let barButtonSize = PresentationLayoutMetrics.minimumInteractiveSize
             
             if remainingCooldownSeconds > 0, self.showCooldownToast {
                 let toast: ComponentView<Empty>
@@ -146,8 +150,8 @@ private final class StoryStealthModeSheetContentComponent: Component {
                     toast = ComponentView()
                     self.toast = toast
                 }
-                let body = MarkdownAttributeSet(font: Font.regular(14.0), textColor: .white)
-                let bold = MarkdownAttributeSet(font: Font.semibold(14.0), textColor: .white)
+                let body = MarkdownAttributeSet(font: Font.regular(floor(baseDisplaySize * 14.0 / 17.0)), textColor: .white)
+                let bold = MarkdownAttributeSet(font: Font.semibold(floor(baseDisplaySize * 14.0 / 17.0)), textColor: .white)
                 let toastSize = toast.update(
                     transition: toastTransition,
                     component: AnyComponent(ToastContentComponent(
@@ -228,7 +232,7 @@ private final class StoryStealthModeSheetContentComponent: Component {
                 let cancelButtonSize = cancelButton.update(
                     transition: transition,
                     component: AnyComponent(GlassBarButtonComponent(
-                        size: CGSize(width: 44.0, height: 44.0),
+                        size: CGSize(width: barButtonSize, height: barButtonSize),
                         backgroundColor: nil,
                         isDark: environment.theme.overallDarkAppearance,
                         state: .glass,
@@ -243,13 +247,13 @@ private final class StoryStealthModeSheetContentComponent: Component {
                         }
                     )),
                     environment: {},
-                    containerSize: CGSize(width: 44.0, height: 44.0)
+                    containerSize: CGSize(width: barButtonSize, height: barButtonSize)
                 )
                 if let cancelButtonView = cancelButton.view {
                     if cancelButtonView.superview == nil {
                         self.addSubview(cancelButtonView)
                     }
-                    transition.setFrame(view: cancelButtonView, frame: CGRect(origin: CGPoint(x: 16.0, y: 16.0), size: cancelButtonSize))
+                    transition.setFrame(view: cancelButtonView, frame: CGRect(origin: CGPoint(x: sideInset, y: sideInset), size: cancelButtonSize))
                 }
             } else if let cancelButton = self.cancelButton {
                 self.cancelButton = nil
@@ -265,12 +269,12 @@ private final class StoryStealthModeSheetContentComponent: Component {
                 } else {
                     buttonText = environment.strings.Story_StealthMode_CooldownAction(stringForDuration(remainingCooldownSeconds)).string
                 }
-                content = AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: buttonText, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor)))
+                content = AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: buttonText, font: Font.semibold(baseDisplaySize), color: environment.theme.list.itemCheckColors.foregroundColor)))
             case .upgrade:
                 buttonText = environment.strings.Story_StealthMode_UpgradeAction
                 content = AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(
                     HStack([
-                        AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(Text(text: buttonText, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor))),
+                        AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(Text(text: buttonText, font: Font.semibold(baseDisplaySize), color: environment.theme.list.itemCheckColors.foregroundColor))),
                         AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(LottieComponent(
                             content: LottieComponent.AppBundleContent(name: "premium_unlock"),
                             color: environment.theme.list.itemCheckColors.foregroundColor,
@@ -284,6 +288,7 @@ private final class StoryStealthModeSheetContentComponent: Component {
             }
 
             let buttonSideInset: CGFloat = 30.0
+            let buttonHeight = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, baseDisplaySize + 28.0)
             let buttonSize = self.button.update(
                 transition: transition,
                 component: AnyComponent(ButtonComponent(
@@ -321,7 +326,7 @@ private final class StoryStealthModeSheetContentComponent: Component {
                     }
                 )),
                 environment: {},
-                containerSize: CGSize(width: availableSize.width - buttonSideInset * 2.0, height: 52.0)
+                containerSize: CGSize(width: availableSize.width - buttonSideInset * 2.0, height: buttonHeight)
             )
             let buttonFrame = CGRect(origin: CGPoint(x: buttonSideInset, y: contentHeight), size: buttonSize)
             if let buttonView = self.button.view {

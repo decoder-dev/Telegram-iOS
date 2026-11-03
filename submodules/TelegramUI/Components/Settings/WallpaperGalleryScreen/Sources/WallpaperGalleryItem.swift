@@ -1374,7 +1374,7 @@ final class WallpaperGalleryItemNode: GalleryItemNode {
             }
         }
         if canEditIntensity && self.isDarkAppearance {
-            additionalYOffset -= 44.0
+            additionalYOffset -= PresentationLayoutMetrics.minimumInteractiveSize
         }
 
         let buttonSpacing: CGFloat = 18.0
@@ -1576,7 +1576,8 @@ final class WallpaperGalleryItemNode: GalleryItemNode {
         // top row keeps the other controls.
         let sideColumnCloseFrame = layout.sideColumnNavigationButtonFrame
 
-        let topButtonSideInset: CGFloat = 16.0
+        let topButtonSideInset = PresentationLayoutMetrics.listHorizontalInset
+        let topButtonHeight = PresentationLayoutMetrics.minimumInteractiveSize
         let topButtonsSize = self.topButtons.update(
             transition: ComponentTransition(transition),
             component: AnyComponent(GlassControlPanelComponent(
@@ -1594,7 +1595,7 @@ final class WallpaperGalleryItemNode: GalleryItemNode {
                 isDark: self.controlsGlassIsDark
             )),
             environment: {},
-            containerSize: CGSize(width: layout.size.width - topButtonSideInset * 2.0 - layout.safeInsets.left - layout.safeInsets.right, height: 44.0)
+            containerSize: CGSize(width: layout.size.width - topButtonSideInset * 2.0 - layout.safeInsets.left - layout.safeInsets.right, height: topButtonHeight)
         )
         let topButtonsFrame = CGRect(origin: CGPoint(x: topButtonSideInset + layout.safeInsets.left + offset.x, y: topButtonSideInset), size: topButtonsSize)
         if let topButtonsView = self.topButtons.view {
@@ -1618,7 +1619,7 @@ final class WallpaperGalleryItemNode: GalleryItemNode {
                     isDark: self.controlsGlassIsDark
                 )),
                 environment: {},
-                containerSize: CGSize(width: 44.0, height: 44.0)
+                containerSize: CGSize(width: topButtonHeight, height: topButtonHeight)
             )
             let closeButtonFrame = CGRect(origin: CGPoint(x: sideColumnCloseFrame.midX - closeButtonSize.width / 2.0 + offset.x, y: sideColumnCloseFrame.midY - closeButtonSize.height / 2.0), size: closeButtonSize)
             if let closeButtonView = self.sideColumnCloseButton.view {
@@ -1759,7 +1760,7 @@ final class WallpaperGalleryItemNode: GalleryItemNode {
         }
 
         if canEditIntensity && self.isDarkAppearance {
-            bottomInset += 44.0
+            bottomInset += PresentationLayoutMetrics.minimumInteractiveSize
         }
         
         let theme = self.presentationData.theme

@@ -5,6 +5,7 @@ import AsyncDisplayKit
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
+import TelegramUIPreferences
 import SliderComponent
 import ItemListUI
 import PresentationDataUtils
@@ -14,12 +15,18 @@ import BundleIconComponent
 import MultilineTextComponent
 import ListItemComponentAdaptor
 
-private let textFont = Font.with(size: 17.0, traits: .monospacedNumbers)
-private let smallTextFont = Font.with(size: 13.0, traits: .monospacedNumbers)
+private func messagePriceTextFont(for fontSize: PresentationFontSize) -> UIFont {
+    return Font.with(size: fontSize.itemListBaseFontSize, traits: .monospacedNumbers)
+}
+
+private func messagePriceSmallTextFont(for fontSize: PresentationFontSize) -> UIFont {
+    return Font.with(size: floor(fontSize.itemListBaseFontSize * 13.0 / 17.0), traits: .monospacedNumbers)
+}
 
 public final class MessagePriceItem: Equatable, ListViewItem, ItemListItem, ListItemComponentAdaptor.ItemGenerator {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: PresentationFontSize
     let systemStyle: ItemListSystemStyle
     let isEnabled: Bool
     let minValue: Int64
@@ -32,9 +39,10 @@ public final class MessagePriceItem: Equatable, ListViewItem, ItemListItem, List
     let openPremiumInfo: (() -> Void)?
     public let tag: ItemListItemTag?
     
-    public init(theme: PresentationTheme, strings: PresentationStrings, systemStyle: ItemListSystemStyle = .legacy, isEnabled: Bool, minValue: Int64, maxValue: Int64, value: Int64, price: String, sectionId: ItemListSectionId, updated: @escaping (Int64, Bool) -> Void, openSetCustom: (() -> Void)? = nil, openPremiumInfo: (() -> Void)? = nil, tag: ItemListItemTag? = nil) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize, systemStyle: ItemListSystemStyle = .legacy, isEnabled: Bool, minValue: Int64, maxValue: Int64, value: Int64, price: String, sectionId: ItemListSectionId, updated: @escaping (Int64, Bool) -> Void, openSetCustom: (() -> Void)? = nil, openPremiumInfo: (() -> Void)? = nil, tag: ItemListItemTag? = nil) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.systemStyle = systemStyle
         self.isEnabled = isEnabled
         self.minValue = minValue
@@ -90,6 +98,9 @@ public final class MessagePriceItem: Equatable, ListViewItem, ItemListItem, List
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.isEnabled != rhs.isEnabled {
@@ -289,7 +300,7 @@ private class MessagePriceItemNode: ListViewItemNode, ItemListItemNode {
             sliderView.trackColor = item.theme.list.itemAccentColor
             sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
             
-            sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 18.0, y: 36.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 18.0 * 2.0, height: 44.0))
+            sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 18.0, y: 36.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 18.0 * 2.0, height: PresentationLayoutMetrics.minimumInteractiveSize))
         }
         self.view.addSubview(sliderView)
         sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
@@ -328,7 +339,7 @@ private class MessagePriceItemNode: ListViewItemNode, ItemListItemNode {
             var contentSize: CGSize
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             contentSize = CGSize(width: params.width, height: 88.0)
             if !item.isEnabled {
@@ -344,6 +355,9 @@ private class MessagePriceItemNode: ListViewItemNode, ItemListItemNode {
                 if let strongSelf = self {
                     strongSelf.item = item
                     strongSelf.layoutParams = params
+                    
+                    let textFont = messagePriceTextFont(for: item.fontSize)
+                    let smallTextFont = messagePriceSmallTextFont(for: item.fontSize)
                                         
                     strongSelf.backgroundNode.backgroundColor = item.theme.list.itemBlocksBackgroundColor
                     strongSelf.topStripeNode.backgroundColor = item.theme.list.itemBlocksSeparatorColor
@@ -377,7 +391,7 @@ private class MessagePriceItemNode: ListViewItemNode, ItemListItemNode {
                     let bottomStripeOffset: CGFloat
                     switch neighbors.bottom {
                         case .sameSection(false):
-                            bottomStripeInset = params.leftInset + 16.0
+                            bottomStripeInset = params.leftInset + PresentationLayoutMetrics.listHorizontalInset
                             bottomStripeOffset = -separatorHeight
                             strongSelf.bottomStripeNode.isHidden = false
                         default:
@@ -448,7 +462,7 @@ private class MessagePriceItemNode: ListViewItemNode, ItemListItemNode {
                             sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
                         }
                         
-                        sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 18.0, y: 36.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 18.0 * 2.0, height: 44.0))
+                        sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 18.0, y: 36.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 18.0 * 2.0, height: PresentationLayoutMetrics.minimumInteractiveSize))
                         
                         sliderView.interactionEnded = {
                             guard let self else {
@@ -472,8 +486,9 @@ private class MessagePriceItemNode: ListViewItemNode, ItemListItemNode {
                             strongSelf.lockIconNode.frame = CGRect(origin: CGPoint(x: centerLeftFrame.minX - image.size.width - 1.0, y: 12.0 + UIScreenPixel), size: image.size)
                         }
                         
-                        let sideInset: CGFloat = 16.0
-                        let buttonSize = CGSize(width: params.width - params.leftInset - params.rightInset - sideInset * 2.0, height: 52.0)
+                        let sideInset = PresentationLayoutMetrics.listHorizontalInset
+                        let buttonHeight = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, item.fontSize.baseDisplaySize + 28.0)
+                        let buttonSize = CGSize(width: params.width - params.leftInset - params.rightInset - sideInset * 2.0, height: buttonHeight)
                         let _ = strongSelf.button.update(
                             transition: .immediate,
                             component: AnyComponent(
@@ -494,7 +509,7 @@ private class MessagePriceItemNode: ListViewItemNode, ItemListItemNode {
                                                 ),
                                                 AnyComponentWithIdentity(
                                                     id: AnyHashable("label"),
-                                                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: item.strings.Privacy_Messages_Unlock, font: Font.semibold(17.0), textColor: item.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                                                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: item.strings.Privacy_Messages_Unlock, font: Font.semibold(item.fontSize.baseDisplaySize), textColor: item.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                                                 )
                                             ], spacing: 3.0)
                                         )

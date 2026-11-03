@@ -247,3 +247,7 @@ Premium option rows и CTA на PremiumIntro масштабируются с `li
 ## Пустые чаты и поиск в группах
 
 `ChatEmptyNode` (обычный/secret/group/cloud/topic/greeting/premium-required и intro footer) масштабирует title/body от `interfaceState.fontSize.baseDisplaySize` и обновляет текст при смене размера шрифта. Group/discussion search navigation bars держат close/search hit targets на `PresentationLayoutMetrics.minimumInteractiveSize` и боковые inset на `listHorizontalInset`. Attachment file empty и EntityKeyboard empty search тоже на Dynamic Type. Branding Liquid: 7 pass. Simulator/видеоприёмка NOT RUN.
+
+## Privacy, story sheets и appearance chrome
+
+Privacy intro и Recent Session sheet масштабируют тексты/CTA от listsFontSize и держат interactive минимум. Story quality/stealth sheets и StoryActions hit targets на PresentationLayoutMetrics. Theme accent/app icon/theme grid/text size slider и wallpaper gallery top chrome — те же inset/height. MessagePriceItem принимает fontSize и масштабирует price/unlock. Branding Liquid: 7 pass. Simulator NOT RUN.

@@ -301,7 +301,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                 state.controller = environment.controller() as? RecentSessionScreen
             }
             
-            let sideInset: CGFloat = 16.0 + environment.safeInsets.left
+            let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + environment.safeInsets.left
             
             var contentHeight: CGFloat = 32.0
             switch component.subject {
@@ -570,7 +570,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                         title: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: applicationTitle,
-                                font: Font.regular(17.0),
+                                font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
                                 textColor: theme.list.itemPrimaryTextColor
                             )),
                             maximumNumberOfLines: 1
@@ -604,7 +604,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                             title: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: strings.AuthSessions_View_IP,
-                                    font: Font.regular(17.0),
+                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
                                     textColor: theme.list.itemPrimaryTextColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -638,7 +638,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                         title: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: strings.AuthSessions_View_Location,
-                                font: Font.regular(17.0),
+                                font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
                                 textColor: theme.list.itemPrimaryTextColor
                             )),
                             maximumNumberOfLines: 1
@@ -672,7 +672,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                             title: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: strings.RecentSession_ConnectedBot_Date,
-                                    font: Font.regular(17.0),
+                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
                                     textColor: theme.list.itemPrimaryTextColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -1068,6 +1068,8 @@ private final class RecentSessionSheetComponent: CombinedComponent {
         return { context in
             let environment = context.environment[EnvironmentType.self]
             let controller = environment.controller
+            let presentationData = context.component.context.sharedContext.currentPresentationData.with { $0 }
+            let barButtonSize = PresentationLayoutMetrics.minimumInteractiveSize
             
             let dismiss: (Bool) -> Void = { animated in
                 if animated {
@@ -1102,7 +1104,7 @@ private final class RecentSessionSheetComponent: CombinedComponent {
                     )),
                     leftItem: AnyComponent(
                         GlassBarButtonComponent(
-                            size: CGSize(width: 44.0, height: 44.0),
+                            size: CGSize(width: barButtonSize, height: barButtonSize),
                             backgroundColor: nil,
                             isDark: environment.theme.overallDarkAppearance,
                             state: .glass,
@@ -1131,7 +1133,7 @@ private final class RecentSessionSheetComponent: CombinedComponent {
                                     id: AnyHashable(0),
                                     component: AnyComponent(
                                         MultilineTextComponent(
-                                            text: .plain(NSMutableAttributedString(string: buttonTitle, font: Font.semibold(17.0), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))
+                                            text: .plain(NSMutableAttributedString(string: buttonTitle, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))
                                         )
                                     )
                                 ),

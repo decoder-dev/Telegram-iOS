@@ -426,7 +426,7 @@ private enum ChannelPermissionsEntry: ItemListNodeEntry {
             case let .messagePriceHeader(_, value):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: value, sectionId: self.section)
             case let .messagePrice(_, value, maxValue, price):
-                return MessagePriceItem(theme: presentationData.theme, strings: presentationData.strings, systemStyle: .glass, isEnabled: true, minValue: 1, maxValue: maxValue, value: value, price: price, sectionId: self.section, updated: { value, apply in
+                return MessagePriceItem(theme: presentationData.theme, strings: presentationData.strings, fontSize: presentationData.fontSize, systemStyle: .glass, isEnabled: true, minValue: 1, maxValue: maxValue, value: value, price: price, sectionId: self.section, updated: { value, apply in
                     arguments.updateStarsAmount(StarsAmount(value: value, nanos: 0), apply)
                 }, openSetCustom: nil)
             case let .messagePriceInfo(_, value):
