@@ -367,3 +367,7 @@ GiftAuctionBid Badge/PeerPlace/SliderBackground принимают `fontSize` и
 ## Stories / Settings / Gift alerts chrome
 
 StoryAuthorInfo/LiveChat/Footer, GiftItem badges/labels, GiftRemove/Move/Offer/Purchase/Sale/Transfer alerts, GiftUpgradeCost/AuctionAcquired/ActiveBids, VerifyAlert, ChatbotSetup intro, AccountFreeze paragraphs, ThemeCarousel, UserAppearance, ChatQr duration badge, NewsFeedPost — Dynamic Type от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Auth phone confirm, Call status bar, chat nav badges
+
+PhoneConfirmationController принимает listsFontSize (исправлен отсутствующий sharedContext). CallStatusBar subtitle fonts от listsFontSize. ChatHistoryNavigation badge — `listsFontSizeBase` из chat fontSize. Dead GlobalAutoremoveHeader titleFont удалён. Branding Liquid: 7 pass. Simulator NOT RUN.

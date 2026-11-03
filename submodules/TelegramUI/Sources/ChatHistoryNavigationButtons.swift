@@ -112,29 +112,29 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
         }
     }
     
-    init(theme: PresentationTheme, strings: PresentationStrings, preferClearGlass: Bool, dateTimeFormat: PresentationDateTimeFormat, backgroundNode: WallpaperBackgroundNode, isChatRotated: Bool) {
+    init(theme: PresentationTheme, strings: PresentationStrings, preferClearGlass: Bool, dateTimeFormat: PresentationDateTimeFormat, backgroundNode: WallpaperBackgroundNode, isChatRotated: Bool, listsFontSizeBase: CGFloat = 17.0) {
         self.isChatRotated = isChatRotated
         self.theme = theme
         self.preferClearGlass = preferClearGlass
         self.dateTimeFormat = dateTimeFormat
         
-        self.mentionsButton = ChatHistoryNavigationButtonNode(theme: theme, strings: strings, preferClearGlass: preferClearGlass, backgroundNode: backgroundNode, type: .mentions)
+        self.mentionsButton = ChatHistoryNavigationButtonNode(theme: theme, strings: strings, preferClearGlass: preferClearGlass, backgroundNode: backgroundNode, type: .mentions, listsFontSizeBase: listsFontSizeBase)
         self.mentionsButton.alpha = 0.0
         self.mentionsButton.isHidden = true
         
-        self.reactionsButton = ChatHistoryNavigationButtonNode(theme: theme, strings: strings, preferClearGlass: preferClearGlass, backgroundNode: backgroundNode, type: .reactions)
+        self.reactionsButton = ChatHistoryNavigationButtonNode(theme: theme, strings: strings, preferClearGlass: preferClearGlass, backgroundNode: backgroundNode, type: .reactions, listsFontSizeBase: listsFontSizeBase)
         self.reactionsButton.alpha = 0.0
         self.reactionsButton.isHidden = true
         
-        self.pollVotesButton = ChatHistoryNavigationButtonNode(theme: theme, strings: strings, preferClearGlass: preferClearGlass, backgroundNode: backgroundNode, type: .pollVotes)
+        self.pollVotesButton = ChatHistoryNavigationButtonNode(theme: theme, strings: strings, preferClearGlass: preferClearGlass, backgroundNode: backgroundNode, type: .pollVotes, listsFontSizeBase: listsFontSizeBase)
         self.pollVotesButton.alpha = 0.0
         self.pollVotesButton.isHidden = true
         
-        self.downButton = ChatHistoryNavigationButtonNode(theme: theme, strings: strings, preferClearGlass: preferClearGlass, backgroundNode: backgroundNode, type: isChatRotated ? .down : .up)
+        self.downButton = ChatHistoryNavigationButtonNode(theme: theme, strings: strings, preferClearGlass: preferClearGlass, backgroundNode: backgroundNode, type: isChatRotated ? .down : .up, listsFontSizeBase: listsFontSizeBase)
         self.downButton.alpha = 0.0
         self.downButton.isHidden = true
         
-        self.upButton = ChatHistoryNavigationButtonNode(theme: theme, strings: strings, preferClearGlass: preferClearGlass, backgroundNode: backgroundNode, type: isChatRotated ? .up : .down)
+        self.upButton = ChatHistoryNavigationButtonNode(theme: theme, strings: strings, preferClearGlass: preferClearGlass, backgroundNode: backgroundNode, type: isChatRotated ? .up : .down, listsFontSizeBase: listsFontSizeBase)
         self.upButton.alpha = 0.0
         self.upButton.isHidden = true
         

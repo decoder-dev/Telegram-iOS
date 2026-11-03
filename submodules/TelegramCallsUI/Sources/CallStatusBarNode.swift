@@ -333,9 +333,6 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
         self.update()
     }
 
-    private let callTextFont = Font.with(size: 13.0, design: .regular, weight: .regular, traits: [.monospacedNumbers])
-    private let groupCallTextFont = Font.with(size: 13.0, design: .regular, weight: .regular, traits: [])
-    
     /// Creates, updates or removes the caller's avatar and returns how much horizontal room it takes in front of the title
     /// (zero when there is none). Only a private call has one; a group call's title already names the chat.
     private func updateAvatar(verticalOrigin: CGFloat, contentHeight: CGFloat) -> CGFloat {
@@ -421,15 +418,16 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
         
         let wasEmpty = (self.titleNode.attributedText?.string ?? "").isEmpty
         
+        let statusBarFontSize = floor((self.presentationData?.listsFontSize.baseDisplaySize ?? 17.0) * 13.0 / 17.0)
         let textFont: UIFont
         let setupDataForCall: AnyObject?
         switch content {
         case let .call(_, _, call):
             setupDataForCall = call
-            textFont = callTextFont
+            textFont = Font.with(size: statusBarFontSize, design: .regular, weight: .regular, traits: [.monospacedNumbers])
         case let .groupCall(_, _, call):
             setupDataForCall = call
-            textFont = groupCallTextFont
+            textFont = Font.with(size: statusBarFontSize, design: .regular, weight: .regular, traits: [])
         }
         
         if self.didSetupDataForCall !== setupDataForCall {

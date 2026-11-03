@@ -221,7 +221,7 @@ private final class PhoneAndCountryNode: ASDisplayNode {
             self.countryButton.setCountryTitle(countryId: country.id, name: localizedName, font: Font.regular(floor(self.listFontSize * 20.0 / 17.0)), color: self.theme.list.itemAccentColor)
             self.hasCountry = true
             
-            let maskFont = Font.with(size: 20.0, design: .regular, traits: [.monospacedNumbers])
+            let maskFont = Font.with(size: floor(self.listFontSize * 20.0 / 17.0), design: .regular, traits: [.monospacedNumbers])
             if let mask = AuthorizationSequenceCountrySelectionController.lookupPatternByNumber(number, preferredCountries: self.preferredCountryIdForCode).flatMap({ NSAttributedString(string: $0, font: maskFont, textColor: self.theme.list.itemPlaceholderTextColor) }) {
                 self.phoneInputNode.numberField.textField.attributedPlaceholder = nil
                 self.phoneInputNode.mask = mask
@@ -859,6 +859,7 @@ final class PhoneConfirmationController: ViewController {
     
     private let theme: PresentationTheme
     private let strings: PresentationStrings
+    private let listsFontSize: CGFloat
     private let code: String
     private let number: String
     private weak var sourceController: AuthorizationSequencePhoneEntryController?
@@ -880,6 +881,7 @@ final class PhoneConfirmationController: ViewController {
     class Node: ASDisplayNode {
         private let theme: PresentationTheme
         private let strings: PresentationStrings
+        private let listsFontSize: CGFloat
         
         private let code: String
         private let number: String
@@ -905,9 +907,10 @@ final class PhoneConfirmationController: ViewController {
         
         private var validLayout: ContainerViewLayout?
         
-        init(theme: PresentationTheme, strings: PresentationStrings, code: String, number: String) {
+        init(theme: PresentationTheme, strings: PresentationStrings, listsFontSize: CGFloat, code: String, number: String) {
             self.theme = theme
             self.strings = strings
+            self.listsFontSize = listsFontSize
             
             self.code = code
             self.number = number
@@ -921,14 +924,14 @@ final class PhoneConfirmationController: ViewController {
             
             self.textNode = ImmediateTextNode()
             self.textNode.displaysAsynchronously = false
-            self.textNode.attributedText = NSAttributedString(string: strings.Login_PhoneNumberConfirmation, font: Font.regular(UIFont.preferredFont(forTextStyle: .body).pointSize), textColor: theme.list.itemPrimaryTextColor)
+            self.textNode.attributedText = NSAttributedString(string: strings.Login_PhoneNumberConfirmation, font: Font.regular(listsFontSize), textColor: theme.list.itemPrimaryTextColor)
             self.textNode.textAlignment = .center
             
             self.textActivateAreaNode = AccessibilityAreaNode()
             self.textActivateAreaNode.accessibilityTraits = .staticText
             
             self.cancelButton = HighlightableButtonNode()
-            self.cancelButton.setTitle(strings.Login_Edit, with: Font.regular(floor(self.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 19.0 / 17.0)), with: theme.list.itemAccentColor, for: .normal)
+            self.cancelButton.setTitle(strings.Login_Edit, with: Font.regular(floor(listsFontSize * 19.0 / 17.0)), with: theme.list.itemAccentColor, for: .normal)
             self.cancelButton.accessibilityTraits = [.button]
             self.cancelButton.accessibilityLabel = strings.Login_Edit
             
@@ -936,8 +939,8 @@ final class PhoneConfirmationController: ViewController {
             self.proceedNode.progressType = .embedded
             self.proceedNode.accessibilityIdentifier = "Auth.PhoneConfirm.ContinueButton"
 
-            let font = Font.with(size: 20.0, design: .regular, traits: [.monospacedNumbers])
-            let largeFont = Font.with(size: 34.0, design: .regular, weight: .bold, traits: [.monospacedNumbers])
+            let font = Font.with(size: floor(listsFontSize * 20.0 / 17.0), design: .regular, traits: [.monospacedNumbers])
+            let largeFont = Font.with(size: floor(listsFontSize * 34.0 / 17.0), design: .regular, weight: .bold, traits: [.monospacedNumbers])
             
             self.codeSourceNode = ImmediateTextNode()
             self.codeSourceNode.alpha = 0.0
@@ -1201,9 +1204,10 @@ final class PhoneConfirmationController: ViewController {
         }
     }
     
-    public init(theme: PresentationTheme, strings: PresentationStrings, code: String, number: String, sourceController: AuthorizationSequencePhoneEntryController) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, listsFontSize: CGFloat, code: String, number: String, sourceController: AuthorizationSequencePhoneEntryController) {
         self.theme = theme
         self.strings = strings
+        self.listsFontSize = listsFontSize
         self.code = code
         self.number = number
         self.sourceController = sourceController
@@ -1221,7 +1225,7 @@ final class PhoneConfirmationController: ViewController {
     
     private var isDismissed = false
     override public func loadDisplayNode() {
-        self.displayNode = Node(theme: self.theme, strings: self.strings, code: self.code, number: self.number)
+        self.displayNode = Node(theme: self.theme, strings: self.strings, listsFontSize: self.listsFontSize, code: self.code, number: self.number)
         self.displayNodeDidLoad()
         
         self.controllerNode.proceed = { [weak self] in

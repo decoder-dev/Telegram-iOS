@@ -9,8 +9,6 @@ import GlassBackgroundComponent
 import ComponentFlow
 import ComponentDisplayAdapters
 
-private let badgeFont = Font.with(size: 13.0, traits: [.monospacedNumbers])
-
 enum ChatHistoryNavigationButtonType {
     case down
     case up
@@ -50,11 +48,17 @@ class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
     
     private var theme: PresentationTheme
     private var preferClearGlass: Bool
+    private var listsFontSizeBase: CGFloat
     private let type: ChatHistoryNavigationButtonType
     
-    init(theme: PresentationTheme, strings: PresentationStrings, preferClearGlass: Bool, backgroundNode: WallpaperBackgroundNode, type: ChatHistoryNavigationButtonType) {
+    private var badgeFont: UIFont {
+        return Font.with(size: floor(self.listsFontSizeBase * 13.0 / 17.0), traits: [.monospacedNumbers])
+    }
+    
+    init(theme: PresentationTheme, strings: PresentationStrings, preferClearGlass: Bool, backgroundNode: WallpaperBackgroundNode, type: ChatHistoryNavigationButtonType, listsFontSizeBase: CGFloat = 17.0) {
         self.theme = theme
         self.preferClearGlass = preferClearGlass
+        self.listsFontSizeBase = listsFontSizeBase
         self.type = type
         
         self.containerNode = ContextExtractedContentContainingNode()

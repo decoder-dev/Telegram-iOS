@@ -409,7 +409,7 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
                 if let validLayout = self.validLayout, validLayout.size.width > 320.0 {
                     let (code, formattedNumber) = self.controllerNode.formattedCodeAndNumber
 
-                    let confirmationController = PhoneConfirmationController(theme: self.presentationData.theme, strings: self.presentationData.strings, code: code, number: formattedNumber, sourceController: self)
+                    let confirmationController = PhoneConfirmationController(theme: self.presentationData.theme, strings: self.presentationData.strings, listsFontSize: self.presentationData.listsFontSize.baseDisplaySize, code: code, number: formattedNumber, sourceController: self)
                     confirmationController.proceed = { [weak self] in
                         if let strongSelf = self {
                             strongSelf.loginWithNumber?(strongSelf.controllerNode.currentNumber, strongSelf.controllerNode.syncContacts)
