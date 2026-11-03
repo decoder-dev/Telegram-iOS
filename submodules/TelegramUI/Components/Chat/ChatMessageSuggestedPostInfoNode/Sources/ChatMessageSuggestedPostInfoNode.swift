@@ -80,6 +80,7 @@ public final class ChatMessageSuggestedPostInfoNode: ASDisplayNode {
             }
             
             let serviceColor = serviceMessageColorComponents(theme: item.presentationData.theme.theme, wallpaper: item.presentationData.theme.wallpaper)
+            let fontSize = item.presentationData.fontSize.baseDisplaySize
             
             let titleText: String
             if let attribute = item.message.attributes.first(where: { $0 is ReplyMessageAttribute }) as? ReplyMessageAttribute {
@@ -162,9 +163,9 @@ public final class ChatMessageSuggestedPostInfoNode: ASDisplayNode {
             }
             
             let titleAttributedText = parseMarkdownIntoAttributedString(titleText, attributes: MarkdownAttributes(
-                body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: serviceColor.primaryText),
-                bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: serviceColor.primaryText),
-                link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: serviceColor.primaryText),
+                body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: serviceColor.primaryText),
+                bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: serviceColor.primaryText),
+                link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: serviceColor.primaryText),
                 linkAttribute: { url in
                     return ("URL", url)
                 }
@@ -172,11 +173,11 @@ public final class ChatMessageSuggestedPostInfoNode: ASDisplayNode {
             
             let titleLayout = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedText, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: maxWidth - insets.left - insets.right, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             
-            let priceLabelLayout = makePriceLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_PostSuggestion_TablePrice, font: Font.regular(13.0), textColor: serviceColor.primaryText.withMultipliedAlpha(0.5)), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: maxWidth - insets.left - insets.right, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-            let timeLabelLayout = makeTimeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_PostSuggestion_TableTime, font: Font.regular(13.0), textColor: serviceColor.primaryText.withMultipliedAlpha(0.5)), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: maxWidth - insets.left - insets.right, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let priceLabelLayout = makePriceLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_PostSuggestion_TablePrice, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: serviceColor.primaryText.withMultipliedAlpha(0.5)), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: maxWidth - insets.left - insets.right, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let timeLabelLayout = makeTimeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Chat_PostSuggestion_TableTime, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: serviceColor.primaryText.withMultipliedAlpha(0.5)), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: maxWidth - insets.left - insets.right, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
-            let priceValueLayout = makePriceValueLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: amountString, font: Font.semibold(13.0), textColor: serviceColor.primaryText), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: maxWidth - insets.left - insets.right, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-            let timeValueLayout = makeTimeValueLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: timestampString, font: Font.semibold(13.0), textColor: serviceColor.primaryText), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: maxWidth - insets.left - insets.right, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let priceValueLayout = makePriceValueLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: amountString, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: serviceColor.primaryText), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: maxWidth - insets.left - insets.right, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let timeValueLayout = makeTimeValueLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: timestampString, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: serviceColor.primaryText), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: maxWidth - insets.left - insets.right, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             var maxContentWidth: CGFloat = 0.0
             var contentHeight: CGFloat = 0.0

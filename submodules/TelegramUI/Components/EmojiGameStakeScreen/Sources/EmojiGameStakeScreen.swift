@@ -883,7 +883,7 @@ public final class AmountFieldComponent: Component {
         labelText: String?,
         currency: CurrencyAmount.Currency,
         dateTimeFormat: PresentationDateTimeFormat,
-        fontSize: CGFloat = 17.0,
+        fontSize: CGFloat,
         amountUpdated: @escaping (Int64?) -> Void,
         tag: AnyObject? = nil
     ) {

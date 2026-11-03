@@ -340,8 +340,9 @@ private final class GiftAuctionAcquiredScreenComponent: Component {
             
             var contentHeight: CGFloat = 75.0
         
-            let tableFont = Font.regular(15.0)
-            let tableBoldFont = Font.semibold(15.0)
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let tableFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let tableBoldFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             
             let tableTextColor = environment.theme.list.itemPrimaryTextColor
             

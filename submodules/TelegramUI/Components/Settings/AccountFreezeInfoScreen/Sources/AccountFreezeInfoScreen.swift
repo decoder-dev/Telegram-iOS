@@ -86,7 +86,8 @@ private final class SheetContent: CombinedComponent {
             let sideInset: CGFloat = 16.0 + environment.safeInsets.left
             let textSideInset: CGFloat = 30.0 + environment.safeInsets.left
             
-            let titleFont = Font.semibold(20.0)
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let titleFont = Font.semibold(floor(fontSize * 20.0 / 17.0))
             
             let textColor = theme.actionSheet.primaryTextColor
             let secondaryTextColor = theme.actionSheet.secondaryTextColor
@@ -140,6 +141,7 @@ private final class SheetContent: CombinedComponent {
                         textColor: secondaryTextColor,
                         iconName: "Account Freeze/Violation",
                         iconColor: linkColor,
+                        listsFontSizeBase: fontSize,
                         action: {
                             component.openTerms()
                             component.dismiss()
@@ -156,7 +158,8 @@ private final class SheetContent: CombinedComponent {
                         text: strings.FrozenAccount_ReadOnly_Text,
                         textColor: secondaryTextColor,
                         iconName: "Ads/Privacy",
-                        iconColor: linkColor
+                        iconColor: linkColor,
+                        listsFontSizeBase: fontSize
                     ))
                 )
             )
@@ -171,6 +174,7 @@ private final class SheetContent: CombinedComponent {
                         textColor: secondaryTextColor,
                         iconName: "Account Freeze/Appeal",
                         iconColor: linkColor,
+                        listsFontSizeBase: fontSize,
                         action: {
                             component.submitAppeal()
                             component.dismiss()
@@ -445,6 +449,7 @@ private final class ParagraphComponent: CombinedComponent {
     let textColor: UIColor
     let iconName: String
     let iconColor: UIColor
+    let listsFontSizeBase: CGFloat
     let action: (() -> Void)?
     
     public init(
@@ -454,6 +459,7 @@ private final class ParagraphComponent: CombinedComponent {
         textColor: UIColor,
         iconName: String,
         iconColor: UIColor,
+        listsFontSizeBase: CGFloat,
         action: (() -> Void)? = nil
     ) {
         self.title = title
@@ -462,6 +468,7 @@ private final class ParagraphComponent: CombinedComponent {
         self.textColor = textColor
         self.iconName = iconName
         self.iconColor = iconColor
+        self.listsFontSizeBase = listsFontSizeBase
         self.action = action
     }
     
@@ -484,6 +491,9 @@ private final class ParagraphComponent: CombinedComponent {
         if lhs.iconColor != rhs.iconColor {
             return false
         }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
+            return false
+        }
         return true
     }
     
@@ -494,6 +504,7 @@ private final class ParagraphComponent: CombinedComponent {
         
         return { context in
             let component = context.component
+            let fontSize = component.listsFontSizeBase
             
             let leftInset: CGFloat = 64.0
             let rightInset: CGFloat = 32.0
@@ -506,7 +517,7 @@ private final class ParagraphComponent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.title,
-                        font: Font.semibold(15.0),
+                        font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                         textColor: component.titleColor,
                         paragraphAlignment: .natural
                     )),
@@ -517,8 +528,8 @@ private final class ParagraphComponent: CombinedComponent {
                 transition: .immediate
             )
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let textColor = component.textColor
             let linkColor = component.iconColor
             let markdownAttributes = MarkdownAttributes(

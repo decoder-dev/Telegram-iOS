@@ -160,9 +160,6 @@ public class ThemeCarouselThemeIconItem: ListViewItem {
     }
 }
 
-private let textFont = Font.regular(12.0)
-private let selectedTextFont = Font.bold(12.0)
-
 private var cachedBorderImages: [String: UIImage] = [:]
 private func generateBorderImage(theme: PresentationTheme, bordered: Bool, selected: Bool) -> UIImage? {
     let key = "\(theme.list.itemBlocksBackgroundColor.hexString)_\(selected ? "s" + theme.list.itemAccentColor.hexString : theme.list.disclosureArrowColor.hexString)"
@@ -381,7 +378,8 @@ private final class ThemeCarouselThemeItemIconNode: ListViewItemNode {
                 updatedSelected = true
             }
             
-            let text = NSAttributedString(string: item.strings.Wallpaper_NoWallpaper, font: Font.regular(13.0), textColor: item.theme.list.itemSecondaryTextColor)
+            let fontSize = item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let text = NSAttributedString(string: item.strings.Wallpaper_NoWallpaper, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: item.theme.list.itemSecondaryTextColor)
             let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: text, backgroundColor: nil, maximumNumberOfLines: 2, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
 
             var string: String?
@@ -393,7 +391,7 @@ private final class ThemeCarouselThemeItemIconNode: ListViewItemNode {
                 string = item.channelMode ? "" : "🎨" 
             }
             
-            let emojiTitle = NSAttributedString(string: string ?? "", font: Font.regular(20.0), textColor: .black)
+            let emojiTitle = NSAttributedString(string: string ?? "", font: Font.regular(floor(fontSize * 20.0 / 17.0)), textColor: .black)
             let (_, emojiApply) = makeEmojiLayout(TextNodeLayoutArguments(attributedString: emojiTitle, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             
             let itemLayout = ListViewItemNodeLayout(contentSize: CGSize(width: 120.0, height: 90.0), insets: UIEdgeInsets())

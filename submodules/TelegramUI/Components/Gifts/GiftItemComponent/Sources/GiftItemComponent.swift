@@ -1066,7 +1066,7 @@ public final class GiftItemComponent: Component {
                 let badgeTextSize = self.badgeText.update(
                     transition: .spring(duration: 0.2),
                     component: AnyComponent(
-                        MultilineTextComponent(text: .plain(NSAttributedString(string: badgeString, font: Font.with(size: 11.0, weight: .medium, traits: .monospacedNumbers), textColor: badgeTextColor)))
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: badgeString, font: Font.with(size: floor(fontSize * 11.0 / 17.0), weight: .medium, traits: .monospacedNumbers), textColor: badgeTextColor)))
                     ),
                     environment: {},
                     containerSize: availableSize
@@ -1138,7 +1138,7 @@ public final class GiftItemComponent: Component {
                         transition: .spring(duration: 0.2),
                         component: AnyComponent(
                             AnimatedTextComponent(
-                                font: Font.with(size: 11.0, weight: .regular, traits: .monospacedNumbers),
+                                font: Font.with(size: floor(fontSize * 11.0 / 17.0), weight: .regular, traits: .monospacedNumbers),
                                 color: .white,
                                 items: animatedBadgeItems,
                                 noDelay: true
@@ -1256,7 +1256,8 @@ public final class GiftItemComponent: Component {
                             text: price,
                             color: buttonColor,
                             tinted: tinted,
-                            starsColor: starsColor
+                            starsColor: starsColor,
+                            font: Font.semibold(floor(fontSize * 11.0 / 17.0))
                         )
                     ),
                     environment: {},
@@ -1276,10 +1277,12 @@ public final class GiftItemComponent: Component {
                 
                 if let label = component.label {
                     let labelColor = component.theme.overallDarkAppearance ? UIColor(rgb: 0xffc337) : UIColor(rgb: 0xd3720a)
+                    let labelFont = Font.regular(floor(fontSize * 11.0 / 17.0))
+                    let labelBoldFont = Font.semibold(floor(fontSize * 11.0 / 17.0))
                     let attributes = MarkdownAttributes(
-                        body: MarkdownAttributeSet(font: Font.regular(11.0), textColor: labelColor),
-                        bold: MarkdownAttributeSet(font: Font.semibold(11.0), textColor: labelColor),
-                        link: MarkdownAttributeSet(font: Font.regular(11.0), textColor: labelColor),
+                        body: MarkdownAttributeSet(font: labelFont, textColor: labelColor),
+                        bold: MarkdownAttributeSet(font: labelBoldFont, textColor: labelColor),
+                        link: MarkdownAttributeSet(font: labelFont, textColor: labelColor),
                         linkAttribute: { contents in
                             return (TelegramTextAttributes.URL, contents)
                         }
@@ -1348,7 +1351,7 @@ public final class GiftItemComponent: Component {
                 let badgeTextSize = self.badgeText.update(
                     transition: .spring(duration: 0.2),
                     component: AnyComponent(
-                        MultilineTextComponent(text: .plain(NSAttributedString(string: badgeString, font: Font.with(size: 11.0, weight: .medium, traits: .monospacedNumbers), textColor: .white)))
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: badgeString, font: Font.with(size: floor(fontSize * 11.0 / 17.0), weight: .medium, traits: .monospacedNumbers), textColor: .white)))
                     ),
                     environment: {},
                     containerSize: availableSize
@@ -1377,18 +1380,18 @@ public final class GiftItemComponent: Component {
             if let ribbon = component.ribbon {
                 let ribbonFontSize: CGFloat
                 if case .profile = component.mode {
-                    ribbonFontSize = 9.0
+                    ribbonFontSize = floor(fontSize * 9.0 / 17.0)
                 } else {
-                    ribbonFontSize = 10.0
+                    ribbonFontSize = floor(fontSize * 10.0 / 17.0)
                 }
                 let ribbonFont: UIFont
                 switch ribbon.font {
                 case .generic:
                     ribbonFont = Font.semibold(ribbonFontSize)
                 case .larger:
-                    ribbonFont = Font.semibold(10.0)
+                    ribbonFont = Font.semibold(floor(fontSize * 10.0 / 17.0))
                 case .monospaced:
-                    ribbonFont = Font.with(size: 10.0, design: .monospace, weight: .semibold)
+                    ribbonFont = Font.with(size: floor(fontSize * 10.0 / 17.0), design: .monospace, weight: .semibold)
                 }
                 
                 let ribbonTextSize = self.ribbonText.update(
@@ -1613,10 +1616,12 @@ public final class GiftItemComponent: Component {
 
             if let resellPrice = component.resellPrice {
                 let labelColor = UIColor.white
+                let resellFont = Font.semibold(floor(fontSize * 11.0 / 17.0))
+                let resellLinkFont = Font.regular(floor(fontSize * 11.0 / 17.0))
                 let attributes = MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: Font.semibold(11.0), textColor: labelColor),
-                    bold: MarkdownAttributeSet(font: Font.semibold(11.0), textColor: labelColor),
-                    link: MarkdownAttributeSet(font: Font.regular(11.0), textColor: labelColor),
+                    body: MarkdownAttributeSet(font: resellFont, textColor: labelColor),
+                    bold: MarkdownAttributeSet(font: resellFont, textColor: labelColor),
+                    link: MarkdownAttributeSet(font: resellLinkFont, textColor: labelColor),
                     linkAttribute: { contents in
                         return (TelegramTextAttributes.URL, contents)
                     }
@@ -1625,7 +1630,7 @@ public final class GiftItemComponent: Component {
                 let labelText = NSMutableAttributedString(attributedString: parseMarkdownIntoAttributedString("# \(presentationStringsFormattedNumber(Int32(resellPrice), dateTimeFormat.groupingSeparator))", attributes: attributes))
                 let range = (labelText.string as NSString).range(of: "#")
                 if range.location != NSNotFound {
-                    labelText.addAttribute(NSAttributedString.Key.font, value: Font.semibold(10.0), range: range)
+                    labelText.addAttribute(NSAttributedString.Key.font, value: Font.semibold(floor(fontSize * 10.0 / 17.0)), range: range)
                     labelText.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: true)), range: range)
                     labelText.addAttribute(.kern, value: -1.5, range: NSRange(location: range.upperBound, length: 1))
                 }
@@ -1894,15 +1899,16 @@ public final class StarsButtonContentComponent: Component {
         color: UIColor,
         tinted: Bool = false,
         starsColor: UIColor? = nil,
-        font: UIFont = Font.semibold(11.0),
+        font: UIFont? = nil,
         height: CGFloat = 30.0
     ) {
+        let resolvedFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         self.context = context
         self.text = text
         self.color = color
         self.tinted = tinted
         self.starsColor = starsColor
-        self.font = font
+        self.font = font ?? Font.semibold(floor(resolvedFontSize * 11.0 / 17.0))
         self.height = height
     }
 
@@ -1960,11 +1966,12 @@ public final class StarsButtonContentComponent: Component {
                 textColor = .white
             }
                         
+            let starFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let attributedText = NSMutableAttributedString(string: component.text, font: component.font, textColor: textColor)
             let range = (attributedText.string as NSString).range(of: "#")
             if range.location != NSNotFound {
                 attributedText.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: component.tinted)), range: range)
-                attributedText.addAttribute(.font, value: Font.semibold(component.tinted ? 14.0 : 15.0), range: range)
+                attributedText.addAttribute(.font, value: Font.semibold(floor(starFontSize * (component.tinted ? 14.0 : 15.0) / 17.0)), range: range)
                 attributedText.addAttribute(.baselineOffset, value: -3.0, range: range)
                 attributedText.addAttribute(.baselineOffset, value: 1.5, range: NSRange(location: range.upperBound + 1, length: attributedText.length - range.upperBound - 1))
                 attributedText.addAttribute(.kern, value: -1.5, range: NSRange(location: range.upperBound, length: 1))

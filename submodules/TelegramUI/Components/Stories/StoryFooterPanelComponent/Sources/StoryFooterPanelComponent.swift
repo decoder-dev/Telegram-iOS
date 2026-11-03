@@ -421,7 +421,7 @@ public final class StoryFooterPanelComponent: Component {
             
             var regularSegments: [AnimatedCountLabelView.Segment] = []
             if viewCount != 0 {
-                regularSegments.append(.number(viewCount, NSAttributedString(string: countString(Int64(viewCount)), font: Font.with(size: 15.0, traits: .monospacedNumbers), textColor: .white)))
+                regularSegments.append(.number(viewCount, NSAttributedString(string: countString(Int64(viewCount)), font: Font.with(size: floor(component.fontSize * 15.0 / 17.0), traits: .monospacedNumbers), textColor: .white)))
             }
             
             let viewPart: String
@@ -489,7 +489,7 @@ public final class StoryFooterPanelComponent: Component {
                 let reactionStatsLayout = reactionStatsText.update(
                     size: CGSize(width: availableSize.width, height: size.height),
                     segments: [
-                        .number(reactionCount, NSAttributedString(string: "\(reactionCount)", font: Font.with(size: 15.0, traits: .monospacedNumbers), textColor: .white))
+                        .number(reactionCount, NSAttributedString(string: "\(reactionCount)", font: Font.with(size: floor(component.fontSize * 15.0 / 17.0), traits: .monospacedNumbers), textColor: .white))
                     ],
                     reducedLetterSpacing: true,
                     transition: (isFirstTime || reactionsTransition.animation.isImmediate) ? .immediate : ContainedViewLayoutTransition.animated(duration: 0.25, curve: .easeInOut)
@@ -543,7 +543,7 @@ public final class StoryFooterPanelComponent: Component {
                 let repostStatsLayout = repostStatsText.update(
                     size: CGSize(width: availableSize.width, height: size.height),
                     segments: [
-                        .number(forwardCount, NSAttributedString(string: "\(forwardCount)", font: Font.with(size: 15.0, traits: .monospacedNumbers), textColor: .white))
+                        .number(forwardCount, NSAttributedString(string: "\(forwardCount)", font: Font.with(size: floor(component.fontSize * 15.0 / 17.0), traits: .monospacedNumbers), textColor: .white))
                     ],
                     reducedLetterSpacing: true,
                     transition: (isFirstTime || repostTransition.animation.isImmediate) ? .immediate : ContainedViewLayoutTransition.animated(duration: 0.25, curve: .easeInOut)
@@ -731,7 +731,7 @@ public final class StoryFooterPanelComponent: Component {
                 let reactionStatsLayout = likeStatsText.update(
                     size: CGSize(width: availableSize.width, height: size.height),
                     segments: [
-                        .number(reactionCount, NSAttributedString(string: "\(reactionCount)", font: Font.with(size: 15.0, traits: .monospacedNumbers), textColor: .white))
+                        .number(reactionCount, NSAttributedString(string: "\(reactionCount)", font: Font.with(size: floor(component.fontSize * 15.0 / 17.0), traits: .monospacedNumbers), textColor: .white))
                     ],
                     transition: (isFirstTime || likeStatsTransition.animation.isImmediate) ? .immediate : ContainedViewLayoutTransition.animated(duration: 0.25, curve: .easeInOut)
                 )
@@ -838,7 +838,7 @@ public final class StoryFooterPanelComponent: Component {
                     let forwardStatsLayout = forwardStatsText.update(
                         size: CGSize(width: availableSize.width, height: size.height),
                         segments: [
-                            .number(forwardCount, NSAttributedString(string: "\(forwardCount)", font: Font.with(size: 15.0, traits: .monospacedNumbers), textColor: .white))
+                            .number(forwardCount, NSAttributedString(string: "\(forwardCount)", font: Font.with(size: floor(component.fontSize * 15.0 / 17.0), traits: .monospacedNumbers), textColor: .white))
                         ],
                         transition: (isFirstTime || likeStatsTransition.animation.isImmediate) ? .immediate : ContainedViewLayoutTransition.animated(duration: 0.25, curve: .easeInOut)
                     )

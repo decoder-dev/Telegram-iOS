@@ -92,7 +92,8 @@ public func giftSaleAlertController(
         )
     ))
     
-    let tableFont = Font.regular(15.0)
+    let fontSize = presentationData.listsFontSize.baseDisplaySize
+    let tableFont = Font.regular(floor(fontSize * 15.0 / 17.0))
     let tableTextColor = presentationData.theme.list.itemPrimaryTextColor
     
     let modelButtonTag = GenericComponentViewTag()

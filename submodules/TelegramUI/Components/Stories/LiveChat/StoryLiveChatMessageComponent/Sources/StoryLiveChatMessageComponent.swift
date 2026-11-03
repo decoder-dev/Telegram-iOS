@@ -180,6 +180,7 @@ public final class StoryLiveChatMessageComponent: Component {
             
             let primaryTextColor = UIColor(white: 1.0, alpha: 1.0)
             let secondaryTextColor = UIColor(white: 1.0, alpha: 0.8)
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             var displayStarsAmountBackground = false
             var starsAmountTextSize: CGSize?
@@ -208,7 +209,7 @@ public final class StoryLiveChatMessageComponent: Component {
                 starsAmountTextSize = starsAmountText.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: "\(paidStars)", font: Font.semibold(11.0), textColor: displayStarsAmountBackground ? primaryTextColor : secondaryTextColor))
+                        text: .plain(NSAttributedString(string: "\(paidStars)", font: Font.semibold(floor(fontSize * 11.0 / 17.0)), textColor: displayStarsAmountBackground ? primaryTextColor : secondaryTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: 100.0, height: 100.0)
@@ -269,12 +270,12 @@ public final class StoryLiveChatMessageComponent: Component {
                 
                 //let codeHighlightSpecs = extractMessageSyntaxHighlightSpecs(text: component.message.text, entities: component.message.entities)
                 
-                let textFont = Font.regular(15.0)
-                let messageBoldFont = Font.semibold(15.0)
-                let messageItalicFont = Font.italic(15.0)
-                let messageBoldItalicFont = Font.semiboldItalic(15.0)
-                let messageFixedFont = Font.monospace(15.0)
-                let messageBlockQuoteFont = Font.regular(14.0)
+                let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+                let messageBoldFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
+                let messageItalicFont = Font.italic(floor(fontSize * 15.0 / 17.0))
+                let messageBoldItalicFont = Font.semiboldItalic(floor(fontSize * 15.0 / 17.0))
+                let messageFixedFont = Font.monospace(floor(fontSize * 15.0 / 17.0))
+                let messageBlockQuoteFont = Font.regular(floor(fontSize * 14.0 / 17.0))
                 
                 textString = stringWithAppliedEntities(component.message.text, entities: component.message.entities, baseColor: primaryTextColor, linkColor: component.theme.list.itemAccentColor, baseQuoteTintColor: primaryTextColor, baseQuoteSecondaryTintColor: secondaryTextColor, baseQuoteTertiaryTintColor: secondaryTextColor, codeBlockTitleColor: codeBlockTitleColor, codeBlockAccentColor: codeBlockAccentColor, codeBlockBackgroundColor: codeBlockBackgroundColor, baseFont: textFont, linkFont: textFont, boldFont: messageBoldFont, italicFont: messageItalicFont, boldItalicFont: messageBoldItalicFont, fixedFont: messageFixedFont, blockQuoteFont: messageBlockQuoteFont, underlineLinks: underlineLinks, message: nil, adjustQuoteFontSize: true, cachedMessageSyntaxHighlight: nil)
             }
@@ -331,7 +332,7 @@ public final class StoryLiveChatMessageComponent: Component {
                     context: component.context,
                     peer: component.message.author,
                     text: .name,
-                    font: Font.semibold(15.0),
+                    font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                     textColor: secondaryTextColor,
                     iconBackgroundColor: .white,
                     iconForegroundColor: textIconsForegroundColor,
@@ -357,7 +358,7 @@ public final class StoryLiveChatMessageComponent: Component {
                 adminBadgeTextSize = adminBadgeText.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.strings.ChatAdmins_AdminLabel, font: Font.regular(11.0), textColor: secondaryTextColor))
+                        text: .plain(NSAttributedString(string: component.strings.ChatAdmins_AdminLabel, font: Font.regular(floor(fontSize * 11.0 / 17.0)), textColor: secondaryTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: 200.0, height: 100.0)

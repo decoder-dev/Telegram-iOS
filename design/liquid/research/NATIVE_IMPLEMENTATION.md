@@ -363,3 +363,7 @@ GiftView/Craft/Auction, NewContact, PeerAllowedReactions, StickerPack edit title
 ## Gift auction / Stars overlay / Curves / EntityKeyboard
 
 GiftAuctionBid Badge/PeerPlace/SliderBackground принимают `fontSize` из listsFontSize (без stub `= 17.0`); GiftView/Craft/Auction wear timers и monospaced CTA — `floor(fontSize * N / 17.0)`. GiftValue/UpgradeVariants/AuctionInfo paragraphs, StarsBalanceOverlay/StarsIntro, NewsPostFeedback, CurvesComponent (+ MediaTools listsFontSizeBase), EntityKeyboard GroupHeader, EmojiGameStake labels — тот же шаблон. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Stories / Settings / Gift alerts chrome
+
+StoryAuthorInfo/LiveChat/Footer, GiftItem badges/labels, GiftRemove/Move/Offer/Purchase/Sale/Transfer alerts, GiftUpgradeCost/AuctionAcquired/ActiveBids, VerifyAlert, ChatbotSetup intro, AccountFreeze paragraphs, ThemeCarousel, UserAppearance, ChatQr duration badge, NewsFeedPost — Dynamic Type от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.

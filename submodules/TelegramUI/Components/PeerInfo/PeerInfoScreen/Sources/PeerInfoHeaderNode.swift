@@ -1346,8 +1346,9 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             }
 
             titleStringText = title
-            titleAttributes = MultiScaleTextState.Attributes(font: Font.medium(28.0), color: .white)
-            smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.medium(28.0), color: .white, shadowColor: titleShadowColor)
+            let titleFontSize = floor(listFontSize * 28.0 / 17.0)
+            titleAttributes = MultiScaleTextState.Attributes(font: Font.medium(titleFontSize), color: .white)
+            smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.medium(titleFontSize), color: .white, shadowColor: titleShadowColor)
             
             if self.isSettings, case let .user(user) = peer {
                 let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: self.context.account.peerId, peerId: peer.id, settings: self.context.sharedContext.immediateForkExtrasSettings)
@@ -1463,8 +1464,9 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             }
         } else {
             titleStringText = " "
-            titleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white)
-            smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white, shadowColor: titleShadowColor)
+            let placeholderTitleFontSize = floor(listFontSize * 24.0 / 17.0)
+            titleAttributes = MultiScaleTextState.Attributes(font: Font.regular(placeholderTitleFontSize), color: .white)
+            smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(placeholderTitleFontSize), color: .white, shadowColor: titleShadowColor)
             
             subtitleStringText = " "
             subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white)
@@ -2689,17 +2691,19 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             let balanceTitle = presentationData.strings.Wallet_Send_Balance("").string.trimmingCharacters(in: .whitespacesAndNewlines)
             // Shrink unusually long amounts/localizations to fit the profile band.
             let maximumBalanceWidth = max(1.0, width - stripLeft - stripRight - 32.0)
-            let titleWidth = (balanceTitle as NSString).size(withAttributes: [.font: Font.regular(12.0)]).width
-            let amountWidth = (formattedBalance as NSString).size(withAttributes: [.font: Font.semibold(12.0)]).width
+            let balanceFontSize = floor(listFontSize * 12.0 / 17.0)
+            let balanceFractionalFontSize = floor(listFontSize * 9.0 / 17.0)
+            let titleWidth = (balanceTitle as NSString).size(withAttributes: [.font: Font.regular(balanceFontSize)]).width
+            let amountWidth = (formattedBalance as NSString).size(withAttributes: [.font: Font.semibold(balanceFontSize)]).width
             let textScale = min(1.0, max(1.0, maximumBalanceWidth - 52.0) / max(1.0, titleWidth + amountWidth))
-            let amountText = tonAmountAttributedString(formattedBalance, integralFont: Font.semibold(12.0 * textScale), fractionalFont: Font.semibold(9.0 * textScale), color: primaryColor, decimalSeparator: decimalSeparator)
+            let amountText = tonAmountAttributedString(formattedBalance, integralFont: Font.semibold(balanceFontSize * textScale), fractionalFont: Font.semibold(balanceFractionalFontSize * textScale), color: primaryColor, decimalSeparator: decimalSeparator)
             let balanceSize = balance.update(
                 transition: .immediate,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(HStack([
                         AnyComponentWithIdentity(
                             id: "title",
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: balanceTitle, font: Font.regular(12.0 * textScale), textColor: primaryColor))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: balanceTitle, font: Font.regular(balanceFontSize * textScale), textColor: primaryColor))))
                         ),
                         AnyComponentWithIdentity(
                             id: self.isAvatarExpanded ? "iconCutout" : "iconWithStar",
@@ -2825,9 +2829,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
 
                 let musicString = NSMutableAttributedString()
                 // Keep music inside the profile band, including when a side strip is visible.
-                musicString.append(NSAttributedString(string: track ?? "", font: Font.semibold(12.0), textColor: isOverlay ? .white : presentationData.theme.list.itemAccentColor))
+                let musicFontSize = floor(listFontSize * 12.0 / 17.0)
+                musicString.append(NSAttributedString(string: track ?? "", font: Font.semibold(musicFontSize), textColor: isOverlay ? .white : presentationData.theme.list.itemAccentColor))
                 let artistSeparatorIndex = musicString.length
-                musicString.append(NSAttributedString(string: " \(artist)", font: Font.regular(12.0), textColor: stripSecondaryColor))
+                musicString.append(NSAttributedString(string: " \(artist)", font: Font.regular(musicFontSize), textColor: stripSecondaryColor))
                 musicString.addAttribute(.kern, value: CGFloat(2.0), range: NSRange(location: artistSeparatorIndex, length: 1))
 
                 let musicSize = music.update(

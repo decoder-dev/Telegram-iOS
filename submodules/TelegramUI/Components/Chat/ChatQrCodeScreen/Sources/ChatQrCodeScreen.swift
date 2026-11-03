@@ -445,11 +445,12 @@ private final class ThemeSettingsThemeItemIconNode : ListViewItemNode {
                 updatedNightMode = true
             }
             
-            let text = NSAttributedString(string: item.strings.Conversation_Theme_NoTheme, font: Font.semibold(15.0), textColor: item.theme.actionSheet.controlAccentColor)
+            let fontSize = item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let text = NSAttributedString(string: item.strings.Conversation_Theme_NoTheme, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: item.theme.actionSheet.controlAccentColor)
             let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: text, backgroundColor: nil, maximumNumberOfLines: 2, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             
             let emoticon = item.emoticon
-            let title = NSAttributedString(string: emoticon != nil ? "" : "❌", font: Font.regular(22.0), textColor: .black)
+            let title = NSAttributedString(string: emoticon != nil ? "" : "❌", font: Font.regular(floor(fontSize * 22.0 / 17.0)), textColor: .black)
             let (_, emojiApply) = makeEmojiLayout(TextNodeLayoutArguments(attributedString: title, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             
             let itemLayout = ListViewItemNodeLayout(contentSize: CGSize(width: 120.0, height: 90.0), insets: UIEdgeInsets())
@@ -869,7 +870,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         case .messages:
             title = self.presentationData.strings.Share_MessagePreview
         }
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(16.0), textColor: textColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(floor(self.presentationData.listsFontSize.baseDisplaySize * 16.0 / 17.0)), textColor: textColor)
         
         self.segmentedNode = SegmentedControlNode(theme: SegmentedControlTheme(theme: presentationData.theme), items: [SegmentedControlItem(title: "Video"), SegmentedControlItem(title: "Image")], selectedIndex: self.contentNode.hasVideo ? 0 : 1)
         self.segmentedNode.isHidden = !self.contentNode.hasVideo
@@ -1185,7 +1186,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
         let previousTheme = self.presentationData.theme
         self.presentationData = presentationData
                         
-        self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.semibold(16.0), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.semibold(floor(self.presentationData.listsFontSize.baseDisplaySize * 16.0 / 17.0)), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
         self.segmentedNode.updateTheme(SegmentedControlTheme(theme: self.presentationData.theme))
         
         if previousTheme !== presentationData.theme, let (layout, navigationBarHeight) = self.containerLayout {
@@ -2461,7 +2462,7 @@ private class MessageContentNode: ASDisplayNode, ContentNode {
         } else {
             dateString = ""
         }
-        self.dateNode.attributedText = NSAttributedString(string: dateString, font: Font.regular(14.0), textColor: messageTheme.secondaryTextColor)
+        self.dateNode.attributedText = NSAttributedString(string: dateString, font: Font.regular(floor(self.presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: messageTheme.secondaryTextColor)
         let dateSize = self.dateNode.updateLayout(size)
         let dateFrame = CGRect(origin: CGPoint(x: 62.0, y: 35.0), size: dateSize)
         self.dateNode.frame = dateFrame
@@ -2545,7 +2546,8 @@ private class MessageContentNode: ASDisplayNode, ContentNode {
                 playerDuration = mediaDuration
             }
             let durationString = stringForDuration(playerDuration, position: playerPosition)
-            let font = Font.with(size: 11.0, design: .regular, weight: .regular, traits: [.monospacedNumbers])
+            let fontSize = self.presentationData.listsFontSize.baseDisplaySize
+            let font = Font.with(size: floor(fontSize * 11.0 / 17.0), design: .regular, weight: .regular, traits: [.monospacedNumbers])
             self.badgeTextNode.attributedText = NSAttributedString(string: durationString, font: font, textColor: .white)
             
             let durationSize = self.badgeTextNode.updateLayout(CGSize(width: 100.0, height: 18.0))

@@ -94,7 +94,8 @@ private final class GiftMoveAddressAlertComponent: Component {
             let bottomSpacing: CGFloat = 6.0
 
             let addressText = NSMutableAttributedString()
-            let addressFont = Font.monospace(18.0)
+            let addressFontSize = environment[AlertComponentEnvironment.self].fontSize
+            let addressFont = Font.monospace(floor(addressFontSize * 18.0 / 17.0))
             var index = component.address.startIndex
             var groupIndex = 0
             while index < component.address.endIndex {
@@ -196,10 +197,11 @@ private final class GiftMovePeerAlertComponent: Component {
             let textLeft = backgroundInset + contentInset + avatarSize.width + textSpacing
             let textWidth = max(1.0, backgroundInset + width - contentInset - textLeft)
 
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: strings, displayOrder: .firstLast), font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: theme.actionSheet.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: strings, displayOrder: .firstLast), font: Font.semibold(fontSize), textColor: theme.actionSheet.primaryTextColor)),
                     maximumNumberOfLines: 1
                 )),
                 environment: {},
@@ -210,7 +212,7 @@ private final class GiftMovePeerAlertComponent: Component {
                 subtitleSize = self.subtitle.update(
                     transition: transition,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: subtitle, font: Font.regular(15.0), textColor: theme.actionSheet.secondaryTextColor)),
+                        text: .plain(NSAttributedString(string: subtitle, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.actionSheet.secondaryTextColor)),
                         maximumNumberOfLines: 1
                     )),
                     environment: {},
@@ -289,9 +291,9 @@ private func giftMovePathIcon(_ name: String, color: UIColor?, side: CGFloat) ->
     return generateScaledImage(image: image, size: CGSize(width: floor(image.size.width * scale), height: floor(image.size.height * scale)), opaque: false)
 }
 
-private func giftMovePathString(items: [(String, String, Bool)], theme: PresentationTheme) -> NSAttributedString {
+private func giftMovePathString(items: [(String, String, Bool)], theme: PresentationTheme, fontSize: CGFloat) -> NSAttributedString {
     let accentColor = theme.actionSheet.controlAccentColor
-    let font = Font.regular(13.0)
+    let font = Font.regular(floor(fontSize * 13.0 / 17.0))
     let textColor = theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.5)
     let result = NSMutableAttributedString()
     result.append(NSAttributedString(string: " "))
@@ -354,7 +356,7 @@ public func giftMoveToWalletAlertController(
                 ("Wallet/PathSettings", strings.Settings_Title, true),
                 ("Wallet/PathGram", strings.Settings_Money, false),
                 ("Wallet/PathGift", strings.Wallet_Collectibles, true)
-            ], theme: presentationData.theme), topInset: -6.0)
+            ], theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize), topInset: -6.0)
         )
     ))
 
@@ -442,7 +444,7 @@ public func giftMoveToProfileAlertController(
             GiftMovePathAlertComponent(text: giftMovePathString(items: [
                 ("Wallet/PathUser", strings.Settings_MyProfile, true),
                 ("Wallet/PathGift", strings.PeerInfo_PaneGifts, true)
-            ], theme: presentationData.theme), topInset: -6.0)
+            ], theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize), topInset: -6.0)
         )
     ))
 

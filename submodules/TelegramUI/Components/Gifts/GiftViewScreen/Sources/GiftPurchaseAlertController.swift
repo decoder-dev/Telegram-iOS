@@ -133,7 +133,8 @@ public func giftPurchaseAlertController(
         ))
         
         if showAttributes {
-            let tableFont = Font.regular(15.0)
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
+            let tableFont = Font.regular(floor(fontSize * 15.0 / 17.0))
             let tableTextColor = presentationData.theme.list.itemPrimaryTextColor
             
             let modelButtonTag = GenericComponentViewTag()
@@ -366,7 +367,7 @@ private final class AlertCurrencyComponent: Component {
                     ),
                     theme: environment.theme,
                     customLayout: TabSelectorComponent.CustomLayout(
-                        font: Font.medium(14.0),
+                        font: Font.medium(floor(environment.fontSize * 14.0 / 17.0)),
                         spacing: 10.0
                     ),
                     items: [

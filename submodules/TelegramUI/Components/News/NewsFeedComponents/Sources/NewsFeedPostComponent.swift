@@ -52,9 +52,9 @@ private func newsPostThumbnail(_ messages: [EngineMessage]) -> (EngineMessage, N
     return nil
 }
 
-private func newsPostText(component: NewsFeedPostComponent, maxLength: Int) -> NSAttributedString {
+private func newsPostText(component: NewsFeedPostComponent, fontSize: CGFloat, maxLength: Int) -> NSAttributedString {
     let theme = component.theme
-    let font = Font.regular(15.0)
+    let font = Font.regular(floor(fontSize * 15.0 / 17.0))
     if let message = component.messages.first(where: { !$0.text.isEmpty }) {
         // The chat list's preview rule (which also keeps quotes and code blocks out, whose block layout breaks the
         // line limit), with italic drawn upright too.
@@ -437,6 +437,7 @@ public final class NewsFeedPostComponent: Component {
             self.component = component
             self.state = state
             let theme = component.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let timeText = newsPostTimeText(component: component)
             self.renderedTimeText = timeText
             defer {
@@ -448,7 +449,7 @@ public final class NewsFeedPostComponent: Component {
 
             let timeSize = self.time.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: timeText, font: Font.regular(13.0), textColor: theme.list.itemSecondaryTextColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: timeText, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor)))),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)
             )
@@ -473,7 +474,7 @@ public final class NewsFeedPostComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.peer.compactDisplayTitle, font: Font.semibold(15.0), textColor: theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.peer.compactDisplayTitle, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)),
                     maximumNumberOfLines: 1
                 )),
                 environment: {},
@@ -482,7 +483,7 @@ public final class NewsFeedPostComponent: Component {
 
             // Three lines hold under one character per point of width (the narrowest glyphs are 3.5 pt wide); twice
             // the width leaves room for characters of several UTF-16 units.
-            let postText = newsPostText(component: component, maxLength: Int(textWidth * 2.0))
+            let postText = newsPostText(component: component, fontSize: fontSize, maxLength: Int(textWidth * 2.0))
             let textSize = self.text.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextWithEntitiesComponent(
@@ -582,13 +583,14 @@ public final class NewsFeedPostComponent: Component {
                     shadow.shadowBlurRadius = 3.0
                     shadow.shadowOffset = CGSize()
                     let string = NSMutableAttributedString()
-                    if let playImage = UIImage(systemName: "play.fill", withConfiguration: UIImage.SymbolConfiguration(font: Font.semibold(11.0)))?.withTintColor(.white, renderingMode: .alwaysOriginal) {
+                    let videoLabelFont = Font.semibold(floor(fontSize * 11.0 / 17.0))
+                    if let playImage = UIImage(systemName: "play.fill", withConfiguration: UIImage.SymbolConfiguration(font: videoLabelFont))?.withTintColor(.white, renderingMode: .alwaysOriginal) {
                         let attachment = NSTextAttachment()
                         attachment.image = playImage
                         string.append(NSAttributedString(attachment: attachment))
                         string.append(NSAttributedString(string: " "))
                     }
-                    string.append(NSAttributedString(string: stringForDuration(Int32(videoDuration)), font: Font.semibold(11.0), textColor: .white))
+                    string.append(NSAttributedString(string: stringForDuration(Int32(videoDuration)), font: videoLabelFont, textColor: .white))
                     string.addAttribute(.shadow, value: shadow, range: NSRange(location: 0, length: string.length))
                     self.videoLabel.attributedText = string
                     let labelSize = self.videoLabel.sizeThatFits(CGSize(width: thumbnailFrame.width, height: 100.0))

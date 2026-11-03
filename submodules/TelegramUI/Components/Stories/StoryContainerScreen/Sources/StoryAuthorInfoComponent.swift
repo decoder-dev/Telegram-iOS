@@ -131,10 +131,11 @@ final class StoryAuthorInfoComponent: Component {
             
             let titleColor = UIColor.white
             let subtitleColor = UIColor(white: 1.0, alpha: 0.8)
+            let subtitleFontSize = floor(listFontSize * 11.0 / 17.0)
             let subtitle: NSAttributedString
             let subtitleTruncationType: CTLineTruncationType
             if let customSubtitle = component.customSubtitle {
-                subtitle = NSAttributedString(string: customSubtitle, font: Font.medium(11.0), textColor: titleColor)
+                subtitle = NSAttributedString(string: customSubtitle, font: Font.medium(subtitleFontSize), textColor: titleColor)
                 subtitleTruncationType = .end
             } else if let forwardInfo = component.forwardInfo {
                 let authorName: String
@@ -146,24 +147,24 @@ final class StoryAuthorInfoComponent: Component {
                 }
                 let timeString = stringForStoryActivityTimestamp(strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat, preciseTime: true, relativeTimestamp: component.timestamp, relativeTo: timestamp, short: true)
                 let combinedString = NSMutableAttributedString()
-                combinedString.append(NSAttributedString(string: authorName, font: Font.medium(11.0), textColor: titleColor))
+                combinedString.append(NSAttributedString(string: authorName, font: Font.medium(subtitleFontSize), textColor: titleColor))
                 if timeString.count < 6 {
-                    combinedString.append(NSAttributedString(string: " • \(timeString)", font: Font.regular(11.0), textColor: subtitleColor))
+                    combinedString.append(NSAttributedString(string: " • \(timeString)", font: Font.regular(subtitleFontSize), textColor: subtitleColor))
                 }
                 subtitle = combinedString
                 subtitleTruncationType = .middle
             } else if let author = component.author {
                 let authorName = author.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
                 let combinedString = NSMutableAttributedString()
-                combinedString.append(NSAttributedString(string: authorName, font: Font.medium(11.0), textColor: titleColor))
+                combinedString.append(NSAttributedString(string: authorName, font: Font.medium(subtitleFontSize), textColor: titleColor))
                 if component.timestamp != 0 {
                     let timeString = stringForStoryActivityTimestamp(strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat, preciseTime: true, relativeTimestamp: component.timestamp, relativeTo: timestamp, short: true)
                     if timeString.count < 6 {
-                        combinedString.append(NSAttributedString(string: " • \(timeString)", font: Font.regular(11.0), textColor: subtitleColor))
+                        combinedString.append(NSAttributedString(string: " • \(timeString)", font: Font.regular(subtitleFontSize), textColor: subtitleColor))
                     }
                 }
                 if component.isEdited {
-                    combinedString.append(NSAttributedString(string: " • \(component.strings.Story_HeaderEdited)", font: Font.regular(11.0), textColor: subtitleColor))
+                    combinedString.append(NSAttributedString(string: " • \(component.strings.Story_HeaderEdited)", font: Font.regular(subtitleFontSize), textColor: subtitleColor))
                 }
                 subtitle = combinedString
                 subtitleTruncationType = .middle
@@ -173,14 +174,14 @@ final class StoryAuthorInfoComponent: Component {
                     subtitleString.append(" • ")
                     subtitleString.append(component.strings.Story_HeaderEdited)
                 }
-                subtitle = NSAttributedString(string: subtitleString, font: Font.regular(11.0), textColor: subtitleColor)
+                subtitle = NSAttributedString(string: subtitleString, font: Font.regular(subtitleFontSize), textColor: subtitleColor)
                 subtitleTruncationType = .end
             } else {
                 var subtitleString = ""
                 if component.isEdited {
                     subtitleString.append(component.strings.Story_HeaderEdited)
                 }
-                subtitle = NSAttributedString(string: subtitleString, font: Font.regular(11.0), textColor: subtitleColor)
+                subtitle = NSAttributedString(string: subtitleString, font: Font.regular(subtitleFontSize), textColor: subtitleColor)
                 subtitleTruncationType = .end
             }
             
@@ -279,7 +280,7 @@ final class StoryAuthorInfoComponent: Component {
                     liveBadgeView = UIImageView()
                     self.liveBadgeView = liveBadgeView
                     self.addSubview(liveBadgeView)
-                    let liveString = NSAttributedString(string: component.strings.Story_LiveBadge, font: Font.semibold(10.0), textColor: .white)
+                    let liveString = NSAttributedString(string: component.strings.Story_LiveBadge, font: Font.semibold(floor(listFontSize * 10.0 / 17.0)), textColor: .white)
                     let liveStringBounds = liveString.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
                     let liveBadgeSize = CGSize(width: ceil(liveStringBounds.width) + 3.0 * 2.0, height: ceil(liveStringBounds.height) + 1.0 * 2.0)
                     liveBadgeView.image = generateImage(liveBadgeSize, rotatedContext: { size, context in
@@ -333,7 +334,7 @@ final class StoryAuthorInfoComponent: Component {
                 let counterSize = counterLabel.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: "\(counters.position + 1)/\(counters.totalCount)", font: Font.regular(11.0), textColor: UIColor(white: 1.0, alpha: 0.43))),
+                        text: .plain(NSAttributedString(string: "\(counters.position + 1)/\(counters.totalCount)", font: Font.regular(subtitleFontSize), textColor: UIColor(white: 1.0, alpha: 0.43))),
                         truncationType: .end,
                         maximumNumberOfLines: 1
                     )),

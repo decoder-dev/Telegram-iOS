@@ -655,11 +655,12 @@ final class ChatbotSetupScreenComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             
             let navigationTitleSize = self.navigationTitle.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: environment.strings.ChatbotSetup_TitleItem, font: Font.bold(24.0), textColor: environment.theme.rootController.navigationBar.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: environment.strings.ChatbotSetup_TitleItem, font: Font.bold(floor(fontSize * 24.0 / 17.0)), textColor: environment.theme.rootController.navigationBar.primaryTextColor)),
                     horizontalAlignment: .center
                 )),
                 environment: {},
@@ -734,9 +735,9 @@ final class ChatbotSetupScreenComponent: Component {
             contentHeight += 115.0
             
             let subtitleString = NSMutableAttributedString(attributedString: parseMarkdownIntoAttributedString(environment.strings.ChatbotSetup_Text, attributes: MarkdownAttributes(
-                body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor),
+                link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                 linkAttribute: { attributes in
                     return ("URL", "")
                 }), textAlignment: .center

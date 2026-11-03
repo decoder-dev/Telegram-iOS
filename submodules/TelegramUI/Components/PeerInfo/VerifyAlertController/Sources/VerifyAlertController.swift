@@ -155,12 +155,13 @@ private final class VerifyAlertContentNode: AlertContentNode {
         
         var origin: CGPoint = CGPoint(x: 0.0, y: 16.0)
         let spacing: CGFloat = 5.0
+        let fontSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         
         
         let titleSize = self.titleView.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: self.title, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: self.theme.primaryColor)),
+                text: .plain(NSAttributedString(string: self.title, font: Font.semibold(fontSize), textColor: self.theme.primaryColor)),
                 horizontalAlignment: .center,
                 maximumNumberOfLines: 0
             )),
@@ -179,7 +180,7 @@ private final class VerifyAlertContentNode: AlertContentNode {
         let textSize = self.textView.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: self.text, font: Font.regular(13.0), textColor: self.theme.primaryColor)),
+                text: .plain(NSAttributedString(string: self.text, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: self.theme.primaryColor)),
                 horizontalAlignment: .center,
                 maximumNumberOfLines: 0
             )),
@@ -260,6 +261,7 @@ private final class VerifyAlertContentNode: AlertContentNode {
                 characterLimit = Int(value)
             }
             
+            let inputFontSize = floor(fontSize * 14.0 / 17.0)
             let inputFieldSize = self.inputField.update(
                 transition: .immediate,
                 component: AnyComponent(TextFieldComponent(
@@ -267,7 +269,7 @@ private final class VerifyAlertContentNode: AlertContentNode {
                     theme: self.presentationTheme,
                     strings: self.strings,
                     externalState: self.inputFieldExternalState,
-                    fontSize: 14.0,
+                    fontSize: inputFontSize,
                     textColor: self.presentationTheme.actionSheet.inputTextColor,
                     accentColor: self.presentationTheme.actionSheet.controlAccentColor,
                     insets: UIEdgeInsets(top: 8.0, left: 2.0, bottom: 8.0, right: 2.0),
@@ -315,7 +317,7 @@ private final class VerifyAlertContentNode: AlertContentNode {
                 placeholderText = self.strings.BotVerification_Verify_Placeholder(self.verifierSettings.companyName).string
                 placeholderEntities = []
             }
-            let placeholderFont = Font.regular(14.0)
+            let placeholderFont = Font.regular(inputFontSize)
             let placeholderAttributedText = stringWithAppliedEntities(
                 placeholderText,
                 entities: placeholderEntities,
@@ -323,10 +325,10 @@ private final class VerifyAlertContentNode: AlertContentNode {
                 linkColor: self.presentationTheme.actionSheet.inputPlaceholderColor,
                 baseFont: placeholderFont,
                 linkFont: placeholderFont,
-                boldFont: Font.semibold(14.0),
-                italicFont: Font.italic(14.0),
-                boldItalicFont: Font.semiboldItalic(14.0),
-                fixedFont: Font.monospace(14.0),
+                boldFont: Font.semibold(inputFontSize),
+                italicFont: Font.italic(inputFontSize),
+                boldItalicFont: Font.semiboldItalic(inputFontSize),
+                fixedFont: Font.monospace(inputFontSize),
                 blockQuoteFont: placeholderFont,
                 message: nil
             )

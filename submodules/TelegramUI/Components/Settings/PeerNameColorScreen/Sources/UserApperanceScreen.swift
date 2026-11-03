@@ -1074,6 +1074,7 @@ final class UserAppearanceScreenComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             if themeUpdated {
                 self.backgroundColor = environment.theme.list.blocksBackgroundColor
                 self.scrollView.backgroundColor = environment.theme.list.blocksBackgroundColor
@@ -1272,9 +1273,9 @@ final class UserAppearanceScreenComponent: Component {
                 ))))
                 
                 let footerAttributes = MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor),
-                    bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.freeTextColor),
-                    link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
+                    body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                    bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                    link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                     linkAttribute: { contents in
                         return (TelegramTextAttributes.URL, contents)
                     }
@@ -1847,14 +1848,14 @@ final class UserAppearanceScreenComponent: Component {
                     currencySymbol = "$"
                     currencyAmount = formatTonAmountText(resellAmount.amount.value, dateTimeFormat: environment.dateTimeFormat, maxDecimalPositions: nil)
                     
-                    buttonAttributedSubtitleString = NSMutableAttributedString(string: environment.strings.Gift_View_EqualsTo(" # \(formatStarsAmountText(starsAmount.amount, dateTimeFormat: environment.dateTimeFormat))").string, font: Font.medium(11.0), textColor: theme.list.itemCheckColors.foregroundColor.withAlphaComponent(0.7), paragraphAlignment: .center)
+                    buttonAttributedSubtitleString = NSMutableAttributedString(string: environment.strings.Gift_View_EqualsTo(" # \(formatStarsAmountText(starsAmount.amount, dateTimeFormat: environment.dateTimeFormat))").string, font: Font.medium(floor(fontSize * 11.0 / 17.0)), textColor: theme.list.itemCheckColors.foregroundColor.withAlphaComponent(0.7), paragraphAlignment: .center)
                     
                 }
                 buyString += "  \(currencySymbol) \(currencyAmount)"
                 buttonTitle = buyString
             }
             
-            let buttonAttributedString = NSMutableAttributedString(string: buttonTitle, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSMutableAttributedString(string: buttonTitle, font: Font.semibold(fontSize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             if let range = buttonAttributedString.string.range(of: "#"), let starImage = self.cachedStarImage?.0 {
                 buttonAttributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: buttonAttributedString.string))
                 buttonAttributedString.addAttribute(.foregroundColor, value: theme.list.itemCheckColors.foregroundColor, range: NSRange(range, in: buttonAttributedString.string))

@@ -55,7 +55,8 @@ public func giftOfferAlertController(
     let giftTitle = "\(gift.title) #\(formatCollectibleNumber(gift.number, dateTimeFormat: presentationData.dateTimeFormat))"
     let text = strings.Chat_GiftPurchaseOffer_AcceptConfirmation_Text(giftTitle, peer.displayTitle(strings: strings, displayOrder: presentationData.nameDisplayOrder), priceString, finalPriceString).string
     
-    let tableFont = Font.regular(15.0)
+    let fontSize = presentationData.listsFontSize.baseDisplaySize
+    let tableFont = Font.regular(floor(fontSize * 15.0 / 17.0))
     let tableTextColor = presentationData.theme.list.itemPrimaryTextColor
     
     let modelButtonTag = GenericComponentViewTag()

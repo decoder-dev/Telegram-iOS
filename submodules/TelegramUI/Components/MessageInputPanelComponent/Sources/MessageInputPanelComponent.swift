@@ -1668,10 +1668,10 @@ public final class MessageInputPanelComponent: Component {
                 }
                 
                 var regularSegments: [AnimatedCountLabelView.Segment] = []
-                regularSegments.append(.number(viewCount, NSAttributedString(string: "\(viewCount)", font: Font.with(size: 15.0, traits: .monospacedNumbers), textColor: .white)))
+                regularSegments.append(.number(viewCount, NSAttributedString(string: "\(viewCount)", font: Font.with(size: floor(fontSize * 15.0 / 17.0), traits: .monospacedNumbers), textColor: .white)))
                 
                 var reactionSegments: [AnimatedCountLabelView.Segment] = []
-                reactionSegments.append(.number(reactionCount, NSAttributedString(string: "\(reactionCount)", font: Font.with(size: 15.0, traits: .monospacedNumbers), textColor: .white)))
+                reactionSegments.append(.number(reactionCount, NSAttributedString(string: "\(reactionCount)", font: Font.with(size: floor(fontSize * 15.0 / 17.0), traits: .monospacedNumbers), textColor: .white)))
                 
                 let viewStatsTextLayout = viewStatsCountText.update(size: CGSize(width: availableSize.width, height: size.height), segments: regularSegments, transition: viewsTransition.containedViewLayoutTransition)
                 let reactionStatsTextLayout = reactionStatsCountText.update(size: CGSize(width: availableSize.width, height: size.height), segments: reactionSegments, transition: viewsTransition.containedViewLayoutTransition)
@@ -1834,8 +1834,8 @@ public final class MessageInputPanelComponent: Component {
                     leftAlignment = true
                     
                     let text = NSMutableAttributedString(attributedString: NSAttributedString())
-                    text.append(NSAttributedString(string: "\(title) ", font: Font.regular(13.0), textColor: UIColor(rgb: 0xffffff, alpha: 0.3)))
-                    text.append(NSAttributedString(string: subtitle, font: Font.regular(13.0), textColor: component.theme.list.itemAccentColor))
+                    text.append(NSAttributedString(string: "\(title) ", font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: UIColor(rgb: 0xffffff, alpha: 0.3)))
+                    text.append(NSAttributedString(string: subtitle, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemAccentColor))
                     
                     contents = AnyComponent(PlainButtonComponent(
                         content: AnyComponent(MultilineTextComponent(
@@ -1882,7 +1882,7 @@ public final class MessageInputPanelComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(Text(
                         text: "\(remainingLength)",
-                        font: Font.with(size: 14.0, traits: .monospacedNumbers),
+                        font: Font.with(size: floor(fontSize * 14.0 / 17.0), traits: .monospacedNumbers),
                         color: self.textFieldExternalState.textLength > maxLength ? UIColor(rgb: 0xff3b30) : UIColor(rgb: 0xffffff, alpha: 0.25)
                     )),
                     environment: {},

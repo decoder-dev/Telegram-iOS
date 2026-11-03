@@ -43,11 +43,12 @@ public func giftRemoveInfoAlertController(
             let textColor = presentationData.theme.actionSheet.primaryTextColor
             let linkColor = presentationData.theme.actionSheet.controlAccentColor
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
-            let italicTextFont = Font.italic(15.0)
-            let boldItalicTextFont = Font.with(size: 15.0, weight: .semibold, traits: .italic)
-            let fixedTextFont = Font.monospace(15.0)
+            let listFontSize = presentationData.listsFontSize.baseDisplaySize
+            let textFont = Font.regular(floor(listFontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(listFontSize * 15.0 / 17.0))
+            let italicTextFont = Font.italic(floor(listFontSize * 15.0 / 17.0))
+            let boldItalicTextFont = Font.with(size: floor(listFontSize * 15.0 / 17.0), weight: .semibold, traits: .italic)
+            let fixedTextFont = Font.monospace(floor(listFontSize * 15.0 / 17.0))
             
             let senderName = senderPeerId.flatMap { peers[$0]?.displayTitle(strings: strings, displayOrder: presentationData.nameDisplayOrder) }
             let recipientName = peers[recipientPeerId]?.displayTitle(strings: strings, displayOrder: presentationData.nameDisplayOrder) ?? ""

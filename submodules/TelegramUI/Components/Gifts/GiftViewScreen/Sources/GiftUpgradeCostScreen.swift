@@ -123,6 +123,8 @@ private final class GiftUpgradeCostScreenComponent: Component {
             
             var contentHeight: CGFloat = 56.0
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             var value: CGFloat = 0.0
             if let startStars = component.upgradePreview.prices.first?.stars, let endStars = component.upgradePreview.prices.last?.stars {
                 let effectiveValue = self.effectiveUpgradePrice?.stars ?? endStars
@@ -161,7 +163,7 @@ private final class GiftUpgradeCostScreenComponent: Component {
                 component: AnyComponent(BalancedTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Gift_UpgradeCost_Description,
-                        font: Font.regular(15.0),
+                        font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                         textColor: environment.theme.list.itemPrimaryTextColor,
                         paragraphAlignment: .center
                     )),
@@ -189,7 +191,7 @@ private final class GiftUpgradeCostScreenComponent: Component {
                     continue
                 }
                 let valueString = "⭐️\(presentationStringsFormattedNumber(abs(Int32(clamping: price.stars)), environment.dateTimeFormat.groupingSeparator))"
-                let valueAttributedString = NSMutableAttributedString(string: valueString, font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor)
+                let valueAttributedString = NSMutableAttributedString(string: valueString, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor)
                 let range = (valueAttributedString.string as NSString).range(of: "⭐️")
                 if range.location != NSNotFound {
                     valueAttributedString.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: false)), range: range)
@@ -226,7 +228,7 @@ private final class GiftUpgradeCostScreenComponent: Component {
                 component: AnyComponent(BalancedTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Gift_UpgradeCost_AdditionalDescription,
-                        font: Font.regular(13.0),
+                        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                         textColor: environment.theme.list.itemSecondaryTextColor,
                         paragraphAlignment: .center
                     )),

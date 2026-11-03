@@ -185,18 +185,19 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
         let textColorValue: UIColor = presentationData.theme.list.itemPrimaryTextColor
         let labelColorValue: UIColor
         let labelFont: UIFont
+        let fontSize = presentationData.listsFontSize.baseDisplaySize
         if case let .semitransparentBadge(_, color) = item.label {
             labelColorValue = color
-            labelFont = Font.semibold(14.0)
+            labelFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
         } else if case .badge = item.label {
             labelColorValue = presentationData.theme.list.itemCheckColors.foregroundColor
-            labelFont = Font.regular(15.0)
+            labelFont = Font.regular(floor(fontSize * 15.0 / 17.0))
         } else if case .titleBadge = item.label {
             labelColorValue = presentationData.theme.list.itemCheckColors.foregroundColor
-            labelFont = Font.medium(11.0)
+            labelFont = Font.medium(floor(fontSize * 11.0 / 17.0))
         } else if case .labelBadge = item.label {
             labelColorValue = presentationData.theme.list.itemCheckColors.foregroundColor
-            labelFont = Font.medium(12.0)
+            labelFont = Font.medium(floor(fontSize * 12.0 / 17.0))
         } else if case let .coloredText(_, color) = item.label {
             switch color {
             case .generic:
@@ -383,7 +384,7 @@ private final class PeerInfoScreenDisclosureItemNode: PeerInfoScreenItemNode {
                 self.addSubnode(additionalLabelNode)
             }
             
-            additionalLabelNode.attributedText = NSAttributedString(string: additionalBadgeLabel, font: Font.medium(11.0), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
+            additionalLabelNode.attributedText = NSAttributedString(string: additionalBadgeLabel, font: Font.medium(floor(fontSize * 11.0 / 17.0)), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
             let additionalLabelSize = additionalLabelNode.updateLayout(CGSize(width: labelConstrainWidth, height: .greatestFiniteMagnitude))
             additionalLabelNode.frame = CGRect(origin: CGPoint(x: textFrame.maxX + 10.0, y: floor((height - additionalLabelSize.height) / 2.0) + 1.0), size: additionalLabelSize)
         } else if let additionalLabelNode = self.additionalLabelNode {

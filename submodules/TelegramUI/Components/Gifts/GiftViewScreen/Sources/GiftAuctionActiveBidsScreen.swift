@@ -695,10 +695,11 @@ private final class ActiveAuctionComponent: Component {
                 endTime = nextRoundDate
             }
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(fontSize), textColor: component.theme.list.itemPrimaryTextColor)),
                     maximumNumberOfLines: 2
                 )),
                 environment: {},
@@ -714,8 +715,8 @@ private final class ActiveAuctionComponent: Component {
             size.height += titleSize.height
             size.height += 2.0
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let textColor = subtitleTextColor
             let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: textFont, textColor: textColor), linkAttribute: { contents in
                 return (TelegramTextAttributes.URL, contents)
