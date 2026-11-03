@@ -688,7 +688,7 @@ final class GiftSlotComponent: Component {
                                     RoundedRectangle(color: buttonColor, cornerRadius: 13.5, size: CGSize(width: 54.0, height: 27.0))
                                 )),
                                 AnyComponentWithIdentity(id: "icon", component: AnyComponent(
-                                    Text(text: "\((gift.gift.craftChancePermille ?? 0) / 10)%", font: Font.semibold(17.0), color: .white)
+                                    Text(text: "\((gift.gift.craftChancePermille ?? 0) / 10)%", font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: .white)
                                 ))
                             ])
                         ),

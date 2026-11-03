@@ -51,6 +51,7 @@ public final class NavigationBarComponent: Component {
     /// replaces the row, and the row's buttons go with it).
     public let hidesSideColumnButtons: Bool
     public let openSideColumnOverflow: ((UIView, [OverflowItem]) -> Void)?
+    public let titleFontSize: CGFloat
 
     public init(
         theme: NavigationBarTheme,
@@ -63,7 +64,8 @@ public final class NavigationBarComponent: Component {
         secondaryTransition: CGFloat,
         sideColumnLength: CGFloat? = nil,
         hidesSideColumnButtons: Bool = false,
-        openSideColumnOverflow: ((UIView, [OverflowItem]) -> Void)? = nil
+        openSideColumnOverflow: ((UIView, [OverflowItem]) -> Void)? = nil,
+        titleFontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.strings = strings
@@ -76,6 +78,7 @@ public final class NavigationBarComponent: Component {
         self.sideColumnLength = sideColumnLength
         self.hidesSideColumnButtons = hidesSideColumnButtons
         self.openSideColumnOverflow = openSideColumnOverflow
+        self.titleFontSize = titleFontSize
     }
 
     public static func ==(lhs: NavigationBarComponent, rhs: NavigationBarComponent) -> Bool {
@@ -107,6 +110,9 @@ public final class NavigationBarComponent: Component {
             return false
         }
         if lhs.hidesSideColumnButtons != rhs.hidesSideColumnButtons {
+            return false
+        }
+        if lhs.titleFontSize != rhs.titleFontSize {
             return false
         }
         return true
@@ -683,7 +689,7 @@ public final class NavigationBarComponent: Component {
                     self.columnTrailingContainer.addSubview(primaryContentView.columnTrailingContainer)
                 }
 
-                primaryContentView.update(theme: component.theme, strings: component.strings, content: primaryContent, leftInset: symmetricInset, rightInset: symmetricInset + component.trailingButtonsInset, size: centeredContentFrame.size, columnLength: component.sideColumnLength, openOverflow: component.openSideColumnOverflow, transition: primaryContentTransition, itemsTransition: primaryContentTransition.animation.isImmediate ? nil : itemsTransition)
+                primaryContentView.update(theme: component.theme, strings: component.strings, content: primaryContent, leftInset: symmetricInset, rightInset: symmetricInset + component.trailingButtonsInset, size: centeredContentFrame.size, columnLength: component.sideColumnLength, openOverflow: component.openSideColumnOverflow, titleFontSize: component.titleFontSize, transition: primaryContentTransition, itemsTransition: primaryContentTransition.animation.isImmediate ? nil : itemsTransition)
                 primaryContentTransition.setFrame(view: primaryContentView, frame: centeredContentFrame)
             } else if let primaryContentView = self.primaryContentView {
                 self.primaryContentView = nil
@@ -724,7 +730,7 @@ public final class NavigationBarComponent: Component {
                     self.columnButtonsContainer.addSubview(secondaryContentView.columnButtonsContainer)
                     self.columnTrailingContainer.addSubview(secondaryContentView.columnTrailingContainer)
                 }
-                secondaryContentView.update(theme: component.theme, strings: component.strings, content: secondaryContent, leftInset: symmetricInset, rightInset: symmetricInset + component.trailingButtonsInset, size: centeredContentFrame.size, columnLength: component.sideColumnLength, openOverflow: component.openSideColumnOverflow, transition: secondaryContentTransition)
+                secondaryContentView.update(theme: component.theme, strings: component.strings, content: secondaryContent, leftInset: symmetricInset, rightInset: symmetricInset + component.trailingButtonsInset, size: centeredContentFrame.size, columnLength: component.sideColumnLength, openOverflow: component.openSideColumnOverflow, titleFontSize: component.titleFontSize, transition: secondaryContentTransition)
                 secondaryContentTransition.setFrame(view: secondaryContentView, frame: centeredContentFrame)
 
                 if let primaryContentView = self.primaryContentView {

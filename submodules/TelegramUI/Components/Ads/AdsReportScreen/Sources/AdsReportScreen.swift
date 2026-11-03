@@ -107,7 +107,7 @@ private final class SheetPageContent: CombinedComponent {
             let constrainedTitleWidth = context.availableSize.width - 60.0 * 2.0
             
             let title = title.update(
-                component: Text(text: strings.ReportAd_Title, font: Font.semibold(17.0), color: theme.list.itemPrimaryTextColor),
+                component: Text(text: strings.ReportAd_Title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: theme.list.itemPrimaryTextColor),
                 availableSize: CGSize(width: constrainedTitleWidth, height: context.availableSize.height),
                 transition: .immediate
             )

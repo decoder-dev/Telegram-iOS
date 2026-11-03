@@ -428,7 +428,7 @@ private final class GiftAuctionActiveBidsScreenComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(17.0), textColor: theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
@@ -698,7 +698,7 @@ private final class ActiveAuctionComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemPrimaryTextColor)),
                     maximumNumberOfLines: 2
                 )),
                 environment: {},
@@ -777,7 +777,7 @@ private final class ActiveAuctionComponent: Component {
                                     BundleIconComponent(name: "Premium/Auction/BidSmall", tintColor: component.theme.list.itemCheckColors.foregroundColor)
                                 )),
                                 AnyComponentWithIdentity(id: "label", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Gift_ActiveAuctions_RaiseBid, font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Gift_ActiveAuctions_RaiseBid, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemCheckColors.foregroundColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "timer", component: AnyComponent(
                                     AnimatedTextComponent(

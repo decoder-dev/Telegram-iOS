@@ -329,7 +329,7 @@ private final class OpenInOptionsSheetContentComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: strings.Map_OpenIn,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(presentationData.listsFontSize.baseDisplaySize),
                         textColor: theme.actionSheet.primaryTextColor,
                         paragraphAlignment: .center
                     )),
@@ -435,7 +435,7 @@ private final class OpenInOptionsSheetContentComponent: Component {
                             component: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: additionalAction.title,
-                                    font: Font.semibold(17.0),
+                                    font: Font.semibold(presentationData.listsFontSize.baseDisplaySize),
                                     textColor: theme.list.itemCheckColors.foregroundColor,
                                     paragraphAlignment: .center
                                 )),

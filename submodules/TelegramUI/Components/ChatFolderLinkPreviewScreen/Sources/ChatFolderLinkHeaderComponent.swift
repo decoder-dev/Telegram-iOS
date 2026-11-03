@@ -224,7 +224,7 @@ final class ChatFolderLinkHeaderComponent: Component {
                     animationCache: component.context.animationCache,
                     animationRenderer: component.context.animationRenderer,
                     placeholderColor: component.theme.list.itemAccentColor.withMultipliedAlpha(0.1),
-                    text: .plain(component.title.attributedString(font: Font.semibold(17.0), textColor: component.theme.list.itemAccentColor)),
+                    text: .plain(component.title.attributedString(font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemAccentColor)),
                     manualVisibilityControl: false
                 )),
                 environment: {},

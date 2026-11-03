@@ -366,7 +366,8 @@ public final class ChatListHeaderComponent: Component {
                     secondaryContent: secondaryContent,
                     secondaryTransition: component.secondaryTransition,
                     sideColumnLength: component.sideColumnLength,
-                    openSideColumnOverflow: component.openSideColumnOverflow
+                    openSideColumnOverflow: component.openSideColumnOverflow,
+                    titleFontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 )),
                 environment: {},
                 containerSize: availableSize

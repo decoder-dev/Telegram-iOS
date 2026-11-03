@@ -148,7 +148,7 @@ private final class AlertWebAppHeaderComponent: Component {
                     MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: component.peer.compactDisplayTitle,
-                            font: Font.bold(17.0),
+                            font: Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             textColor: environment.theme.actionSheet.primaryTextColor
                         )),
                         horizontalAlignment: .natural,

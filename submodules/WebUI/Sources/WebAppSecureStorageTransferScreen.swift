@@ -82,7 +82,7 @@ private final class SheetContent: CombinedComponent {
             let sideInset: CGFloat = 16.0 + environment.safeInsets.left
             let textSideInset: CGFloat = 32.0 + environment.safeInsets.left
             
-            let titleFont = Font.semibold(17.0)
+            let titleFont = Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
             let textFont = Font.regular(13.0)
             let boldTextFont = Font.semibold(13.0)
             let textColor = theme.actionSheet.primaryTextColor
@@ -244,7 +244,7 @@ private final class SheetContent: CombinedComponent {
                     content: AnyComponentWithIdentity(
                         id: AnyHashable("import"),
                         component: AnyComponent(
-                            MultilineTextComponent(text: .plain(NSAttributedString(string: strings.WebApp_ImportData_Import, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)))
+                            MultilineTextComponent(text: .plain(NSAttributedString(string: strings.WebApp_ImportData_Import, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)))
                         )
                     ),
                     isEnabled: state.selectedUuid != nil,

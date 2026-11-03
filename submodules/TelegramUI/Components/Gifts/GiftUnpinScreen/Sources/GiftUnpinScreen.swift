@@ -79,7 +79,7 @@ private final class SheetContent: CombinedComponent {
             
             let textSideInset: CGFloat = 32.0 + environment.safeInsets.left
             
-            let titleFont = Font.semibold(17.0)
+            let titleFont = Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
             let subtitleFont = Font.regular(12.0)
             let textColor = theme.actionSheet.primaryTextColor
             let secondaryTextColor = theme.actionSheet.secondaryTextColor
@@ -249,7 +249,7 @@ private final class SheetContent: CombinedComponent {
                     content: AnyComponentWithIdentity(
                         id: AnyHashable("unpin"),
                         component: AnyComponent(
-                            MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Unpin_Replace, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)))
+                            MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Unpin_Replace, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)))
                         )
                     ),
                     isEnabled: state.selectedGift != nil,

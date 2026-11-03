@@ -306,7 +306,7 @@ final class PasskeysScreenIntroComponent: Component {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Passkeys_ButtonCreate, font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Passkeys_ButtonCreate, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemCheckColors.foregroundColor))))
                     ),
                     action: { [weak self] in
                         guard let self, let component = self.component else {
@@ -340,7 +340,7 @@ final class PasskeysScreenIntroComponent: Component {
                         ),
                         content: AnyComponentWithIdentity(
                             id: AnyHashable(0),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Passkeys_ButtonSkip, font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Passkeys_ButtonSkip, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemCheckColors.foregroundColor))))
                         ),
                         action: { [weak self] in
                             guard let self, let component = self.component else {

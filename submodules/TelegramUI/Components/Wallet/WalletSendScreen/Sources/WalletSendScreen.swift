@@ -2295,7 +2295,7 @@ private final class WalletSendScreenComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Wallet_Send_Title,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                         textColor: theme.list.itemPrimaryTextColor
                     )),
                     horizontalAlignment: .center,

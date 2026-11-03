@@ -131,7 +131,7 @@ final class ThemePreviewControllerNode: ASDisplayNode, ASScrollViewDelegate {
 
         self.wallpaperNode = createWallpaperBackgroundNode(context: context, forChatDisplay: false)
         
-        self.toolbarNode = WallpaperGalleryToolbarNode(theme: self.previewTheme, strings: self.presentationData.strings, doneButtonType: .set)
+        self.toolbarNode = WallpaperGalleryToolbarNode(theme: self.previewTheme, strings: self.presentationData.strings, listFontSize: self.presentationData.listsFontSize.baseDisplaySize, doneButtonType: .set)
         
         if case .file = previewTheme.chat.defaultWallpaper, !forceReady {
             self.toolbarNode.setDoneEnabled(false)
@@ -334,7 +334,7 @@ final class ThemePreviewControllerNode: ASDisplayNode, ASScrollViewDelegate {
             self.instantChatBackgroundNode.backgroundColor = UIColor(rgb: value)
         }
         
-        self.toolbarNode.updateThemeAndStrings(theme: self.previewTheme, strings: self.presentationData.strings)
+        self.toolbarNode.updateThemeAndStrings(theme: self.previewTheme, strings: self.presentationData.strings, listFontSize: self.presentationData.listsFontSize.baseDisplaySize)
     
         if let (layout, navigationBarHeight) = self.validLayout {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)

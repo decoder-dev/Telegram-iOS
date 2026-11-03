@@ -558,12 +558,12 @@ private final class SheetContent: CombinedComponent {
             let amountString = presentationStringsFormattedNumber(Int32(amount), presentationData.dateTimeFormat.groupingSeparator)
             let buttonAttributedString: NSMutableAttributedString
             if case .starsChatSubscription = component.source {
-                buttonAttributedString = NSMutableAttributedString(string: "\(strings.Stars_Transfer_SubscribeFor)   #  \(amountString) \(strings.Stars_Transfer_SubscribePerMonth)", font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+                buttonAttributedString = NSMutableAttributedString(string: "\(strings.Stars_Transfer_SubscribeFor)   #  \(amountString) \(strings.Stars_Transfer_SubscribePerMonth)", font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
                 
             } else if let _ = component.invoice.subscriptionPeriod {
-                buttonAttributedString = NSMutableAttributedString(string: "\(strings.Stars_Transfer_SubscribeFor)   #  \(amountString) \(strings.Stars_Transfer_SubscribePerMonth)", font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+                buttonAttributedString = NSMutableAttributedString(string: "\(strings.Stars_Transfer_SubscribeFor)   #  \(amountString) \(strings.Stars_Transfer_SubscribePerMonth)", font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             } else {
-                buttonAttributedString = NSMutableAttributedString(string: "\(strings.Stars_Transfer_Pay)   #  \(amountString)", font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+                buttonAttributedString = NSMutableAttributedString(string: "\(strings.Stars_Transfer_Pay)   #  \(amountString)", font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             }
             if let range = buttonAttributedString.string.range(of: "#"), let starImage = state.cachedStarImage?.0 {
                 buttonAttributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: buttonAttributedString.string))

@@ -1794,7 +1794,7 @@ public final class StoryPeerListComponent: Component {
                 self.titleState = updatedTitleState
                 
                 let attributedText = NSAttributedString(string: updatedTitleState.text, attributes: [
-                    NSAttributedString.Key.font: Font.semibold(17.0),
+                    NSAttributedString.Key.font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                     NSAttributedString.Key.foregroundColor: component.theme.rootController.navigationBar.primaryTextColor
                 ])
                 

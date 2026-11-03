@@ -206,7 +206,7 @@ final class StoryInteractionGuideComponent: Component {
             let buttonSize = self.proceedButton.update(
                 transition: .immediate,
                 component: AnyComponent(Button(
-                    content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Story_Guide_Proceed, font: Font.semibold(17.0), textColor: .white, paragraphAlignment: .center)))),
+                    content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Story_Guide_Proceed, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: .white, paragraphAlignment: .center)))),
                     action: { [weak self] in
                         self?.handleTap()
                     }
@@ -395,7 +395,7 @@ private final class GuideItemComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.title, font: Font.semibold(17.0), textColor: .white, paragraphAlignment: .natural)),
+                        text: .plain(NSAttributedString(string: component.title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: .white, paragraphAlignment: .natural)),
                         maximumNumberOfLines: 2
                     )
                 ),

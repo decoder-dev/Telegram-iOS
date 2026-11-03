@@ -572,7 +572,7 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
                 buttonAnimatedTitleItems.append(AnimatedTextComponent.Item(id: "suffix_\(buttonAnimatedTitleItems.count)", content: .text(String(rawString[startIndex ..< rawString.endIndex]))))
             }
 
-            let buttonAttributedString = NSMutableAttributedString(string: buttonTitle, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSMutableAttributedString(string: buttonTitle, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             let items: [AnyComponentWithIdentity<Empty>] = [
                 AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(text: .plain(buttonAttributedString)))),
                 AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(AnimatedTextComponent(

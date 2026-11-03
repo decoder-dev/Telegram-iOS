@@ -1227,7 +1227,7 @@ public final class ChatInlineSearchResultsListComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: component.presentation.strings.HashtagSearch_NoResults, font: Font.semibold(17.0), textColor: component.presentation.theme.list.itemSecondaryTextColor)),
+                            text: .plain(NSAttributedString(string: component.presentation.strings.HashtagSearch_NoResults, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.presentation.theme.list.itemSecondaryTextColor)),
                             horizontalAlignment: .center
                         )
                     ),

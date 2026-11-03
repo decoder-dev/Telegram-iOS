@@ -584,7 +584,7 @@ public final class ChatTimerPickerContentComponent: Component {
                 let titleSize = self.title.update(
                     transition: transition,
                     component: AnyComponent(
-                        Text(text: titleText, font: Font.semibold(17.0), color: titleColor)
+                        Text(text: titleText, font: Font.semibold(environment.presentationData.listsFontSize.baseDisplaySize), color: titleColor)
                     ),
                     environment: {},
                     containerSize: CGSize(width: titleWidth, height: 44.0)
@@ -630,7 +630,7 @@ public final class ChatTimerPickerContentComponent: Component {
                         pressedColor: component.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                     ),
                     content: AnyComponentWithIdentity(id: AnyHashable(primaryButtonTitle), component: AnyComponent(
-                        Text(text: primaryButtonTitle, font: Font.semibold(17.0), color: component.theme.list.itemCheckColors.foregroundColor)
+                        Text(text: primaryButtonTitle, font: Font.semibold(environment.presentationData.listsFontSize.baseDisplaySize), color: component.theme.list.itemCheckColors.foregroundColor)
                     )),
                     isEnabled: true,
                     displaysProgress: false,
@@ -670,7 +670,7 @@ public final class ChatTimerPickerContentComponent: Component {
                             pressedColor: foregroundColor.withMultipliedAlpha(0.2)
                         ),
                         content: AnyComponentWithIdentity(id: AnyHashable(secondaryButtonTitle), component: AnyComponent(
-                            Text(text: secondaryButtonTitle, font: Font.semibold(17.0), color: foregroundColor)
+                            Text(text: secondaryButtonTitle, font: Font.semibold(environment.presentationData.listsFontSize.baseDisplaySize), color: foregroundColor)
                         )),
                         isEnabled: true,
                         displaysProgress: false,

@@ -1012,7 +1012,7 @@ final class ChannelAppearanceScreenComponent: Component {
             let navigationTitleSize = self.navigationTitle.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: environment.strings.Channel_Appearance_Title, font: Font.semibold(17.0), textColor: environment.theme.rootController.navigationBar.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: environment.strings.Channel_Appearance_Title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.rootController.navigationBar.primaryTextColor)),
                     horizontalAlignment: .center
                 )),
                 environment: {},
@@ -1773,7 +1773,7 @@ final class ChannelAppearanceScreenComponent: Component {
             
             var buttonContents: [AnyComponentWithIdentity<Empty>] = []
             buttonContents.append(AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(
-                Text(text: environment.strings.Channel_Appearance_ApplyButton, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor)
+                Text(text: environment.strings.Channel_Appearance_ApplyButton, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: environment.theme.list.itemCheckColors.foregroundColor)
             )))
             
             let requiredLevel = requiredBoostSubject.requiredLevel(group: isGroup, context: component.context, configuration: premiumConfiguration)

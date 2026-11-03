@@ -420,7 +420,7 @@ private final class CraftGiftPageContent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Title, font: Font.semibold(17.0), textColor: .white)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: .white)))
                 ),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset - rightSideInset, height: 100.0)
@@ -1681,7 +1681,7 @@ private final class SheetContainerComponent: CombinedComponent {
                 ))
             } else if state.displayFailure {
                 buttonContent = AnyComponentWithIdentity(id: "fail", component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_CraftingFailed_CraftAnotherGift, font: Font.semibold(17.0), textColor: environment.theme.list.itemCheckColors.foregroundColor)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_CraftingFailed_CraftAnotherGift, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemCheckColors.foregroundColor)))
                 ))
             } else {
                 var buttonAnimatedItems: [AnimatedTextComponent.Item] = []
@@ -1718,7 +1718,7 @@ private final class SheetContainerComponent: CombinedComponent {
                                 HStack([
                                     AnyComponentWithIdentity(
                                         id: AnyHashable("label"),
-                                        component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Craft(giftTitle).string, font: Font.semibold(17.0), textColor: environment.theme.list.itemCheckColors.foregroundColor))))
+                                        component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Craft(giftTitle).string, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemCheckColors.foregroundColor))))
                                     )
                                 ], spacing: 2.0)
                             )

@@ -573,7 +573,7 @@ private final class LocationDistancePickerContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(Text(
                     text: environment.strings.Location_ProximityNotification_Title,
-                    font: Font.bold(17.0),
+                    font: Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                     color: textColor
                 )),
                 environment: {},

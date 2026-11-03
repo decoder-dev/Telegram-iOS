@@ -1569,7 +1569,7 @@ private final class StreamTitleComponent: Component {
                     self.titleLabel.invalidateIntrinsicContentSize()
                 }
             }
-            self.titleLabel.font = Font.semibold(17.0)
+            self.titleLabel.font = Font.semibold(presentationData.listsFontSize.baseDisplaySize)
             self.titleLabel.textColor = .white
             self.titleLabel.numberOfLines = 1
             

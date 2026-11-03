@@ -251,7 +251,7 @@ private final class PeerCopyProtectionInfoSheetContent: CombinedComponent {
                         ),
                         AnyComponentWithIdentity(
                             id: AnyHashable("label"),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "Unlock with Premium", font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "Unlock with Premium", font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                         )
                     ], spacing: 3.0)
                 ))

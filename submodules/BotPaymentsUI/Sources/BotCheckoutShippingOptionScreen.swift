@@ -269,7 +269,7 @@ private final class BotCheckoutShippingOptionScreenComponent: Component {
                     titleItem: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.Checkout_ShippingMethod,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(environment.presentationData.listsFontSize.baseDisplaySize),
                             textColor: theme.list.itemPrimaryTextColor
                         )),
                         maximumNumberOfLines: 1

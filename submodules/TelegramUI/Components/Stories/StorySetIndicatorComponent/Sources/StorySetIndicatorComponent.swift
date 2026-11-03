@@ -442,7 +442,7 @@ public final class StorySetIndicatorComponent: Component {
             }
             let textSize = self.text.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: textValue, font: Font.semibold(17.0), color: .white)),
+                component: AnyComponent(Text(text: textValue, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: .white)),
                 environment: {},
                 containerSize: CGSize(width: 300.0, height: 100.0)
             )

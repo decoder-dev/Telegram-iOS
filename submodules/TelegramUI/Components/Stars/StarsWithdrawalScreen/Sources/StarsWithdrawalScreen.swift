@@ -239,7 +239,7 @@ private final class SheetContent: CombinedComponent {
             }
             
             let title = title.update(
-                component: Text(text: titleString, font: Font.bold(17.0), color: theme.list.itemPrimaryTextColor),
+                component: Text(text: titleString, font: Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: theme.list.itemPrimaryTextColor),
                 availableSize: CGSize(width: constrainedTitleWidth, height: context.availableSize.height),
                 transition: .immediate
             )

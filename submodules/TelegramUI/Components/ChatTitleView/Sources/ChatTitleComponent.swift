@@ -1280,7 +1280,7 @@ public final class ChatTitleComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.semibold(17.0),
+                    font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                     color: component.theme.chat.inputPanel.panelControlColor,
                     items: titleSegments,
                     noDelay: false,

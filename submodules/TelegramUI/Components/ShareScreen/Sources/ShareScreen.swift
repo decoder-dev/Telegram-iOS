@@ -188,7 +188,7 @@ private final class ShareScreenHeaderComponent: Component {
             }
             self.titleText = component.title
             let titleSize = self.title.update(transition: .immediate, component: AnyComponent(Text(
-                text: component.title, font: Font.semibold(17.0), color: component.theme.list.itemPrimaryTextColor
+                text: component.title, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), color: component.theme.list.itemPrimaryTextColor
             )), environment: {}, containerSize: CGSize(width: size.width, height: 22.0))
             if let view = self.title.view {
                 if view.superview == nil {

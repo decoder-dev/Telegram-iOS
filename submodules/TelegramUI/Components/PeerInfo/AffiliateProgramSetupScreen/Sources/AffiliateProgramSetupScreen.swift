@@ -1200,7 +1200,7 @@ final class AffiliateProgramSetupScreenComponent: Component {
                             foreground: environment.theme.list.itemCheckColors.foregroundColor,
                             pressedColor: environment.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                         ),
-                        content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: buttonText, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor))),
+                        content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: buttonText, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: environment.theme.list.itemCheckColors.foregroundColor))),
                         isEnabled: self.currentProgram?.endDate == nil,
                         allowActionWhenDisabled: false,
                         displaysProgress: false,

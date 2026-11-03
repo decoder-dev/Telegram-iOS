@@ -1353,7 +1353,7 @@ final class AvatarEditorScreenComponent: Component {
             
             var buttonContents: [AnyComponentWithIdentity<Empty>] = []
             buttonContents.append(AnyComponentWithIdentity(id: AnyHashable(buttonText), component: AnyComponent(
-                Text(text: buttonText, font: Font.semibold(17.0), color: theme.list.itemCheckColors.foregroundColor)
+                Text(text: buttonText, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: theme.list.itemCheckColors.foregroundColor)
             )))
             if !component.context.isPremium && isLocked {
                 buttonContents.append(AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(LottieComponent(

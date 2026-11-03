@@ -241,7 +241,7 @@ final class NavigationBarContentView: UIView {
 
     /// `itemsTransition` (default: `transition`) places the back button and the buttons: the bar passes `.immediate`
     /// while it animates a change of its capsules' items itself (`startInPlaceChange`).
-    func update(theme: NavigationBarTheme, strings: NavigationBarStrings, content: NavigationBarComponent.Content, leftInset: CGFloat, rightInset: CGFloat, size: CGSize, columnLength: CGFloat?, openOverflow: ((UIView, [NavigationBarComponent.OverflowItem]) -> Void)?, transition: ComponentTransition, itemsTransition: ComponentTransition? = nil) {
+    func update(theme: NavigationBarTheme, strings: NavigationBarStrings, content: NavigationBarComponent.Content, leftInset: CGFloat, rightInset: CGFloat, size: CGSize, columnLength: CGFloat?, openOverflow: ((UIView, [NavigationBarComponent.OverflowItem]) -> Void)?, titleFontSize: CGFloat = 17.0, transition: ComponentTransition, itemsTransition: ComponentTransition? = nil) {
         let itemsTransition = itemsTransition ?? transition
         let alphaTransition: ComponentTransition = itemsTransition.animation.isImmediate ? .immediate : .easeInOut(duration: 0.3)
 
@@ -255,7 +255,7 @@ final class NavigationBarContentView: UIView {
         if case let .text(text) = content.title {
             titleString = text
         }
-        let titleText = NSAttributedString(string: titleString, font: Font.semibold(17.0), textColor: theme.primaryTextColor)
+        let titleText = NSAttributedString(string: titleString, font: Font.semibold(titleFontSize), textColor: theme.primaryTextColor)
         let titleTextUpdated = self.titleTextView.attributedText != titleText
         self.titleTextView.attributedText = titleText
         self.titleTextView.isAccessibilityElement = !titleString.isEmpty

@@ -77,7 +77,7 @@ private final class CommunityRequestsEmptyPlaceholderView: UIView {
             component: AnyComponent(MultilineTextComponent(
                 text: .plain(NSAttributedString(
                     string: strings.Community_Request_EmptyTitle,
-                    font: Font.bold(17.0),
+                    font: Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                     textColor: theme.list.freeTextColor
                 )),
                 horizontalAlignment: .center,

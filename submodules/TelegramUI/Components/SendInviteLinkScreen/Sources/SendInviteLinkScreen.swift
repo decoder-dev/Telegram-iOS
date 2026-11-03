@@ -750,7 +750,7 @@ private final class SendInviteLinkActionButtonComponent: Component {
             } else {
                 content = AnyComponentWithIdentity(id: "title-\(component.title)", component: AnyComponent(Text(
                     text: component.title,
-                    font: Font.semibold(17.0),
+                    font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                     color: component.theme.list.itemCheckColors.foregroundColor
                 )))
             }

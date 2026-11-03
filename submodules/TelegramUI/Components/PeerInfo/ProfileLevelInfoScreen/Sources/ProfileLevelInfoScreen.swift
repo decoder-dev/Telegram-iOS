@@ -185,7 +185,7 @@ private final class SheetContent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.semibold(17.0),
+                    font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                     color: environment.theme.list.itemPrimaryTextColor,
                     items: titleItems,
                     noDelay: true,

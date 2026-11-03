@@ -1476,7 +1476,7 @@ private final class ChatFolderLinkPreviewScreenComponent: Component {
                         }
                     )),
                     titleItem: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: resolvedData.title, font: Font.semibold(17.0), textColor: theme.list.itemPrimaryTextColor))
+                        text: .plain(NSAttributedString(string: resolvedData.title, font: Font.semibold(listFontSize), textColor: theme.list.itemPrimaryTextColor))
                     )),
                     leftItem: AnyComponent(
                         GlassBarButtonComponent(

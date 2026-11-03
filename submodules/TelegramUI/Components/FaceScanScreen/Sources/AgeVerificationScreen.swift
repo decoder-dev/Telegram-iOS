@@ -193,7 +193,7 @@ private final class SheetContent: CombinedComponent {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.AgeVerification_Verify, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.AgeVerification_Verify, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                     ),
                     isEnabled: true,
                     displaysProgress: false,

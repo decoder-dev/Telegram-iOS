@@ -127,6 +127,8 @@ final class AttachmentTextInputActionButtonsNode: ASDisplayNode, ChatSendMessage
         transition.animatePositionAdditive(layer: self.iconNode.layer, offset: CGPoint(x: -22.0, y: 18.0))
     }
     
+    private var actionFontSize: CGFloat = 17.0
+    
     func updateLayout(size: CGSize, transition: ContainedViewLayoutTransition, minimized: Bool, text: String, interfaceState: ChatPresentationInterfaceState) -> CGSize {
         self.validLayout = size
         
@@ -134,11 +136,14 @@ final class AttachmentTextInputActionButtonsNode: ASDisplayNode, ChatSendMessage
         
         let width: CGFloat
         
+        let actionFontSize = max(5.0, interfaceState.fontSize.baseDisplaySize)
+        self.actionFontSize = actionFontSize
+        
         var titleOffset: CGFloat = 0.0
         var segments: [AnimatedCountLabelNode.Segment] = []
         var buttonInset: CGFloat = 18.0
         if text.hasPrefix("⭐️") {
-            let font = Font.with(size: 17.0, design: .round, weight: .semibold, traits: .monospacedNumbers)
+            let font = Font.with(size: actionFontSize, design: .round, weight: .semibold, traits: .monospacedNumbers)
             let badgeString = NSMutableAttributedString(string: "⭐️ ", font: font, textColor: interfaceState.theme.chat.inputPanel.actionControlForegroundColor)
             if let range = badgeString.string.range(of: "⭐️") {
                 badgeString.addAttribute(.attachment, value: PresentationResourcesChat.chatPlaceholderStarIcon(interfaceState.theme)!, range: NSRange(range, in: badgeString.string))
@@ -154,7 +159,7 @@ final class AttachmentTextInputActionButtonsNode: ASDisplayNode, ChatSendMessage
             buttonInset = 14.0
             self.iconNode.isHidden = true
         } else {
-            segments.append(.text(0, NSAttributedString(string: text, font: Font.semibold(17.0), textColor: interfaceState.theme.chat.inputPanel.actionControlForegroundColor)))
+            segments.append(.text(0, NSAttributedString(string: text, font: Font.semibold(actionFontSize), textColor: interfaceState.theme.chat.inputPanel.actionControlForegroundColor)))
             self.iconNode.isHidden = false
         }
         self.textNode.segments = segments
@@ -195,7 +200,7 @@ final class AttachmentTextInputActionButtonsNode: ASDisplayNode, ChatSendMessage
     func makeCustomContents() -> UIView? {
         if !self.textNode.alpha.isZero {
             let textView = ImmediateTextView()
-            textView.attributedText = NSAttributedString(string: self.strings.MediaPicker_Send, font: Font.semibold(17.0), textColor: self.theme.chat.inputPanel.actionControlForegroundColor)
+            textView.attributedText = NSAttributedString(string: self.strings.MediaPicker_Send, font: Font.semibold(self.actionFontSize), textColor: self.theme.chat.inputPanel.actionControlForegroundColor)
             let textSize = textView.updateLayout(CGSize(width: 100.0, height: 100.0))
             let _ = textSize
             textView.frame = self.textNode.frame

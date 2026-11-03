@@ -384,7 +384,7 @@ final class StarsStatisticsScreenComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: strings.Stars_BotRevenue_Title, font: Font.semibold(17.0), textColor: environment.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: strings.Stars_BotRevenue_Title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemPrimaryTextColor)),
                         horizontalAlignment: .center,
                         truncationType: .end,
                         maximumNumberOfLines: 1

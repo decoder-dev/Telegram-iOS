@@ -99,7 +99,7 @@ private final class SheetContent: CombinedComponent {
             )
                     
             let title = title.update(
-                component: Text(text: environment.strings.WebApp_ShareMessage_Title, font: Font.bold(17.0), color: theme.list.itemPrimaryTextColor),
+                component: Text(text: environment.strings.WebApp_ShareMessage_Title, font: Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: theme.list.itemPrimaryTextColor),
                 availableSize: CGSize(width: constrainedTitleWidth, height: context.availableSize.height),
                 transition: .immediate
             )
@@ -261,7 +261,7 @@ private final class SheetContent: CombinedComponent {
             contentSize.height += 32.0
             
             let buttonString: String = environment.strings.WebApp_ShareMessage_Share
-            let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             
             let buttonInsets = ContainerViewLayout.concentricInsets(bottomInset: environment.safeInsets.bottom, innerDiameter: 52.0, sideInset: 30.0)
             let button = button.update(

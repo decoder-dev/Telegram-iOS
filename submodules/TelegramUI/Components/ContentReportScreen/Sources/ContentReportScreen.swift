@@ -145,7 +145,7 @@ private final class SheetPageContent: CombinedComponent {
             }
             
             let title = title.update(
-                component: Text(text: titleString, font: Font.semibold(17.0), color: theme.list.itemPrimaryTextColor),
+                component: Text(text: titleString, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: theme.list.itemPrimaryTextColor),
                 availableSize: CGSize(width: constrainedTitleWidth, height: context.availableSize.height),
                 transition: .immediate
             )
@@ -278,7 +278,7 @@ private final class SheetPageContent: CombinedComponent {
                             foreground: theme.list.itemCheckColors.foregroundColor,
                             pressedColor: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                         ),
-                        content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: strings.Report_Send, font: Font.semibold(17.0), color: theme.list.itemCheckColors.foregroundColor))),
+                        content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: strings.Report_Send, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: theme.list.itemCheckColors.foregroundColor))),
                         isEnabled: isOptional || state.textInputState.hasText,
                         allowActionWhenDisabled: false,
                         displaysProgress: false,

@@ -160,7 +160,7 @@ private final class VerifyAlertContentNode: AlertContentNode {
         let titleSize = self.titleView.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: self.title, font: Font.semibold(17.0), textColor: self.theme.primaryColor)),
+                text: .plain(NSAttributedString(string: self.title, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: self.theme.primaryColor)),
                 horizontalAlignment: .center,
                 maximumNumberOfLines: 0
             )),

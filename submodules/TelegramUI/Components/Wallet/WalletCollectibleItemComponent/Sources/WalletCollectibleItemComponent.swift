@@ -84,7 +84,7 @@ public final class WalletCollectibleItemComponent: Component {
             let textAvailableWidth = max(0.0, availableSize.width - textOriginX)
             let titleText = NSMutableAttributedString(attributedString: NSAttributedString(
                 string: component.collectible.name,
-                font: Font.semibold(17.0),
+                font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                 textColor: component.theme.list.itemPrimaryTextColor
             ))
             if let numberRange = component.collectible.name.range(of: "#[0-9]+$", options: .regularExpression) {

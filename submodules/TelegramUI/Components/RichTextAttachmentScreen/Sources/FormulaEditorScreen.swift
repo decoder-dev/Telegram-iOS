@@ -410,7 +410,7 @@ private final class FormulaEditorSheetContent: Component {
                 transition: .immediate,
                 component: AnyComponent(Text(
                     text: component.isEditing ? environment.strings.RichText_FormulaEdit : environment.strings.RichText_FormulaAdd,
-                    font: Font.bold(17.0),
+                    font: Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                     color: theme.list.itemPrimaryTextColor
                 )),
                 environment: {},

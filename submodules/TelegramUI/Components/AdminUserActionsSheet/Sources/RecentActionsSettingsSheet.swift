@@ -727,7 +727,7 @@ private final class RecentActionsSettingsResizableSheetComponent: Component {
                     titleItem: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environmentValue.strings.Channel_AdminLogFilter_RecentActionsTitle,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             textColor: theme.list.itemPrimaryTextColor
                         )),
                         maximumNumberOfLines: 1

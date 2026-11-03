@@ -105,7 +105,7 @@ private final class NewSessionInfoSheetContentComponent: Component {
             
             var buttonContents: [AnyComponentWithIdentity<Empty>] = []
             buttonContents.append(AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(
-                Text(text: environment.strings.SessionReview_OkAction, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor)
+                Text(text: environment.strings.SessionReview_OkAction, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: environment.theme.list.itemCheckColors.foregroundColor)
             )))
             if self.remainingTimer > 0 {
                 buttonContents.append(AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(

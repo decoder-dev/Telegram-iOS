@@ -218,7 +218,7 @@ final class ChatbotSearchResultItemComponent: Component {
             let titleSize = self.titleLabel.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleValue, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: titleValue, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemPrimaryTextColor)),
                     maximumNumberOfLines: 1
                 )),
                 environment: {},

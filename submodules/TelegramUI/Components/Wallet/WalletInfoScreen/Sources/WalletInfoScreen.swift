@@ -506,7 +506,7 @@ private final class WalletInfoSheetContent: CombinedComponent {
                         id: AnyHashable(0),
                         component: AnyComponent(Text(
                             text: content.buttonTitle,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(presentationData.listsFontSize.baseDisplaySize),
                             color: theme.list.itemCheckColors.foregroundColor
                         ))
                     ),

@@ -1355,7 +1355,7 @@ private final class WalletReceiveSheetContent: Component {
                         id: "title",
                         component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(
                             string: availableWidth < 390.0 ? environment.strings.Wallet_Receive_BuyShort : environment.strings.Wallet_Receive_Buy,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(presentationData.listsFontSize.baseDisplaySize),
                             textColor: UIColor(rgb: 0x087cff)
                         ))))
                     )

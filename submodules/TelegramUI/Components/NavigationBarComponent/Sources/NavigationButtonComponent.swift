@@ -226,7 +226,7 @@ final class NavigationButtonComponent: Component {
                 if title == "___done" {
                     iconSource = .bundle("Navigation/Done")
                 } else {
-                    textString = NSAttributedString(string: title, font: isBold ? Font.bold(17.0) : Font.medium(17.0), textColor: color)
+                    textString = NSAttributedString(string: title, font: isBold ? Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize) : Font.medium(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: color)
                 }
             case .more:
                 isMore = true

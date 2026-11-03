@@ -1358,7 +1358,7 @@ private final class LimitSheetContent: CombinedComponent {
                     component: MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: titleText,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             textColor: theme.actionSheet.primaryTextColor,
                             paragraphAlignment: .center
                         )),

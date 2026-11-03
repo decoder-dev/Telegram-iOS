@@ -169,7 +169,7 @@ private final class BirthdayPickerSheetContentComponent: Component {
                         pressedColor: environment.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                     ),
                     content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(
-                        Text(text: buttonTitle, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor)
+                        Text(text: buttonTitle, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: environment.theme.list.itemCheckColors.foregroundColor)
                     )),
                     isEnabled: true,
                     displaysProgress: false,

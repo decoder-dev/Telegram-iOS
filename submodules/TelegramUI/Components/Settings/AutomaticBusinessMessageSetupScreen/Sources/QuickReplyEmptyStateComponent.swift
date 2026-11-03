@@ -133,7 +133,7 @@ final class QuickReplyEmptyStateComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.QuickReplies_EmptyState_Title, font: Font.semibold(17.0), textColor: component.theme.rootController.navigationBar.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.strings.QuickReplies_EmptyState_Title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.rootController.navigationBar.primaryTextColor)),
                     horizontalAlignment: .center
                 )),
                 environment: {},

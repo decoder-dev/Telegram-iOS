@@ -88,7 +88,7 @@ final class PlaceholderComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: title, font: Font.semibold(17.0), textColor: UIColor.white)),
+                        text: .plain(NSAttributedString(string: title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: UIColor.white)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0
                     )

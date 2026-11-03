@@ -348,7 +348,7 @@ private final class SheetContainerComponent: CombinedComponent {
                         )
                     ),
                     titleItem: AnyComponent(
-                        MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_UpgradeCost_Title, font: Font.semibold(17.0), textColor: environment.theme.actionSheet.primaryTextColor)))
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_UpgradeCost_Title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.actionSheet.primaryTextColor)))
                     ),
                     leftItem: AnyComponent(
                         GlassBarButtonComponent(

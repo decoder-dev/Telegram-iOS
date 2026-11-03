@@ -536,7 +536,7 @@ private final class GiftAuctionAcquiredScreenComponent: Component {
             let titleSize = title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(17.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
@@ -552,7 +552,7 @@ private final class GiftAuctionAcquiredScreenComponent: Component {
                                           
             initialContentHeight = contentHeight
             
-            let buttonAttributedString = NSMutableAttributedString(string: environment.strings.Common_OK, font: Font.semibold(17.0), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSMutableAttributedString(string: environment.strings.Common_OK, font: Font.semibold(context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
           
             let buttonInsets = ContainerViewLayout.concentricInsets(bottomInset: environment.safeInsets.bottom, innerDiameter: 54.0, sideInset: 32.0)
             

@@ -1115,7 +1115,7 @@ public final class WalletTransactionItemComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: peerTitle,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                         textColor: component.theme.list.itemPrimaryTextColor
                     )),
                     maximumNumberOfLines: 1

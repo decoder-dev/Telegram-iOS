@@ -414,7 +414,7 @@ public class ItemListInviteLinkItemNode: ListViewItemNode, ItemListItemNode {
                 
                 if let subscriptionPricing {
                     let text = NSMutableAttributedString()
-                    text.append(NSAttributedString(string: "⭐️\(subscriptionPricing.amount)\n", font: Font.semibold(17.0), textColor: item.presentationData.theme.list.itemPrimaryTextColor))
+                    text.append(NSAttributedString(string: "⭐️\(subscriptionPricing.amount)\n", font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: item.presentationData.theme.list.itemPrimaryTextColor))
                     text.append(NSAttributedString(string: item.presentationData.strings.InviteLink_PerMonth, font: Font.regular(13.0), textColor: item.presentationData.theme.list.itemSecondaryTextColor))
                     if let range = text.string.range(of: "⭐️") {
                         text.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: false)), range: NSRange(range, in: text.string))

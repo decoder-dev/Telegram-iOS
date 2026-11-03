@@ -477,7 +477,8 @@ public final class NavigationBarNode: ASDisplayNode, NavigationBar, NavigationBa
                 hidesSideColumnButtons: hidesSideColumnButtons,
                 openSideColumnOverflow: { sourceView, items in
                     navigationBarOverflowMenuPresenter?(sourceView, items)
-                }
+                },
+                titleFontSize: self.presentationData.listsFontSize.baseDisplaySize
             )),
             environment: {},
             containerSize: rowFrame.size

@@ -206,7 +206,7 @@ final class WallpaperGalleryItemNode: GalleryItemNode {
         })
 
         self.colorsButtonNode = WallpaperOptionButtonNode(title: self.presentationData.strings.WallpaperPreview_WallpaperColors, value: .colors(false, [.clear]))
-        self.toolbarNode = WallpaperGalleryToolbarNode(theme: self.presentationData.theme, strings: self.presentationData.strings)
+        self.toolbarNode = WallpaperGalleryToolbarNode(theme: self.presentationData.theme, strings: self.presentationData.strings, listFontSize: self.presentationData.listsFontSize.baseDisplaySize)
 
         self.playButtonPlayImage = generateImage(CGSize(width: 48.0, height: 48.0), rotatedContext: { size, context in
             context.clear(CGRect(origin: CGPoint(), size: size))
@@ -1330,7 +1330,7 @@ final class WallpaperGalleryItemNode: GalleryItemNode {
     }
 
     func updateToolbarThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
-        self.toolbarNode.updateThemeAndStrings(theme: theme, strings: strings)
+        self.toolbarNode.updateThemeAndStrings(theme: theme, strings: strings, listFontSize: self.presentationData.listsFontSize.baseDisplaySize)
         self.toolbarNode.setDoneEnabled(self.toolbarDoneEnabled)
     }
 

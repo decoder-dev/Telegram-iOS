@@ -199,7 +199,7 @@ private final class GiftMovePeerAlertComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: strings, displayOrder: .firstLast), font: Font.semibold(17.0), textColor: theme.actionSheet.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: strings, displayOrder: .firstLast), font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: theme.actionSheet.primaryTextColor)),
                     maximumNumberOfLines: 1
                 )),
                 environment: {},

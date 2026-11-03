@@ -864,7 +864,7 @@ final class LiveStreamSettingsScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: title,
-                                font: Font.semibold(17.0),
+                                font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                                 textColor: environment.theme.rootController.navigationBar.primaryTextColor
                             )
                         )

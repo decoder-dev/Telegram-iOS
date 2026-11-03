@@ -134,7 +134,7 @@ private final class WalletAppInfoContentComponent: CombinedComponent {
                     ),
                     content: AnyComponentWithIdentity(id: "disconnect", component: AnyComponent(Text(
                         text: environment.strings.Wallet_Apps_Disconnect,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                         color: theme.list.itemCheckColors.foregroundColor
                     ))),
                     isEnabled: !component.isDisconnecting,

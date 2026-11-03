@@ -2013,12 +2013,12 @@ private final class GiftSetupScreenComponent: Component {
                         buttonIsEnabled = false
                     }
                 }
-                let buttonAttributedString = NSMutableAttributedString(string: isUpcoming ? environment.strings.Gift_Auction_EarlyBid : environment.strings.Gift_Setup_PlaceBid, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+                let buttonAttributedString = NSMutableAttributedString(string: isUpcoming ? environment.strings.Gift_Auction_EarlyBid : environment.strings.Gift_Setup_PlaceBid, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
                 buttonTitleItems.insert(AnyComponentWithIdentity(id: "bid", component: AnyComponent(
                     MultilineTextComponent(text: .plain(buttonAttributedString))
                 )), at: 0)
             } else {
-                let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+                let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
                 if let range = buttonAttributedString.string.range(of: "#"), let starImage = self.cachedStarImage?.0 {
                     buttonAttributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: buttonAttributedString.string))
                     buttonAttributedString.addAttribute(.foregroundColor, value: theme.list.itemCheckColors.foregroundColor, range: NSRange(range, in: buttonAttributedString.string))

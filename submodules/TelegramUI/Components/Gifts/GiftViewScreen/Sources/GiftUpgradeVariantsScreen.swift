@@ -1629,7 +1629,7 @@ private final class PlayButtonComponent: Component {
             if let titleString = component.title {
                 titleSize = self.title.update(
                     transition: .immediate,
-                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: titleString, font: Font.semibold(17.0), textColor: .white)))),
+                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: titleString, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: .white)))),
                     environment: {},
                     containerSize: availableSize
                 )

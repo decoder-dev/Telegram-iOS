@@ -556,7 +556,7 @@ private final class PeerWalletOverlayComponent: Component {
                     return AnyComponent(BalancedTextComponent(
                         text: .plain(NSAttributedString(
                             string: noticeString,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             textColor: color,
                             paragraphAlignment: .center
                         )),
@@ -665,7 +665,7 @@ private final class PeerWalletOverlayComponent: Component {
                     ),
                     content: AnyComponentWithIdentity(id: "send", component: AnyComponent(Text(
                         text: isOwnWallet ? environment.strings.Wallet_Transaction_OpenWallet : (showsWalletInfo ? environment.strings.Wallet_HowDoesItWork : environment.strings.Wallet_SendMoney),
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                         color: buttonForegroundColor
                     ))),
                     isEnabled: isOwnWallet || showsWalletInfo || (component.context.walletContext != nil && state.card != nil),

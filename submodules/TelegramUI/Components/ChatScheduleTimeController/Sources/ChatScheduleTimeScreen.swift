@@ -574,7 +574,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                         pressedColor: environment.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8),
                     ),
                     content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(
-                        Text(text: buttonTitle, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor)
+                        Text(text: buttonTitle, font: Font.semibold(fontSize), color: environment.theme.list.itemCheckColors.foregroundColor)
                     )),
                     isEnabled: true,
                     displaysProgress: false,
@@ -623,7 +623,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                             pressedColor: environment.theme.list.itemAccentColor.withMultipliedAlpha(0.8),
                         ),
                         content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(
-                            Text(text: strings.Conversation_FormatDate_RemoveDate, font: Font.semibold(17.0), color: environment.theme.list.itemAccentColor)
+                            Text(text: strings.Conversation_FormatDate_RemoveDate, font: Font.semibold(fontSize), color: environment.theme.list.itemAccentColor)
                         )),
                         isEnabled: true,
                         displaysProgress: false,
@@ -665,7 +665,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                             pressedColor: environment.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8),
                         ),
                         content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(
-                            Text(text: strings.Conversation_ScheduleMessage_SendWhenOnline, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.fillColor)
+                            Text(text: strings.Conversation_ScheduleMessage_SendWhenOnline, font: Font.semibold(fontSize), color: environment.theme.list.itemCheckColors.fillColor)
                         )),
                         isEnabled: true,
                         displaysProgress: false,

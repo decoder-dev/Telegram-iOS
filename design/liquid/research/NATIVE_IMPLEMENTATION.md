@@ -295,3 +295,7 @@ SearchBar contentFontSize wired through Location/Contact/FeaturedStickers/PaneSe
 ## Финальный проход по оставшимся 17 pt
 
 Масштабированы Share/Stars/Gifts/Settings sheets, InstantPage settings rows, Call/VideoChat labels, Collectible/Birthday/BusinessHours/AccountFreeze, FaceScan, RichText ButtonEditor, News interests, MessageFee panel, ListSwitch/ContentContainer и смежные одиночные hits. Исключены phone stacks, PeerInfoHeader animation chrome и InstantPage audio parity fonts. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Semibold titles и NavigationBar titleFontSize
+
+Масштабированы ~100 поверхностей с Font.semibold(17); NavigationBarComponent получил titleFontSize (NavigationBarNode/ChatListHeader/Wallet передают listsFontSize). Branding Liquid: 7 pass. Simulator NOT RUN.

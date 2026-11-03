@@ -317,12 +317,12 @@ final class ThemeAccentColorControllerNode: ASDisplayNode, ASScrollViewDelegate 
             doneButtonType = .set
         }
         if case .background = mode {
-            let toolbarNode = WallpaperGalleryToolbarNode(theme: self.theme, strings: self.presentationData.strings, doneButtonType: doneButtonType)
+            let toolbarNode = WallpaperGalleryToolbarNode(theme: self.theme, strings: self.presentationData.strings, listFontSize: self.presentationData.listsFontSize.baseDisplaySize, doneButtonType: doneButtonType)
             toolbarNode.dark = true
             toolbarNode.setDoneIsSolid(true, transition: .immediate)
             self.toolbarNode = toolbarNode
         } else {
-            self.toolbarNode = WallpaperGalleryOldToolbarNode(theme: self.theme, strings: self.presentationData.strings, doneButtonType: doneButtonType)
+            self.toolbarNode = WallpaperGalleryOldToolbarNode(theme: self.theme, strings: self.presentationData.strings, listFontSize: self.presentationData.listsFontSize.baseDisplaySize, doneButtonType: doneButtonType)
         }
         
         self.maskNode = ASImageNode()
@@ -548,7 +548,7 @@ final class ThemeAccentColorControllerNode: ASDisplayNode, ASScrollViewDelegate 
                 strongSelf.themeUpdated?(theme)
                 strongSelf.themePromise.set(.single(theme))
                 strongSelf.colorPanelNode.updateTheme(theme)
-                strongSelf.toolbarNode.updateThemeAndStrings(theme: theme, strings: strongSelf.presentationData.strings)
+                strongSelf.toolbarNode.updateThemeAndStrings(theme: theme, strings: strongSelf.presentationData.strings, listFontSize: strongSelf.presentationData.listsFontSize.baseDisplaySize)
                 strongSelf.chatListBackgroundNode.backgroundColor = theme.chatList.backgroundColor
                 strongSelf.maskNode.image = generateMaskImage(color: theme.chatList.backgroundColor)
 

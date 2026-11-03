@@ -167,7 +167,7 @@ private final class ChatParticipantRightsContent: CombinedComponent {
             
             let title = title.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleString, font: Font.semibold(17.0), textColor: theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: titleString, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemPrimaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 1
                 ),
@@ -326,7 +326,7 @@ private final class ChatParticipantRightsContent: CombinedComponent {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(buttonTitle),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: buttonTitle, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: buttonTitle, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                     ),
                     action: { [weak state] in
                         guard let state else {

@@ -252,7 +252,7 @@ private final class SheetContent: CombinedComponent {
                 contentSize.height += segmentControl.size.height
             } else {
                 let title = title.update(
-                    component: Text(text: titleString, font: Font.semibold(17.0), color: theme.list.itemPrimaryTextColor),
+                    component: Text(text: titleString, font: Font.semibold(component.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: theme.list.itemPrimaryTextColor),
                     availableSize: CGSize(width: constrainedTitleWidth, height: context.availableSize.height),
                     transition: .immediate
                 )
@@ -324,7 +324,7 @@ private final class SheetContent: CombinedComponent {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.InviteLink_QRCode_Share, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.InviteLink_QRCode_Share, font: Font.semibold(component.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                     ),
                     isEnabled: true,
                     displaysProgress: false,
@@ -356,7 +356,7 @@ private final class SheetContent: CombinedComponent {
                         ),
                         content: AnyComponentWithIdentity(
                             id: AnyHashable(0),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.SocksProxySetup_ShareLink, font: Font.semibold(17.0), textColor: theme.list.itemAccentColor, paragraphAlignment: .center))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.SocksProxySetup_ShareLink, font: Font.semibold(component.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemAccentColor, paragraphAlignment: .center))))
                         ),
                         isEnabled: true,
                         displaysProgress: false,

@@ -1204,7 +1204,7 @@ final class StickerPaneSearchContentNode: ASDisplayNode, PaneSearchContentNode {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(buttonTitle),
-                        component: AnyComponent(Text(text: buttonTitle, font: Font.semibold(17.0), color: buttonForegroundColor))
+                        component: AnyComponent(Text(text: buttonTitle, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), color: buttonForegroundColor))
                     ),
                     action: { [weak self] in
                         self?.installSelectedStickerPack()

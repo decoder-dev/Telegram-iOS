@@ -154,7 +154,7 @@ private final class PollStatsSheetContent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: strings.PollStats_Title,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                         textColor: theme.actionSheet.primaryTextColor
                     )),
                     maximumNumberOfLines: 1

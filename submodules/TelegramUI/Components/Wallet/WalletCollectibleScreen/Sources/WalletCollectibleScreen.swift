@@ -1677,7 +1677,7 @@ private final class WalletCollectibleContentComponent: Component {
                     ),
                     content: AnyComponentWithIdentity(id: "OK", component: AnyComponent(Text(
                         text: environment.strings.Common_OK,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                         color: theme.list.itemCheckColors.foregroundColor
                     ))),
                     action: { [weak self] in

@@ -259,7 +259,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: strings.SocksProxySetup_Title,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(presentationData.listsFontSize.baseDisplaySize),
                         textColor: theme.actionSheet.primaryTextColor,
                         paragraphAlignment: .center
                     )),
@@ -469,7 +469,7 @@ private final class ProxyServerPreviewSheetContent: CombinedComponent {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.SocksProxySetup_ConnectAndSave, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.SocksProxySetup_ConnectAndSave, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                     ),
                     displaysProgress: state.inProgress,
                     action: {

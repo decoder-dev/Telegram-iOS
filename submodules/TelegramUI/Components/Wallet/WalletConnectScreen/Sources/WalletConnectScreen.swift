@@ -489,7 +489,7 @@ private final class WalletConnectSheetContent: CombinedComponent {
                         id: "cancel",
                         component: AnyComponent(Text(
                             text: environment.strings.Common_Cancel,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             color: theme.list.itemPrimaryTextColor
                         ))
                     ),
@@ -519,7 +519,7 @@ private final class WalletConnectSheetContent: CombinedComponent {
                         id: "connect",
                         component: AnyComponent(Text(
                             text: environment.strings.Wallet_Connect_Action,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             color: theme.list.itemCheckColors.foregroundColor
                         ))
                     ),

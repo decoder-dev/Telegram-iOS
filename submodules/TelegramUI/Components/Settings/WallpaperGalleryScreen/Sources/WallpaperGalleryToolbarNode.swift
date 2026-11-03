@@ -30,7 +30,7 @@ public protocol WallpaperGalleryToolbar: ASDisplayNode {
     var cancel: (() -> Void)? { get set }
     var done: ((Bool) -> Void)? { get set }
 
-    func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings)
+    func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat)
 
     func updateLayout(size: CGSize, layout: ContainerViewLayout, transition: ContainedViewLayoutTransition)
 }
@@ -121,11 +121,11 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
             transition.updateAlpha(node: self.doneButtonSolidTitleNode, alpha: isSolid ? 1.0 : 0.0)
         }
 
-        func updateTitle(_ title: String, theme: PresentationTheme) {
-            self.doneButtonTitleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(17.0), textColor: self.dark ? .white : .black)
+        func updateTitle(_ title: String, theme: PresentationTheme, listFontSize: CGFloat) {
+            self.doneButtonTitleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(listFontSize), textColor: self.dark ? .white : .black)
 
             self.doneButtonSolidBackgroundNode.backgroundColor = theme.list.itemCheckColors.fillColor
-            self.doneButtonSolidTitleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor)
+            self.doneButtonSolidTitleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(listFontSize), textColor: theme.list.itemCheckColors.foregroundColor)
         }
 
         func updateSize(_ size: CGSize) {
@@ -213,15 +213,16 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
 
     private var theme: PresentationTheme
     private let strings: PresentationStrings
+    private var listFontSize: CGFloat
 
     public var cancelButtonType: WallpaperGalleryToolbarCancelButtonType {
         didSet {
-            self.updateThemeAndStrings(theme: self.theme, strings: self.strings)
+            self.updateThemeAndStrings(theme: self.theme, strings: self.strings, listFontSize: self.listFontSize)
         }
     }
     public var doneButtonType: WallpaperGalleryToolbarDoneButtonType {
         didSet {
-            self.updateThemeAndStrings(theme: self.theme, strings: self.strings)
+            self.updateThemeAndStrings(theme: self.theme, strings: self.strings, listFontSize: self.listFontSize)
         }
     }
 
@@ -244,9 +245,10 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
         }
     }
 
-    public init(theme: PresentationTheme, strings: PresentationStrings, cancelButtonType: WallpaperGalleryToolbarCancelButtonType = .cancel, doneButtonType: WallpaperGalleryToolbarDoneButtonType = .set) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0, cancelButtonType: WallpaperGalleryToolbarCancelButtonType = .cancel, doneButtonType: WallpaperGalleryToolbarDoneButtonType = .set) {
         self.theme = theme
         self.strings = strings
+        self.listFontSize = listFontSize
         self.cancelButtonType = cancelButtonType
         self.doneButtonType = doneButtonType
 
@@ -258,7 +260,7 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
         self.addSubnode(self.applyButton)
         self.addSubnode(self.applyForBothButton)
 
-        self.updateThemeAndStrings(theme: theme, strings: strings)
+        self.updateThemeAndStrings(theme: theme, strings: strings, listFontSize: listFontSize)
 
         self.applyButton.action = { [weak self] in
             if let self {
@@ -288,8 +290,9 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
         self.applyForBothButton.setIsSolid(isSolid, transition: transition)
     }
 
-    public func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
+    public func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat) {
         self.theme = theme
+        self.listFontSize = listFontSize
         self.applyButton.isUserInteractionEnabled = true
 
         let applyTitle: String
@@ -313,9 +316,9 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
             self.applyButton.isUserInteractionEnabled = false
         }
 
-        self.applyButton.updateTitle(applyTitle, theme: theme)
+        self.applyButton.updateTitle(applyTitle, theme: theme, listFontSize: listFontSize)
         if let applyForBothTitle {
-            self.applyForBothButton.updateTitle(applyForBothTitle, theme: theme)
+            self.applyForBothButton.updateTitle(applyForBothTitle, theme: theme, listFontSize: listFontSize)
         }
         self.applyForBothButton.isLocked = applyForBothLocked
     }
@@ -353,15 +356,16 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
 public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalleryToolbar {
     private var theme: PresentationTheme
     private let strings: PresentationStrings
+    private var listFontSize: CGFloat
 
     public var cancelButtonType: WallpaperGalleryToolbarCancelButtonType {
         didSet {
-            self.updateThemeAndStrings(theme: self.theme, strings: self.strings)
+            self.updateThemeAndStrings(theme: self.theme, strings: self.strings, listFontSize: self.listFontSize)
         }
     }
     public var doneButtonType: WallpaperGalleryToolbarDoneButtonType {
         didSet {
-            self.updateThemeAndStrings(theme: self.theme, strings: self.strings)
+            self.updateThemeAndStrings(theme: self.theme, strings: self.strings, listFontSize: self.listFontSize)
         }
     }
 
@@ -376,15 +380,16 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
     public var cancel: (() -> Void)?
     public var done: ((Bool) -> Void)?
 
-    public init(theme: PresentationTheme, strings: PresentationStrings, cancelButtonType: WallpaperGalleryToolbarCancelButtonType = .cancel, doneButtonType: WallpaperGalleryToolbarDoneButtonType = .set) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0, cancelButtonType: WallpaperGalleryToolbarCancelButtonType = .cancel, doneButtonType: WallpaperGalleryToolbarDoneButtonType = .set) {
         self.theme = theme
         self.strings = strings
+        self.listFontSize = listFontSize
         self.cancelButtonType = cancelButtonType
         self.doneButtonType = doneButtonType
 
         super.init()
 
-        self.updateThemeAndStrings(theme: theme, strings: strings)
+        self.updateThemeAndStrings(theme: theme, strings: strings, listFontSize: listFontSize)
     }
 
     public func setDoneEnabled(_ enabled: Bool) {
@@ -394,8 +399,9 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
         }
     }
 
-    public func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
+    public func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat) {
         self.theme = theme
+        self.listFontSize = listFontSize
 
         switch self.cancelButtonType {
             case .cancel:
@@ -448,7 +454,7 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
                 ),
                 content: AnyComponentWithIdentity(
                     id: AnyHashable(self.cancelTitle),
-                    component: AnyComponent(Text(text: self.cancelTitle, font: Font.semibold(17.0), color: foregroundColor))
+                    component: AnyComponent(Text(text: self.cancelTitle, font: Font.semibold(self.listFontSize), color: foregroundColor))
                 ),
                 action: { [weak self] in
                     self?.cancel?()
@@ -477,7 +483,7 @@ public final class WallpaperGalleryOldToolbarNode: ASDisplayNode, WallpaperGalle
                 ),
                 content: AnyComponentWithIdentity(
                     id: AnyHashable(self.doneTitle),
-                    component: AnyComponent(Text(text: self.doneTitle, font: Font.semibold(17.0), color: foregroundColor))
+                    component: AnyComponent(Text(text: self.doneTitle, font: Font.semibold(self.listFontSize), color: foregroundColor))
                 ),
                 isEnabled: self.doneEnabled && doneIsVisible,
                 tintWhenDisabled: false,

@@ -464,7 +464,7 @@ private final class EmojiGameStakeSheetComponent: CombinedComponent {
                         }
                     )),
                     titleItem: AnyComponent(
-                        Text(text: environment.strings.EmojiStake_Title, font: Font.bold(17.0), color: theme.list.itemPrimaryTextColor)
+                        Text(text: environment.strings.EmojiStake_Title, font: Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: theme.list.itemPrimaryTextColor)
                     ),
                     leftItem: AnyComponent(
                         GlassBarButtonComponent(

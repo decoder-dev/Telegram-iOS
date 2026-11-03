@@ -1657,7 +1657,7 @@ public final class StoryItemSetViewListComponent: Component {
             
             let titleSize = self.title.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: titleText, font: Font.semibold(17.0), color: .white)),
+                component: AnyComponent(Text(text: titleText, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: .white)),
                 environment: {},
                 containerSize: CGSize(width: 260.0, height: 100.0)
             )
