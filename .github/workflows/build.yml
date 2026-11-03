@@ -16,8 +16,8 @@
 name: Build sideload IPA
 
 on:
-  push:
-    tags: ['v*']
+  # Releases are cut by workflow_dispatch on the xcode-27 runner; a tag-push build
+  # races the dispatched run for the same concurrency group and gets it cancelled.
   workflow_dispatch:
     inputs:
       create_release:
