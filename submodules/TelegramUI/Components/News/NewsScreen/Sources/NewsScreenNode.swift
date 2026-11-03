@@ -658,7 +658,7 @@ final class NewsScreenNode: ASDisplayNode, ASGestureRecognizerDelegate {
         }
         let size = self.pill.update(
             transition: transition,
-            component: AnyComponent(NewsNewPostsPillComponent(theme: self.presentationData.theme, title: title, action: { [weak self] in
+            component: AnyComponent(NewsNewPostsPillComponent(theme: self.presentationData.theme, title: title, fontSize: self.presentationData.listsFontSize.baseDisplaySize, action: { [weak self] in
                 self?.pillTapped()
             })),
             environment: {},

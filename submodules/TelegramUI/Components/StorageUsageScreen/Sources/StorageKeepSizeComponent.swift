@@ -47,17 +47,20 @@ final class StorageKeepSizeComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
     let value: Int32
+    let fontSize: CGFloat
     let updateValue: (Int32) -> Void
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
         value: Int32,
+        fontSize: CGFloat,
         updateValue: @escaping (Int32) -> Void
     ) {
         self.theme = theme
         self.strings = strings
         self.value = value
+        self.fontSize = fontSize
         self.updateValue = updateValue
     }
     
@@ -69,6 +72,9 @@ final class StorageKeepSizeComponent: Component {
             return false
         }
         if lhs.value != rhs.value {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -111,7 +117,7 @@ final class StorageKeepSizeComponent: Component {
             for i in 0 ..< self.titles.count {
                 let titleSize = self.titles[i].update(
                     transition: .immediate,
-                    component: AnyComponent(Text(text: stringForCacheSize(strings: component.strings, size: maximumCacheSizeValues[i]), font: Font.regular(13.0), color: component.theme.list.itemSecondaryTextColor)),
+                    component: AnyComponent(Text(text: stringForCacheSize(strings: component.strings, size: maximumCacheSizeValues[i]), font: Font.regular(floor(component.fontSize * 13.0 / 17.0)), color: component.theme.list.itemSecondaryTextColor)),
                     environment: {},
                     containerSize: CGSize(width: 100.0, height: 100.0)
                 )

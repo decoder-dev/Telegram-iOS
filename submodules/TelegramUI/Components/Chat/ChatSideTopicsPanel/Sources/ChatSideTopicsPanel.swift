@@ -532,7 +532,7 @@ public final class ChatSideTopicsPanel: Component {
                         transition: badgeTransition,
                         component: AnyComponent(TextBadgeComponent(
                             text: countString(Int64(readCounters.count)),
-                            font: Font.medium(12.0),
+                            font: Font.medium(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 12.0 / 17.0)),
                             background: component.item.item.isMuted ? component.theme.chatList.unreadBadgeInactiveBackgroundColor : component.theme.chatList.unreadBadgeActiveBackgroundColor,
                             foreground: component.item.item.isMuted ? component.theme.chatList.unreadBadgeInactiveTextColor : component.theme.chatList.unreadBadgeActiveTextColor,
                             insets: UIEdgeInsets(top: 1.0, left: 5.0, bottom: 2.0, right: 5.0)
@@ -895,10 +895,11 @@ public final class ChatSideTopicsPanel: Component {
                     )
                 }
                 
+                let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 let titleSize = self.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: titleText, font: Font.medium(14.0), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
+                        text: .plain(NSAttributedString(string: titleText, font: Font.medium(floor(fontSize * 14.0 / 17.0)), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 2
                     )),
@@ -922,7 +923,7 @@ public final class ChatSideTopicsPanel: Component {
                         transition: badgeTransition,
                         component: AnyComponent(TextBadgeComponent(
                             text: countString(Int64(readCounters.count)),
-                            font: Font.medium(12.0),
+                            font: Font.medium(floor(fontSize * 12.0 / 17.0)),
                             background: component.item.item.isMuted ? component.theme.chatList.unreadBadgeInactiveBackgroundColor : component.theme.chatList.unreadBadgeActiveBackgroundColor,
                             foreground: component.item.item.isMuted ? component.theme.chatList.unreadBadgeInactiveTextColor : component.theme.chatList.unreadBadgeActiveTextColor,
                             insets: UIEdgeInsets(top: 1.0, left: 5.0, bottom: 2.0, right: 5.0)
@@ -1268,10 +1269,11 @@ public final class ChatSideTopicsPanel: Component {
                 } else {
                     titleText = component.strings.Chat_InlineTopicMenu_AllTab
                 }
+                let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 let titleSize = self.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: titleText, font: Font.regular(10.0), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
+                        text: .plain(NSAttributedString(string: titleText, font: Font.regular(floor(fontSize * 10.0 / 17.0)), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
                         maximumNumberOfLines: 2
                     )),
                     environment: {},
@@ -1409,10 +1411,11 @@ public final class ChatSideTopicsPanel: Component {
                 } else {
                     titleText = component.strings.Chat_InlineTopicMenu_AllTab
                 }
+                let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 let titleSize = self.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: titleText, font: Font.medium(14.0), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
+                        text: .plain(NSAttributedString(string: titleText, font: Font.medium(floor(fontSize * 14.0 / 17.0)), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
                         maximumNumberOfLines: 2
                     )),
                     environment: {},

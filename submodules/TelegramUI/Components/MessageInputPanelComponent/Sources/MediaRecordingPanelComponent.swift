@@ -34,7 +34,7 @@ public final class MediaRecordingPanelComponent: Component {
         cancelFraction: CGFloat,
         inputInsets: UIEdgeInsets,
         insets: UIEdgeInsets,
-        fontSize: CGFloat = 17.0,
+        fontSize: CGFloat,
         cancelAction: @escaping () -> Void
     ) {
         self.theme = theme
@@ -100,7 +100,7 @@ public final class MediaRecordingPanelComponent: Component {
         private let cancelButtonText = ComponentView<Empty>()
         private var cancelButton: HighlightableButton?
         
-        private let timerFont: UIFont
+        private var timerFont: UIFont
         private let timerText = ComponentView<Empty>()
         
         private var timerTextDisposable: Disposable?
@@ -327,6 +327,9 @@ public final class MediaRecordingPanelComponent: Component {
                 transition.setFrame(view: indicatorView, frame: CGRect(origin: CGPoint(x: 5.0, y: component.insets.top + floor((availableSize.height - component.insets.top - component.insets.bottom - indicatorSize.height) * 0.5)), size: indicatorSize))
             }
             
+            let fontSize = component.fontSize
+            self.timerFont = Font.with(size: floor(fontSize * 15.0 / 17.0), design: .camera, traits: .monospacedNumbers)
+            
             let timerTextSize = self.timerText.update(
                 transition: .immediate,
                 component: AnyComponent(Text(text: self.timerTextValue, font: self.timerFont, color: .white)),
@@ -354,13 +357,13 @@ public final class MediaRecordingPanelComponent: Component {
             
             let cancelTextSize = self.cancelText.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: component.strings.Conversation_SlideToCancel, font: Font.regular(15.0), color: UIColor(rgb: 0xffffff, alpha: 0.3))),
+                component: AnyComponent(Text(text: component.strings.Conversation_SlideToCancel, font: Font.regular(floor(fontSize * 15.0 / 17.0)), color: UIColor(rgb: 0xffffff, alpha: 0.3))),
                 environment: {},
                 containerSize: CGSize(width: max(30.0, availableSize.width - 100.0), height: 44.0)
             )
             let _ = self.vibrancyCancelText.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: component.strings.Conversation_SlideToCancel, font: Font.regular(15.0), color: .black)),
+                component: AnyComponent(Text(text: component.strings.Conversation_SlideToCancel, font: Font.regular(floor(fontSize * 15.0 / 17.0)), color: .black)),
                 environment: {},
                 containerSize: CGSize(width: max(30.0, availableSize.width - 100.0), height: 44.0)
             )

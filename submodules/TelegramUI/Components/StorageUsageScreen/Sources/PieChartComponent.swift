@@ -1099,7 +1099,6 @@ final class PieChartComponent: Component {
         
         func setItems(theme: PresentationTheme, emptyColor: UIColor, data: ChartData, selectedKey: AnyHashable?, listsFontSizeBase: CGFloat, animated: Bool) {
             self.emptyColor = emptyColor
-            self.listsFontSizeBase = listsFontSizeBase
             
             let data = processChartData(data: data)
             

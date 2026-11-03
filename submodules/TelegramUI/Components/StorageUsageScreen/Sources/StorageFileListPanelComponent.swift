@@ -521,9 +521,10 @@ private final class FileListItemComponent: Component {
                 }
             }
             
-            let titleFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 16.0))
-            let labelFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
-            let subtitleFontSize = min(20.0, UIFontMetrics(forTextStyle: .footnote).scaledValue(for: 14.0))
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let titleFontSize = floor(fontSize * 16.0 / 17.0)
+            let labelFontSize = fontSize
+            let subtitleFontSize = floor(fontSize * 14.0 / 17.0)
             let labelSize = self.label.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(

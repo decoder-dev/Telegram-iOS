@@ -10,16 +10,18 @@ import MultilineTextComponent
 public final class NewsNewPostsPillComponent: Component {
     public let theme: PresentationTheme
     public let title: String
+    public let fontSize: CGFloat
     public let action: () -> Void
 
-    public init(theme: PresentationTheme, title: String, action: @escaping () -> Void) {
+    public init(theme: PresentationTheme, title: String, fontSize: CGFloat, action: @escaping () -> Void) {
         self.theme = theme
         self.title = title
+        self.fontSize = fontSize
         self.action = action
     }
 
     public static func ==(lhs: NewsNewPostsPillComponent, rhs: NewsNewPostsPillComponent) -> Bool {
-        return lhs.theme === rhs.theme && lhs.title == rhs.title
+        return lhs.theme === rhs.theme && lhs.title == rhs.title && lhs.fontSize == rhs.fontSize
     }
 
     public final class View: UIView {
@@ -47,7 +49,7 @@ public final class NewsNewPostsPillComponent: Component {
             let horizontalInset: CGFloat = 16.0
             let labelSize = self.label.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.title, font: Font.semibold(15.0), textColor: component.theme.list.itemAccentColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.title, font: Font.semibold(floor(component.fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemAccentColor)))),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - horizontalInset * 2.0, height: height)
             )

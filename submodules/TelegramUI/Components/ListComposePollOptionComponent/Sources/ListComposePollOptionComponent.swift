@@ -1014,7 +1014,7 @@ public final class ListComposePollOptionComponent: Component {
                             let context = DrawingContext(size: size)!
                             context.withFlippedContext { context in
                                 context.clear(CGRect(origin: .zero, size: size))
-                                if let image = extensionImage(fileExtension: fileExtension), let cgImage = image.cgImage {
+                                if let image = extensionImage(fileExtension: fileExtension, fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), let cgImage = image.cgImage {
                                     context.draw(cgImage, in: CGRect(origin: .zero, size: size))
                                 }
                             }
@@ -1372,9 +1372,15 @@ public final class ListComposePollOptionComponent: Component {
     }
 }
 
-private let extensionFont = Font.with(size: 15.0, design: .round, weight: .bold)
-private let mediumExtensionFont = Font.with(size: 14.0, design: .round, weight: .bold)
-private let smallExtensionFont = Font.with(size: 12.0, design: .round, weight: .bold)
+private func extensionFont(fontSize: CGFloat) -> UIFont {
+    Font.with(size: floor(fontSize * 15.0 / 17.0), design: .round, weight: .bold)
+}
+private func mediumExtensionFont(fontSize: CGFloat) -> UIFont {
+    Font.with(size: floor(fontSize * 14.0 / 17.0), design: .round, weight: .bold)
+}
+private func smallExtensionFont(fontSize: CGFloat) -> UIFont {
+    Font.with(size: floor(fontSize * 12.0 / 17.0), design: .round, weight: .bold)
+}
 
 private let redColors: (UInt32, UInt32) = (0xff875f, 0xff5069)
 private let greenColors: (UInt32, UInt32) = (0x99de6f, 0x5fb84f)
@@ -1397,7 +1403,7 @@ private let extensionColorsMap: [String: (UInt32, UInt32)] = [
     "ai": yellowColors
 ]
 
-private func generateExtensionImage(colors: (UInt32, UInt32), fileExtension: String) -> UIImage? {
+private func generateExtensionImage(colors: (UInt32, UInt32), fileExtension: String, fontSize: CGFloat) -> UIImage? {
     return generateImage(CGSize(width: 40.0, height: 40.0), rotatedContext: { size, context in
         context.clear(CGRect(origin: CGPoint(), size: size))
         
@@ -1438,13 +1444,13 @@ private func generateExtensionImage(colors: (UInt32, UInt32), fileExtension: Str
         context.restoreGState()
         
         UIGraphicsPushContext(context)
-        let extensionText = NSAttributedString(string: fileExtension, font: fileExtension.count > 3 ? mediumExtensionFont : extensionFont, textColor: .white, paragraphAlignment: .center)
+        let extensionText = NSAttributedString(string: fileExtension, font: fileExtension.count > 3 ? mediumExtensionFont(fontSize: fontSize) : extensionFont(fontSize: fontSize), textColor: .white, paragraphAlignment: .center)
         extensionText.draw(in: CGRect(origin: CGPoint(x: 0.0, y: 15.0), size: size))
         UIGraphicsPopContext()
     })
 }
 
-private func extensionImage(fileExtension: String?) -> UIImage? {
+private func extensionImage(fileExtension: String?, fontSize: CGFloat) -> UIImage? {
     let colors: (UInt32, UInt32)
     if let fileExtension = fileExtension {
         if let extensionColors = extensionColorsMap[fileExtension] {
@@ -1455,5 +1461,5 @@ private func extensionImage(fileExtension: String?) -> UIImage? {
     } else {
         colors = blueColors
     }
-    return generateExtensionImage(colors: colors, fileExtension: fileExtension ?? "")
+    return generateExtensionImage(colors: colors, fileExtension: fileExtension ?? "", fontSize: fontSize)
 }

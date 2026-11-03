@@ -772,7 +772,7 @@ final class DataUsageScreenComponent: Component {
             }
             let headerViewSize = self.headerView.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: headerText, font: Font.semibold(20.0), color: environment.theme.list.itemPrimaryTextColor)),
+                component: AnyComponent(Text(text: headerText, font: Font.semibold(floor(fontSize * 20.0 / 17.0)), color: environment.theme.list.itemPrimaryTextColor)),
                 environment: {},
                 containerSize: CGSize(width: floor((availableSize.width) / 0.8), height: 100.0)
             )
