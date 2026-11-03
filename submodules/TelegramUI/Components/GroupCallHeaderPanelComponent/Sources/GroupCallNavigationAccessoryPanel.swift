@@ -30,9 +30,6 @@ func textForTimeout(value: Int32) -> String {
     }
 }
 
-private let titleFont = Font.semibold(15.0)
-private let subtitleFont = Font.regular(13.0)
-
 private final class FakeAudioLevelGenerator {
     private var isFirstTime: Bool = true
     private var nextTarget: Float = 0.0
@@ -66,6 +63,7 @@ final class GroupCallNavigationAccessoryPanel: ASDisplayNode {
     private var theme: PresentationTheme
     private var strings: PresentationStrings
     private var dateTimeFormat: PresentationDateTimeFormat
+    private var contentFontSize: CGFloat
     
     private let tapAction: () -> Void
     private let notifyScheduledTapAction: () -> Void
@@ -124,6 +122,7 @@ final class GroupCallNavigationAccessoryPanel: ASDisplayNode {
         self.theme = presentationData.theme
         self.strings = presentationData.strings
         self.dateTimeFormat = presentationData.dateTimeFormat
+        self.contentFontSize = presentationData.listsFontSize.baseDisplaySize
         
         self.tapAction = tapAction
         self.notifyScheduledTapAction = notifyScheduledTapAction
@@ -271,11 +270,13 @@ final class GroupCallNavigationAccessoryPanel: ASDisplayNode {
         self.theme = presentationData.theme
         self.strings = presentationData.strings
         self.dateTimeFormat = presentationData.dateTimeFormat
-
+        self.contentFontSize = presentationData.listsFontSize.baseDisplaySize
+        
         self.separatorNode.backgroundColor = presentationData.theme.chat.historyNavigation.strokeColor
         
-        self.joinButtonTitleNode.attributedText = NSAttributedString(string: self.joinButtonTitleNode.attributedText?.string ?? "", font: Font.with(size: 15.0, design: .round, weight: .semibold, traits: [.monospacedNumbers]), textColor: self.isScheduled ? .white : presentationData.theme.chat.inputPanel.actionControlForegroundColor)
-        self.textNode.attributedText = NSAttributedString(string: self.textNode.attributedText?.string ?? "", font: Font.regular(13.0), textColor: presentationData.theme.chat.inputPanel.secondaryTextColor)
+        let joinTitleFontSize = floor(self.contentFontSize * 15.0 / 17.0)
+        self.joinButtonTitleNode.attributedText = NSAttributedString(string: self.joinButtonTitleNode.attributedText?.string ?? "", font: Font.with(size: joinTitleFontSize, design: .round, weight: .semibold, traits: [.monospacedNumbers]), textColor: self.isScheduled ? .white : presentationData.theme.chat.inputPanel.actionControlForegroundColor)
+        self.textNode.attributedText = NSAttributedString(string: self.textNode.attributedText?.string ?? "", font: Font.regular(floor(self.contentFontSize * 13.0 / 17.0)), textColor: presentationData.theme.chat.inputPanel.secondaryTextColor)
         
         self.muteIconNode.image = PresentationResourcesChat.chatTitleMuteIcon(presentationData.theme)
         
@@ -358,7 +359,7 @@ final class GroupCallNavigationAccessoryPanel: ASDisplayNode {
                 }
             }
             
-            self.textNode.attributedText = NSAttributedString(string: membersText, font: Font.regular(13.0), textColor: self.theme.chat.inputPanel.secondaryTextColor)
+            self.textNode.attributedText = NSAttributedString(string: membersText, font: Font.regular(floor(self.contentFontSize * 13.0 / 17.0)), textColor: self.theme.chat.inputPanel.secondaryTextColor)
             
             self.callState = nil
             
@@ -665,7 +666,8 @@ final class GroupCallNavigationAccessoryPanel: ASDisplayNode {
             self.updateJoinButton()
         }
         
-        self.joinButtonTitleNode.attributedText = NSAttributedString(string: joinText, font: Font.with(size: 15.0, design: .round, weight: .semibold, traits: [.monospacedNumbers]), textColor: isScheduled ? .white : self.theme.chat.inputPanel.actionControlForegroundColor)
+        let joinTitleFontSize = floor(self.contentFontSize * 15.0 / 17.0)
+        self.joinButtonTitleNode.attributedText = NSAttributedString(string: joinText, font: Font.with(size: joinTitleFontSize, design: .round, weight: .semibold, traits: [.monospacedNumbers]), textColor: isScheduled ? .white : self.theme.chat.inputPanel.actionControlForegroundColor)
         
         let joinButtonTitleSize = self.joinButtonTitleNode.updateLayout(CGSize(width: 150.0, height: .greatestFiniteMagnitude))
         let joinButtonSize = CGSize(width: joinButtonTitleSize.width + 20.0, height: 28.0)
@@ -722,9 +724,9 @@ final class GroupCallNavigationAccessoryPanel: ASDisplayNode {
             }
         }
                 
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(15.0), textColor: self.theme.chat.inputPanel.primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(floor(self.contentFontSize * 15.0 / 17.0)), textColor: self.theme.chat.inputPanel.primaryTextColor)
         
-        self.textNode.attributedText = NSAttributedString(string: text, font: Font.regular(13.0), textColor: self.theme.chat.inputPanel.secondaryTextColor)
+        self.textNode.attributedText = NSAttributedString(string: text, font: Font.regular(floor(self.contentFontSize * 13.0 / 17.0)), textColor: self.theme.chat.inputPanel.secondaryTextColor)
         
         var constrainedWidth = size.width - leftInset - rightInset - 32.0 - joinButtonSize.width - 60.0
         if isScheduled {

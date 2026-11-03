@@ -254,6 +254,7 @@ final class ContactSelectionControllerNode: ASDisplayNode {
         self.backgroundColor = self.listStyle == .blocks ? self.presentationData.theme.list.blocksBackgroundColor : self.presentationData.theme.chatList.backgroundColor
         self.searchDisplayController?.updatePresentationData(presentationData)
         self.dimNode.backgroundColor = self.presentationData.theme.list.plainBackgroundColor.withAlphaComponent(0.5)
+        self.countPanelNode.updatePresentationData(theme: presentationData.theme, strings: presentationData.strings, contentFontSize: presentationData.listsFontSize.baseDisplaySize)
         
         if let (layout, navigationHeight, actualNavigationHeight) = self.containerLayout {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, actualNavigationBarHeight: actualNavigationHeight, transition: .immediate)
@@ -523,9 +524,9 @@ final class ContactSelectionControllerNode: ASDisplayNode {
 }
 
 final class ContactSelectionCountPanelNode: ASDisplayNode {
-    private let theme: PresentationTheme
-    private let strings: PresentationStrings
-    private let contentFontSize: CGFloat
+    private var theme: PresentationTheme
+    private var strings: PresentationStrings
+    private var contentFontSize: CGFloat
     
     private let separatorNode: ASDisplayNode
     
@@ -615,6 +616,22 @@ final class ContactSelectionCountPanelNode: ASDisplayNode {
     
     @objc private func pressed() {
         self.action()
+    }
+    
+    func updatePresentationData(theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat) {
+        self.theme = theme
+        self.strings = strings
+        self.contentFontSize = contentFontSize
+        self.separatorNode.backgroundColor = theme.rootController.navigationBar.separatorColor
+        self.backgroundColor = theme.rootController.navigationBar.opaqueBackgroundColor
+        self.badgeBackground.image = generateStretchableFilledCircleImage(diameter: 22.0, color: theme.actionSheet.controlAccentColor)
+        self.button.setTitle(strings.ShareMenu_Send, with: Font.medium(contentFontSize), with: theme.actionSheet.controlAccentColor, for: .normal)
+        if self.count > 0 {
+            self.badgeText = NSAttributedString(string: "\(self.count)", font: Font.regular(floor(contentFontSize * 14.0 / 17.0)), textColor: theme.actionSheet.opaqueItemBackgroundColor, paragraphAlignment: .center)
+            if let (width, sideInset, bottomInset) = self.validLayout {
+                let _ = self.updateLayout(width: width, sideInset: sideInset, bottomInset: bottomInset, transition: .immediate)
+            }
+        }
     }
     
     func updateLayout(width: CGFloat, sideInset: CGFloat, bottomInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {

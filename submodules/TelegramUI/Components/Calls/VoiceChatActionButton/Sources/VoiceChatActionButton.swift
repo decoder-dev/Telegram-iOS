@@ -9,9 +9,6 @@ import AppBundle
 import ManagedAnimationNode
 import ComponentFlow
 
-private let titleFont = Font.regular(15.0)
-private let subtitleFont = Font.regular(13.0)
-
 private let smallScale: CGFloat = 0.48
 private let smallIconScale: CGFloat = 0.69
 
@@ -213,6 +210,8 @@ public final class VoiceChatActionButton: HighlightTrackingButtonNode {
         let updatedTitle = self.titleLabel.attributedText?.string != title
         let updatedSubtitle = self.subtitleLabel.attributedText?.string != subtitle
         
+        let titleFont = Font.regular(floor(self.buttonTextFontSize * 15.0 / 17.0))
+        let subtitleFont = Font.regular(floor(self.buttonTextFontSize * 13.0 / 17.0))
         self.titleLabel.attributedText = NSAttributedString(string: title, font: titleFont, textColor: .white)
         self.subtitleLabel.attributedText = NSAttributedString(string: subtitle, font: subtitleFont, textColor: .white)
                 

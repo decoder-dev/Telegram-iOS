@@ -184,7 +184,9 @@ public final class SuggestPostAccessoryPanelNode: AccessoryPanelNode {
         
         let imageTextInset: CGFloat = 0.0
         
-        let textFont = Font.regular(15.0)
+        let fontSize = interfaceState.fontSize.baseDisplaySize
+        let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+        let titleFont = Font.medium(floor(fontSize * 15.0 / 17.0))
         
         var inlineTextStarImage: UIImage?
         if let current = self.inlineTextStarImage {
@@ -227,9 +229,9 @@ public final class SuggestPostAccessoryPanelNode: AccessoryPanelNode {
         
         var titleText: [CompositeTextNode.Component] = []
         if let postSuggestionState = interfaceState.interfaceState.postSuggestionState, postSuggestionState.editingOriginalMessageId != nil {
-            titleText.append(.text(NSAttributedString(string: self.strings.Chat_PostSuggestion_Suggest_InputEditTitle, font: Font.medium(15.0), textColor: self.theme.chat.inputPanel.panelControlAccentColor)))
+            titleText.append(.text(NSAttributedString(string: self.strings.Chat_PostSuggestion_Suggest_InputEditTitle, font: titleFont, textColor: self.theme.chat.inputPanel.panelControlAccentColor)))
         } else {
-            titleText.append(.text(NSAttributedString(string: self.strings.Chat_PostSuggestion_Suggest_InputTitle, font: Font.medium(15.0), textColor: self.theme.chat.inputPanel.panelControlAccentColor)))
+            titleText.append(.text(NSAttributedString(string: self.strings.Chat_PostSuggestion_Suggest_InputTitle, font: titleFont, textColor: self.theme.chat.inputPanel.panelControlAccentColor)))
         }
         self.titleNode.components = titleText
         
@@ -300,8 +302,8 @@ public final class SuggestPostAccessoryPanelNode: AccessoryPanelNode {
                 }
                 
                 let runDelegateData = RunDelegateData(
-                    ascent: Font.regular(15.0).ascender,
-                    descent: Font.regular(15.0).descender,
+                    ascent: textFont.ascender,
+                    descent: textFont.descender,
                     width: currencyImage.size.width + 2.0
                 )
                 var callbacks = CTRunDelegateCallbacks(

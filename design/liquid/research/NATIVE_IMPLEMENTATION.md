@@ -331,3 +331,7 @@ CallStatusBar, VideoChat action buttons/toast, schedule sheet, recording setup �
 ## Pinned/edit/report panels и voice-chat chrome
 
 ChatPinnedMessage/Edit/Webpage/Reply/Forward accessory panels, Report/Invite/Verified/Toast/Restricted/ManagingBot/RequestInProgress/Search tags title panels, action sheet contentFontSize, Horizontal context results, Secret handshake / Tag search input panels; Legacy/Call status name+detail fonts; VoiceChat main stage/tiles/participants/fullscreen/camera preview/more-menu encryption captions; MediaStream no-signal/title; Overlay audio chapter/duration; Contact multiselect footer option; Auth payment paragraphs и Settings session/theme/app-icon leftovers — Dynamic Type от listsFontSize / interfaceState.fontSize. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Contact selection, tag search, overlay scrubber и suggest-post panel
+
+ContactSelectionCountPanelNode badge/Send footer, ChatSearchTitleAccessoryPanelNode tag chips, OverlayAudioPlayerControlsNode scrubber width probe, SuggestPostAccessoryPanelNode title/subtitle, GroupCallNavigationAccessoryPanel join/title и VoiceChatActionButton stage labels масштабируются от listsFontSize / interfaceState.fontSize (pattern `floor(base * N / 17)`). Branding Liquid: 7 pass. Simulator NOT RUN.

@@ -86,7 +86,7 @@ private func optionsRateImage(rate: String, color: UIColor = .white) -> UIImage?
 }
 
 private let digitsSet = CharacterSet(charactersIn: "0123456789")
-private func timestampLabelWidthForDuration(_ timestamp: Double) -> CGFloat {
+private func timestampLabelWidthForDuration(_ timestamp: Double, fontSize: CGFloat) -> CGFloat {
     let text: String
     if timestamp > 0 {
         let timestamp = Int32(timestamp)
@@ -103,7 +103,7 @@ private func timestampLabelWidthForDuration(_ timestamp: Double) -> CGFloat {
     }
     
     let convertedString = text.components(separatedBy: digitsSet).joined(separator: "8")
-    let string = NSAttributedString(string: convertedString, font: Font.regular(13.0), textColor: .black)
+    let string = NSAttributedString(string: convertedString, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .black)
     let size = string.boundingRect(with: CGSize(width: 200.0, height: 100.0), options: NSStringDrawingOptions.usesLineFragmentOrigin, context: nil).size
     return size.width
 }
@@ -878,7 +878,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         transition.updatePosition(node: self.infoNode, position: CGPoint(x: leftInset + (width - leftInset - rightInset) / 2.0, y: scrubberVerticalOrigin + 14.0 + infoLabelVerticalOffset + infoSize.height / 2.0))
         
         
-        let rateRightOffset = timestampLabelWidthForDuration(self.currentDuration)
+        let rateRightOffset = timestampLabelWidthForDuration(self.currentDuration, fontSize: self.presentationData.listsFontSize.baseDisplaySize)
         transition.updateFrame(node: self.rateButton, frame: CGRect(origin: CGPoint(x: width - sideInset - rightInset - rateRightOffset - 38.0, y: scrubberVerticalOrigin + 10.0 + rightLabelVerticalOffset - 6.0 + UIScreenPixel), size: CGSize(width: 24.0, height: 44.0)))
         
         transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: -8.0), size: CGSize(width: width, height: finalPanelHeight + 8.0)))
