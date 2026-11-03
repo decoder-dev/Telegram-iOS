@@ -486,6 +486,7 @@ open class ListItemSwipeOptionContainer: UIView, UIGestureRecognizerDelegate {
     public var revealOptionsInteractivelyOpened: (() -> Void)?
     public var revealOptionsInteractivelyClosed: (() -> Void)?
     public var revealOptionSelected: ((Option, Bool) -> Void)?
+    public var fontSize: CGFloat = 17.0
     
     open var controlsContainer: UIView {
         return self
@@ -728,7 +729,7 @@ open class ListItemSwipeOptionContainer: UIView, UIGestureRecognizerDelegate {
             }, tapticAction: { [weak self] in
                 self?.hapticImpact()
             })
-            revealView.setOptions(self.revealOptions.left, isLeft: true)
+            revealView.setOptions(self.revealOptions.left, isLeft: true, fontSize: self.fontSize)
             self.leftRevealView = revealView
             
             if let (size, leftInset, _) = self.validLayout {
@@ -750,7 +751,7 @@ open class ListItemSwipeOptionContainer: UIView, UIGestureRecognizerDelegate {
             }, tapticAction: { [weak self] in
                 self?.hapticImpact()
             })
-            revealView.setOptions(self.revealOptions.right, isLeft: false)
+            revealView.setOptions(self.revealOptions.right, isLeft: false, fontSize: self.fontSize)
             self.rightRevealView = revealView
             
             if let (size, _, rightInset) = self.validLayout {

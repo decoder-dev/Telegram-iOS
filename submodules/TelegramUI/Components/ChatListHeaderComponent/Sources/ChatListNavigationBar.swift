@@ -1224,7 +1224,8 @@ extension ChatListNavigationBar.View: NavigationBarComponentTransitionSource {
             trailingPressGlows: barView.detachedRightPressGlows,
             backdropTintAlpha: ChatListNavigationBar.View.edgeEffectTintAlpha,
             backdropEdgeLength: ChatListNavigationBar.View.edgeEffectEdgeLength,
-            keepsLoneBackdrop: true
+            keepsLoneBackdrop: true,
+            titleFontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         )
     }
 }

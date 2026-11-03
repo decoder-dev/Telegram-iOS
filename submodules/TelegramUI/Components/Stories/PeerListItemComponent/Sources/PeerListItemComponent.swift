@@ -1533,6 +1533,7 @@ public final class PeerListItemComponent: Component {
                     )
                 }
             }
+            self.swipeOptionContainer.fontSize = presentationData.listsFontSize.baseDisplaySize
             self.swipeOptionContainer.setRevealOptions(([], rightOptions))
             
             return CGSize(width: availableSize.width, height: height)

@@ -434,7 +434,8 @@ final class NewsHeaderView: UIView, NavigationBarComponentTransitionSource {
             leadingPressGlow: barView.detachedLeftPressGlow,
             trailingPressScales: barView.detachedRightPressScales,
             trailingPressGlows: barView.detachedRightPressGlows,
-            titlePill: self.transitionTitlePill
+            titlePill: self.transitionTitlePill,
+            titleFontSize: params.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         )
     }
 

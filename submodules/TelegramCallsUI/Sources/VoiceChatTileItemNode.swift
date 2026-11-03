@@ -426,7 +426,7 @@ final class VoiceChatTileItemNode: ASDisplayNode {
             
             self.videoNode?.updateIsBlurred(isBlurred: item.isPaused, light: true)
             
-            let tileTitleFontSize = floor(item.account.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)
+            let tileTitleFontSize = floor(self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)
             let tilePlaceholderFont = Font.semibold(tileTitleFontSize)
             
             var showPlaceholder = false
@@ -551,7 +551,7 @@ final class VoiceChatTileItemNode: ASDisplayNode {
         transition.updateFrame(node: self.contentNode, frame: bounds)
         
         let extractedWidth = availableWidth
-        self.statusNode.listsFontBaseSize = item.account.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        self.statusNode.listsFontBaseSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         let makeStatusLayout = self.statusNode.asyncLayout()
         let (statusLayout, _) = makeStatusLayout(CGSize(width: availableWidth - 30.0, height: CGFloat.greatestFiniteMagnitude), item.text, true)
                 

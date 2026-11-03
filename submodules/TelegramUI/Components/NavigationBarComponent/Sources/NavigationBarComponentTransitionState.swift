@@ -63,8 +63,9 @@ public struct NavigationBarComponentTransitionState {
     public var keepsLoneBackdrop: Bool
     /// The title's glass pill when the bar has one and room for it (fewer than two right platters).
     public var titlePill: NavigationBarTransitionTitlePill?
+    public var titleFontSize: CGFloat
 
-    public init(content: NavigationBarComponent.Content, theme: NavigationBarTheme, strings: NavigationBarStrings, rowFrame: CGRect, rowAlpha: CGFloat, leftInset: CGFloat, rightInset: CGFloat, trailingButtonsInset: CGFloat, sideColumnFrame: CGRect?, hidesSideColumnButtons: Bool, backdropHeight: CGFloat, backdropColor: UIColor?, backdropAlpha: CGFloat, backdropExtension: CGFloat, leadingPressScale: CGFloat = 1.0, leadingPressGlow: CGFloat = 0.0, trailingPressScales: [CGFloat] = [], trailingPressGlows: [CGFloat] = [], backdropTintAlpha: CGFloat = 0.75, backdropEdgeLength: CGFloat = 64.0, keepsLoneBackdrop: Bool = false, titlePill: NavigationBarTransitionTitlePill? = nil) {
+    public init(content: NavigationBarComponent.Content, theme: NavigationBarTheme, strings: NavigationBarStrings, rowFrame: CGRect, rowAlpha: CGFloat, leftInset: CGFloat, rightInset: CGFloat, trailingButtonsInset: CGFloat, sideColumnFrame: CGRect?, hidesSideColumnButtons: Bool, backdropHeight: CGFloat, backdropColor: UIColor?, backdropAlpha: CGFloat, backdropExtension: CGFloat, leadingPressScale: CGFloat = 1.0, leadingPressGlow: CGFloat = 0.0, trailingPressScales: [CGFloat] = [], trailingPressGlows: [CGFloat] = [], backdropTintAlpha: CGFloat = 0.75, backdropEdgeLength: CGFloat = 64.0, keepsLoneBackdrop: Bool = false, titlePill: NavigationBarTransitionTitlePill? = nil, titleFontSize: CGFloat = 17.0) {
         self.titlePill = titlePill
         self.content = content
         self.theme = theme
@@ -87,6 +88,7 @@ public struct NavigationBarComponentTransitionState {
         self.backdropTintAlpha = backdropTintAlpha
         self.backdropEdgeLength = backdropEdgeLength
         self.keepsLoneBackdrop = keepsLoneBackdrop
+        self.titleFontSize = titleFontSize
     }
 }
 

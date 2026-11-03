@@ -323,6 +323,7 @@ final class BusinessLinkListItemComponent: Component {
                     textColor: component.theme.list.itemDisclosureActions.destructive.foregroundColor
                 )
             ]
+            self.swipeOptionContainer.fontSize = fontSize
             self.swipeOptionContainer.setRevealOptions(([], rightOptions))
             
             self.separatorInset = leftContentInset

@@ -494,6 +494,7 @@ public final class HashtagListItemComponent: Component {
                     )
                 }
             }
+            self.swipeOptionContainer.fontSize = fontSize
             self.swipeOptionContainer.setRevealOptions(([], rightOptions))
             
             return CGSize(width: availableSize.width, height: height)
