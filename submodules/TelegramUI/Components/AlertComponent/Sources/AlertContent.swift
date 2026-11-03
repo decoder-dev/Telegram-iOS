@@ -11,18 +11,32 @@ import Markdown
 import TextFormat
 import AccountContext
 
-private let titleFont = Font.bold(17.0)
-private let defaultTextFont = Font.regular(15.0)
-private let defaultBoldTextFont = Font.semibold(15.0)
-private let defaultItalicTextFont = Font.italic(15.0)
-private let defaultBoldItalicTextFont = Font.with(size: 15.0, weight: .semibold, traits: [.italic])
-private let defaultFixedTextFont = Font.monospace(15.0)
-private let smallTextFont = Font.regular(14.0)
-private let smallBoldTextFont = Font.semibold(14.0)
-private let smallItalicTextFont = Font.italic(14.0)
-private let smallBoldItalicTextFont = Font.with(size: 14.0, weight: .semibold, traits: [.italic])
-private let smallFixedTextFont = Font.monospace(14.0)
 private let backgroundInset: CGFloat = 8.0
+
+private func alertTitleFont(size: CGFloat) -> UIFont {
+    return Font.bold(size)
+}
+
+private func alertDefaultFonts(size: CGFloat) -> (UIFont, UIFont, UIFont, UIFont, UIFont) {
+    let body = floor(size * 15.0 / 17.0)
+    return (
+        Font.regular(body),
+        Font.semibold(body),
+        Font.italic(body),
+        Font.with(size: body, weight: .semibold, traits: [.italic]),
+        Font.monospace(body)
+    )
+}
+
+private func alertSmallFonts(size: CGFloat) -> (UIFont, UIFont, UIFont, UIFont) {
+    let body = floor(size * 14.0 / 17.0)
+    return (
+        Font.regular(body),
+        Font.semibold(body),
+        Font.italic(body),
+        Font.monospace(body)
+    )
+}
 
 public final class AlertTitleComponent: Component {
     public typealias EnvironmentType = AlertComponentEnvironment
@@ -72,7 +86,7 @@ public final class AlertTitleComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.title,
-                        font: titleFont,
+                        font: alertTitleFont(size: environment.fontSize),
                         textColor: environment.theme.actionSheet.primaryTextColor
                     )),
                     horizontalAlignment: component.alignment == .center ? .center : .natural,
@@ -233,24 +247,26 @@ public final class AlertTextComponent: Component {
             let boldTextFont: UIFont
             let italicTextFont: UIFont
             let fixedTextFont: UIFont
+            let defaultFonts = alertDefaultFonts(size: environment.fontSize)
+            let smallFonts = alertSmallFonts(size: environment.fontSize)
             switch component.style {
             case let .plain(textStyle), let .background(textStyle):
                 switch textStyle {
                 case .default:
-                    textFont = defaultTextFont
-                    boldTextFont = defaultBoldTextFont
-                    italicTextFont = defaultItalicTextFont
-                    fixedTextFont = defaultFixedTextFont
+                    textFont = defaultFonts.0
+                    boldTextFont = defaultFonts.1
+                    italicTextFont = defaultFonts.2
+                    fixedTextFont = defaultFonts.4
                 case .small:
-                    textFont = smallTextFont
-                    boldTextFont = smallBoldTextFont
-                    italicTextFont = smallItalicTextFont
-                    fixedTextFont = smallFixedTextFont
+                    textFont = smallFonts.0
+                    boldTextFont = smallFonts.1
+                    italicTextFont = smallFonts.2
+                    fixedTextFont = smallFonts.3
                 case .bold:
-                    textFont = defaultBoldTextFont
-                    boldTextFont = defaultBoldTextFont
-                    italicTextFont = defaultBoldItalicTextFont
-                    fixedTextFont = defaultFixedTextFont
+                    textFont = defaultFonts.1
+                    boldTextFont = defaultFonts.1
+                    italicTextFont = defaultFonts.3
+                    fixedTextFont = defaultFonts.4
                 }
             }
             

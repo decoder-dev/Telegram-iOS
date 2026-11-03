@@ -2562,10 +2562,10 @@ private class MessageContentNode: ASDisplayNode, ContentNode {
         
         if let message = messages.first {
             let textFont = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
-            let boldFont = Font.bold(17.0)
-            let italicFont = Font.italic(17.0)
-            let boldItalicFont = Font.semiboldItalic(17.0)
-            let fixedFont = Font.monospace(17.0)
+            let boldFont = Font.bold(self.presentationData.listsFontSize.baseDisplaySize)
+            let italicFont = Font.italic(self.presentationData.listsFontSize.baseDisplaySize)
+            let boldItalicFont = Font.semiboldItalic(self.presentationData.listsFontSize.baseDisplaySize)
+            let fixedFont = Font.monospace(self.presentationData.listsFontSize.baseDisplaySize)
             let blockQuoteFont = textFont
             
             var entities: [MessageTextEntity]?

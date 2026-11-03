@@ -14,13 +14,16 @@ import GlassBackgroundComponent
 public final class AlertComponentEnvironment: Equatable {
     public let theme: PresentationTheme
     public let strings: PresentationStrings
+    public let fontSize: CGFloat
     
     public init(
         theme: PresentationTheme,
-        strings: PresentationStrings
+        strings: PresentationStrings,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
     }
     
     public static func ==(lhs: AlertComponentEnvironment, rhs: AlertComponentEnvironment) -> Bool {
@@ -28,6 +31,9 @@ public final class AlertComponentEnvironment: Equatable {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -345,7 +351,7 @@ private final class AlertScreenComponent: Component {
             let fullWidthActionSize = CGSize(width: alertWidth - actionSideInset * 2.0, height: AlertActionComponent.actionHeight)
             let halfWidthActionSize = CGSize(width: (alertWidth - actionSideInset * 2.0 - actionSpacing) / 2.0, height: AlertActionComponent.actionHeight)
     
-            let alertEnvironment = AlertComponentEnvironment(theme: environment.theme, strings: environment.strings)
+            let alertEnvironment = AlertComponentEnvironment(theme: environment.theme, strings: environment.strings, fontSize: component.configuration.fontSize)
             
             var contentOriginY: CGFloat = 0.0
             var validContentIds: Set<AnyHashable> = Set()
@@ -598,15 +604,18 @@ open class AlertScreen: ViewControllerComponentContainer, KeyShortcutResponder {
         let actionAlignment: ActionAligmnent
         let dismissOnOutsideTap: Bool
         let allowInputInset: Bool
+        let fontSize: CGFloat
         
         public init(
             actionAlignment: ActionAligmnent = .default,
             dismissOnOutsideTap: Bool = true,
-            allowInputInset: Bool = false
+            allowInputInset: Bool = false,
+            fontSize: CGFloat = 17.0
         ) {
             self.actionAlignment = actionAlignment
             self.dismissOnOutsideTap = dismissOnOutsideTap
             self.allowInputInset = allowInputInset
+            self.fontSize = fontSize
         }
     }
     
@@ -704,6 +713,12 @@ open class AlertScreen: ViewControllerComponentContainer, KeyShortcutResponder {
         actions: [Action],
         updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)
     ) {
+        let configuration = Configuration(
+            actionAlignment: configuration.actionAlignment,
+            dismissOnOutsideTap: configuration.dismissOnOutsideTap,
+            allowInputInset: configuration.allowInputInset,
+            fontSize: updatedPresentationData.initial.listsFontSize.baseDisplaySize
+        )
         self.init(
             configuration: configuration,
             contentSignal: .single(content),
@@ -734,6 +749,12 @@ open class AlertScreen: ViewControllerComponentContainer, KeyShortcutResponder {
     ) {
         let presentationData = sharedContext.currentPresentationData.with { $0 }
         let updatedPresentationDataSignal = sharedContext.presentationData
+        let configuration = Configuration(
+            actionAlignment: configuration.actionAlignment,
+            dismissOnOutsideTap: configuration.dismissOnOutsideTap,
+            allowInputInset: configuration.allowInputInset,
+            fontSize: presentationData.listsFontSize.baseDisplaySize
+        )
         self.init(
             configuration: configuration,
             content: content,
@@ -794,6 +815,12 @@ open class AlertScreen: ViewControllerComponentContainer, KeyShortcutResponder {
     ) {
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         let updatedPresentationDataSignal = context.sharedContext.presentationData
+        let configuration = Configuration(
+            actionAlignment: configuration.actionAlignment,
+            dismissOnOutsideTap: configuration.dismissOnOutsideTap,
+            allowInputInset: configuration.allowInputInset,
+            fontSize: presentationData.listsFontSize.baseDisplaySize
+        )
         self.init(
             configuration: configuration,
             title: title,

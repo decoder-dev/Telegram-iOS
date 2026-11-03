@@ -751,6 +751,7 @@ open class ItemListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 transition: toolbarTransition,
                 component: AnyComponent(GlassControlPanelComponent(
                     theme: theme,
+                    fontSize: self.presentationData.listsFontSize.baseDisplaySize,
                     leftItem: toolbarData.toolbar.leftAction.flatMap { value in
                         return GlassControlPanelComponent.Item(
                             items: [GlassControlGroupComponent.Item(

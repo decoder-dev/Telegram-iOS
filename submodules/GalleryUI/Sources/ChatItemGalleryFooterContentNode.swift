@@ -1470,6 +1470,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
             transition: ComponentTransition(transition),
             component: AnyComponent(GlassControlPanelComponent(
                 theme: defaultDarkColorPresentationTheme,
+                fontSize: self.presentationData.listsFontSize.baseDisplaySize,
                 leftItem: leftControlItems.isEmpty ? nil : GlassControlPanelComponent.Item(
                     items: leftControlItems,
                     background: .panel
