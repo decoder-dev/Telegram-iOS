@@ -64,14 +64,16 @@ final class PhoneInputItem: ListViewItem, ItemListItem, ListItemComponentAdaptor
     
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: PresentationFontSize
     let value: (Int32?, String?, String)
     let accessory: Accessory?
     let selectCountryCode: () -> Void
     let updated: (String, String) -> Void
     
-    public init(theme: PresentationTheme, strings: PresentationStrings, value: (Int32?, String?, String), accessory: Accessory?, selectCountryCode: @escaping () -> Void, updated: @escaping (String, String) -> Void) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize = .regular, value: (Int32?, String?, String), accessory: Accessory?, selectCountryCode: @escaping () -> Void, updated: @escaping (String, String) -> Void) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.value = value
         self.accessory = accessory
         self.selectCountryCode = selectCountryCode
@@ -124,6 +126,9 @@ final class PhoneInputItem: ListViewItem, ItemListItem, ListItemComponentAdaptor
         if lhs.strings !== rhs.strings {
             return false
         }
+        if lhs.fontSize != rhs.fontSize {
+            return false
+        }
         if lhs.value.0 != rhs.value.0 {
             return false
         }
@@ -169,7 +174,7 @@ final class PhoneInputItemNode: ListViewItemNode, ItemListItemNode {
         self.phoneBackground.displayWithoutProcessing = true
         self.phoneBackground.isLayerBacked = true
         
-        self.phoneInputNode = PhoneInputNode(fontSize: 17.0)
+        self.phoneInputNode = PhoneInputNode(fontSize: PresentationFontSize.regular.baseDisplaySize)
         
         self.checkNode = ASImageNode()
         self.checkNode.displaysAsynchronously = false
@@ -208,15 +213,15 @@ final class PhoneInputItemNode: ListViewItemNode, ItemListItemNode {
                 if name == "FT" {
                     localizedName = item.strings.Login_AnonymousNumbers
                 }
-                self.countryButton.setCountryTitle(countryId: name, name: localizedName, font: Font.regular(17.0), color: item.theme.list.itemPrimaryTextColor)
+                self.countryButton.setCountryTitle(countryId: name, name: localizedName, font: Font.regular(item.fontSize.itemListBaseFontSize), color: item.theme.list.itemPrimaryTextColor)
             } else if let code = Int(code), let (countryId, countryName) = countryCodeToIdAndName[code] {
                 var localizedName: String = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(countryId, strings: item.strings) ?? countryName
                 if countryId == "FT" {
                     localizedName = item.strings.Login_AnonymousNumbers
                 }
-                self.countryButton.setCountryTitle(countryId: countryId, name: localizedName, font: Font.regular(17.0), color: item.theme.list.itemPrimaryTextColor)
+                self.countryButton.setCountryTitle(countryId: countryId, name: localizedName, font: Font.regular(item.fontSize.itemListBaseFontSize), color: item.theme.list.itemPrimaryTextColor)
             } else {
-                self.countryButton.setTitle(item.strings.Login_SelectCountry, with: Font.regular(17.0), with: item.theme.list.itemPrimaryTextColor, for: [])
+                self.countryButton.setTitle(item.strings.Login_SelectCountry, with: Font.regular(item.fontSize.itemListBaseFontSize), with: item.theme.list.itemPrimaryTextColor, for: [])
             }
         }
         
@@ -250,9 +255,9 @@ final class PhoneInputItemNode: ListViewItemNode, ItemListItemNode {
         }
         if let (country, _) = AuthorizationSequenceCountrySelectionController.lookupCountryIdByNumber(number, preferredCountries: self.preferredCountryIdForCode) {
             let localizedName: String = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(country.id, strings: item.strings) ?? country.name
-            self.countryButton.setCountryTitle(countryId: country.id, name: localizedName, font: Font.regular(17.0), color: item.theme.list.itemPrimaryTextColor)
+            self.countryButton.setCountryTitle(countryId: country.id, name: localizedName, font: Font.regular(item.fontSize.itemListBaseFontSize), color: item.theme.list.itemPrimaryTextColor)
             
-            let maskFont = Font.with(size: 17.0, design: .regular, traits: [.monospacedNumbers])
+            let maskFont = Font.with(size: item.fontSize.itemListBaseFontSize, design: .regular, traits: [.monospacedNumbers])
             var rawMask = ""
             if let mask = AuthorizationSequenceCountrySelectionController.lookupPatternByNumber(number, preferredCountries: self.preferredCountryIdForCode) {
                 self.phoneInputNode.numberField.textField.attributedPlaceholder = nil
@@ -265,7 +270,7 @@ final class PhoneInputItemNode: ListViewItemNode, ItemListItemNode {
                 }
             } else {
                 self.phoneInputNode.mask = nil
-                self.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: item.strings.Login_PhonePlaceholder, font: Font.regular(17.0), textColor: item.theme.list.itemPlaceholderTextColor)
+                self.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: item.strings.Login_PhonePlaceholder, font: Font.regular(item.fontSize.itemListBaseFontSize), textColor: item.theme.list.itemPlaceholderTextColor)
             }
             if notifyUpdated {
                 item.updated(number, rawMask)
@@ -368,6 +373,11 @@ final class PhoneInputItemNode: ListViewItemNode, ItemListItemNode {
                     strongSelf.phoneInputNode.numberField.textField.textColor = item.theme.list.itemPrimaryTextColor
                     strongSelf.phoneInputNode.numberField.textField.keyboardAppearance = item.theme.rootController.keyboardColor.keyboardAppearance
                     strongSelf.phoneInputNode.numberField.textField.tintColor = item.theme.list.itemAccentColor
+                    
+                    let inputFont = Font.with(size: item.fontSize.baseDisplaySize, design: .regular, traits: [.monospacedNumbers])
+                    strongSelf.phoneInputNode.countryCodeField.textField.font = inputFont
+                    strongSelf.phoneInputNode.numberField.textField.font = inputFont
+                    strongSelf.phoneInputNode.numberField.textField.defaultTextAttributes = [NSAttributedString.Key.font: inputFont, NSAttributedString.Key.kern: 1.6]
                     
                     strongSelf.countryButton.contentEdgeInsets = UIEdgeInsets(top: 0.0, left: params.leftInset + 15.0, bottom: 4.0, right: 0.0)
                     

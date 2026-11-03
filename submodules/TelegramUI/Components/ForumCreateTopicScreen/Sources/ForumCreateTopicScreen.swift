@@ -159,9 +159,11 @@ private final class TitleFieldComponent: Component {
         }
         
         func update(component: TitleFieldComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             self.textField.textColor = component.textColor
             self.textField.text = component.text
-            self.textField.font = Font.regular(17.0)
+            self.textField.font = Font.regular(fontSize)
             
             self.component = component
             self.state = state
@@ -184,7 +186,7 @@ private final class TitleFieldComponent: Component {
                 component: AnyComponent(
                     Text(
                         text: component.placeholderText,
-                        font: Font.regular(17.0),
+                        font: Font.regular(fontSize),
                         color: component.placeholderColor
                     )
                 ),
@@ -662,6 +664,7 @@ private final class ForumCreateTopicScreenComponent: CombinedComponent {
         
         return { context in
             let environment = context.environment[EnvironmentType.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let state = context.state
                         
             let background = background.update(
@@ -771,7 +774,7 @@ private final class ForumCreateTopicScreenComponent: CombinedComponent {
                     component: MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.CreateTopic_ShowGeneral,
-                            font: Font.regular(17.0),
+                            font: Font.regular(fontSize),
                             textColor: environment.theme.list.itemPrimaryTextColor,
                             paragraphAlignment: .natural)
                         ),

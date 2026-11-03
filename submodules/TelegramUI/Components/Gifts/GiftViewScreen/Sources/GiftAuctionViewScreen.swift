@@ -518,6 +518,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             let theme = environment.theme
             let strings = environment.strings
             let dateTimeFormat = environment.dateTimeFormat
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let state = context.state
             
@@ -883,7 +884,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                     component: PlainButtonComponent(content: AnyComponent(
                         HStack([
                             AnyComponentWithIdentity(id: "count", component: AnyComponent(
-                                MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(Int32(acquiredGiftsCount), dateTimeFormat.groupingSeparator), font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(Int32(acquiredGiftsCount), dateTimeFormat.groupingSeparator), font: Font.regular(fontSize), textColor: theme.actionSheet.controlAccentColor)))
                             )),
                             AnyComponentWithIdentity(id: "spacing", component: AnyComponent(
                                 Rectangle(color: .clear, width: 8.0, height: 1.0)
@@ -899,7 +900,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                                 )
                             )),
                             AnyComponentWithIdentity(id: "text", component: AnyComponent(
-                                MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Auction_ItemsBought(Int32(acquiredGiftsCount)))", font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Auction_ItemsBought(Int32(acquiredGiftsCount)))", font: Font.regular(fontSize), textColor: theme.actionSheet.controlAccentColor)))
                             )),
                             AnyComponentWithIdentity(id: "arrow", component: AnyComponent(
                                 BundleIconComponent(name: "Chat/Context Menu/Arrow", tintColor: theme.actionSheet.controlAccentColor)
@@ -931,7 +932,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         component: PlainButtonComponent(content: AnyComponent(
                             HStack([
                                 AnyComponentWithIdentity(id: "count", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(listedCount, dateTimeFormat.groupingSeparator), font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(listedCount, dateTimeFormat.groupingSeparator), font: Font.regular(fontSize), textColor: theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "spacing", component: AnyComponent(
                                     Rectangle(color: .clear, width: 8.0, height: 1.0)
@@ -947,7 +948,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                                     )
                                 )),
                                 AnyComponentWithIdentity(id: "text", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Value_ForSaleOnTelegram)", font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Value_ForSaleOnTelegram)", font: Font.regular(fontSize), textColor: theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "arrow", component: AnyComponent(
                                     BundleIconComponent(name: "Chat/Context Menu/Arrow", tintColor: theme.actionSheet.controlAccentColor)
@@ -975,7 +976,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         component: PlainButtonComponent(content: AnyComponent(
                             HStack([
                                 AnyComponentWithIdentity(id: "count", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(listedCount, dateTimeFormat.groupingSeparator), font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(listedCount, dateTimeFormat.groupingSeparator), font: Font.regular(fontSize), textColor: theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "spacing", component: AnyComponent(
                                     Rectangle(color: .clear, width: 8.0, height: 1.0)
@@ -991,7 +992,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                                     )
                                 )),
                                 AnyComponentWithIdentity(id: "text", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Value_ForSaleOnFragment)", font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Value_ForSaleOnFragment)", font: Font.regular(fontSize), textColor: theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "arrow", component: AnyComponent(
                                     BundleIconComponent(name: "Chat/Context Menu/Arrow", tintColor: theme.actionSheet.controlAccentColor)
@@ -1120,7 +1121,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
             
             let buttonChild: _UpdatedChildComponent
             if !isEnded {
-                let buttonAttributedString = NSMutableAttributedString(string: isUpcoming ? strings.Gift_Auction_EarlyBid : strings.Gift_Auction_Join, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+                let buttonAttributedString = NSMutableAttributedString(string: isUpcoming ? strings.Gift_Auction_EarlyBid : strings.Gift_Auction_Join, font: Font.semibold(fontSize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
                 
                 let endTimeout: Int32
                 if currentTime < startTime {
@@ -1203,7 +1204,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                         background: buttonBackground,
                         content: AnyComponentWithIdentity(
                             id: AnyHashable("ok"),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Common_OK, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Common_OK, font: Font.semibold(fontSize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                         ),
                         isEnabled: true,
                         displaysProgress: false,

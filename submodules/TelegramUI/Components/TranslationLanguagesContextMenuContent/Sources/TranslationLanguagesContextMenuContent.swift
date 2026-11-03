@@ -88,7 +88,7 @@ public final class TranslationLanguagesContextMenuContent: ContextControllerItem
 
             self.highlightBackgroundNode.frame = CGRect(origin: CGPoint(), size: size)
 
-            self.titleLabelNode.attributedText = NSAttributedString(string: presentationData.strings.Common_Back, font: Font.regular(17.0), textColor: presentationData.theme.contextMenu.primaryColor)
+            self.titleLabelNode.attributedText = NSAttributedString(string: presentationData.strings.Common_Back, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.contextMenu.primaryColor)
             let titleSize = self.titleLabelNode.updateLayout(CGSize(width: size.width - sideInset - standardIconWidth, height: 100.0))
             self.titleLabelNode.frame = CGRect(origin: CGPoint(x: sideInset + 36.0, y: floor((size.height - titleSize.height) / 2.0)), size: titleSize)
 
@@ -199,7 +199,7 @@ public final class TranslationLanguagesContextMenuContent: ContextControllerItem
 
                 self.highlightBackgroundNode.frame = CGRect(origin: CGPoint(), size: size)
 
-                self.titleLabelNode.attributedText = NSAttributedString(string: self.displayTitle ?? "", font: Font.regular(17.0), textColor: presentationData.theme.contextMenu.primaryColor)
+                self.titleLabelNode.attributedText = NSAttributedString(string: self.displayTitle ?? "", font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.contextMenu.primaryColor)
                 let maxTextWidth: CGFloat = size.width - sideInset
 
                 let titleSize = self.titleLabelNode.updateLayout(CGSize(width: maxTextWidth, height: 100.0))

@@ -231,6 +231,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
             }
             
             let environment = environment[EnvironmentType.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let themeUpdated = self.environment?.theme != environment.theme
             
@@ -281,7 +282,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(
-                    Text(text: title, font: Font.semibold(17.0), color: environment.theme.actionSheet.primaryTextColor)
+                    Text(text: title, font: Font.semibold(fontSize), color: environment.theme.actionSheet.primaryTextColor)
                 ),
                 environment: {},
                 containerSize: availableSize
@@ -380,7 +381,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                 let timeTitleSize = self.timeTitle.update(
                     transition: transition,
                     component: AnyComponent(
-                        Text(text: strings.ScheduleMessage_Time, font: Font.regular(17.0), color: environment.theme.actionSheet.primaryTextColor)
+                        Text(text: strings.ScheduleMessage_Time, font: Font.regular(fontSize), color: environment.theme.actionSheet.primaryTextColor)
                     ),
                     environment: {},
                     containerSize: availableSize
@@ -407,7 +408,8 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                                     theme: environment.theme,
                                     text: timeString,
                                     isActive: self.isPickingTime,
-                                    isLocked: false
+                                    isLocked: false,
+                                    fontSize: fontSize
                                 )
                             ),
                             action: { [weak self] in
@@ -457,7 +459,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                 let repeatTitleSize = self.repeatTitle.update(
                     transition: transition,
                     component: AnyComponent(
-                        Text(text: strings.ScheduleMessage_Repeat, font: Font.regular(17.0), color: environment.theme.actionSheet.primaryTextColor)
+                        Text(text: strings.ScheduleMessage_Repeat, font: Font.regular(fontSize), color: environment.theme.actionSheet.primaryTextColor)
                     ),
                     environment: {},
                     containerSize: availableSize
@@ -503,7 +505,8 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                                     theme: environment.theme,
                                     text: repeatString,
                                     isActive: self.isPickingRepeatPeriod,
-                                    isLocked: !component.context.isPremium
+                                    isLocked: !component.context.isPremium,
+                                    fontSize: fontSize
                                 )
                             ),
                             action: { [weak self] in
@@ -773,6 +776,7 @@ private final class ChatScheduleTimeSheetContentComponent: Component {
                             component: AnyComponent(RepeatMenuComponent(
                                 theme: environment.theme,
                                 strings: strings,
+                                fontSize: fontSize,
                                 value: self.repeatPeriod,
                                 valueUpdated: { [weak self] value in
                                     guard let self, let component = self.component, let environment = self.environment else {
@@ -1218,17 +1222,20 @@ private final class ButtonContentComponent: Component {
     let text: String
     let isActive: Bool
     let isLocked: Bool
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
         text: String,
         isActive: Bool,
-        isLocked: Bool
+        isLocked: Bool,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.text = text
         self.isActive = isActive
         self.isLocked = isLocked
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: ButtonContentComponent, rhs: ButtonContentComponent) -> Bool {
@@ -1242,6 +1249,9 @@ private final class ButtonContentComponent: Component {
             return false
         }
         if lhs.isLocked != rhs.isLocked {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -1276,7 +1286,7 @@ private final class ButtonContentComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(
-                    Text(text: component.text, font: Font.regular(17.0), color: textColor)
+                    Text(text: component.text, font: Font.regular(component.fontSize), color: textColor)
                 ),
                 environment: {},
                 containerSize: availableSize
@@ -1484,6 +1494,7 @@ private final class MenuButtonComponent: Component {
     let text: String
     let isSelected: Bool
     let width: CGFloat?
+    let fontSize: CGFloat
     let action: () -> Void
     
     init(
@@ -1491,12 +1502,14 @@ private final class MenuButtonComponent: Component {
         text: String,
         isSelected: Bool,
         width: CGFloat?,
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void
     ) {
         self.theme = theme
         self.text = text
         self.isSelected = isSelected
         self.width = width
+        self.fontSize = fontSize
         self.action = action
     }
 
@@ -1511,6 +1524,9 @@ private final class MenuButtonComponent: Component {
             return false
         }
         if lhs.width != rhs.width {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -1567,7 +1583,7 @@ private final class MenuButtonComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(
-                    Text(text: component.text, font: Font.regular(17.0), color: component.theme.contextMenu.primaryColor)
+                    Text(text: component.text, font: Font.regular(component.fontSize), color: component.theme.contextMenu.primaryColor)
                 ),
                 environment: {},
                 containerSize: availableSize
@@ -1628,17 +1644,20 @@ private final class MenuButtonComponent: Component {
 private final class RepeatMenuComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let value: Int32?
     let valueUpdated: (Int32?) -> Void
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: CGFloat = 17.0,
         value: Int32?,
         valueUpdated: @escaping (Int32?) -> Void
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.value = value
         self.valueUpdated = valueUpdated
     }
@@ -1648,6 +1667,9 @@ private final class RepeatMenuComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.value != rhs.value {
@@ -1703,6 +1725,7 @@ private final class RepeatMenuComponent: Component {
                         text: component.strings.ScheduleMessage_RepeatPeriod_Never,
                         isSelected: component.value == nil,
                         width: self.width,
+                        fontSize: component.fontSize,
                         action: { [weak self] in
                             guard let self else {
                                 return
@@ -1761,6 +1784,7 @@ private final class RepeatMenuComponent: Component {
                             text: repeatString,
                             isSelected: component.value == value,
                             width: self.width,
+                            fontSize: component.fontSize,
                             action: { [weak self] in
                                 guard let self else {
                                     return

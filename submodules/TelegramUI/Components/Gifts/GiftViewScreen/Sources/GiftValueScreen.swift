@@ -195,6 +195,7 @@ private final class GiftValueSheetContent: CombinedComponent {
             let theme = environment.theme
             let strings = environment.strings
             let dateTimeFormat = environment.dateTimeFormat
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let state = context.state
             
@@ -540,7 +541,7 @@ private final class GiftValueSheetContent: CombinedComponent {
                         content: AnyComponent(
                             HStack([
                                 AnyComponentWithIdentity(id: "count", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(listedCount, dateTimeFormat.groupingSeparator), font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(listedCount, dateTimeFormat.groupingSeparator), font: Font.regular(fontSize), textColor: theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "spacing", component: AnyComponent(
                                     Rectangle(color: .clear, width: 8.0, height: 1.0)
@@ -556,7 +557,7 @@ private final class GiftValueSheetContent: CombinedComponent {
                                     )
                                 )),
                                 AnyComponentWithIdentity(id: "label", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Value_ForSaleOnTelegram)", font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Value_ForSaleOnTelegram)", font: Font.regular(fontSize), textColor: theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "arrow", component: AnyComponent(
                                     BundleIconComponent(name: "Chat/Context Menu/Arrow", tintColor: theme.actionSheet.controlAccentColor)
@@ -592,7 +593,7 @@ private final class GiftValueSheetContent: CombinedComponent {
                         content: AnyComponent(
                             HStack([
                                 AnyComponentWithIdentity(id: "count", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(listedCount, dateTimeFormat.groupingSeparator), font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(listedCount, dateTimeFormat.groupingSeparator), font: Font.regular(fontSize), textColor: theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "spacing", component: AnyComponent(
                                     Rectangle(color: .clear, width: 8.0, height: 1.0)
@@ -608,7 +609,7 @@ private final class GiftValueSheetContent: CombinedComponent {
                                     )
                                 )),
                                 AnyComponentWithIdentity(id: "label", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Value_ForSaleOnFragment)", font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Value_ForSaleOnFragment)", font: Font.regular(fontSize), textColor: theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "arrow", component: AnyComponent(
                                     BundleIconComponent(name: "Chat/Context Menu/Arrow", tintColor: theme.actionSheet.controlAccentColor)

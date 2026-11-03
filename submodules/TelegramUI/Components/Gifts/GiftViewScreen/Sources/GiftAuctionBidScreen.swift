@@ -621,6 +621,8 @@ private final class PeerComponent: Component {
             
             self.button.isUserInteractionEnabled = component.action != nil
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             let size = CGSize(width: availableSize.width, height: 52.0)
             
             var color = component.theme.list.itemSecondaryTextColor
@@ -678,7 +680,7 @@ private final class PeerComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.peer.compactDisplayTitle, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.peer.compactDisplayTitle, font: Font.regular(fontSize), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - 120.0 - 110.0, height: 100.0)
@@ -1930,6 +1932,7 @@ private final class GiftAuctionBidScreenComponent: Component {
             
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             let themeUpdated = self.environment?.theme !== environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let resetScrolling = self.scrollView.bounds.width != availableSize.width
             
@@ -2649,7 +2652,7 @@ private final class GiftAuctionBidScreenComponent: Component {
                         PlainButtonComponent(content: AnyComponent(
                             HStack([
                                 AnyComponentWithIdentity(id: "count", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(Int32(acquiredGiftsCount), environment.dateTimeFormat.groupingSeparator), font: Font.regular(17.0), textColor: environment.theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(Int32(acquiredGiftsCount), environment.dateTimeFormat.groupingSeparator), font: Font.regular(fontSize), textColor: environment.theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "spacing", component: AnyComponent(
                                     Rectangle(color: .clear, width: 8.0, height: 1.0)
@@ -2665,7 +2668,7 @@ private final class GiftAuctionBidScreenComponent: Component {
                                     )
                                 )),
                                 AnyComponentWithIdentity(id: "text", component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(environment.strings.Gift_Auction_ItemsBought(Int32(acquiredGiftsCount)))", font: Font.regular(17.0), textColor: environment.theme.actionSheet.controlAccentColor)))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(environment.strings.Gift_Auction_ItemsBought(Int32(acquiredGiftsCount)))", font: Font.regular(fontSize), textColor: environment.theme.actionSheet.controlAccentColor)))
                                 )),
                                 AnyComponentWithIdentity(id: "arrow", component: AnyComponent(
                                     BundleIconComponent(name: "Chat/Context Menu/Arrow", tintColor: environment.theme.actionSheet.controlAccentColor)
@@ -2801,7 +2804,7 @@ private final class GiftAuctionBidScreenComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleString, font: Font.semibold(17.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: titleString, font: Font.semibold(fontSize), textColor: environment.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)

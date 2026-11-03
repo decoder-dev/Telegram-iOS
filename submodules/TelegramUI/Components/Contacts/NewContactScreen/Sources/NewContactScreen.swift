@@ -463,6 +463,7 @@ final class NewContactScreenComponent: Component {
                         itemGenerator: PhoneInputItem(
                             theme: theme,
                             strings: strings,
+                            fontSize: presentationData.listsFontSize,
                             value: (initialCountryCode, nil, initialPhoneNumberWithoutCountryCode ?? ""),
                             accessory: phoneAccesory,
                             selectCountryCode: { [weak self] in
