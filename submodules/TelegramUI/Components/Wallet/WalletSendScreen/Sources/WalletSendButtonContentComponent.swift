@@ -68,7 +68,7 @@ final class WalletSendButtonContentComponent: Component {
                 }
             }
             self.component = component
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let fontSize: CGFloat = 17.0
             self.accessibilityLabel = [component.title, component.subtitle].compactMap { $0 }.joined(separator: ", ")
             let now = CACurrentMediaTime()
             let sharedStart = component.timing.flatMap { now - $0.start < $0.duration ? $0.start : nil }

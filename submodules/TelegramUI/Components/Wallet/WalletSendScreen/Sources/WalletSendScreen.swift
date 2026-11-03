@@ -2187,7 +2187,6 @@ private final class WalletSendScreenComponent: Component {
             self.amountField.isUserInteractionEnabled = isAmountInputEnabled
 
             let theme = environment.theme
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.backgroundColor = theme.list.modalPlainBackgroundColor
 
             let headerButtonSize = CGSize(width: 44.0, height: 44.0)

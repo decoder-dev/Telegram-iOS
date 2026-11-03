@@ -260,7 +260,6 @@ private final class LocationDistancePickerScreenComponent: Component {
                                 compactDisplayTitle: component.compactDisplayTitle,
                                 distances: component.distances,
                                 updated: component.updated,
-                                listFontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                                 completion: { [weak self] distance in
                                     guard let self, let component = self.component else {
                                         return
@@ -573,7 +572,7 @@ private final class LocationDistancePickerContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(Text(
                     text: environment.strings.Location_ProximityNotification_Title,
-                    font: Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
+                    font: Font.bold(17.0),
                     color: textColor
                 )),
                 environment: {},
@@ -721,7 +720,7 @@ private final class LocationDistancePickerContentComponent: Component {
                 return nil
             }
             
-            let font = Font.regular(component.listFontSize)
+            let font = Font.regular(17.0)
             let string: String
             if component == 0 {
                 let value = unitValues[row]
