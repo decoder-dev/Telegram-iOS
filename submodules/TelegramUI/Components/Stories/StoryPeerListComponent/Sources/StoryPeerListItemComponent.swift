@@ -1150,7 +1150,7 @@ public final class StoryPeerListItemComponent: Component {
                 if let current = self.composeLayer {
                     composeLayer = current
                 } else {
-                    composeLayer = StoryComposeLayer(theme: component.theme, strings: component.strings)
+                    composeLayer = StoryComposeLayer(theme: component.theme, strings: component.strings, fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
                     self.composeLayer = composeLayer
                     self.layer.addSublayer(composeLayer)
                 }

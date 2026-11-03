@@ -270,7 +270,7 @@ final class StoryComposeLayer: CALayer {
     private let iconLayer = SimpleLayer()
     private let labelLayer = SimpleLayer()
         
-    init(theme: PresentationTheme, strings: PresentationStrings) {
+    init(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
         
@@ -295,7 +295,7 @@ final class StoryComposeLayer: CALayer {
         self.iconLayer.opacity = 0.0
         self.blobLayer.addSublayer(self.iconLayer)
         
-        if let image = generateAddLabel(strings: strings, color: theme.list.itemPrimaryTextColor) {
+        if let image = generateAddLabel(strings: strings, color: theme.list.itemPrimaryTextColor, fontSize: fontSize) {
             self.labelLayer.contents = image.cgImage
             self.labelLayer.bounds = CGRect(origin: .zero, size: image.size)
             self.addSublayer(self.labelLayer)
@@ -409,8 +409,8 @@ private func generateAddIcon(color: UIColor) -> UIImage? {
 }
 
 
-private func generateAddLabel(strings: PresentationStrings,  color: UIColor) -> UIImage? {
-    let titleString = NSAttributedString(string: strings.StoryFeed_AddStory, font: Font.regular(11.0), textColor: color, paragraphAlignment: .center)
+private func generateAddLabel(strings: PresentationStrings,  color: UIColor, fontSize: CGFloat) -> UIImage? {
+    let titleString = NSAttributedString(string: strings.StoryFeed_AddStory, font: Font.regular(floor(fontSize * 11.0 / 17.0)), textColor: color, paragraphAlignment: .center)
     var textRect = titleString.boundingRect(with: CGSize(width: 200.0, height: 20.0), options: .usesLineFragmentOrigin, context: nil)
     textRect.size.width = ceil(textRect.size.width)
     textRect.size.height = ceil(textRect.size.height)

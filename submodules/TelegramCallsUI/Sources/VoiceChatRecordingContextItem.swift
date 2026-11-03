@@ -112,8 +112,8 @@ private final class VoiceChatRecordingContextItemNode: ASDisplayNode, ContextMen
         self.getController = getController
         self.actionSelected = actionSelected
         
-        let Font.regular(self.presentationData.listsFontSize.baseDisplaySize) = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
-        let subtextFont = Font.regular(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)
+        let textFont = Font.regular(presentationData.listsFontSize.baseDisplaySize)
+        let subtextFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0))
         
         self.backgroundNode = ASDisplayNode()
         self.backgroundNode.isAccessibilityElement = false
@@ -123,7 +123,7 @@ private final class VoiceChatRecordingContextItemNode: ASDisplayNode, ContextMen
         self.textNode.isAccessibilityElement = false
         self.textNode.isUserInteractionEnabled = false
         self.textNode.displaysAsynchronously = false
-        self.textNode.attributedText = NSAttributedString(string: presentationData.strings.VoiceChat_StopRecording, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.contextMenu.primaryColor)
+        self.textNode.attributedText = NSAttributedString(string: presentationData.strings.VoiceChat_StopRecording, font: textFont, textColor: presentationData.theme.contextMenu.primaryColor)
         
         self.textNode.maximumNumberOfLines = 1
         let statusNode = ImmediateTextNode()
@@ -230,10 +230,10 @@ private final class VoiceChatRecordingContextItemNode: ASDisplayNode, ContextMen
     func updateTheme(presentationData: PresentationData) {
         self.backgroundNode.backgroundColor = presentationData.theme.contextMenu.itemBackgroundColor
         
-        let Font.regular(self.presentationData.listsFontSize.baseDisplaySize) = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
-        let subtextFont = Font.regular(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)
+        let textFont = Font.regular(presentationData.listsFontSize.baseDisplaySize)
+        let subtextFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0))
         
-        self.textNode.attributedText = NSAttributedString(string: self.textNode.attributedText?.string ?? "", font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.contextMenu.primaryColor)
+        self.textNode.attributedText = NSAttributedString(string: self.textNode.attributedText?.string ?? "", font: textFont, textColor: presentationData.theme.contextMenu.primaryColor)
         self.statusNode.attributedText = NSAttributedString(string: self.statusNode.attributedText?.string ?? "", font: subtextFont, textColor: presentationData.theme.contextMenu.secondaryColor)
     }
     

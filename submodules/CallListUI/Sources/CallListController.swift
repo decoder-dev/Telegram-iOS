@@ -204,6 +204,7 @@ public final class CallListController: TelegramBaseController {
         let index = self.segmentedTitleView.index
         self.segmentedTitleView.segments = [self.presentationData.strings.Calls_All, self.presentationData.strings.Calls_Missed]
         self.segmentedTitleView.theme = self.presentationData.theme
+        self.segmentedTitleView.listsFontSizeBase = self.presentationData.listsFontSize.baseDisplaySize
         self.segmentedTitleView.index = index
             
         self.tabBarItem.title = self.presentationData.strings.Calls_TabTitle

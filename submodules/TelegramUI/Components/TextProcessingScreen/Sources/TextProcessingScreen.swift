@@ -789,6 +789,7 @@ final class TextProcessingContentComponent: Component {
                         tintSelectedItem: false,
                         isLiftedStateEnabled: false,
                         strings: environment.strings,
+                        contentFontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                         items: tabs,
                         search: nil,
                         selectedId: currentModeId,

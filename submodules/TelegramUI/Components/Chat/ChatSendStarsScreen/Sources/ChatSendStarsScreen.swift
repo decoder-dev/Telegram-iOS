@@ -258,15 +258,18 @@ private final class PeerBadgeComponent: Component {
     let theme: PresentationTheme
     let title: String
     let color: UIColor
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
         title: String,
-        color: UIColor
+        color: UIColor,
+        fontSize: CGFloat
     ) {
         self.theme = theme
         self.title = title
         self.color = color
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: PeerBadgeComponent, rhs: PeerBadgeComponent) -> Bool {
@@ -277,6 +280,9 @@ private final class PeerBadgeComponent: Component {
             return false
         }
         if lhs.color != rhs.color {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -320,7 +326,7 @@ private final class PeerBadgeComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.bold(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 9.0 / 17.0)), textColor: .white))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.bold(floor(component.fontSize * 9.0 / 17.0)), textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0 - titleSpacing - iconSize.width, height: 100.0)
@@ -466,7 +472,8 @@ private final class PeerComponent: Component {
                 component: AnyComponent(PeerBadgeComponent(
                     theme: component.theme,
                     title: component.count,
-                    color: component.color
+                    color: component.color,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 )),
                 environment: {},
                 containerSize: CGSize(width: 200.0, height: 200.0)

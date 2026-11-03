@@ -52,7 +52,7 @@ private final class VoiceChatShareScreenContextItemNode: ASDisplayNode, ContextM
         self.getController = getController
         self.actionSelected = actionSelected
         
-        let Font.regular(self.presentationData.listsFontSize.baseDisplaySize) = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
+        let textFont = Font.regular(presentationData.listsFontSize.baseDisplaySize)
         
         self.backgroundNode = ASDisplayNode()
         self.backgroundNode.isAccessibilityElement = false
@@ -62,7 +62,7 @@ private final class VoiceChatShareScreenContextItemNode: ASDisplayNode, ContextM
         self.textNode.isAccessibilityElement = false
         self.textNode.isUserInteractionEnabled = false
         self.textNode.displaysAsynchronously = false
-        self.textNode.attributedText = NSAttributedString(string: item.text, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.contextMenu.primaryColor)
+        self.textNode.attributedText = NSAttributedString(string: item.text, font: textFont, textColor: presentationData.theme.contextMenu.primaryColor)
         self.textNode.maximumNumberOfLines = 1
     
         if #available(iOS 12.0, *) {
@@ -149,9 +149,9 @@ private final class VoiceChatShareScreenContextItemNode: ASDisplayNode, ContextM
     func updateTheme(presentationData: PresentationData) {
         self.backgroundNode.backgroundColor = presentationData.theme.contextMenu.itemBackgroundColor
         
-        let Font.regular(self.presentationData.listsFontSize.baseDisplaySize) = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
+        let textFont = Font.regular(presentationData.listsFontSize.baseDisplaySize)
         
-        self.textNode.attributedText = NSAttributedString(string: self.textNode.attributedText?.string ?? "", font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.contextMenu.primaryColor)
+        self.textNode.attributedText = NSAttributedString(string: self.textNode.attributedText?.string ?? "", font: textFont, textColor: presentationData.theme.contextMenu.primaryColor)
     }
     
     @objc private func buttonPressed() {

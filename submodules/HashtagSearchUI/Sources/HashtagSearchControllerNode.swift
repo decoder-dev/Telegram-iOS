@@ -79,7 +79,7 @@ final class HashtagSearchControllerNode: ASDisplayNode, ASGestureRecognizerDeleg
         
         self.containerNode = ASDisplayNode()
         
-        self.searchContentNode = HashtagSearchNavigationContentNode(theme: presentationData.theme, strings: presentationData.strings, initialQuery: query, hasCurrentChat: peer != nil, hasTabs: controller.mode != .chatOnly, cancel: { [weak controller] in
+        self.searchContentNode = HashtagSearchNavigationContentNode(theme: presentationData.theme, strings: presentationData.strings, initialQuery: query, hasCurrentChat: peer != nil, hasTabs: controller.mode != .chatOnly, contentFontSize: presentationData.listsFontSize.baseDisplaySize, cancel: { [weak controller] in
             controller?.dismiss()
         })
         

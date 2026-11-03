@@ -326,7 +326,7 @@ final class CaptureProtectedInfoComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.Story_ScreenshotBlockedTitle, font: Font.semibold(20.0), textColor: .white)),
+                    text: .plain(NSAttributedString(string: component.strings.Story_ScreenshotBlockedTitle, font: Font.semibold(floor(component.bodyFontSize * 20.0 / 17.0)), textColor: .white)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0
                 )),

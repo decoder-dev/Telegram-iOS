@@ -411,7 +411,7 @@ public final class TabBarComponent: Component {
         tintSelectedItem: Bool = true,
         isLiftedStateEnabled: Bool = true,
         strings: PresentationStrings,
-        contentFontSize: CGFloat = 17.0,
+        contentFontSize: CGFloat,
         items: [Item],
         search: Search?,
         selectedId: AnyHashable?,

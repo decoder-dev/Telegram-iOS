@@ -2232,6 +2232,7 @@ final class StorageUsageScreenComponent: Component {
                         theme: environment.theme,
                         strings: environment.strings,
                         dateTimeFormat: environment.dateTimeFormat,
+                        listsFontSizeBase: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                         insets: UIEdgeInsets(top: environment.navigationHeight, left: environment.safeInsets.left, bottom: bottomInset, right: environment.safeInsets.right),
                         items: panelItems,
                         currentPanelUpdated: { [weak self] id, transition in

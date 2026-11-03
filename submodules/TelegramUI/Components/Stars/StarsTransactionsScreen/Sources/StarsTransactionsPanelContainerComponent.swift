@@ -106,6 +106,7 @@ final class StarsTransactionsPanelContainerComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
     let dateTimeFormat: PresentationDateTimeFormat
+    let listsFontSizeBase: CGFloat
     let insets: UIEdgeInsets
     let items: [Item]
     let currentPanelUpdated: (AnyHashable, ComponentTransition) -> Void
@@ -114,6 +115,7 @@ final class StarsTransactionsPanelContainerComponent: Component {
         theme: PresentationTheme,
         strings: PresentationStrings,
         dateTimeFormat: PresentationDateTimeFormat,
+        listsFontSizeBase: CGFloat,
         insets: UIEdgeInsets,
         items: [Item],
         currentPanelUpdated: @escaping (AnyHashable, ComponentTransition) -> Void
@@ -121,6 +123,7 @@ final class StarsTransactionsPanelContainerComponent: Component {
         self.theme = theme
         self.strings = strings
         self.dateTimeFormat = dateTimeFormat
+        self.listsFontSizeBase = listsFontSizeBase
         self.insets = insets
         self.items = items
         self.currentPanelUpdated = currentPanelUpdated
@@ -134,6 +137,9 @@ final class StarsTransactionsPanelContainerComponent: Component {
             return false
         }
         if lhs.dateTimeFormat != rhs.dateTimeFormat {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         if lhs.insets != rhs.insets {
@@ -386,7 +392,8 @@ final class StarsTransactionsPanelContainerComponent: Component {
                     selectedTab: self.currentId,
                     isEditing: false,
                     layout: .fit,
-                    liftWhileSwitching: true
+                    liftWhileSwitching: true,
+                    listsFontSizeBase: component.listsFontSizeBase
                 )),
                 environment: {},
                 containerSize: tabsContainerSize

@@ -26,7 +26,7 @@ final class ContextMenuActionNode: ASDisplayNode {
     
     var dismiss: (() -> Void)?
     
-    init(action: ContextMenuAction, blurred: Bool, isDark: Bool, fontSize: CGFloat = 17.0) {
+    init(action: ContextMenuAction, blurred: Bool, isDark: Bool, fontSize: CGFloat) {
         self.actionArea = AccessibilityAreaNode()
         self.actionArea.accessibilityTraits = .button
         

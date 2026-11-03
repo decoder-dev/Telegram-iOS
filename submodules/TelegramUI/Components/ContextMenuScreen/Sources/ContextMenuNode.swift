@@ -93,7 +93,7 @@ final class ContextMenuNode: ASDisplayNode {
     
     private let feedback: HapticFeedback?
     
-    init(actions: [ContextMenuAction], dismiss: @escaping () -> Void, dismissOnTap: @escaping (UIView, CGPoint) -> Bool, catchTapsOutside: Bool, hasHapticFeedback: Bool, blurred: Bool = false, isDark: Bool = true, fontSize: CGFloat = 17.0) {
+    init(actions: [ContextMenuAction], dismiss: @escaping () -> Void, dismissOnTap: @escaping (UIView, CGPoint) -> Bool, catchTapsOutside: Bool, hasHapticFeedback: Bool, blurred: Bool = false, isDark: Bool = true, fontSize: CGFloat) {
         self.blurred = blurred
         self.isDark = isDark
         

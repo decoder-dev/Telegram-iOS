@@ -572,6 +572,7 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
                         strongSelf.statusBar.updateStatusBarStyle(strongSelf.presentationData.theme.rootController.statusBarStyle.style, animated: true)
                         
                         strongSelf.segmentedTitleView?.theme = controllerState.presentationData.theme
+                        strongSelf.segmentedTitleView?.listsFontSizeBase = controllerState.presentationData.fontSize.baseDisplaySize
                         strongSelf.tabsNavigationContentNode?.theme = controllerState.presentationData.theme
                         strongSelf.tabsNavigationContentNode?.listsFontSizeBase = controllerState.presentationData.listsFontSize.baseDisplaySize
                         

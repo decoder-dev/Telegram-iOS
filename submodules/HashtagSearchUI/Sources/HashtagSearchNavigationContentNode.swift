@@ -65,7 +65,7 @@ final class HashtagSearchNavigationContentNode: NavigationBarContentNode {
         }
     }
         
-    init(theme: PresentationTheme, strings: PresentationStrings, initialQuery: String, hasCurrentChat: Bool, hasTabs: Bool, contentFontSize: CGFloat = 17.0, cancel: @escaping () -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, initialQuery: String, hasCurrentChat: Bool, hasTabs: Bool, contentFontSize: CGFloat, cancel: @escaping () -> Void) {
         self.theme = theme
         self.strings = strings
         self.hasCurrentChat = hasCurrentChat

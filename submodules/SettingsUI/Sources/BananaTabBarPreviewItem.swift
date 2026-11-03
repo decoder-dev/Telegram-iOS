@@ -122,6 +122,7 @@ private final class BananaTabBarPreviewItemNode: ListViewItemNode, ItemListItemN
                 theme: item.theme,
                 isLiftedStateEnabled: false,
                 strings: item.strings,
+                contentFontSize: item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                 items: visibleTabs.map { TabBarComponent.Item(content: .tabBarItem($0), action: { _ in }, doubleTapAction: nil, contextAction: nil) },
                 search: TabBarComponent.Search(isActive: false, activate: {}, deactivate: {}),
                 selectedId: AnyHashable(ObjectIdentifier(self.tabs[2])),

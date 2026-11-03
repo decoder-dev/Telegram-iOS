@@ -12,7 +12,6 @@ import EmojiStatusComponent
 import PeerListItemComponent
 import MultilineTextComponent
 
-private let shareScreenPeerTitleFont = Font.medium(11.0)
 private let shareScreenCommunityShadowImage = UIImage(bundleImageName: "Components/CommunityShadow")?.withRenderingMode(.alwaysTemplate)
 
 final class ShareScreenPeerComponent: Component {
@@ -163,8 +162,9 @@ final class ShareScreenPeerComponent: Component {
             } else {
                 self.topicIcon.view?.removeFromSuperview()
             }
+            let titleFont = Font.medium(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 11.0 / 17.0))
             if !component.communityChats.isEmpty {
-                let titleWidth = ceil((title as NSString).size(withAttributes: [.font: shareScreenPeerTitleFont]).width)
+                let titleWidth = ceil((title as NSString).size(withAttributes: [.font: titleFont]).width)
                 let avatarSpacing: CGFloat = component.communityChats.count > 1 ? min(10.0, max(4.0, (availableSize.width - titleWidth - 2.0 - 16.0) / CGFloat(component.communityChats.count - 1))) : 10.0
                 iconSize = self.chatAvatars.update(transition: transition, component: AnyComponent(MergedAvatarsComponent(
                     context: component.context, peers: component.communityChats,
@@ -183,7 +183,7 @@ final class ShareScreenPeerComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: title, font: shareScreenPeerTitleFont, textColor: titleColor)),
+                    text: .plain(NSAttributedString(string: title, font: titleFont, textColor: titleColor)),
                     horizontalAlignment: .center,
                     truncationType: .end,
                     maximumNumberOfLines: hasIcon ? 1 : 2
@@ -201,7 +201,7 @@ final class ShareScreenPeerComponent: Component {
                 titleView.frame = titleFrame
             }
             if hasIcon, let view = component.communityChats.isEmpty ? self.topicIcon.view : self.chatAvatars.view {
-                view.frame = CGRect(x: left, y: titleFrame.minY + floorToScreenPixels((shareScreenPeerTitleFont.lineHeight - iconSize.height) * 0.5), width: iconSize.width, height: iconSize.height)
+                view.frame = CGRect(x: left, y: titleFrame.minY + floorToScreenPixels((titleFont.lineHeight - iconSize.height) * 0.5), width: iconSize.width, height: iconSize.height)
             }
             let check: CheckNode
             if let current = self.check { check = current } else {

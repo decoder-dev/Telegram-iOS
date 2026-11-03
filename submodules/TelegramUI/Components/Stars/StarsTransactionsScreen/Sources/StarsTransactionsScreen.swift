@@ -1165,6 +1165,7 @@ final class StarsTransactionsScreenComponent: Component {
                         theme: environment.theme,
                         strings: environment.strings,
                         dateTimeFormat: environment.dateTimeFormat,
+                        listsFontSizeBase: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                         insets: UIEdgeInsets(top: 0.0, left: environment.safeInsets.left + panelContainerInset, bottom: bottomInset, right: environment.safeInsets.right + panelContainerInset),
                         items: panelItems,
                         currentPanelUpdated: { [weak self] id, transition in

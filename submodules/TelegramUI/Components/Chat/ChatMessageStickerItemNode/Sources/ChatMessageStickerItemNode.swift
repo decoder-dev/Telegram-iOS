@@ -29,9 +29,6 @@ import ChatMessageReactionsFooterContentNode
 import ChatSwipeToReplyRecognizer
 import ChatMessageSuggestedPostInfoNode
 
-private let nameFont = Font.medium(14.0)
-private let inlineBotPrefixFont = Font.regular(14.0)
-private let inlineBotNameFont = nameFont
 
 public class ChatMessageStickerItemNode: ChatMessageItemView {
     public let contextSourceNode: ContextExtractedContentContainingNode
@@ -686,8 +683,8 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
                     if let inlineBotNameString = inlineBotNameString {
                         let inlineBotNameColor = serviceMessageColorComponents(theme: item.presentationData.theme.theme, wallpaper: item.presentationData.theme.wallpaper).primaryText
                         
-                        let bodyAttributes = MarkdownAttributeSet(font: nameFont, textColor: inlineBotNameColor)
-                        let boldAttributes = MarkdownAttributeSet(font: inlineBotPrefixFont, textColor: inlineBotNameColor)
+                        let bodyAttributes = MarkdownAttributeSet(font: Font.medium(floor(item.presentationData.fontSize.baseDisplaySize * 14.0 / 17.0)), textColor: inlineBotNameColor)
+                        let boldAttributes = MarkdownAttributeSet(font: Font.regular(floor(item.presentationData.fontSize.baseDisplaySize * 14.0 / 17.0)), textColor: inlineBotNameColor)
                         let botString = addAttributesToStringWithRanges(item.presentationData.strings.Conversation_MessageViaUser("@\(inlineBotNameString)")._tuple, body: bodyAttributes, argumentAttributes: [0: boldAttributes])
                         
                         viaBotApply = viaBotLayout(TextNodeLayoutArguments(attributedString: botString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0, availableWidth), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
@@ -764,7 +761,7 @@ public class ChatMessageStickerItemNode: ChatMessageItemView {
                         if let sourcePeer = item.message.peers[attribute.messageId.peerId] {
                             let inlineBotNameColor = serviceMessageColorComponents(theme: item.presentationData.theme.theme, wallpaper: item.presentationData.theme.wallpaper).primaryText
                             
-                            let nameString = NSAttributedString(string: EnginePeer(sourcePeer).displayTitle(strings: item.presentationData.strings, displayOrder: item.presentationData.nameDisplayOrder), font: inlineBotPrefixFont, textColor: inlineBotNameColor)
+                            let nameString = NSAttributedString(string: EnginePeer(sourcePeer).displayTitle(strings: item.presentationData.strings, displayOrder: item.presentationData.nameDisplayOrder), font: Font.regular(floor(item.presentationData.fontSize.baseDisplaySize * 14.0 / 17.0)), textColor: inlineBotNameColor)
                             viaBotApply = viaBotLayout(TextNodeLayoutArguments(attributedString: nameString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0, availableWidth), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                         }
                     }

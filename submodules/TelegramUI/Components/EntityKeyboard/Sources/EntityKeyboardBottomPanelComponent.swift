@@ -16,17 +16,20 @@ private final class BottomPanelIconComponent: Component {
     let title: String
     let isHighlighted: Bool
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let action: () -> Void
     
     init(
         title: String,
         isHighlighted: Bool,
         theme: PresentationTheme,
+        fontSize: CGFloat,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.isHighlighted = isHighlighted
         self.theme = theme
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -38,6 +41,9 @@ private final class BottomPanelIconComponent: Component {
             return false
         }
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         
@@ -67,8 +73,8 @@ private final class BottomPanelIconComponent: Component {
         }
         
         func update(component: BottomPanelIconComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
-            if self.component?.title != component.title {
-                let text = NSAttributedString(string: component.title, font: Font.medium(14.0), textColor: .white)
+            if self.component?.title != component.title || self.component?.fontSize != component.fontSize {
+                let text = NSAttributedString(string: component.title, font: Font.medium(floor(component.fontSize * 14.0 / 17.0)), textColor: .white)
                 let textBounds = text.boundingRect(with: CGSize(width: 120.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
                 self.contentView.image = generateImage(CGSize(width: ceil(textBounds.width), height: ceil(textBounds.height)), rotatedContext: { size, context in
                     context.clear(CGRect(origin: CGPoint(), size: size))
@@ -106,21 +112,27 @@ final class EntityKeyboardBottomPanelComponent: Component {
     typealias EnvironmentType = PagerComponentPanelEnvironment<EntityKeyboardTopContainerPanelEnvironment>
     
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let containerInsets: UIEdgeInsets
     let deleteBackwards: () -> Void
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat,
         containerInsets: UIEdgeInsets,
         deleteBackwards: @escaping () -> Void
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.containerInsets = containerInsets
         self.deleteBackwards = deleteBackwards
     }
     
     static func ==(lhs: EntityKeyboardBottomPanelComponent, rhs: EntityKeyboardBottomPanelComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.containerInsets != rhs.containerInsets {
@@ -455,6 +467,7 @@ final class EntityKeyboardBottomPanelComponent: Component {
                             title: icon.title,
                             isHighlighted: icon.id == activeContentId,
                             theme: component.theme,
+                            fontSize: component.fontSize,
                             action: {
                                 navigateToContentId(icon.id)
                             }
@@ -469,6 +482,7 @@ final class EntityKeyboardBottomPanelComponent: Component {
                             title: icon.title,
                             isHighlighted: icon.id == activeContentId,
                             theme: component.theme,
+                            fontSize: component.fontSize,
                             action: {
                                 navigateToContentId(icon.id)
                             }

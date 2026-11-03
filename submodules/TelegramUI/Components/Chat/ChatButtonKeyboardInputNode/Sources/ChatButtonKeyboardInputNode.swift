@@ -98,7 +98,8 @@ private final class ChatButtonKeyboardInputButtonNode: HighlightTrackingButtonNo
             self.backgroundView.tintColor = theme.overallDarkAppearance ? UIColor(white: 1.0, alpha: 0.25) : UIColor(white: 1.0, alpha: 0.85)
         }
         
-        let title = NSAttributedString(string: button.title, font: Font.regular(16.0), textColor: titleColor, paragraphAlignment: .center)
+        let fontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        let title = NSAttributedString(string: button.title, font: Font.regular(floor(fontSize * 16.0 / 17.0)), textColor: titleColor, paragraphAlignment: .center)
         
         self.textNode.attributedText = title
         self.accessibilityLabel = title.string

@@ -723,6 +723,7 @@ final class StarsStatisticsScreenComponent: Component {
                         theme: environment.theme,
                         strings: environment.strings,
                         dateTimeFormat: environment.dateTimeFormat,
+                        listsFontSizeBase: presentationData.listsFontSize.baseDisplaySize,
                         insets: UIEdgeInsets(top: 0.0, left: environment.safeInsets.left + panelContainerInset, bottom: environment.safeInsets.bottom, right: environment.safeInsets.right + panelContainerInset),
                         items: panelItems,
                         currentPanelUpdated: { [weak self] id, transition in

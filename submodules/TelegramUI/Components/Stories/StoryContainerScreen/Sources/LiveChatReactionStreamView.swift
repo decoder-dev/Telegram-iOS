@@ -93,7 +93,7 @@ private func avatarViewLettersImage(size: CGSize, peerId: EnginePeer.Id, letters
     return image
 }
 
-private func makePeerBadgeImage(engine: TelegramEngine, peer: EnginePeer, count: Int) async -> UIImage {
+private func makePeerBadgeImage(engine: TelegramEngine, peer: EnginePeer, count: Int, fontSize: CGFloat) async -> UIImage {
     let avatarSize: CGFloat = 16.0
     let avatarInset: CGFloat = 2.0
     let avatarIconSpacing: CGFloat = 2.0
@@ -101,7 +101,7 @@ private func makePeerBadgeImage(engine: TelegramEngine, peer: EnginePeer, count:
     let iconSize: CGFloat = 10.0
     let rightInset: CGFloat = 5.0
     
-    let text = NSAttributedString(string: countString(Int64(count)), font: Font.semibold(10.0), textColor: .white)
+    let text = NSAttributedString(string: countString(Int64(count)), font: Font.semibold(floor(fontSize * 10.0 / 17.0)), textColor: .white)
     var textSize = text.boundingRect(with: CGSize(width: 200.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil).size
     textSize.width = ceil(textSize.width)
     textSize.height = ceil(textSize.height)
@@ -174,10 +174,12 @@ private actor LiveChatReactionItemTaskQueue {
     }
     
     private let engine: TelegramEngine
+    private let fontSize: CGFloat
     private var tasks: [PeerTask] = []
     
-    init(engine: TelegramEngine) {
+    init(engine: TelegramEngine, fontSize: CGFloat) {
         self.engine = engine
+        self.fontSize = fontSize
     }
     
     func add(peer: EnginePeer, count: Int, completion: @escaping (UIImage) -> Void) {
@@ -192,7 +194,7 @@ private actor LiveChatReactionItemTaskQueue {
     private func processTasks() async {
         while !self.tasks.isEmpty {
             let task = self.tasks.removeFirst()
-            let image = await makePeerBadgeImage(engine: self.engine, peer: task.peer, count: task.count)
+            let image = await makePeerBadgeImage(engine: self.engine, peer: task.peer, count: task.count, fontSize: self.fontSize)
             task.completion(image)
         }
     }
@@ -248,7 +250,7 @@ final class LiveChatReactionStreamView: UIView {
     init(context: AccountContext) {
         self.itemLayerContainer = SimpleLayer()
         self.hierarchyTracker = HierarchyTrackingLayer()
-        self.taskQueue = LiveChatReactionItemTaskQueue(engine: context.engine)
+        self.taskQueue = LiveChatReactionItemTaskQueue(engine: context.engine, fontSize: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
         
         super.init(frame: CGRect())
         

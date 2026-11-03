@@ -9,10 +9,6 @@ private let premiumBadgeIcon: UIImage? = generateTintedImage(image: UIImage(bund
 private let featuredBadgeIcon: UIImage? = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Media/PanelBadgeAdd"), color: .white)
 private let lockedBadgeIcon: UIImage? = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Media/PanelBadgeLock"), color: .white)
 
-private let itemBadgeTextFont: UIFont = {
-    return Font.regular(10.0)
-}()
-
 final class PremiumBadgeView: UIView {
     private let context: AccountContext
     
@@ -58,7 +54,8 @@ final class PremiumBadgeView: UIView {
             case .locked:
                 self.iconLayer.contents = lockedBadgeIcon?.cgImage
             case let .text(text):
-                let string = NSAttributedString(string: text, font: itemBadgeTextFont)
+                let fontSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+                let string = NSAttributedString(string: text, font: Font.regular(floor(fontSize * 10.0 / 17.0)))
                 let size = CGSize(width: 12.0, height: 12.0)
                 let stringBounds = string.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
                 let image = generateImage(size, rotatedContext: { size, context in

@@ -24,7 +24,7 @@ final class StarsOverviewItemComponent: Component {
         title: String,
         value: CurrencyAmount,
         rate: Double,
-        valueFontSize: CGFloat = 17.0
+        valueFontSize: CGFloat
     ) {
         self.theme = theme
         self.dateTimeFormat = dateTimeFormat
