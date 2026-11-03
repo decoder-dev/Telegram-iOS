@@ -1091,6 +1091,7 @@ final class AvatarEditorScreenComponent: Component {
                     ColorPickerComponent(
                         theme: environment.theme,
                         strings: environment.strings,
+                        fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize,
                         isVisible: state.editingColor,
                         bottomInset: colorPickerBottomInset,
                         colors: state.selectedBackground.colors,

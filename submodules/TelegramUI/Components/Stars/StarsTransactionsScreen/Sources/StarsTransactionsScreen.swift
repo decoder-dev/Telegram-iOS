@@ -363,6 +363,7 @@ final class StarsTransactionsScreenComponent: Component {
             
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             
             if self.stateDisposable == nil {
                 self.stateDisposable = (component.starsContext.state
@@ -814,7 +815,7 @@ final class StarsTransactionsScreenComponent: Component {
                                             ),
                                             AnyComponentWithIdentity(
                                                 id: "label",
-                                                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Stars_Intro_GiftStars, font: Font.regular(17.0), textColor: environment.theme.list.itemAccentColor))))
+                                                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Stars_Intro_GiftStars, font: Font.regular(fontSize), textColor: environment.theme.list.itemAccentColor))))
                                             )
                                         ],
                                         spacing: 6.0)
@@ -1011,7 +1012,7 @@ final class StarsTransactionsScreenComponent: Component {
                                 style: .glass,
                                 title: AnyComponent(Text(
                                     text: environment.strings.Stars_Intro_Subscriptions_ShowMore,
-                                    font: Font.regular(17.0),
+                                    font: Font.regular(fontSize),
                                     color: environment.theme.list.itemAccentColor
                                 )),
                                 leftIcon: .custom(

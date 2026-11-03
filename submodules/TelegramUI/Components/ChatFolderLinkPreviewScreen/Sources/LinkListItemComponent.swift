@@ -5,6 +5,7 @@ import AsyncDisplayKit
 import ComponentFlow
 import MultilineTextComponent
 import TelegramPresentationData
+import TelegramUIPreferences
 import TelegramCore
 import CheckNode
 
@@ -28,6 +29,7 @@ final class LinkListItemComponent: Component {
     }
     
     let theme: PresentationTheme
+    let fontSize: PresentationFontSize
     let sideInset: CGFloat
     let title: String
     let link: ExportedChatFolderLink
@@ -39,6 +41,7 @@ final class LinkListItemComponent: Component {
     
     init(
         theme: PresentationTheme,
+        fontSize: PresentationFontSize = .regular,
         sideInset: CGFloat,
         title: String,
         link: ExportedChatFolderLink,
@@ -49,6 +52,7 @@ final class LinkListItemComponent: Component {
         contextAction: @escaping (ExportedChatFolderLink, ContextExtractedContentContainingView, ContextGesture) -> Void
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.sideInset = sideInset
         self.title = title
         self.link = link
@@ -61,6 +65,9 @@ final class LinkListItemComponent: Component {
     
     static func ==(lhs: LinkListItemComponent, rhs: LinkListItemComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.sideInset != rhs.sideInset {
@@ -267,7 +274,7 @@ final class LinkListItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(component.fontSize.itemListBaseFontSize), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftInset - rightInset, height: 100.0)

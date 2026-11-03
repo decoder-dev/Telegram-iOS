@@ -20,6 +20,7 @@ private struct WallpaperColorPanelNodeState: Equatable {
 final class ColorPickerComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: PresentationFontSize
     let isVisible: Bool
     let bottomInset: CGFloat
     let colors: [UInt32]
@@ -30,6 +31,7 @@ final class ColorPickerComponent: Component {
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: PresentationFontSize = .regular,
         isVisible: Bool,
         bottomInset: CGFloat,
         colors: [UInt32],
@@ -39,6 +41,7 @@ final class ColorPickerComponent: Component {
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.isVisible = isVisible
         self.bottomInset = bottomInset
         self.colors = colors
@@ -52,6 +55,9 @@ final class ColorPickerComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.isVisible != rhs.isVisible {
@@ -87,11 +93,11 @@ final class ColorPickerComponent: Component {
         
         private var changingColor = false
         
-        init(theme: PresentationTheme, strings: PresentationStrings) {
+        init(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat) {
             self.addButton = HighlightableButtonNode()
             
             self.colorPickerNode = WallpaperColorPickerNode(strings: strings)
-            self.multiColorFieldNode = ColorInputFieldNode(theme: theme, displaySwatch: false)
+            self.multiColorFieldNode = ColorInputFieldNode(theme: theme, displaySwatch: false, fontSize: fontSize)
             
             self.bottomSeparatorNode =  ASDisplayNode()
             
@@ -404,6 +410,8 @@ final class ColorPickerComponent: Component {
             let size = CGSize(width: availableSize.width, height: availableSize.height - availableSize.width - 32.0 - buttonHeight - 56.0 - component.bottomInset)
             let panelSize = CGSize(width: availableSize.width, height: size.height + buttonHeight)
             
+            let fontSize = component.fontSize.baseDisplaySize
+            
             if themeChanged {
                 self.addButton.setImage(generateTintedImage(image: UIImage(bundleImageName: "Settings/ThemeColorAddIcon"), color: component.theme.chat.inputPanel.panelControlColor), for: .normal)
                 
@@ -412,10 +420,10 @@ final class ColorPickerComponent: Component {
                 self.cancelHighlightView.backgroundColor = component.theme.list.itemHighlightedBackgroundColor
                 self.doneHighlightView.backgroundColor = component.theme.list.itemHighlightedBackgroundColor
                 self.bottomSeparatorNode.backgroundColor = component.theme.chat.inputPanel.panelSeparatorColor
-                
-                self.cancelButton.setAttributedTitle(NSAttributedString(string: component.strings.Common_Cancel, font: Font.regular(17.0), textColor: component.theme.list.itemAccentColor), for: [])
-                self.doneButton.setAttributedTitle(NSAttributedString(string: component.strings.Common_Done, font: Font.semibold(17.0), textColor: component.theme.list.itemAccentColor), for: [])
             }
+            
+            self.cancelButton.setAttributedTitle(NSAttributedString(string: component.strings.Common_Cancel, font: Font.regular(fontSize), textColor: component.theme.list.itemAccentColor), for: [])
+            self.doneButton.setAttributedTitle(NSAttributedString(string: component.strings.Common_Done, font: Font.semibold(fontSize), textColor: component.theme.list.itemAccentColor), for: [])
             
             transition.setFrame(view: self.cancelButton, frame: CGRect(x: 0.0, y: size.height, width: availableSize.width / 2.0, height: buttonHeight))
             transition.setFrame(view: self.cancelHighlightView, frame: CGRect(x: 0.0, y: size.height, width: availableSize.width / 2.0, height: buttonHeight))
@@ -445,7 +453,7 @@ final class ColorPickerComponent: Component {
     }
 
     func makeView() -> View {
-        return View(theme: self.theme, strings: self.strings)
+        return View(theme: self.theme, strings: self.strings, fontSize: self.fontSize.baseDisplaySize)
     }
 
     func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
@@ -984,6 +992,7 @@ private func generateSwatchBorderImage(theme: PresentationTheme) -> UIImage? {
 
 private class ColorInputFieldNode: ASDisplayNode, UITextFieldDelegate {
     private var theme: PresentationTheme
+    private let fontSize: CGFloat
     
     private let swatchNode: ASDisplayNode
     private let borderNode: ASImageNode
@@ -1022,8 +1031,9 @@ private class ColorInputFieldNode: ASDisplayNode, UITextFieldDelegate {
 
     private let displaySwatch: Bool
     
-    init(theme: PresentationTheme, displaySwatch: Bool = true) {
+    init(theme: PresentationTheme, displaySwatch: Bool = true, fontSize: CGFloat = 17.0) {
         self.theme = theme
+        self.fontSize = fontSize
 
         self.displaySwatch = displaySwatch
         
@@ -1041,7 +1051,7 @@ private class ColorInputFieldNode: ASDisplayNode, UITextFieldDelegate {
         self.measureNode = ImmediateTextNode()
         
         self.prefixNode = ASTextNode()
-        self.prefixNode.attributedText = NSAttributedString(string: "#", font: Font.regular(17.0), textColor: self.theme.chat.inputPanel.inputTextColor)
+        self.prefixNode.attributedText = NSAttributedString(string: "#", font: Font.regular(self.fontSize), textColor: self.theme.chat.inputPanel.inputTextColor)
         
         self.swatchNode = ASDisplayNode()
         self.swatchNode.cornerRadius = 10.5
@@ -1070,7 +1080,7 @@ private class ColorInputFieldNode: ASDisplayNode, UITextFieldDelegate {
     override func didLoad() {
         super.didLoad()
         
-        self.textFieldNode.textField.font = Font.regular(17.0)
+        self.textFieldNode.textField.font = Font.regular(self.fontSize)
         self.textFieldNode.textField.textColor = self.theme.chat.inputPanel.inputTextColor
         self.textFieldNode.textField.keyboardAppearance = self.theme.rootController.keyboardColor.keyboardAppearance
         self.textFieldNode.textField.autocorrectionType = .no

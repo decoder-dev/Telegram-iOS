@@ -709,6 +709,7 @@ public final class StoryItemSetViewListComponent: Component {
                             foreground: .white,
                             button: component.theme.rootController.navigationBar.accentTextColor
                         ),
+                        fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                         cancel: component.strings.Common_Cancel,
                         placeholder: component.strings.Common_Search,
                         isSearchActive: component.isSearchActive,

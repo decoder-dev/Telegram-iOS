@@ -1039,7 +1039,7 @@ public class WallpaperGalleryController: ViewController {
         if let current = self.colorsPanelNode {
             currentColorsPanelNode = current
         } else {
-            let colorsPanelNode = WallpaperColorPanelNode(theme: self.presentationData.theme, strings: self.presentationData.strings)
+            let colorsPanelNode = WallpaperColorPanelNode(theme: self.presentationData.theme, strings: self.presentationData.strings, fontSize: self.presentationData.listsFontSize.baseDisplaySize)
             self.colorsPanelNode = colorsPanelNode
             currentColorsPanelNode = colorsPanelNode
             self.overlayNode?.addSubnode(colorsPanelNode)

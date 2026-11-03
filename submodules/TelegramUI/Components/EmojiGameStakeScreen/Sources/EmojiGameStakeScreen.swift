@@ -79,6 +79,7 @@ private final class SheetContent: CombinedComponent {
             let theme = environment.theme.withModalBlocksBackground()
             let strings = environment.strings
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             
             let sideInset: CGFloat = 16.0 + environment.safeInsets.left
             let textSideInset: CGFloat = 32.0 + environment.safeInsets.left
@@ -244,6 +245,7 @@ private final class SheetContent: CombinedComponent {
                             labelText: amountLabel,
                             currency: .ton,
                             dateTimeFormat: presentationData.dateTimeFormat,
+                            fontSize: fontSize,
                             amountUpdated: { [weak state] amount in
                                 state?.amount = amount.flatMap { StarsAmount(value: $0, nanos: 0) }
                                 state?.updated()
@@ -302,7 +304,7 @@ private final class SheetContent: CombinedComponent {
     
             var buttonItems: [AnyComponentWithIdentity<Empty>] = []
             buttonItems.append(AnyComponentWithIdentity(id: "icon", component: AnyComponent(BundleIconComponent(name: "Premium/Dice", tintColor: theme.list.itemCheckColors.foregroundColor))))
-            buttonItems.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: environment.strings.EmojiStake_Roll, font: Font.semibold(17.0), color: theme.list.itemCheckColors.foregroundColor))))
+            buttonItems.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: environment.strings.EmojiStake_Roll, font: Font.semibold(fontSize), color: theme.list.itemCheckColors.foregroundColor))))
            
             let buttonInsets = ContainerViewLayout.concentricInsets(bottomInset: environment.safeInsets.bottom, innerDiameter: 52.0, sideInset: 30.0)
             let button = button.update(
@@ -447,7 +449,7 @@ private final class EmojiGameStakeSheetComponent: CombinedComponent {
             
             var buttonItems: [AnyComponentWithIdentity<Empty>] = []
             buttonItems.append(AnyComponentWithIdentity(id: "icon", component: AnyComponent(Image(image: PresentationResourcesItemList.itemListRoundTopupIcon(environment.theme), tintColor: theme.list.itemCheckColors.foregroundColor, size: CGSize(width: 16.0, height: 18.0)))))
-            buttonItems.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: environment.strings.EmojiStake_Roll, font: Font.semibold(17.0), color: theme.list.itemCheckColors.foregroundColor))))
+            buttonItems.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: environment.strings.EmojiStake_Roll, font: Font.semibold(fontSize), color: theme.list.itemCheckColors.foregroundColor))))
             
             let sheet = sheet.update(
                 component: ResizableSheetComponent<EnvironmentType>(
@@ -861,6 +863,7 @@ public final class AmountFieldComponent: Component {
     let labelText: String?
     let currency: CurrencyAmount.Currency
     let dateTimeFormat: PresentationDateTimeFormat
+    let fontSize: CGFloat
     let amountUpdated: (Int64?) -> Void
     let tag: AnyObject?
     
@@ -879,6 +882,7 @@ public final class AmountFieldComponent: Component {
         labelText: String?,
         currency: CurrencyAmount.Currency,
         dateTimeFormat: PresentationDateTimeFormat,
+        fontSize: CGFloat = 17.0,
         amountUpdated: @escaping (Int64?) -> Void,
         tag: AnyObject? = nil
     ) {
@@ -896,6 +900,7 @@ public final class AmountFieldComponent: Component {
         self.labelText = labelText
         self.currency = currency
         self.dateTimeFormat = dateTimeFormat
+        self.fontSize = fontSize
         self.amountUpdated = amountUpdated
         self.tag = tag
     }
@@ -1038,7 +1043,7 @@ public final class AmountFieldComponent: Component {
                 }
                 self.didSetValueOnce = true
             }
-            self.textField.font = Font.regular(17.0)
+            self.textField.font = Font.regular(component.fontSize)
             
             self.textField.returnKeyType = .done
             self.textField.autocorrectionType = .no
@@ -1170,7 +1175,7 @@ public final class AmountFieldComponent: Component {
                 component: AnyComponent(
                     Text(
                         text: component.placeholderText,
-                        font: Font.regular(17.0),
+                        font: Font.regular(component.fontSize),
                         color: component.placeholderColor
                     )
                 ),
@@ -1193,7 +1198,7 @@ public final class AmountFieldComponent: Component {
                     component: AnyComponent(
                         Text(
                             text: labelText,
-                            font: Font.regular(17.0),
+                            font: Font.regular(component.fontSize),
                             color: component.secondaryColor
                         )
                     ),

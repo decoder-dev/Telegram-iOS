@@ -267,3 +267,7 @@ Authorization sequence fields/actions, CallList rows/empty state, ChatList hole 
 ## New contact, gifts, schedule и translation menu
 
 PhoneInputItem принимает listsFontSize; Gift auction/value/bid, ForumCreateTopic, ChatScheduleTime и TranslationLanguages menu масштабируют основные 17 pt labels. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Message input, stars, wallpaper color, text processing
+
+MessageInputPanel, NavigationSearch, Stars withdrawal/transactions, WallpaperColorPanel, QuickReplySetup, TextProcessing (+ language selection), EmojiGameStake, Avatar ColorPicker, CreateBot/CommunityEdit, ChatFolderLink preview items и CreateExternalMediaStream масштабируют основные labels от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.

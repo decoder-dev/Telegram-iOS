@@ -31,6 +31,7 @@ private func generateSwatchBorderImage(theme: PresentationTheme) -> UIImage? {
 
 private class ColorInputFieldNode: ASDisplayNode, UITextFieldDelegate {
     private var theme: PresentationTheme
+    private let fontSize: CGFloat
 
     private let swatchNode: ASDisplayNode
     private let swatchBackgroundNode: ColorPanelGlassBackgroundNode
@@ -70,8 +71,9 @@ private class ColorInputFieldNode: ASDisplayNode, UITextFieldDelegate {
 
     private let displaySwatch: Bool
 
-    init(theme: PresentationTheme, displaySwatch: Bool = true) {
+    init(theme: PresentationTheme, displaySwatch: Bool = true, fontSize: CGFloat = 17.0) {
         self.theme = theme
+        self.fontSize = fontSize
 
         self.displaySwatch = displaySwatch
 
@@ -86,7 +88,7 @@ private class ColorInputFieldNode: ASDisplayNode, UITextFieldDelegate {
         self.measureNode = ImmediateTextNode()
 
         self.prefixNode = ASTextNode()
-        self.prefixNode.attributedText = NSAttributedString(string: "#", font: Font.regular(17.0), textColor: self.theme.chat.inputPanel.inputTextColor)
+        self.prefixNode.attributedText = NSAttributedString(string: "#", font: Font.regular(self.fontSize), textColor: self.theme.chat.inputPanel.inputTextColor)
 
         self.swatchNode = ASDisplayNode()
         self.swatchNode.cornerRadius = 10.5
@@ -119,7 +121,7 @@ private class ColorInputFieldNode: ASDisplayNode, UITextFieldDelegate {
     override func didLoad() {
         super.didLoad()
 
-        self.textFieldNode.textField.font = Font.regular(17.0)
+        self.textFieldNode.textField.font = Font.regular(self.fontSize)
         self.textFieldNode.textField.textColor = self.theme.chat.inputPanel.inputTextColor
         self.textFieldNode.textField.keyboardAppearance = self.theme.rootController.keyboardColor.keyboardAppearance
         self.textFieldNode.textField.autocorrectionType = .no
@@ -306,8 +308,8 @@ private class ColorInputFieldNode: ASDisplayNode, UITextFieldDelegate {
             textPadding = condensed ? 6.0 : 12.0
         }
 
-        self.textFieldNode.textField.font = Font.regular(17.0)
-        self.prefixNode.attributedText = NSAttributedString(string: "#", font: Font.regular(17.0), textColor: self.theme.chat.inputPanel.inputTextColor)
+        self.textFieldNode.textField.font = Font.regular(self.fontSize)
+        self.prefixNode.attributedText = NSAttributedString(string: "#", font: Font.regular(self.fontSize), textColor: self.theme.chat.inputPanel.inputTextColor)
 
         let removeSize = CGSize(width: size.height, height: size.height)
         let removeOffset: CGFloat = condensed ? 2.0 : 0.0
@@ -400,6 +402,7 @@ private final class ColorSampleItemNode: ASImageNode {
 
 public final class WallpaperColorPanelNode: ASDisplayNode {
     private var theme: PresentationTheme
+    private let fontSize: CGFloat
 
     private var state: WallpaperColorPanelNodeState
 
@@ -426,8 +429,9 @@ public final class WallpaperColorPanelNode: ASDisplayNode {
         return 52.0
     }
 
-    public init(theme: PresentationTheme, strings: PresentationStrings) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat = 17.0) {
         self.theme = theme
+        self.fontSize = fontSize
 
         self.colorPickerNode = WallpaperColorPickerNode(strings: strings)
 
@@ -440,7 +444,7 @@ public final class WallpaperColorPanelNode: ASDisplayNode {
         self.addButton = HighlightableButtonNode()
         self.addButton.setImage(generateTintedImage(image: UIImage(bundleImageName: "Settings/ThemeColorAddIcon"), color: theme.chat.inputPanel.panelControlColor), for: .normal)
 
-        self.multiColorFieldNode = ColorInputFieldNode(theme: theme, displaySwatch: false)
+        self.multiColorFieldNode = ColorInputFieldNode(theme: theme, displaySwatch: false, fontSize: fontSize)
 
         self.state = WallpaperColorPanelNodeState(
             selection: 0,

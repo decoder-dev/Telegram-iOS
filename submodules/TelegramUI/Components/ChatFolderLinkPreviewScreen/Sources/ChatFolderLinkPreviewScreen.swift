@@ -390,6 +390,8 @@ private final class ChatFolderLinkPreviewContentComponent: Component {
 
             let sideInset: CGFloat = 16.0
             var contentHeight: CGFloat = 58.0
+            
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize
 
             let topIconSize = self.topIcon.update(
                 transition: transition,
@@ -463,6 +465,7 @@ private final class ChatFolderLinkPreviewContentComponent: Component {
                         transition: itemTransition,
                         component: AnyComponent(ActionListItemComponent(
                             theme: component.theme,
+                            fontSize: listFontSize,
                             sideInset: 0.0,
                             iconName: "Contact List/LinkActionIcon",
                             title: environment.strings.InviteLink_Create,
@@ -506,6 +509,7 @@ private final class ChatFolderLinkPreviewContentComponent: Component {
                     let subtitle = environment.strings.ChatListFilter_LinkLabelChatCount(Int32(link.peerIds.count))
                     let itemComponent = LinkListItemComponent(
                         theme: component.theme,
+                        fontSize: listFontSize,
                         sideInset: 0.0,
                         title: link.title.isEmpty ? link.link : link.title,
                         link: link,

@@ -8,6 +8,7 @@ import TelegramPresentationData
 
 final class ActionListItemComponent: Component {
     let theme: PresentationTheme
+    let fontSize: PresentationFontSize
     let sideInset: CGFloat
     let iconName: String?
     let title: String
@@ -16,6 +17,7 @@ final class ActionListItemComponent: Component {
     
     init(
         theme: PresentationTheme,
+        fontSize: PresentationFontSize = .regular,
         sideInset: CGFloat,
         iconName: String?,
         title: String,
@@ -23,6 +25,7 @@ final class ActionListItemComponent: Component {
         action: @escaping () -> Void
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.sideInset = sideInset
         self.iconName = iconName
         self.title = title
@@ -32,6 +35,9 @@ final class ActionListItemComponent: Component {
     
     static func ==(lhs: ActionListItemComponent, rhs: ActionListItemComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.sideInset != rhs.sideInset {
@@ -147,7 +153,7 @@ final class ActionListItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: component.theme.list.itemAccentColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(component.fontSize.itemListBaseFontSize), textColor: component.theme.list.itemAccentColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftInset - rightInset, height: 100.0)

@@ -79,6 +79,7 @@ private final class SheetContent: CombinedComponent {
             let theme = environment.theme.withModalBlocksBackground()
             let strings = environment.strings
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             
             let sideInset: CGFloat = 16.0
             var contentSize = CGSize(width: context.availableSize.width, height: 18.0)
@@ -554,6 +555,7 @@ private final class SheetContent: CombinedComponent {
                                     labelText: amountLabel,
                                     currency: state.currency,
                                     dateTimeFormat: presentationData.dateTimeFormat,
+                                    fontSize: fontSize,
                                     amountUpdated: { [weak state] amount in
                                         state?.amount = amount.flatMap { StarsAmount(value: $0, nanos: 0) }
                                         state?.updated()
@@ -905,7 +907,7 @@ private final class SheetContent: CombinedComponent {
                 state.cachedTonImage = (generateTintedImage(image: UIImage(bundleImageName: "Ads/TonAbout"), color: theme.list.itemCheckColors.foregroundColor)!, theme)
             }
             
-            let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.semibold(fontSize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             if let range = buttonAttributedString.string.range(of: "#"), let starImage = state.cachedStarImage?.0 {
                 buttonAttributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: buttonAttributedString.string))
                 buttonAttributedString.addAttribute(.foregroundColor, value: theme.list.itemCheckColors.foregroundColor, range: NSRange(range, in: buttonAttributedString.string))
@@ -1055,6 +1057,7 @@ private final class SheetContent: CombinedComponent {
                         component: AnyComponent(DurationMenuComponent(
                             theme: theme,
                             strings: environment.strings,
+                            fontSize: fontSize,
                             value: state.duration,
                             valueUpdated: { [weak state] value in
                                 guard let state else {
@@ -1685,6 +1688,7 @@ public final class AmountFieldComponent: Component {
     let labelText: String?
     let currency: CurrencyAmount.Currency
     let dateTimeFormat: PresentationDateTimeFormat
+    let fontSize: CGFloat
     let amountUpdated: (Int64?) -> Void
     let tag: AnyObject?
     
@@ -1703,6 +1707,7 @@ public final class AmountFieldComponent: Component {
         labelText: String?,
         currency: CurrencyAmount.Currency,
         dateTimeFormat: PresentationDateTimeFormat,
+        fontSize: CGFloat = 17.0,
         amountUpdated: @escaping (Int64?) -> Void,
         tag: AnyObject? = nil
     ) {
@@ -1720,6 +1725,7 @@ public final class AmountFieldComponent: Component {
         self.labelText = labelText
         self.currency = currency
         self.dateTimeFormat = dateTimeFormat
+        self.fontSize = fontSize
         self.amountUpdated = amountUpdated
         self.tag = tag
     }
@@ -1756,6 +1762,9 @@ public final class AmountFieldComponent: Component {
             return false
         }
         if lhs.currency != rhs.currency {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -1858,7 +1867,7 @@ public final class AmountFieldComponent: Component {
                 }
                 self.didSetValueOnce = true
             }
-            self.textField.font = Font.regular(17.0)
+            self.textField.font = Font.regular(component.fontSize)
             
             self.textField.returnKeyType = .done
             self.textField.autocorrectionType = .no
@@ -1990,7 +1999,7 @@ public final class AmountFieldComponent: Component {
                 component: AnyComponent(
                     Text(
                         text: component.placeholderText,
-                        font: Font.regular(17.0),
+                        font: Font.regular(component.fontSize),
                         color: component.placeholderColor
                     )
                 ),
@@ -2013,7 +2022,7 @@ public final class AmountFieldComponent: Component {
                     component: AnyComponent(
                         Text(
                             text: labelText,
-                            font: Font.regular(17.0),
+                            font: Font.regular(component.fontSize),
                             color: component.secondaryColor
                         )
                     ),
@@ -2488,6 +2497,7 @@ private final class MenuComponent: Component {
 
 private final class MenuButtonComponent: Component {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let text: String
     let isSelected: Bool
     let width: CGFloat?
@@ -2495,12 +2505,14 @@ private final class MenuButtonComponent: Component {
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat = 17.0,
         text: String,
         isSelected: Bool,
         width: CGFloat?,
         action: @escaping () -> Void
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.text = text
         self.isSelected = isSelected
         self.width = width
@@ -2509,6 +2521,9 @@ private final class MenuButtonComponent: Component {
 
     static func ==(lhs: MenuButtonComponent, rhs: MenuButtonComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.text != rhs.text {
@@ -2574,7 +2589,7 @@ private final class MenuButtonComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(
-                    Text(text: component.text, font: Font.regular(17.0), color: component.theme.contextMenu.primaryColor)
+                    Text(text: component.text, font: Font.regular(component.fontSize), color: component.theme.contextMenu.primaryColor)
                 ),
                 environment: {},
                 containerSize: availableSize
@@ -2635,17 +2650,20 @@ private final class MenuButtonComponent: Component {
 private final class DurationMenuComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let value: Int32
     let valueUpdated: (Int32) -> Void
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: CGFloat = 17.0,
         value: Int32,
         valueUpdated: @escaping (Int32) -> Void
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.value = value
         self.valueUpdated = valueUpdated
     }
@@ -2655,6 +2673,9 @@ private final class DurationMenuComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.value != rhs.value {
@@ -2711,6 +2732,7 @@ private final class DurationMenuComponent: Component {
                     component: AnyComponent(
                         MenuButtonComponent(
                             theme: component.theme,
+                            fontSize: component.fontSize,
                             text: repeatString,
                             isSelected: component.value == value,
                             width: self.width,

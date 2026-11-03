@@ -26,6 +26,7 @@ public final class NavigationSearchComponent: Component {
     }
 
     public let colors: Colors
+    public let fontSize: CGFloat
     public let cancel: String
     public let placeholder: String
     public let isSearchActive: Bool
@@ -36,6 +37,7 @@ public final class NavigationSearchComponent: Component {
     
     public init(
         colors: Colors,
+        fontSize: CGFloat = 17.0,
         cancel: String,
         placeholder: String,
         isSearchActive: Bool,
@@ -45,6 +47,7 @@ public final class NavigationSearchComponent: Component {
         updateQuery: @escaping (String) -> Void
     ) {
         self.colors = colors
+        self.fontSize = fontSize
         self.cancel = cancel
         self.placeholder = placeholder
         self.isSearchActive = isSearchActive
@@ -56,6 +59,9 @@ public final class NavigationSearchComponent: Component {
     
     public static func ==(lhs: NavigationSearchComponent, rhs: NavigationSearchComponent) -> Bool {
         if lhs.colors != rhs.colors {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.cancel != rhs.cancel {
@@ -200,7 +206,7 @@ public final class NavigationSearchComponent: Component {
                 let buttonSize = button.update(
                     transition: buttonTransition,
                     component: AnyComponent(Button(
-                        content: AnyComponent(Text(text: component.cancel, font: Font.regular(17.0), color: component.colors.button)),
+                        content: AnyComponent(Text(text: component.cancel, font: Font.regular(component.fontSize), color: component.colors.button)),
                         action: { [weak self] in
                             guard let self, let component = self.component else {
                                 return
@@ -251,7 +257,7 @@ public final class NavigationSearchComponent: Component {
             
             let placeholderSize = self.placeholderText.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: component.placeholder, font: Font.regular(17.0), color: component.colors.inactiveForeground)),
+                component: AnyComponent(Text(text: component.placeholder, font: Font.regular(component.fontSize), color: component.colors.inactiveForeground)),
                 environment: {},
                 containerSize: CGSize(width: backgroundFrame.width - fieldSideInset * 2.0, height: backgroundFrame.height)
             )
@@ -297,7 +303,7 @@ public final class NavigationSearchComponent: Component {
                 
                 if textField.textColor != component.colors.foreground {
                     textField.textColor = component.colors.foreground
-                    textField.font = Font.regular(17.0)
+                    textField.font = Font.regular(component.fontSize)
                 }
                 
                 let textLeftInset: CGFloat = fieldSideInset + searchIconSize.width + searchIconSpacing

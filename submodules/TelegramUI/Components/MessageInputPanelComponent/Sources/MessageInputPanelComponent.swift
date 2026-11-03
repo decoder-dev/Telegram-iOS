@@ -1327,6 +1327,8 @@ public final class MessageInputPanelComponent: Component {
                 accentColor = UIColor(rgb: 0xffffff)
             }
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             let textFieldSize = self.textField.update(
                 transition: .immediate,
                 component: AnyComponent(TextFieldComponent(
@@ -1334,7 +1336,7 @@ public final class MessageInputPanelComponent: Component {
                     theme: component.theme,
                     strings: component.strings,
                     externalState: self.textFieldExternalState,
-                    fontSize: 17.0,
+                    fontSize: fontSize,
                     textColor: textColor,
                     accentColor: accentColor,
                     insets: UIEdgeInsets(top: 9.0, left: 8.0, bottom: 10.0, right: component.style == .gift ? (component.displayGiftSendButton ? 32.0 + giftSendButtonContainerSize.width + giftSendButtonRightInset + 4.0 : 32.0) : 48.0),
@@ -1384,7 +1386,7 @@ public final class MessageInputPanelComponent: Component {
                 }
                 self.currentPlaceholderType = placeholderType
                                 
-                let attributedPlaceholder = NSMutableAttributedString(string: string, font:Font.regular(17.0), textColor: placeholderColor)
+                let attributedPlaceholder = NSMutableAttributedString(string: string, font:Font.regular(fontSize), textColor: placeholderColor)
                 if let range = attributedPlaceholder.string.range(of: "#") {
                     attributedPlaceholder.addAttribute(.attachment, value: PresentationResourcesChat.chatPlaceholderStarIcon(component.theme)!, range: NSRange(range, in: attributedPlaceholder.string))
                     attributedPlaceholder.addAttribute(.foregroundColor, value: placeholderColor, range: NSRange(range, in: attributedPlaceholder.string))
@@ -1398,7 +1400,7 @@ public final class MessageInputPanelComponent: Component {
                     containerSize: availableTextFieldSize
                 )
                 
-                let vibrancyAttributedPlaceholder = NSMutableAttributedString(string: string, font:Font.regular(17.0), textColor: UIColor.black)
+                let vibrancyAttributedPlaceholder = NSMutableAttributedString(string: string, font:Font.regular(fontSize), textColor: UIColor.black)
                 if let range = vibrancyAttributedPlaceholder.string.range(of: "#") {
                     vibrancyAttributedPlaceholder.addAttribute(.attachment, value: PresentationResourcesChat.chatPlaceholderStarIcon(component.theme)!, range: NSRange(range, in: vibrancyAttributedPlaceholder.string))
                     vibrancyAttributedPlaceholder.addAttribute(.foregroundColor, value: UIColor.black, range: NSRange(range, in: vibrancyAttributedPlaceholder.string))
@@ -1440,7 +1442,7 @@ public final class MessageInputPanelComponent: Component {
                 placeholderSize = self.placeholder.update(
                     transition: placeholderTransition,
                     component: AnyComponent(AnimatedTextComponent(
-                        font: Font.regular(17.0),
+                        font: Font.regular(fontSize),
                         color: placeholderColor,
                         items: placeholderItems
                     )),
@@ -1451,7 +1453,7 @@ public final class MessageInputPanelComponent: Component {
                 let _ = self.vibrancyPlaceholder.update(
                     transition: placeholderTransition,
                     component: AnyComponent(AnimatedTextComponent(
-                        font: Font.regular(17.0),
+                        font: Font.regular(fontSize),
                         color: .black,
                         items: placeholderItems
                     )),
@@ -1826,7 +1828,7 @@ public final class MessageInputPanelComponent: Component {
                 switch disabledPlaceholderValue {
                 case let .text(text):
                     contents = AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: text, font: Font.regular(17.0), textColor: UIColor(rgb: 0xffffff, alpha: 0.3)))
+                        text: .plain(NSAttributedString(string: text, font: Font.regular(fontSize), textColor: UIColor(rgb: 0xffffff, alpha: 0.3)))
                     ))
                 case let .premiumRequired(title, subtitle, action), let .boostRequired(title, subtitle, action):
                     leftAlignment = true

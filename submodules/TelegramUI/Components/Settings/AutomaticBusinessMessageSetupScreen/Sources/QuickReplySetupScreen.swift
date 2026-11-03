@@ -925,6 +925,8 @@ final class QuickReplySetupScreenComponent: Component {
             }
             
             let environment = environment[EnvironmentType.self].value
+            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             let themeUpdated = self.environment?.theme !== environment.theme
             self.environment = environment
             
@@ -1028,7 +1030,7 @@ final class QuickReplySetupScreenComponent: Component {
                         fieldStyle: .glass,
                         displayBackground: false
                     )
-                    searchBarNode.placeholderString = NSAttributedString(string: environment.strings.Common_Search, font: Font.regular(17.0), textColor: searchBarTheme.placeholder)
+                    searchBarNode.placeholderString = NSAttributedString(string: environment.strings.Common_Search, font: Font.regular(fontSize), textColor: searchBarTheme.placeholder)
                     self.searchBarNode = searchBarNode
                     searchBarNode.cancel = { [weak self] in
                         guard let self else {
@@ -1114,7 +1116,7 @@ final class QuickReplySetupScreenComponent: Component {
                         theme: environment.theme,
                         content: AnyComponentWithIdentity(id: 0, component: AnyComponent(PlainButtonComponent(
                             content: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: buttonTitle, font: Font.regular(17.0), textColor: environment.theme.list.itemDestructiveColor))
+                                text: .plain(NSAttributedString(string: buttonTitle, font: Font.regular(fontSize), textColor: environment.theme.list.itemDestructiveColor))
                             )),
                             background: nil,
                             effectAlignment: .center,
@@ -1234,7 +1236,7 @@ final class QuickReplySetupScreenComponent: Component {
                 let emptySearchStateSize = emptySearchState.update(
                     transition: .immediate,
                     component: AnyComponent(BalancedTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.Conversation_SearchNoResults, font: Font.regular(17.0), textColor: environment.theme.list.freeTextColor, paragraphAlignment: .center)),
+                        text: .plain(NSAttributedString(string: environment.strings.Conversation_SearchNoResults, font: Font.regular(fontSize), textColor: environment.theme.list.freeTextColor, paragraphAlignment: .center)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0
                     )),

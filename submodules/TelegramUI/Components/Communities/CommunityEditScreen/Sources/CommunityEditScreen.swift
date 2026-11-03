@@ -432,12 +432,13 @@ private final class CommunityAvatarComponent: Component {
             }
 
             let actionButtonText = hasAvatar ? component.strings.Settings_ChangePhoto : component.strings.Settings_SetPhoto
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let actionButtonSize = self.actionButton.update(
                 transition: .immediate,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(Text(
                         text: actionButtonText,
-                        font: Font.regular(17.0),
+                        font: Font.regular(fontSize),
                         color: component.theme.list.itemAccentColor
                     )),
                     contentInsets: UIEdgeInsets(top: -8.0, left: -8.0, bottom: -8.0, right: -8.0),
@@ -501,11 +502,13 @@ private final class ItemAccessoryComponent: Component {
 
     let count: Int32?
     let countStyle: CountStyle
+    let fontSize: CGFloat
     let theme: PresentationTheme
 
-    init(count: Int32?, countStyle: CountStyle, theme: PresentationTheme) {
+    init(count: Int32?, countStyle: CountStyle, fontSize: CGFloat = 17.0, theme: PresentationTheme) {
         self.count = count
         self.countStyle = countStyle
+        self.fontSize = fontSize
         self.theme = theme
     }
 
@@ -514,6 +517,9 @@ private final class ItemAccessoryComponent: Component {
             return false
         }
         if lhs.countStyle != rhs.countStyle {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.theme !== rhs.theme {
@@ -556,7 +562,7 @@ private final class ItemAccessoryComponent: Component {
                 switch component.countStyle {
                 case .plain:
                     textColor = component.theme.list.itemSecondaryTextColor
-                    font = Font.regular(17.0)
+                    font = Font.regular(component.fontSize)
                     backgroundColor = nil
                     textConstrainedSize = CGSize(width: 80.0, height: 30.0)
                 case .badge:
@@ -1785,6 +1791,7 @@ private final class CommunityEditScreenComponent: Component {
                     component: AnyComponentWithIdentity(id: "\(id)-accessory-\(count ?? 0)", component: AnyComponent(ItemAccessoryComponent(
                         count: count,
                         countStyle: countStyle,
+                        fontSize: presentationData.listsFontSize.itemListBaseFontSize,
                         theme: theme
                     ))),
                     insets: UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 16.0),

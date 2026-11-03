@@ -569,6 +569,7 @@ final class TextProcessingContentComponent: Component {
             
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             let theme = environment.theme.withModalBlocksBackground()
+            let fontSize = component.context.sharedContext.currentPresentationData.with({ $0 }).listsFontSize.baseDisplaySize
             
             let isFirstTime = self.component == nil
 
@@ -1196,7 +1197,7 @@ final class TextProcessingContentComponent: Component {
                             MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: environment.strings.Translate_CopyTranslation,
-                                    font: Font.regular(17.0),
+                                    font: Font.regular(fontSize),
                                     textColor: theme.list.itemAccentColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -1216,7 +1217,7 @@ final class TextProcessingContentComponent: Component {
                             MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: environment.strings.Localization_TranslateEntireChat,
-                                    font: Font.regular(17.0),
+                                    font: Font.regular(fontSize),
                                     textColor: theme.list.itemAccentColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -1535,6 +1536,7 @@ private final class TextProcessingSheetComponent: Component {
             self.environment = environmentValue
             let controller = environmentValue.controller
             let theme = environmentValue.theme.withModalBlocksBackground()
+            let fontSize = component.context.sharedContext.currentPresentationData.with({ $0 }).listsFontSize.baseDisplaySize
 
             let dismiss: (Bool) -> Void = { [weak self] animated in
                 if animated {
@@ -1854,6 +1856,7 @@ private final class TextProcessingSheetComponent: Component {
                     )),
                     titleItem: titleString.isEmpty ? nil : AnyComponent(TitleComponent(
                         theme: theme,
+                        fontSize: fontSize,
                         title: titleString,
                         isProcessing: self.contentExternalState.isProcessing,
                         lottieSettings: component.context.lottieRenderingSettings
@@ -1900,6 +1903,7 @@ private final class TextProcessingSheetComponent: Component {
                         ActionButtonsComponent(
                             theme: theme,
                             strings: environmentValue.strings,
+                            fontSize: fontSize,
                             actionTitle: actionButtonTitle,
                             actionButtonShowsIncreaseLimit: actionButtonShowsIncreaseLimit,
                             action: isMainActionEnabled ? performMainAction : nil,
@@ -2407,17 +2411,20 @@ public class TextProcessingScreen: ViewControllerComponentContainer {
 
 private final class TitleComponent: Component {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let title: String
     let isProcessing: Bool
     let lottieSettings: LottieRenderingSettings
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat = 17.0,
         title: String,
         isProcessing: Bool,
         lottieSettings: LottieRenderingSettings
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.title = title
         self.isProcessing = isProcessing
         self.lottieSettings = lottieSettings
@@ -2425,6 +2432,9 @@ private final class TitleComponent: Component {
     
     static func ==(lhs: TitleComponent, rhs: TitleComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.title != rhs.title {
@@ -2458,7 +2468,7 @@ private final class TitleComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(component.fontSize), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -2539,6 +2549,7 @@ private final class ActionButtonsComponent: Component {
     
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let actionTitle: String
     let actionButtonShowsIncreaseLimit: Bool
     let action: (() -> Void)?
@@ -2549,6 +2560,7 @@ private final class ActionButtonsComponent: Component {
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: CGFloat = 17.0,
         actionTitle: String,
         actionButtonShowsIncreaseLimit: Bool,
         action: (() -> Void)?,
@@ -2558,6 +2570,7 @@ private final class ActionButtonsComponent: Component {
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.actionTitle = actionTitle
         self.actionButtonShowsIncreaseLimit = actionButtonShowsIncreaseLimit
         self.action = action
@@ -2571,6 +2584,9 @@ private final class ActionButtonsComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.actionTitle != rhs.actionTitle {
@@ -2624,7 +2640,7 @@ private final class ActionButtonsComponent: Component {
             
             var actionButtonContents: [AnyComponentWithIdentity<Empty>] = []
             actionButtonContents.append(AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: component.actionTitle, font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor))
+                text: .plain(NSAttributedString(string: component.actionTitle, font: Font.semibold(component.fontSize), textColor: component.theme.list.itemCheckColors.foregroundColor))
             ))))
             if component.actionButtonShowsIncreaseLimit {
                 actionButtonContents.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(IncreaseLimitBadgeComponent(

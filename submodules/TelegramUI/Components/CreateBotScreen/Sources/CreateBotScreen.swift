@@ -204,6 +204,8 @@ final class CreateBotContentComponent: Component {
             
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             let isFirstTime = self.component == nil
             self.component = component
             self.environment = environment
@@ -475,8 +477,8 @@ final class CreateBotContentComponent: Component {
                             autocorrectionType: .no,
                             keyboardType: .asciiCapable,
                             characterLimit: CreateBotUsername.maxLength,
-                            prefix: NSAttributedString(string: "@", font: Font.regular(17.0), textColor: environment.theme.list.itemPrimaryTextColor),
-                            suffix: resolvedUsername.appendedSuffix.flatMap { NSAttributedString(string: $0, font: Font.regular(17.0), textColor: environment.theme.list.itemSecondaryTextColor) },
+                            prefix: NSAttributedString(string: "@", font: Font.regular(fontSize), textColor: environment.theme.list.itemPrimaryTextColor),
+                            suffix: resolvedUsername.appendedSuffix.flatMap { NSAttributedString(string: $0, font: Font.regular(fontSize), textColor: environment.theme.list.itemSecondaryTextColor) },
                             rightAccessory: ListMultilineTextFieldItemComponent.RightAccessory(component: AnyComponentWithIdentity(
                                 id: 0,
                                 component: AnyComponent(EditLabelComponent(

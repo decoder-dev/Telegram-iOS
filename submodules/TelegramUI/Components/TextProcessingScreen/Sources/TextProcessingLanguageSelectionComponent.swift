@@ -375,6 +375,7 @@ final class TextProcessingLanguageSelectionComponent: Component {
                             transition: itemTransition,
                             component: AnyComponent(LanguageItemComponent(
                                 theme: component.theme,
+                                fontSize: fontSize,
                                 title: item.name,
                                 isSelected: item.languageCode == component.selectedLanguageCode,
                                 action: { [weak self] in
@@ -426,6 +427,8 @@ final class TextProcessingLanguageSelectionComponent: Component {
             self.component = component
             self.state = state
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             if self.mainItems.isEmpty {
                 self.mainItems = supportedTranslationLanguages.compactMap { item in
                     return Language(id: item, languageCode: item, name: localizedLanguageName(strings: component.strings, language: item, kind: .neutral))
@@ -471,6 +474,7 @@ final class TextProcessingLanguageSelectionComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(LanguageItemComponent(
                     theme: component.theme,
+                    fontSize: fontSize,
                     title: "A",
                     isSelected: false,
                     action: {
@@ -591,6 +595,7 @@ final class TextProcessingLanguageSelectionComponent: Component {
                 transition: transition,
                 component: AnyComponent(SearchItemComponent(
                     theme: component.theme,
+                    fontSize: fontSize,
                     placeholder: component.strings.Common_Search,
                     externalState: self.searchExternalState,
                     valueChanged: { [weak self] query in
@@ -740,17 +745,20 @@ final class TextProcessingLanguageSelectionComponent: Component {
 
 private final class LanguageItemComponent: Component {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let title: String
     let isSelected: Bool
     let action: () -> Void
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat = 17.0,
         title: String,
         isSelected: Bool,
         action: @escaping () -> Void
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.title = title
         self.isSelected = isSelected
         self.action = action
@@ -758,6 +766,9 @@ private final class LanguageItemComponent: Component {
     
     static func ==(lhs: LanguageItemComponent, rhs: LanguageItemComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.title != rhs.title {
@@ -807,7 +818,7 @@ private final class LanguageItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: component.theme.contextMenu.primaryColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(component.fontSize), textColor: component.theme.contextMenu.primaryColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftTitleInset - rightTitleInset, height: 100.0)
@@ -1037,17 +1048,20 @@ private final class SearchItemComponent: Component {
     }
 
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let placeholder: String
     let externalState: ExternalState
     let valueChanged: (String) -> Void
 
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat = 17.0,
         placeholder: String,
         externalState: ExternalState,
         valueChanged: @escaping (String) -> Void
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.placeholder = placeholder
         self.externalState = externalState
         self.valueChanged = valueChanged
@@ -1055,6 +1069,9 @@ private final class SearchItemComponent: Component {
 
     static func ==(lhs: SearchItemComponent, rhs: SearchItemComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.placeholder != rhs.placeholder {
@@ -1139,12 +1156,12 @@ private final class SearchItemComponent: Component {
             // Text field
             let inputInset: CGFloat = 60.0
             let inputRightInset: CGFloat = 36.0
-            self.textField.font = Font.regular(17.0)
+            self.textField.font = Font.regular(component.fontSize)
             self.textField.textColor = component.theme.contextMenu.primaryColor
             self.textField.attributedPlaceholder = NSAttributedString(
                 string: component.placeholder,
                 attributes: [
-                    .font: Font.regular(17.0),
+                    .font: Font.regular(component.fontSize),
                     .foregroundColor: component.theme.contextMenu.secondaryColor
                 ]
             )

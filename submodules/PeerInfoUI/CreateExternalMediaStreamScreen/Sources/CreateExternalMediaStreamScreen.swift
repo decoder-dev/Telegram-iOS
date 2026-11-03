@@ -212,6 +212,7 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
             let bottomBandCenterX: CGFloat = bottomBandMinX + bottomBandWidth / 2.0
             
             let theme = environment.theme.withModalBlocksBackground()
+            let fontSize = state.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let mode = context.component.mode
             let controller = environment.controller
@@ -278,7 +279,7 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
             let title = title.update(
                 component: Text(
                     text: titleString,
-                    font: Font.semibold(17.0),
+                    font: Font.semibold(fontSize),
                     color: theme.list.itemPrimaryTextColor
                 ),
                 availableSize: context.availableSize,
@@ -326,7 +327,7 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
                 )
             }
             
-            let buttonAttributedString = NSMutableAttributedString(string: mode.isCreate ? environment.strings.CreateExternalStream_StartStreaming : environment.strings.Common_Close, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSMutableAttributedString(string: mode.isCreate ? environment.strings.CreateExternalStream_StartStreaming : environment.strings.Common_Close, font: Font.semibold(fontSize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             let button = button.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
@@ -397,7 +398,7 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
                                     maximumNumberOfLines: 1
                                 ))),
                                 AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
-                                    text: .plain(NSAttributedString(string: credentials.url, font: Font.regular(17.0), textColor: theme.list.itemAccentColor, paragraphAlignment: .left)),
+                                    text: .plain(NSAttributedString(string: credentials.url, font: Font.regular(fontSize), textColor: theme.list.itemAccentColor, paragraphAlignment: .left)),
                                     horizontalAlignment: .left,
                                     truncationType: .middle,
                                     maximumNumberOfLines: 1
@@ -443,7 +444,7 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
                                     maximumNumberOfLines: 1
                                 ))),
                                 AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
-                                    text: .plain(NSAttributedString(string: credentials.streamKey, font: Font.regular(17.0), textColor: theme.list.itemAccentColor, paragraphAlignment: .left)),
+                                    text: .plain(NSAttributedString(string: credentials.streamKey, font: Font.regular(fontSize), textColor: theme.list.itemAccentColor, paragraphAlignment: .left)),
                                     horizontalAlignment: .left,
                                     truncationType: .middle,
                                     maximumNumberOfLines: 1
@@ -480,7 +481,7 @@ private final class CreateExternalMediaStreamScreenComponent: CombinedComponent 
                             theme: theme,
                             style: .glass,
                             title: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: environment.strings.CreateExternalStream_RevokeStreamKey, font: Font.regular(17.0), textColor: theme.list.itemDestructiveColor)),
+                                text: .plain(NSAttributedString(string: environment.strings.CreateExternalStream_RevokeStreamKey, font: Font.regular(fontSize), textColor: theme.list.itemDestructiveColor)),
                                 horizontalAlignment: .center,
                                 truncationType: .middle,
                                 maximumNumberOfLines: 1
