@@ -243,3 +243,7 @@ Passcode Cancel/Delete и mode button используют минимум 44 pt.
 Оставшиеся ItemList rows (action/switch/placeholder/section header/multiline и single-line input) берут `PresentationLayoutMetrics` для горизонтальных inset и минимума 44 pt; заголовки секций и подписи переносятся при крупном тексте. AccountOrder и соседние peer rows (`ItemListPeerItem`) при крупном тексте переносят title/status/label и не опускаются ниже interactive size.
 
 Premium option rows и CTA на PremiumIntro масштабируются с `listsFontSize`, а ListAction rows держат минимум 44/52 pt. Storage usage: заголовок, описание, Edit/Done, clear button, peer/file/category labels идут через Dynamic Type; peer rows расширяются по тексту. Compose poll option fields читают `listsFontSize` из presentation data и держат минимум interactive height. Theme font/brightness sliders и Recent Sessions header button тоже на метриках. Нативная приёмка по-прежнему NOT RUN.
+
+## Пустые чаты и поиск в группах
+
+`ChatEmptyNode` (обычный/secret/group/cloud/topic/greeting/premium-required и intro footer) масштабирует title/body от `interfaceState.fontSize.baseDisplaySize` и обновляет текст при смене размера шрифта. Group/discussion search navigation bars держат close/search hit targets на `PresentationLayoutMetrics.minimumInteractiveSize` и боковые inset на `listHorizontalInset`. Attachment file empty и EntityKeyboard empty search тоже на Dynamic Type. Branding Liquid: 7 pass. Simulator/видеоприёмка NOT RUN.
