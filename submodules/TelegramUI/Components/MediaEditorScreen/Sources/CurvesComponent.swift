@@ -153,7 +153,6 @@ final class CurvesComponent: Component {
             
             let fontSize = component.listsFontSizeBase
             let channelLabelFont = Font.bold(floor(fontSize * 13.0 / 17.0))
-            let axisValueFont = Font.medium(floor(fontSize * 13.0 / 17.0))
                     
             let topInset: CGFloat = 11.0
             let allButtonSize = self.allButton.update(
@@ -546,7 +545,7 @@ final class CurvesScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: String(format: "%.2f", value.blacks),
-                                font: axisValueFont,
+                                font: Font.medium(13.0),
                                 textColor: UIColor(rgb: 0xffffff)
                             )
                         ),
@@ -573,7 +572,7 @@ final class CurvesScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: String(format: "%.2f", value.shadows),
-                                font: axisValueFont,
+                                font: Font.medium(13.0),
                                 textColor: UIColor(rgb: 0xffffff)
                             )
                         ),
@@ -600,7 +599,7 @@ final class CurvesScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: String(format: "%.2f", value.midtones),
-                                font: axisValueFont,
+                                font: Font.medium(13.0),
                                 textColor: UIColor(rgb: 0xffffff)
                             )
                         ),
@@ -627,7 +626,7 @@ final class CurvesScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: String(format: "%.2f", value.highlights),
-                                font: axisValueFont,
+                                font: Font.medium(13.0),
                                 textColor: UIColor(rgb: 0xffffff)
                             )
                         ),
@@ -654,7 +653,7 @@ final class CurvesScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: String(format: "%.2f", value.whites),
-                                font: axisValueFont,
+                                font: Font.medium(13.0),
                                 textColor: UIColor(rgb: 0xffffff)
                             )
                         ),

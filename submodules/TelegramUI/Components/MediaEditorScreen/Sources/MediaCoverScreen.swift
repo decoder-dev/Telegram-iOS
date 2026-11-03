@@ -204,7 +204,7 @@ private final class MediaCoverScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(Button(
                     content: AnyComponent(
-                        MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Common_Cancel, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: .white)))
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Common_Cancel, font: Font.regular(17.0), textColor: .white)))
                     ),
                     action: { [weak controller] in
                         controller?.requestDismiss(animated: true)
@@ -288,7 +288,7 @@ private final class MediaCoverScreenComponent: Component {
             
             let labelSize = self.label.update(
                 transition: transition,
-                component: AnyComponent(Text(text: environment.strings.Story_Cover, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: UIColor(rgb: 0xffffff))),
+                component: AnyComponent(Text(text: environment.strings.Story_Cover, font: Font.semibold(17.0), color: UIColor(rgb: 0xffffff))),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - 88.0, height: 44.0)
             )

@@ -368,7 +368,7 @@ public final class GiftStoreContentComponent: Component {
                     PlainButtonComponent(
                         content: AnyComponent(
                             MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: component.strings.Gift_Store_ClearFilters, font: Font.regular(fontSize), textColor: component.theme.list.itemAccentColor)),
+                                text: .plain(NSAttributedString(string: component.strings.Gift_Store_ClearFilters, font: Font.regular(17.0), textColor: component.theme.list.itemAccentColor)),
                                 horizontalAlignment: .center,
                                 maximumNumberOfLines: 0
                             )
@@ -414,7 +414,7 @@ public final class GiftStoreContentComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: component.strings.Gift_Store_EmptyResults, font: Font.semibold(fontSize), textColor: component.theme.list.itemPrimaryTextColor)),
+                            text: .plain(NSAttributedString(string: component.strings.Gift_Store_EmptyResults, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor)),
                             horizontalAlignment: .center
                         )
                     ),
@@ -1514,14 +1514,14 @@ final class GiftStoreScreenComponent: Component {
                 let starsFilterSize = self.starsFilter.update(
                     transition: transition,
                     component: AnyComponent(
-                        StarsFilterComponent(theme: theme, text: environment.strings.Gift_Store_ShowStarsListings, isSelected: component.resaleGiftsContext.currentState?.starsOnly ?? false, fontSize: fontSize, selectionUpdated: { [weak self] starsOnly in
+                        StarsFilterComponent(theme: theme, text: environment.strings.Gift_Store_ShowStarsListings, isSelected: component.resaleGiftsContext.currentState?.starsOnly ?? false, selectionUpdated: { [weak self] starsOnly in
                             guard let self else {
                                 return
                             }
                             if let contentView = self.content.view as? GiftStoreContentComponent.View {
                                 contentView.updateStarsOnly(starsOnly)
                             }
-                        })
+                        }, fontSize: 17.0)
                     ),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width - headerSideInset * 2.0, height: 100.0)

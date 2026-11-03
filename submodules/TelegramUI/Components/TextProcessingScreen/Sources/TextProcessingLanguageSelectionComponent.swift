@@ -427,7 +427,6 @@ final class TextProcessingLanguageSelectionComponent: Component {
             self.component = component
             self.state = state
             
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             if self.mainItems.isEmpty {
                 self.mainItems = supportedTranslationLanguages.compactMap { item in

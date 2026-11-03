@@ -691,7 +691,6 @@ private final class CounterpartyRowComponent: CombinedComponent {
         let sendButton = Child(environment: Empty.self)
 
         return { context in
-            let fontSize: CGFloat = 17.0
             let sendButton = sendButton.update(
                 component: context.component.sendButton,
                 availableSize: context.availableSize,

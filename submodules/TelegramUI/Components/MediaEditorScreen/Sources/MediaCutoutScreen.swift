@@ -399,7 +399,7 @@ private final class MediaCutoutScreenComponent: Component {
             
             let labelSize = self.label.update(
                 transition: transition,
-                component: AnyComponent(Text(text: helpText, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), color: UIColor(rgb: 0x8d8d93))),
+                component: AnyComponent(Text(text: helpText, font: Font.regular(17.0), color: UIColor(rgb: 0x8d8d93))),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - 88.0, height: 44.0)
             )
