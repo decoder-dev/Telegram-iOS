@@ -30,12 +30,11 @@ class TouchTargets(unittest.TestCase):
         text = source('submodules/ContactListUI/Sources/LimitedPermissionItem.swift')
         button = re.search(r'^\s*let actionButtonSize = .*$', text, re.MULTILINE)[0]
         metrics = source('submodules/TelegramPresentationData/Sources/PresentationLayoutMetrics.swift')
-        fixture = '''import Foundation
+        fixture = metrics + '''
 struct LabelLayout { let size: CGSize }
 for width: CGFloat in [0, 24, 120, 200] {
     for height: CGFloat in [0, 18, 32, 72, 120] {
         let buttonTextLayout = LabelLayout(size: CGSize(width: width, height: height))
-''' + metrics + '''
 ''' + button
         fixture += '''
         precondition(actionButtonSize.width >= 44)

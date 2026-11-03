@@ -5,6 +5,7 @@ import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[2]
 source = (root / 'submodules/CallListUI/Sources/CallListEmptyStateLayout.swift').read_text()
+metrics = (root / 'submodules/TelegramPresentationData/Sources/PresentationLayoutMetrics.swift').read_text()
 checks = '''
 var cases = 0
 for width: CGFloat in [272.0, 320.0, 393.0, 720.0] {
@@ -40,5 +41,5 @@ print("Call empty state: \\(cases) viewport/text/button combinations passed")
 '''
 with tempfile.TemporaryDirectory(prefix='liquid-calls-layout-') as directory:
     path = pathlib.Path(directory) / 'main.swift'
-    path.write_text('#if canImport(CoreGraphics)\nimport CoreGraphics\n#endif\n' + source + checks)
+    path.write_text('#if canImport(CoreGraphics)\nimport CoreGraphics\n#endif\n' + metrics + '\n' + source + checks)
     subprocess.run(['swift', str(path)], check=True, cwd=root)
