@@ -66,6 +66,7 @@ class BazelResourcesTests(unittest.TestCase):
             for name, value in dict(bazel_user_root=None, lock=False, custom_target=None,
                 continue_on_error=True, show_actions=False, enable_sandbox=False,
                 disable_provisioning_profiles=False, disable_extensions=True,
+                additional_args=None,
                 common_args=[], common_build_args=['--define=watchApiHash=api-hash-sentinel'], build_number=1,
                 embed_watch_app=False, split_submodules=False, remote_cache='https://user:cache-token-sentinel@cache.example',
                 cache_dir=None, profile_swift=False, configuration_args=[],

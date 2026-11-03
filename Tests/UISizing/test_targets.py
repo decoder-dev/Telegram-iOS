@@ -81,8 +81,8 @@ for width: CGFloat in [0, 24, 120, 200] {
 
     def test_header_has_room_for_action(self):
         text = source('submodules/ItemListUI/Sources/Items/ItemListSectionHeaderItem.swift')
-        self.assertIn('max(44.0, actionLayout.size.width)', text)
-        self.assertIn('max(44.0, actionLayoutAndApply!.0.size.height)', text)
+        self.assertIn('max(PresentationLayoutMetrics.minimumInteractiveSize, actionLayout.size.width)', text)
+        self.assertIn('max(PresentationLayoutMetrics.minimumInteractiveSize, actionLayoutAndApply!.0.size.height)', text)
         self.assertIn('height: contentSize.height)', text)
 
     def test_cancel_recording_expands_both_axes(self):
