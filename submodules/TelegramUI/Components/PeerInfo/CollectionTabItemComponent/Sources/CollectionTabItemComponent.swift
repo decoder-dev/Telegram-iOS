@@ -70,10 +70,11 @@ public final class CollectionTabItemComponent: Component {
             let selectedColor = component.theme.list.itemPrimaryTextColor
             let effectiveColor = normalColor.mixedWith(selectedColor, alpha: environment.selectionFraction)
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.medium(14.0), textColor: effectiveColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.medium(floor(fontSize * 14.0 / 17.0)), textColor: effectiveColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)

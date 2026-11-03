@@ -167,7 +167,7 @@ public final class ContextActionNode: ASDisplayNode, ContextActionNodeProtocol {
                 badgeFillColor = presentationData.theme.contextMenu.badgeInactiveFillColor
             }
             self.badgeBackgroundNode.image = generateStretchableFilledCircleImage(diameter: 18.0, color: badgeFillColor)
-            self.badgeTextNode.attributedText = NSAttributedString(string: badge.value, font: Font.regular(14.0), textColor: badgeForegroundColor)
+            self.badgeTextNode.attributedText = NSAttributedString(string: badge.value, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: badgeForegroundColor)
         }
         self.badgeTextNode.isAccessibilityElement = false
         self.badgeTextNode.isUserInteractionEnabled = false
@@ -370,7 +370,7 @@ public final class ContextActionNode: ASDisplayNode, ContextActionNodeProtocol {
         }
         
         self.badgeBackgroundNode.image = generateStretchableFilledCircleImage(diameter: 18.0, color: presentationData.theme.contextMenu.badgeFillColor)
-        self.badgeTextNode.attributedText = NSAttributedString(string: self.badgeTextNode.attributedText?.string ?? "", font: Font.regular(14.0), textColor: presentationData.theme.contextMenu.badgeForegroundColor)
+        self.badgeTextNode.attributedText = NSAttributedString(string: self.badgeTextNode.attributedText?.string ?? "", font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: presentationData.theme.contextMenu.badgeForegroundColor)
     }
     
     @objc private func buttonPressed() {

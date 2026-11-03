@@ -100,11 +100,13 @@ private final class PeerCopyProtectionInfoSheetContent: CombinedComponent {
            
             let theme = environment.theme
             let strings = environment.strings
+            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             
             let sideInset: CGFloat = 30.0 + environment.safeInsets.left
             let textSideInset: CGFloat = 30.0 + environment.safeInsets.left
             
-            let titleFont = Font.bold(24.0)
+            let titleFont = Font.bold(floor(fontSize * 24.0 / 17.0))
             
             let textColor = theme.actionSheet.primaryTextColor
             let secondaryTextColor = theme.actionSheet.secondaryTextColor
@@ -156,7 +158,8 @@ private final class PeerCopyProtectionInfoSheetContent: CombinedComponent {
                         textColor: secondaryTextColor,
                         accentColor: linkColor,
                         iconName: "Premium/CopyProtection/NoScreenshot",
-                        iconColor: linkColor
+                        iconColor: linkColor,
+                        fontSize: fontSize
                     ))
                 )
             )
@@ -170,7 +173,8 @@ private final class PeerCopyProtectionInfoSheetContent: CombinedComponent {
                         textColor: secondaryTextColor,
                         accentColor: linkColor,
                         iconName: "Premium/CopyProtection/NoForward",
-                        iconColor: linkColor
+                        iconColor: linkColor,
+                        fontSize: fontSize
                     ))
                 )
             )
@@ -184,7 +188,8 @@ private final class PeerCopyProtectionInfoSheetContent: CombinedComponent {
                         textColor: secondaryTextColor,
                         accentColor: linkColor,
                         iconName: "Premium/CopyProtection/NoDownload",
-                        iconColor: linkColor
+                        iconColor: linkColor,
+                        fontSize: fontSize
                     ))
                 )
             )

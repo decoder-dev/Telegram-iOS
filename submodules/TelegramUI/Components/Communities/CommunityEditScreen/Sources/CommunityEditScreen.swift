@@ -505,7 +505,7 @@ private final class ItemAccessoryComponent: Component {
     let fontSize: CGFloat
     let theme: PresentationTheme
 
-    init(count: Int32?, countStyle: CountStyle, fontSize: CGFloat = 17.0, theme: PresentationTheme) {
+    init(count: Int32?, countStyle: CountStyle, fontSize: CGFloat, theme: PresentationTheme) {
         self.count = count
         self.countStyle = countStyle
         self.fontSize = fontSize
@@ -567,7 +567,7 @@ private final class ItemAccessoryComponent: Component {
                     textConstrainedSize = CGSize(width: 80.0, height: 30.0)
                 case .badge:
                     textColor = component.theme.list.itemCheckColors.foregroundColor
-                    font = Font.medium(12.0)
+                    font = Font.medium(floor(component.fontSize * 12.0 / 17.0))
                     backgroundColor = component.theme.list.itemCheckColors.fillColor
                     textConstrainedSize = CGSize(width: 80.0, height: 20.0)
                 }
@@ -1737,7 +1737,7 @@ private final class CommunityEditScreenComponent: Component {
                     AnyComponentWithIdentity(id: "subtitle", component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: subtitle,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)),
                             textColor: theme.list.itemSecondaryTextColor
                         )),
                         maximumNumberOfLines: 0

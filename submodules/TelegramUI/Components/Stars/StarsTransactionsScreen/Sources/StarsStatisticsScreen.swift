@@ -455,7 +455,7 @@ final class StarsStatisticsScreenComponent: Component {
                     footer: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: component.peerId == component.context.account.peerId ? strings.Stars_AccountRevenue_Proceeds_Info : strings.Stars_BotRevenue_Proceeds_Info,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -501,7 +501,7 @@ final class StarsStatisticsScreenComponent: Component {
             contentHeight += proceedsSize.height
             contentHeight += 31.0
             
-            let termsFont = Font.regular(13.0)
+            let termsFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0))
             let termsTextColor = environment.theme.list.freeTextColor
             let termsMarkdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: termsFont, textColor: termsTextColor), bold: MarkdownAttributeSet(font: termsFont, textColor: termsTextColor), link: MarkdownAttributeSet(font: termsFont, textColor: environment.theme.list.itemAccentColor), linkAttribute: { contents in
                 return (TelegramTextAttributes.URL, contents)

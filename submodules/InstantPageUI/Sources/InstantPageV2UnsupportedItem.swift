@@ -11,6 +11,9 @@ public struct InstantPageV2UnsupportedItem {
     /// Carried on the item because the view is built later, from the item alone — the layout pass
     /// is the last place with access to the page's `PresentationStrings`.
     public let strings: UnsupportedContentPillStrings
+    /// The page's scaled paragraph size, so the view re-measures the pill with the same Dynamic
+    /// Type base the layout pass used.
+    public let fontSize: CGFloat
     /// This pill stands for a block that is a direct child of the page, not one nested in a
     /// container.
     ///
@@ -82,12 +85,13 @@ func layoutUnsupportedBlock(
     horizontalInset: CGFloat,
     strings: UnsupportedContentPillStrings,
     colors: UnsupportedContentPillColors,
+    fontSize: CGFloat,
     isTopLevel: Bool
 ) -> [InstantPageV2LaidOutItem] {
     let contentWidth = max(1.0, boundingWidth - horizontalInset * 2.0)
-    let pillLayout = UnsupportedContentPill.layout(strings: strings, colors: colors, constrainedWidth: contentWidth)
+    let pillLayout = UnsupportedContentPill.layout(strings: strings, colors: colors, constrainedWidth: contentWidth, fontSize: fontSize)
     let frame = CGRect(x: horizontalInset, y: 0.0, width: contentWidth, height: pillLayout.size.height)
-    return [.unsupportedContent(InstantPageV2UnsupportedItem(frame: frame, layout: pillLayout, strings: strings, isTopLevel: isTopLevel))]
+    return [.unsupportedContent(InstantPageV2UnsupportedItem(frame: frame, layout: pillLayout, strings: strings, fontSize: fontSize, isTopLevel: isTopLevel))]
 }
 
 /// Page-space rects a host may cut out of whatever it draws behind the page, one per pill.

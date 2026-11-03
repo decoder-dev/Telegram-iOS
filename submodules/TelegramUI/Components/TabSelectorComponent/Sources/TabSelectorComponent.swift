@@ -149,6 +149,7 @@ public final class TabSelectorComponent: Component {
     public let theme: PresentationTheme
     public let style: Style
     public let customLayout: CustomLayout?
+    public let fontSize: CGFloat
     public let items: [Item]
     public let selectedId: AnyHashable?
     public let reorderItem: ((AnyHashable, AnyHashable) -> Void)?
@@ -163,6 +164,7 @@ public final class TabSelectorComponent: Component {
         theme: PresentationTheme,
         style: Style = .legacy,
         customLayout: CustomLayout? = nil,
+        fontSize: CGFloat = 17.0,
         items: [Item],
         selectedId: AnyHashable?,
         reorderItem: ((AnyHashable, AnyHashable) -> Void)? = nil,
@@ -176,6 +178,7 @@ public final class TabSelectorComponent: Component {
         self.theme = theme
         self.style = style
         self.customLayout = customLayout
+        self.fontSize = fontSize
         self.items = items
         self.selectedId = selectedId
         self.reorderItem = reorderItem
@@ -199,6 +202,9 @@ public final class TabSelectorComponent: Component {
             return false
         }
         if lhs.customLayout != rhs.customLayout {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.items != rhs.items {
@@ -643,7 +649,7 @@ public final class TabSelectorComponent: Component {
                 isLineSelection = customLayout.lineSelection
                 allowScroll = customLayout.allowScroll || component.items.count > 3
             } else {
-                itemFont = Font.semibold(14.0)
+                itemFont = Font.semibold(floor(component.fontSize * 14.0 / 17.0))
                 allowScroll = true
             }
             

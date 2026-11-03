@@ -258,12 +258,14 @@ final class TextProcessingStyleSelectionComponent: Component {
                 itemSizes[.style(style.reference.id)] = measuredSize
             }
             
+            let listsFontSizeBase = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let createStyleItemSize: CGSize = self.createStyleItemView.update(
                 transition: transition,
                 component: AnyComponent(ServiceItemComponent(
                     theme: component.theme,
                     strings: component.strings,
-                    kind: .create
+                    kind: .create,
+                    listsFontSizeBase: listsFontSizeBase
                 )),
                 environment: {},
                 containerSize: CGSize(width: maxItemWidth, height: availableSize.height)
@@ -274,7 +276,8 @@ final class TextProcessingStyleSelectionComponent: Component {
                 component: AnyComponent(ServiceItemComponent(
                     theme: component.theme,
                     strings: component.strings,
-                    kind: .prompt
+                    kind: .prompt,
+                    listsFontSizeBase: listsFontSizeBase
                 )),
                 environment: {},
                 containerSize: CGSize(width: maxItemWidth, height: availableSize.height)
@@ -524,6 +527,7 @@ private final class ItemComponent: Component {
             let previousComponent = self.component
             self.component = component
             self.state = state
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
 
             let iconTintColor = component.theme.list.itemPrimaryTextColor
             
@@ -570,7 +574,7 @@ private final class ItemComponent: Component {
                 ))
             } else {
                 iconComponent = AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: "❌", font: Font.regular(25.0), textColor: .black))
+                    text: .plain(NSAttributedString(string: "❌", font: Font.regular(floor(fontSize * 25.0 / 17.0)), textColor: .black))
                 ))
             }
 
@@ -583,7 +587,7 @@ private final class ItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.medium(10.0), textColor: iconTintColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.medium(floor(fontSize * 10.0 / 17.0)), textColor: iconTintColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -630,15 +634,18 @@ private final class ServiceItemComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
     let kind: Kind
+    let listsFontSizeBase: CGFloat
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
-        kind: Kind
+        kind: Kind,
+        listsFontSizeBase: CGFloat
     ) {
         self.theme = theme
         self.strings = strings
         self.kind = kind
+        self.listsFontSizeBase = listsFontSizeBase
     }
     
     static func ==(lhs: ServiceItemComponent, rhs: ServiceItemComponent) -> Bool {
@@ -649,6 +656,9 @@ private final class ServiceItemComponent: Component {
             return false
         }
         if lhs.kind != rhs.kind {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         return true
@@ -672,6 +682,7 @@ private final class ServiceItemComponent: Component {
         func update(component: ServiceItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.state = state
+            let fontSize = component.listsFontSizeBase
 
             let iconTintColor = component.theme.list.itemPrimaryTextColor
 
@@ -688,7 +699,7 @@ private final class ServiceItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.kind == .prompt ? component.strings.TextProcessing_StyleList_Prompt : component.strings.TextProcessing_StyleList_Add, font: Font.medium(10.0), textColor: iconTintColor))
+                    text: .plain(NSAttributedString(string: component.kind == .prompt ? component.strings.TextProcessing_StyleList_Prompt : component.strings.TextProcessing_StyleList_Add, font: Font.medium(floor(fontSize * 10.0 / 17.0)), textColor: iconTintColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)

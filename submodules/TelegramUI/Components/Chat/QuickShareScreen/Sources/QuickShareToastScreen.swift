@@ -253,16 +253,18 @@ private final class QuickShareToastScreenComponent: Component {
                 containerSize: CGSize(width: availableContentSize.width - contentInsets.left - contentInsets.right - spacing - iconSize.width, height: availableContentSize.height)
             )
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let contentSize = self.content.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
                     text: .markdown(
                         text: tooltipText,
                         attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(14.0), textColor: .white),
-                            bold: MarkdownAttributeSet(font: Font.semibold(14.0), textColor: environment.theme.list.itemAccentColor.withMultiplied(hue: 0.933, saturation: 0.61, brightness: 1.0)),
-                            link: MarkdownAttributeSet(font: Font.regular(14.0), textColor: .white),
-                            linkAttribute: { _ in return nil })
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: .white),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: environment.theme.list.itemAccentColor.withMultiplied(hue: 0.933, saturation: 0.61, brightness: 1.0)),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: .white),
+                            linkAttribute: { _ in return nil }
+                        )
                     ),
                     maximumNumberOfLines: 2
                 )),

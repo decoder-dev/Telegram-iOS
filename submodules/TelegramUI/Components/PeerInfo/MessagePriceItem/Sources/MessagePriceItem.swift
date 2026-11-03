@@ -409,8 +409,9 @@ private class MessagePriceItemNode: ListViewItemNode, ItemListItemNode {
                     strongSelf.topStripeNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: layoutSize.width, height: separatorHeight))
                     strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height + bottomStripeOffset), size: CGSize(width: layoutSize.width - bottomStripeInset - params.rightInset - separatorRightInset, height: separatorHeight))
                     
-                    strongSelf.leftTextNode.attributedText = NSAttributedString(string: "\(item.minValue)", font: Font.regular(13.0), textColor: item.theme.list.itemSecondaryTextColor)
-                    strongSelf.rightTextNode.attributedText = NSAttributedString(string: "\(item.maxValue)", font: Font.regular(13.0), textColor: item.theme.list.itemSecondaryTextColor)
+                    let sideLabelFont = Font.regular(floor(item.fontSize.baseDisplaySize * 13.0 / 17.0))
+                    strongSelf.leftTextNode.attributedText = NSAttributedString(string: "\(item.minValue)", font: sideLabelFont, textColor: item.theme.list.itemSecondaryTextColor)
+                    strongSelf.rightTextNode.attributedText = NSAttributedString(string: "\(item.maxValue)", font: sideLabelFont, textColor: item.theme.list.itemSecondaryTextColor)
                     
                     let centralLeftText = item.value == 0 ? item.strings.Stars_SendMessage_PriceFree : item.strings.Privacy_Messages_Stars(Int32(clamping: item.value))
                     

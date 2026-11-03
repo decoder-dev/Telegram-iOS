@@ -256,7 +256,8 @@ final class LegacyCallControllerNode: ASDisplayNode, CallControllerNodeProtocol 
                     let text = stringForEmojiHashOfData(keyVisualHash, 4)!.joined(separator: "")
                     self.keyTextData = (keyVisualHash, text)
                     
-                    self.keyButtonNode.setAttributedTitle(NSAttributedString(string: text, attributes: [NSAttributedString.Key.font: Font.regular(22.0), NSAttributedString.Key.kern: 2.5 as NSNumber]), for: [])
+                    let keyFontSize = floor(self.presentationData.listsFontSize.baseDisplaySize * 22.0 / 17.0)
+                    self.keyButtonNode.setAttributedTitle(NSAttributedString(string: text, attributes: [NSAttributedString.Key.font: Font.regular(keyFontSize), NSAttributedString.Key.kern: 2.5 as NSNumber]), for: [])
                     
                     let keyTextSize = self.keyButtonNode.measure(CGSize(width: 200.0, height: 200.0))
                     self.keyButtonNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.3)

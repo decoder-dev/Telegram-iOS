@@ -93,6 +93,9 @@ final class BalanceComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
+            let balanceFont = Font.regular(floor(fontSize * 12.0 / 17.0))
+            let balanceBoldFont = Font.semibold(floor(fontSize * 12.0 / 17.0))
 
             var rawString: String = ""
             let starsBalanceString = "**⭐️\(presentationStringsFormattedNumber(Int32(clamping: self.starsBalance), presentationData.dateTimeFormat.groupingSeparator))**"
@@ -106,9 +109,9 @@ final class BalanceComponent: Component {
             let attributedText = parseMarkdownIntoAttributedString(
                 rawString,
                 attributes: MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: Font.regular(12.0), textColor: component.theme.rootController.navigationBar.primaryTextColor),
-                    bold: MarkdownAttributeSet(font: Font.semibold(12.0), textColor: component.theme.rootController.navigationBar.primaryTextColor),
-                    link: MarkdownAttributeSet(font: Font.regular(12.0), textColor: component.theme.rootController.navigationBar.primaryTextColor),
+                    body: MarkdownAttributeSet(font: balanceFont, textColor: component.theme.rootController.navigationBar.primaryTextColor),
+                    bold: MarkdownAttributeSet(font: balanceBoldFont, textColor: component.theme.rootController.navigationBar.primaryTextColor),
+                    link: MarkdownAttributeSet(font: balanceFont, textColor: component.theme.rootController.navigationBar.primaryTextColor),
                     linkAttribute: { _ in
                         return nil
                     }

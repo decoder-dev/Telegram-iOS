@@ -483,9 +483,10 @@ private final class DebugCompanionScreenComponent: Component {
                 if view.superview == nil { self.addSubview(view) }
                 transition.setFrame(view: view, frame: environment.sideColumnNavigationButtonFrame ?? CGRect(x: sideInset, y: top, width: closeSize.width, height: closeSize.height))
             }
+            let fontSize = (self.presentationData ?? component.context.sharedContext.currentPresentationData.with { $0 }).listsFontSize.baseDisplaySize
             let resetSize = self.resetButton.update(transition: transition, component: AnyComponent(GlassBarButtonComponent(
                 size: CGSize(width: 76, height: 44), backgroundColor: nil, isDark: theme.overallDarkAppearance, state: .glass,
-                component: AnyComponentWithIdentity(id: "reset", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "Reset", font: Font.semibold(17), textColor: theme.list.itemPrimaryTextColor))))),
+                component: AnyComponentWithIdentity(id: "reset", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "Reset", font: Font.semibold(fontSize), textColor: theme.list.itemPrimaryTextColor))))),
                 action: { [weak self] _ in self?.reset() }
             )), environment: {}, containerSize: CGSize(width: 76, height: 44))
             if let view = self.resetButton.view {
@@ -515,7 +516,7 @@ private final class DebugCompanionScreenComponent: Component {
                 let foreground = selected ? theme.list.itemCheckColors.foregroundColor : theme.list.itemPrimaryTextColor
                 let size = button.update(transition: transition, component: AnyComponent(ButtonComponent(
                     background: .init(color: selected ? theme.list.itemAccentColor : theme.list.itemPrimaryTextColor.withAlphaComponent(0.08), foreground: foreground, pressedColor: theme.list.itemPrimaryTextColor.withAlphaComponent(0.15), cornerRadius: 22),
-                    content: AnyComponentWithIdentity(id: "number", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "\(index + 1)", font: Font.semibold(17), textColor: foreground))))),
+                    content: AnyComponentWithIdentity(id: "number", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "\(index + 1)", font: Font.semibold(fontSize), textColor: foreground))))),
                     displaysProgress: self.loadingPreset == preset.id,
                     action: { [weak self] in self?.selectPreset(preset) }
                 )), environment: {}, containerSize: CGSize(width: 44, height: 44))
@@ -539,8 +540,8 @@ private final class DebugCompanionScreenComponent: Component {
                     let key = self.rowKey(row)
                     let value = row["value"] as? String ?? "Default"
                     let name = (self.resourceNames[value] ?? value).replacingOccurrences(of: "catalog_", with: "").components(separatedBy: ".").first!.replacingOccurrences(of: "_", with: " ").capitalized
-                    let title = NSMutableAttributedString(string: row["title"] as? String ?? "", font: Font.regular(16), textColor: theme.list.itemPrimaryTextColor)
-                    title.append(NSAttributedString(string: "\n" + (self.loadingKey == key ? "Loading…" : name), font: Font.regular(13), textColor: theme.list.itemSecondaryTextColor))
+                    let title = NSMutableAttributedString(string: row["title"] as? String ?? "", font: Font.regular(floor(fontSize * 16.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)
+                    title.append(NSAttributedString(string: "\n" + (self.loadingKey == key ? "Loading…" : name), font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor))
                     items.append(AnyComponentWithIdentity(id: key, component: AnyComponent(ListActionItemComponent(
                         theme: theme, style: .glass,
                         title: AnyComponent(MultilineTextComponent(text: .plain(title), maximumNumberOfLines: 2)),
@@ -550,7 +551,7 @@ private final class DebugCompanionScreenComponent: Component {
                 }
                 let size = section.update(transition: transition, component: AnyComponent(ListSectionComponent(
                     theme: theme, style: .glass, background: .none(clipped: false),
-                    header: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: group, font: Font.semibold(13), textColor: theme.list.itemSecondaryTextColor)))),
+                    header: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: group, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor)))),
                     footer: nil, items: items
                 )), environment: {}, containerSize: CGSize(width: panelWidth - 16, height: 10000))
                 if let view = section.view {

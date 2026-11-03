@@ -16,9 +16,6 @@ import TelegramNotices
 import TooltipUI
 import SliderContextItem
 
-private let titleFont = Font.regular(12.0)
-private let subtitleFont = Font.regular(10.0)
-
 private func normalizeValue(_ value: CGFloat) -> CGFloat {
     return round(value * 10.0) / 10.0
 }
@@ -43,7 +40,9 @@ private class MediaHeaderItemNode: ASDisplayNode {
         self.addSubnode(self.subtitleNode)
     }
     
-    func updateLayout(size: CGSize, leftInset: CGFloat, rightInset: CGFloat, theme: PresentationTheme, strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, nameDisplayOrder: PresentationPersonNameOrder, playbackItem: SharedMediaPlaylistItem?, transition: ContainedViewLayoutTransition) -> (NSAttributedString?, NSAttributedString?, Bool) {
+    func updateLayout(size: CGSize, leftInset: CGFloat, rightInset: CGFloat, theme: PresentationTheme, strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, nameDisplayOrder: PresentationPersonNameOrder, fontSize: CGFloat, playbackItem: SharedMediaPlaylistItem?, transition: ContainedViewLayoutTransition) -> (NSAttributedString?, NSAttributedString?, Bool) {
+        let titleFont = Font.regular(floor(fontSize * 12.0 / 17.0))
+        let subtitleFont = Font.regular(floor(fontSize * 10.0 / 17.0))
         var rateButtonHidden = false
         var titleString: NSAttributedString?
         var subtitleString: NSAttributedString?
@@ -147,6 +146,7 @@ public final class MediaNavigationAccessoryHeaderNode: ASDisplayNode, ASScrollVi
     private var strings: PresentationStrings
     private var dateTimeFormat: PresentationDateTimeFormat
     private var nameDisplayOrder: PresentationPersonNameOrder
+    private var fontSize: CGFloat
     
     private let scrollNode: ASScrollNode
     private var initialContentOffset: CGFloat?
@@ -223,6 +223,7 @@ public final class MediaNavigationAccessoryHeaderNode: ASDisplayNode, ASScrollVi
         self.strings = presentationData.strings
         self.dateTimeFormat = presentationData.dateTimeFormat
         self.nameDisplayOrder = presentationData.nameDisplayOrder
+        self.fontSize = presentationData.listsFontSize.baseDisplaySize
         
         self.scrollNode = ASScrollNode()
         
@@ -364,6 +365,7 @@ public final class MediaNavigationAccessoryHeaderNode: ASDisplayNode, ASScrollVi
         self.strings = presentationData.strings
         self.nameDisplayOrder = presentationData.nameDisplayOrder
         self.dateTimeFormat = presentationData.dateTimeFormat
+        self.fontSize = presentationData.listsFontSize.baseDisplaySize
         
         let maskImage = generateMaskImage(color: self.theme.rootController.navigationBar.opaqueBackgroundColor)
         self.leftMaskNode.image = maskImage
@@ -436,12 +438,12 @@ public final class MediaNavigationAccessoryHeaderNode: ASDisplayNode, ASScrollVi
         
         let inset: CGFloat = 45.0 + leftInset
         let constrainedSize = CGSize(width: size.width - inset * 2.0, height: size.height)
-        let (titleString, subtitleString, rateButtonHidden) = self.currentItemNode.updateLayout(size: constrainedSize, leftInset: leftInset, rightInset: rightInset, theme: self.theme, strings: self.strings, dateTimeFormat: self.dateTimeFormat, nameDisplayOrder: self.nameDisplayOrder, playbackItem: self.playbackItems?.0, transition: transition)
+        let (titleString, subtitleString, rateButtonHidden) = self.currentItemNode.updateLayout(size: constrainedSize, leftInset: leftInset, rightInset: rightInset, theme: self.theme, strings: self.strings, dateTimeFormat: self.dateTimeFormat, nameDisplayOrder: self.nameDisplayOrder, fontSize: self.fontSize, playbackItem: self.playbackItems?.0, transition: transition)
         self.accessibilityAreaNode.accessibilityLabel = "\(titleString?.string ?? ""). \(subtitleString?.string ?? "")"
         self.rateButton.isHidden = rateButtonHidden
         
-        let _ = self.previousItemNode.updateLayout(size: constrainedSize, leftInset: 0.0, rightInset: 0.0, theme: self.theme, strings: self.strings, dateTimeFormat: self.dateTimeFormat, nameDisplayOrder: self.nameDisplayOrder, playbackItem: self.playbackItems?.1, transition: transition)
-        let _ = self.nextItemNode.updateLayout(size: constrainedSize, leftInset: 0.0, rightInset: 0.0, theme: self.theme, strings: self.strings, dateTimeFormat: self.dateTimeFormat, nameDisplayOrder: self.nameDisplayOrder, playbackItem: self.playbackItems?.2, transition: transition)
+        let _ = self.previousItemNode.updateLayout(size: constrainedSize, leftInset: 0.0, rightInset: 0.0, theme: self.theme, strings: self.strings, dateTimeFormat: self.dateTimeFormat, nameDisplayOrder: self.nameDisplayOrder, fontSize: self.fontSize, playbackItem: self.playbackItems?.1, transition: transition)
+        let _ = self.nextItemNode.updateLayout(size: constrainedSize, leftInset: 0.0, rightInset: 0.0, theme: self.theme, strings: self.strings, dateTimeFormat: self.dateTimeFormat, nameDisplayOrder: self.nameDisplayOrder, fontSize: self.fontSize, playbackItem: self.playbackItems?.2, transition: transition)
         
         let constrainedBounds = CGRect(origin: CGPoint(), size: constrainedSize)
         transition.updateFrame(node: self.scrollNode, frame: constrainedBounds.offsetBy(dx: inset, dy: 0.0))

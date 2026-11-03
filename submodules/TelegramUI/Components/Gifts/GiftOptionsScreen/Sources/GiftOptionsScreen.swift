@@ -1256,7 +1256,7 @@ final class GiftOptionsScreenComponent: Component {
             )
             
             let formattedBalance = formatStarsAmountText(self.starsState?.balance ?? StarsAmount.zero, dateTimeFormat: environment.dateTimeFormat)
-            let smallLabelFont = Font.regular(11.0)
+            let smallLabelFont = Font.regular(floor(fontSize * 11.0 / 17.0))
             let labelFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
             let balanceText = tonAmountAttributedString(formattedBalance, integralFont: labelFont, fractionalFont: smallLabelFont, color: theme.actionSheet.primaryTextColor, decimalSeparator: environment.dateTimeFormat.decimalSeparator)
             
@@ -1311,7 +1311,7 @@ final class GiftOptionsScreenComponent: Component {
             let premiumTitleSize = self.premiumTitle.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: premiumTitleString, font: Font.bold(28.0), textColor: theme.rootController.navigationBar.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: premiumTitleString, font: Font.bold(floor(fontSize * 28.0 / 17.0)), textColor: theme.rootController.navigationBar.primaryTextColor)),
                     horizontalAlignment: .center
                 )),
                 environment: {},
@@ -1566,7 +1566,7 @@ final class GiftOptionsScreenComponent: Component {
                     let starsTitleSize = self.starsTitle.update(
                         transition: transition,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: strings.Gift_Options_Gift_Title, font: Font.bold(28.0), textColor: theme.rootController.navigationBar.primaryTextColor)),
+                            text: .plain(NSAttributedString(string: strings.Gift_Options_Gift_Title, font: Font.bold(floor(fontSize * 28.0 / 17.0)), textColor: theme.rootController.navigationBar.primaryTextColor)),
                             horizontalAlignment: .center
                         )),
                         environment: {},

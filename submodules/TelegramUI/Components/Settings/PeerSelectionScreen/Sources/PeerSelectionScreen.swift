@@ -459,7 +459,7 @@ final class PeerSelectionScreenComponent: Component {
                         text: .plain(NSAttributedString(string: title, font: Font.semibold(fontSize), textColor: theme.rootController.navigationBar.primaryTextColor))
                     ))),
                     AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: subtitle, font: Font.regular(12.0), textColor: theme.rootController.navigationBar.secondaryTextColor))
+                        text: .plain(NSAttributedString(string: subtitle, font: Font.regular(floor(fontSize * 12.0 / 17.0)), textColor: theme.rootController.navigationBar.secondaryTextColor))
                     )))
                 ], spacing: 2.0)),
                 chatListTitle: nil,

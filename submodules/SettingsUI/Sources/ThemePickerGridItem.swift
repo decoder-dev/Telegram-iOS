@@ -203,7 +203,7 @@ private final class ThemeGridThemeItemIconNode : ASDisplayNode {
         let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: text, backgroundColor: nil, maximumNumberOfLines: 2, truncationType: .end, constrainedSize: CGSize(width: 70.0, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
         
 
-        let title = NSAttributedString(string: "", font: Font.regular(22.0), textColor: .black)
+        let title = NSAttributedString(string: "", font: Font.regular(floor(listFontSize * 22.0 / 17.0)), textColor: .black)
         let (_, emojiApply) = makeEmojiLayout(TextNodeLayoutArguments(attributedString: title, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: size.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
         
         if updatedThemeReference || updatedWallpaper || updatedNightMode || updatedSize {

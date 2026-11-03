@@ -485,7 +485,7 @@ private final class PeerInfoScreenBusinessHoursItemNode: PeerInfoScreenItemNode 
                 transition: .immediate,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: timezoneSwitchTitle, font: Font.regular(12.0), textColor: presentationData.theme.list.itemAccentColor))
+                        text: .plain(NSAttributedString(string: timezoneSwitchTitle, font: Font.regular(floor(fontSize * 12.0 / 17.0)), textColor: presentationData.theme.list.itemAccentColor))
                     )),
                     background: AnyComponent(RoundedRectangle(
                         color: presentationData.theme.list.itemAccentColor.withMultipliedAlpha(0.1),

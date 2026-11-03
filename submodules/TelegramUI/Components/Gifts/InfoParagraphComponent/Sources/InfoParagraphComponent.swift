@@ -32,7 +32,7 @@ public final class InfoParagraphComponent: CombinedComponent {
         iconName: String,
         iconColor: UIColor,
         badge: String? = nil,
-        fontSize: CGFloat = 17.0,
+        fontSize: CGFloat,
         action: @escaping () -> Void = {}
     ) {
         self.title = title
@@ -105,7 +105,7 @@ public final class InfoParagraphComponent: CombinedComponent {
                     component: MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: titleText,
-                            font: Font.semibold(16.0),
+                            font: Font.semibold(floor(component.fontSize * 16.0 / 17.0)),
                             textColor: component.titleColor,
                             paragraphAlignment: .natural
                         )),
@@ -123,7 +123,7 @@ public final class InfoParagraphComponent: CombinedComponent {
 
                 if let badge = component.badge {
                     let badgeText = badgeText.update(
-                        component: MultilineTextComponent(text: .plain(NSAttributedString(string: badge, font: Font.semibold(11.0), textColor: .white))),
+                        component: MultilineTextComponent(text: .plain(NSAttributedString(string: badge, font: Font.semibold(floor(component.fontSize * 11.0 / 17.0)), textColor: .white))),
                         availableSize: context.availableSize,
                         transition: context.transition
                     )

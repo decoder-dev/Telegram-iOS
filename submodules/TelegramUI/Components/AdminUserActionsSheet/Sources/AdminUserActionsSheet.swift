@@ -471,6 +471,7 @@ private final class AdminUserActionsContentComponent: Component {
                         component: AnyComponentWithIdentity(id: 0, component: AnyComponent(PlainButtonComponent(
                             content: AnyComponent(OptionSectionExpandIndicatorComponent(
                                 theme: component.theme,
+                                fontSize: component.presentationData.listsFontSize.baseDisplaySize,
                                 count: selectedCount == 0 ? component.peers.count : selectedCount,
                                 isExpanded: isExpanded
                             )),
@@ -494,6 +495,7 @@ private final class AdminUserActionsContentComponent: Component {
                     titleItems.append(
                         AnyComponentWithIdentity(id: 1, component: AnyComponent(MediaSectionExpandIndicatorComponent(
                             theme: component.theme,
+                            fontSize: component.presentationData.listsFontSize.baseDisplaySize,
                             title: "\(count)/2",
                             isExpanded: isExpanded
                         )))
@@ -753,6 +755,7 @@ private final class AdminUserActionsContentComponent: Component {
                                 ))),
                                 AnyComponentWithIdentity(id: 1, component: AnyComponent(MediaSectionExpandIndicatorComponent(
                                     theme: component.theme,
+                                    fontSize: component.presentationData.listsFontSize.baseDisplaySize,
                                     title: "\(component.sheetState.mediaRights.count)/\(component.sheetState.allowedMediaRights.count)",
                                     isExpanded: component.sheetState.isMediaSectionExpanded
                                 )))
@@ -1963,21 +1966,27 @@ private let optionExpandUsersIcon: UIImage? = {
 
 private final class OptionSectionExpandIndicatorComponent: Component {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let count: Int
     let isExpanded: Bool
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat,
         count: Int,
         isExpanded: Bool
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.count = count
         self.isExpanded = isExpanded
     }
     
     static func ==(lhs: OptionSectionExpandIndicatorComponent, rhs: OptionSectionExpandIndicatorComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.count != rhs.count {
@@ -2027,7 +2036,7 @@ private final class OptionSectionExpandIndicatorComponent: Component {
             let countSize = self.count.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: "\(component.count)", font: Font.semibold(13.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: "\(component.count)", font: Font.semibold(floor(component.fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)
@@ -2069,21 +2078,27 @@ private final class OptionSectionExpandIndicatorComponent: Component {
 
 private final class MediaSectionExpandIndicatorComponent: Component {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let title: String
     let isExpanded: Bool
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat,
         title: String,
         isExpanded: Bool
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.title = title
         self.isExpanded = isExpanded
     }
     
     static func ==(lhs: MediaSectionExpandIndicatorComponent, rhs: MediaSectionExpandIndicatorComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.title != rhs.title {
@@ -2123,7 +2138,7 @@ private final class MediaSectionExpandIndicatorComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(13.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(floor(component.fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)

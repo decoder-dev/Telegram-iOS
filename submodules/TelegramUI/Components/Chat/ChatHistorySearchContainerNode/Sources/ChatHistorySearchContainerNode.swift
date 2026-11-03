@@ -361,7 +361,7 @@ public final class ChatHistorySearchContainerNode: SearchDisplayControllerConten
                         strongSelf.dimNode.isHidden = displayingResults
                         strongSelf.backgroundColor = displayingResults ? strongSelf.presentationData.theme.list.plainBackgroundColor : nil
                         
-                        strongSelf.emptyResultsTextNode.attributedText = NSAttributedString(string: strongSelf.presentationData.strings.SharedMedia_SearchNoResultsDescription(transition.query).string, font: Font.regular(15.0), textColor: strongSelf.presentationData.theme.list.freeTextColor)
+                        strongSelf.emptyResultsTextNode.attributedText = NSAttributedString(string: strongSelf.presentationData.strings.SharedMedia_SearchNoResultsDescription(transition.query).string, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: strongSelf.presentationData.theme.list.freeTextColor)
                         
                         let emptyResults = displayingResults && strongSelf.currentEntries?.isEmpty ?? false
                         strongSelf.emptyResultsTitleNode.isHidden = !emptyResults

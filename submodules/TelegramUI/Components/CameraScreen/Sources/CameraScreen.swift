@@ -1813,7 +1813,7 @@ private final class CameraScreenComponent: CombinedComponent {
                                 backgroundColor: UIColor.black.withAlphaComponent(0.5),
                                 isDark: true,
                                 state: .glass,
-                                component: AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: environment.strings.Camera_LiveStream_End, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: .white))),
+                                component: AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: environment.strings.Camera_LiveStream_End, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: .white))),
                                 action: { [weak state] _ in
                                     if let state {
                                         state.endLiveStream()
@@ -2064,12 +2064,13 @@ private final class CameraScreenComponent: CombinedComponent {
             }
             
             let isVideoRecording = component.cameraState.recording != .none
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             if isVideoRecording && !state.isTransitioning && !state.displayingCollageSelection {
                 let duration = Int(component.cameraState.duration)
                 let durationString =  String(format: "%02d:%02d", (duration / 60) % 60, duration % 60)
                 let timeLabel = timeLabel.update(
                     component: MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: durationString, font: Font.with(size: 21.0, design: .camera), textColor: controlsTintColor)),
+                        text: .plain(NSAttributedString(string: durationString, font: Font.with(size: floor(fontSize * 21.0 / 17.0), design: .camera), textColor: controlsTintColor)),
                         horizontalAlignment: .center,
                         textShadowColor: controlsTintColor == .black ? .clear : UIColor(rgb: 0x000000, alpha: 0.2)
                     ),
@@ -2138,7 +2139,7 @@ private final class CameraScreenComponent: CombinedComponent {
             if !isTablet, component.cameraState.isCollageEnabled, component.cameraState.collageProgress > 1.0 - .ulpOfOne, case .none = component.cameraState.recording, !state.isTransitioning {
                 let collageReorderHint = collageReorderHint.update(
                     component: MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.Camera_CollageReorderHint, font: Font.regular(13.0), textColor: UIColor(rgb: 0x8e8e93))),
+                        text: .plain(NSAttributedString(string: environment.strings.Camera_CollageReorderHint, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: UIColor(rgb: 0x8e8e93))),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0
                     ),
@@ -3289,7 +3290,7 @@ public class CameraScreenImpl: ViewController, CameraScreen {
                     colorFillView.layer.addSublayer(iconLayer)
                     
                     let labelLayer = SimpleLayer()
-                    if let image = generateAddLabel(strings: self.presentationData.strings, color: self.presentationData.theme.list.itemCheckColors.foregroundColor) {
+                    if let image = generateAddLabel(strings: self.presentationData.strings, color: self.presentationData.theme.list.itemCheckColors.foregroundColor, fontSize: self.presentationData.listsFontSize.baseDisplaySize) {
                         labelLayer.contents = image.cgImage
                         labelLayer.bounds = CGRect(origin: .zero, size: image.size)
                         labelLayer.position = CGPoint(x: sourceLocalFrame.center.x, y: sourceLocalFrame.center.y + 43.0 - UIScreenPixel)
@@ -5020,8 +5021,8 @@ private func generateAddIcon(color: UIColor) -> UIImage? {
 }
 
 
-private func generateAddLabel(strings: PresentationStrings, color: UIColor) -> UIImage? {
-    let titleString = NSAttributedString(string: strings.StoryFeed_AddStory, font: Font.regular(11.0), textColor: color, paragraphAlignment: .center)
+private func generateAddLabel(strings: PresentationStrings, color: UIColor, fontSize: CGFloat) -> UIImage? {
+    let titleString = NSAttributedString(string: strings.StoryFeed_AddStory, font: Font.regular(floor(fontSize * 11.0 / 17.0)), textColor: color, paragraphAlignment: .center)
     var textRect = titleString.boundingRect(with: CGSize(width: 200.0, height: 20.0), options: .usesLineFragmentOrigin, context: nil)
     textRect.size.width = ceil(textRect.size.width)
     textRect.size.height = ceil(textRect.size.height)

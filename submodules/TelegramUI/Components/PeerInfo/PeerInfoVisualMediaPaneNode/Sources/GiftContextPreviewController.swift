@@ -97,10 +97,11 @@ private final class GiftContextPreviewComponent: Component {
             }
             
             if case let .unique(uniqueGift) = component.gift.gift {
+                let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 let titleSize = self.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(text: .plain(
-                        NSAttributedString(string: uniqueGift.title, font: Font.semibold(20.0), textColor: .white)
+                        NSAttributedString(string: uniqueGift.title, font: Font.semibold(floor(fontSize * 20.0 / 17.0)), textColor: .white)
                     ))),
                     environment: {},
                     containerSize: availableSize
@@ -121,7 +122,7 @@ private final class GiftContextPreviewComponent: Component {
                 let subtitleSize = self.subtitle.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(text: .plain(
-                        NSAttributedString(string: "\(environment.strings.Gift_Unique_Collectible) #\(formatCollectibleNumber(uniqueGift.number, dateTimeFormat: environment.dateTimeFormat))", font: Font.regular(13.0), textColor: vibrantColor)
+                        NSAttributedString(string: "\(environment.strings.Gift_Unique_Collectible) #\(formatCollectibleNumber(uniqueGift.number, dateTimeFormat: environment.dateTimeFormat))", font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: vibrantColor)
                     ))),
                     environment: {},
                     containerSize: availableSize

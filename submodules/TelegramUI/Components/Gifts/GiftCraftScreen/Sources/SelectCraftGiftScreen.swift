@@ -122,6 +122,7 @@ final class SelectGiftPageContent: Component {
                 return 0.0
             }
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let visibleBounds = bounds.insetBy(dx: 0.0, dy: -10.0)
             
             var contentHeight: CGFloat = 88.0 + 32.0
@@ -294,7 +295,7 @@ final class SelectGiftPageContent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Select_NoGiftsFromCollection, font: Font.regular(13.0), textColor: environment.theme.list.itemSecondaryTextColor)),
+                            text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Select_NoGiftsFromCollection, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor)),
                             horizontalAlignment: .center,
                             maximumNumberOfLines: 3,
                             lineSpacing: 0.1
@@ -409,6 +410,7 @@ final class SelectGiftPageContent: Component {
             self.state = state
             self.environment = environment
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.backgroundColor = environment.theme.actionSheet.opaqueItemBackgroundColor
                                     
             var contentHeight: CGFloat = 88.0
@@ -416,7 +418,7 @@ final class SelectGiftPageContent: Component {
             let myGiftsTitleSize = self.myGiftsTitle.update(
                 transition: transition,
                 component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Select_YourGifts.uppercased(), font: Font.semibold(14.0), textColor: environment.theme.actionSheet.secondaryTextColor)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Select_YourGifts.uppercased(), font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: environment.theme.actionSheet.secondaryTextColor)))
                 ),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset - rightSideInset, height: 100.0)
@@ -440,7 +442,7 @@ final class SelectGiftPageContent: Component {
             let storeGiftsTitleSize = self.storeGiftsTitle.update(
                 transition: transition,
                 component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: saleTitle, font: Font.semibold(14.0), textColor: environment.theme.actionSheet.secondaryTextColor)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: saleTitle, font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: environment.theme.actionSheet.secondaryTextColor)))
                 ),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset - rightSideInset, height: 100.0)

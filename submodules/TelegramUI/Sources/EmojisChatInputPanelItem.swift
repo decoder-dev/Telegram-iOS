@@ -90,8 +90,6 @@ final class EmojisChatInputPanelItem: ListViewItem {
     }
 }
 
-private let textFont = Font.regular(32.0)
-
 final class EmojisChatInputPanelItemNode: ListViewItemNode {
     static let itemSize = CGSize(width: 45.0, height: 45.0)
     private let symbolNode: TextNode
@@ -122,7 +120,8 @@ final class EmojisChatInputPanelItemNode: ListViewItemNode {
     func asyncLayout() -> (_ item: EmojisChatInputPanelItem, _ params: ListViewItemLayoutParams, _ mergedTop: Bool, _ mergedBottom: Bool) -> (ListViewItemNodeLayout, (ListViewItemUpdateAnimation) -> Void) {
         let makeSymbolLayout = TextNode.asyncLayout(self.symbolNode)
         return { [weak self] item, params, mergedTop, mergedBottom in
-            let (symbolLayout, symbolApply) = makeSymbolLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: "\(item.symbol)", font: textFont, textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: 50.0, height: 50.0), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let symbolFontSize = floor(item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 32.0 / 17.0)
+            let (symbolLayout, symbolApply) = makeSymbolLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: "\(item.symbol)", font: Font.regular(symbolFontSize), textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: 50.0, height: 50.0), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let nodeLayout = ListViewItemNodeLayout(contentSize: EmojisChatInputPanelItemNode.itemSize, insets: UIEdgeInsets())
             

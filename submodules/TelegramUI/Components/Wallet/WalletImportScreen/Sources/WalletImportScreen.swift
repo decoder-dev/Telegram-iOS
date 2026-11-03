@@ -178,7 +178,7 @@ private final class WalletImportScreenComponent: Component {
             var emptyBackspace: ((Int) -> Void)?
             var pastePressed: (() -> Void)?
 
-            init(index: Int, displayNumber: Int, wordCount: Int, fontSize: CGFloat = 17.0) {
+            init(index: Int, displayNumber: Int, wordCount: Int, fontSize: CGFloat) {
                 self.index = index
                 self.displayNumber = displayNumber
 
@@ -497,14 +497,17 @@ private final class WalletImportScreenComponent: Component {
                 object: nil
             )
 
-            self.setupWordInputFields(displayNumbers: Array(1 ... 12), preserving: [])
+        }
+
+        private func listsFontSizeBase() -> CGFloat? {
+            return self.component?.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         }
 
         private func setupWordInputFields(
             displayNumbers: [Int],
             preserving existingWords: [String],
             preservingFocus: Bool = false,
-            fontSize: CGFloat = 17.0
+            fontSize: CGFloat
         ) {
             guard !displayNumbers.isEmpty else {
                 return
@@ -589,10 +592,14 @@ private final class WalletImportScreenComponent: Component {
             guard (count == 12 || count == 24), count != self.words.count else {
                 return
             }
+            guard let fontSize = self.listsFontSizeBase() else {
+                return
+            }
             self.setupWordInputFields(
                 displayNumbers: Array(1 ... count),
                 preserving: self.words,
-                preservingFocus: true
+                preservingFocus: true,
+                fontSize: fontSize
             )
             self.componentState?.updated(transition: .easeInOut(duration: 0.25))
         }
@@ -911,10 +918,11 @@ private final class WalletImportScreenComponent: Component {
                         self.presentInvalidPhraseLength(count: normalizedWords.count)
                         return true
                     }
-                    if normalizedWords.count != self.words.count {
+                    if normalizedWords.count != self.words.count, let fontSize = self.listsFontSizeBase() {
                         self.setupWordInputFields(
                             displayNumbers: Array(1 ... normalizedWords.count),
-                            preserving: []
+                            preserving: [],
+                            fontSize: fontSize
                         )
                     }
                 }
@@ -979,9 +987,13 @@ private final class WalletImportScreenComponent: Component {
             for field in self.wordFields where field.textField.isFirstResponder {
                 field.textField.resignFirstResponder()
             }
+            guard let fontSize = self.listsFontSizeBase() else {
+                return
+            }
             self.setupWordInputFields(
                 displayNumbers: Array(1 ... words.count),
-                preserving: words
+                preserving: words,
+                fontSize: fontSize
             )
             self.scrollToBottomAfterPaste = true
             self.componentState?.updated(transition: .easeInOut(duration: 0.25))
@@ -1182,7 +1194,9 @@ private final class WalletImportScreenComponent: Component {
                 guard let self else { return }
                 self.isImporting = false
                 self.endWalletFlow()
-                self.setupWordInputFields(displayNumbers: Array(1 ... self.words.count), preserving: [])
+                if let fontSize = self.listsFontSizeBase() {
+                    self.setupWordInputFields(displayNumbers: Array(1 ... self.words.count), preserving: [], fontSize: fontSize)
+                }
                 if let completion = component.completion { completion() } else { self.dismiss() }
             }, error: { [weak self] error in
                 self?.finishBackupEnableWithError(error, expectedAddress: expectedAddress)
@@ -1210,8 +1224,8 @@ private final class WalletImportScreenComponent: Component {
             switch error {
             case .walletKeyMismatch, .storage(.identityMismatch), .proofInvalid, .invalidMnemonic, .rotationNotFound:
                 actions.append(TextAlertAction(type: .defaultAction, title: strings.Wallet_Backup_EnterCurrentPhrase, action: { [weak self] in
-                    guard let self else { return }
-                    self.setupWordInputFields(displayNumbers: Array(1 ... self.words.count), preserving: [])
+                    guard let self, let fontSize = self.listsFontSizeBase() else { return }
+                    self.setupWordInputFields(displayNumbers: Array(1 ... self.words.count), preserving: [], fontSize: fontSize)
                     self.componentState?.updated(transition: .immediate)
                     let _ = self.wordFields.first?.textField.becomeFirstResponder()
                 }))
@@ -1249,8 +1263,8 @@ private final class WalletImportScreenComponent: Component {
                         return
                     }
                     self.scrollToBottomAfterPaste = false
-                    if clearWordsOnDismiss {
-                        self.setupWordInputFields(displayNumbers: Array(1 ... self.words.count), preserving: [])
+                    if clearWordsOnDismiss, let fontSize = self.listsFontSizeBase() {
+                        self.setupWordInputFields(displayNumbers: Array(1 ... self.words.count), preserving: [], fontSize: fontSize)
                         self.componentState?.updated(transition: .immediate)
                     }
                     let index = self.words.firstIndex(where: { $0.isEmpty }) ?? (self.words.count - 1)
@@ -1411,7 +1425,9 @@ private final class WalletImportScreenComponent: Component {
                             return
                         }
                         self.scrollToBottomAfterPaste = false
-                        self.setupWordInputFields(displayNumbers: Array(1 ... 24), preserving: [])
+                        if let fontSize = self.listsFontSizeBase() {
+                            self.setupWordInputFields(displayNumbers: Array(1 ... 24), preserving: [], fontSize: fontSize)
+                        }
                         self.componentState?.updated(transition: .immediate)
                         let _ = self.wordFields.first?.textField.becomeFirstResponder()
                         self.scrollToTop()
@@ -1567,11 +1583,12 @@ private final class WalletImportScreenComponent: Component {
                 self.isVerificationInProgress = false
                 switch component.mode {
                 case .importWallet, .enterRecoveryPhrase, .enableBackup:
-                    self.setupWordInputFields(displayNumbers: Array(1 ... 12), preserving: [])
+                    self.setupWordInputFields(displayNumbers: Array(1 ... 12), preserving: [], fontSize: fontSize)
                 case .verify:
                     self.setupWordInputFields(
                         displayNumbers: component.verificationIndices.map { $0 + 1 },
-                        preserving: []
+                        preserving: [],
+                        fontSize: fontSize
                     )
                 }
             }

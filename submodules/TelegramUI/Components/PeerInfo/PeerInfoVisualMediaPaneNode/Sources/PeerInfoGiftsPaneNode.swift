@@ -674,7 +674,7 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
                         ),
                         theme: params.presentationData.theme,
                         customLayout: TabSelectorComponent.CustomLayout(
-                            font: Font.medium(15.0),
+                            font: Font.medium(floor(params.presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)),
                             spacing: 2.0,
                             height: 44.0 - 5.0 * 2.0
                         ),

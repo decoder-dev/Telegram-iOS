@@ -106,12 +106,14 @@ private final class CommunityAdminApprovalContentComponent: Component {
 
             var contentHeight: CGFloat = 32.0 + avatarSize.height + 11.0
 
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: "You are a community admin",
-                        font: Font.semibold(23.0),
+                        font: Font.semibold(floor(fontSize * 23.0 / 17.0)),
                         textColor: theme.list.itemPrimaryTextColor
                     )),
                     horizontalAlignment: .center,
@@ -136,7 +138,7 @@ private final class CommunityAdminApprovalContentComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: "You can now edit \(component.community.compactDisplayTitle) info\nand use other admin tools.",
-                        font: Font.regular(15.0),
+                        font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                         textColor: theme.list.itemPrimaryTextColor
                     )),
                     horizontalAlignment: .center,

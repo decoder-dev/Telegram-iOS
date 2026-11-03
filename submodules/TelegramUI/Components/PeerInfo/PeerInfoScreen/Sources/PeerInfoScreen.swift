@@ -320,7 +320,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             context: self.context,
             account: self.context.account,
             sharedContext: self.context.sharedContext,
-            text: .attributedString(text: NSAttributedString(string: text, font: Font.semibold(11.0), textColor: .white)),
+            text: .attributedString(text: NSAttributedString(string: text, font: Font.semibold(floor(self.presentationData.listsFontSize.baseDisplaySize * 11.0 / 17.0)), textColor: .white)),
             style: .customBlur(backgroundColor, -4.0),
             arrowStyle: .small,
             location: .point(sourceRect, .bottom),

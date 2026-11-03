@@ -182,6 +182,7 @@ private final class SheetContent: CombinedComponent {
                                 webpage: webpage,
                                 theme: theme,
                                 strings: strings,
+                                listsFontSizeBase: presentationData.listsFontSize.baseDisplaySize,
                                 presentLinkOptions: { [weak state] sourceNode in
                                     if let controller = controller() as? CreateLinkScreen {
                                         state?.presentLinkOptions(controller: controller, sourceNode: sourceNode)
@@ -884,6 +885,7 @@ private final class LinkPreviewComponent: Component {
     let webpage: TelegramMediaWebpage
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let listsFontSizeBase: CGFloat
     let presentLinkOptions: (ASDisplayNode) -> Void
     let dismiss: () -> Void
     
@@ -891,12 +893,14 @@ private final class LinkPreviewComponent: Component {
         webpage: TelegramMediaWebpage,
         theme: PresentationTheme,
         strings: PresentationStrings,
+        listsFontSizeBase: CGFloat,
         presentLinkOptions: @escaping (ASDisplayNode) -> Void,
         dismiss: @escaping () -> Void
     ) {
         self.webpage = webpage
         self.theme = theme
         self.strings = strings
+        self.listsFontSizeBase = listsFontSizeBase
         self.presentLinkOptions = presentLinkOptions
         self.dismiss = dismiss
     }
@@ -906,6 +910,9 @@ private final class LinkPreviewComponent: Component {
             return false
         }
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         return true
@@ -1031,8 +1038,9 @@ private final class LinkPreviewComponent: Component {
                 
             }
             
-            self.titleString = NSAttributedString(string: authorName, font: Font.medium(15.0), textColor: component.theme.chat.inputPanel.panelControlAccentColor)
-            self.textString = NSAttributedString(string: text, font: Font.regular(15.0), textColor: component.theme.chat.inputPanel.primaryTextColor)
+            let previewFontSize = floor(component.listsFontSizeBase * 15.0 / 17.0)
+            self.titleString = NSAttributedString(string: authorName, font: Font.medium(previewFontSize), textColor: component.theme.chat.inputPanel.panelControlAccentColor)
+            self.textString = NSAttributedString(string: text, font: Font.regular(previewFontSize), textColor: component.theme.chat.inputPanel.primaryTextColor)
                         
             let inset: CGFloat = 0.0
             let leftInset: CGFloat = 55.0

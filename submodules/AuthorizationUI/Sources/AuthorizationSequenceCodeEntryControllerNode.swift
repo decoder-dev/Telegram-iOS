@@ -593,14 +593,14 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         if let codeType = self.codeType {
             switch codeType {
             case .missedCall:
-                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterMissingDigits, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor)
+                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterMissingDigits, font: Font.semibold(floor(self.listFontSize * 28.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor)
             case .email:
-                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeEmailTitle, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor)
+                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeEmailTitle, font: Font.semibold(floor(self.listFontSize * 28.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor)
                 animationName = "IntroLetter"
             case .sms:
-                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeSMSTitle, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor)
+                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeSMSTitle, font: Font.semibold(floor(self.listFontSize * 28.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor)
             case .fragment:
-                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeFragmentTitle, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor)
+                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeFragmentTitle, font: Font.semibold(floor(self.listFontSize * 28.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor)
                
                 self.proceedNode.title = self.strings.Login_OpenFragment
                 self.proceedNode.updateTheme(SolidRoundedButtonTheme(backgroundColor: UIColor(rgb: 0x37475a), foregroundColor: .white))
@@ -610,16 +610,16 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 animationPlaybackMode = .count(3)
                 self.proceedNode.animation = "anim_fragment"
             case .word:
-                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterWordTitle, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor)
+                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterWordTitle, font: Font.semibold(floor(self.listFontSize * 28.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor)
                 textFieldPlaceholder = self.strings.Login_EnterWordPlaceholder
             case .phrase:
-                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterPhraseTitle, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor)
+                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterPhraseTitle, font: Font.semibold(floor(self.listFontSize * 28.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor)
                 textFieldPlaceholder = self.strings.Login_EnterPhrasePlaceholder
             default:
-                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeTelegramTitle, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor)
+                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeTelegramTitle, font: Font.semibold(floor(self.listFontSize * 28.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor)
             }
         } else {
-            self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeTelegramTitle, font: Font.semibold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeTelegramTitle, font: Font.semibold(floor(self.listFontSize * 28.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor)
         }
         
         self.textField.textField.attributedPlaceholder = NSAttributedString(string: textFieldPlaceholder, font: UIFont.preferredFont(forTextStyle: .title3), textColor: self.theme.list.itemPlaceholderTextColor)

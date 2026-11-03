@@ -101,7 +101,7 @@ final class PlaceholderComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: text, font: Font.regular(15.0), textColor: UIColor(rgb: 0x98989f))),
+                        text: .plain(NSAttributedString(string: text, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: UIColor(rgb: 0x98989f))),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0
                     )

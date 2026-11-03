@@ -677,7 +677,7 @@ public final class MediaStreamComponent: CombinedComponent {
                 backgroundVisible: isFullscreen,
                 leftItem: topLeftButton,
                 rightItems: navigationRightItems,
-                centerItem: AnyComponent(StreamTitleComponent(text: state.callTitle ?? state.peerTitle, isRecording: state.recordingStartTimestamp != nil, isLive: context.state.videoIsPlayable))
+                centerItem: AnyComponent(StreamTitleComponent(text: state.callTitle ?? state.peerTitle, isRecording: state.recordingStartTimestamp != nil, isLive: context.state.videoIsPlayable, fontSize: call.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize))
             )
             
             if context.state.storedIsFullscreen != isFullscreen {
@@ -1419,6 +1419,7 @@ private final class StreamTitleComponent: Component {
         private let label = UILabel()
         private let stalledAnimatedGradient = CAGradientLayer()
         private var wasLive = false
+        private var fontSize: CGFloat = 17.0
         
         var desiredWidth: CGFloat { label.intrinsicContentSize.width + 6.0 + 6.0 }
         
@@ -1426,11 +1427,27 @@ private final class StreamTitleComponent: Component {
             super.init(frame: frame)
             
             self.addSubview(label)
+            self.updateLiveLabel()
             
+            self.layer.addSublayer(stalledAnimatedGradient)
+            self.clipsToBounds = true
+            self.toggle(isLive: false)
+        }
+        
+        func update(fontSize: CGFloat) {
+            guard abs(self.fontSize - fontSize) > .ulpOfOne else {
+                return
+            }
+            self.fontSize = fontSize
+            self.updateLiveLabel()
+            self.setNeedsLayout()
+        }
+        
+        private func updateLiveLabel() {
             let liveString = NSAttributedString(
                 string: "LIVE",
                 attributes: [
-                    .font: Font.with(size: 11.0, design: .round, weight: .bold),
+                    .font: Font.with(size: floor(self.fontSize * 11.0 / 17.0), design: .round, weight: .bold),
                     .paragraphStyle: {
                         let style = NSMutableParagraphStyle()
                         style.alignment = .center
@@ -1441,10 +1458,6 @@ private final class StreamTitleComponent: Component {
                 ]
             )
             self.label.attributedText = liveString
-            
-            self.layer.addSublayer(stalledAnimatedGradient)
-            self.clipsToBounds = true
-            self.toggle(isLive: false)
         }
         
         required init?(coder: NSCoder) {
@@ -1494,11 +1507,13 @@ private final class StreamTitleComponent: Component {
     private let text: String
     private let isRecording: Bool
     private let isLive: Bool
+    private let fontSize: CGFloat
     
-    init(text: String, isRecording: Bool, isLive: Bool) {
+    init(text: String, isRecording: Bool, isLive: Bool, fontSize: CGFloat) {
         self.text = text
         self.isRecording = isRecording
         self.isLive = isLive
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: StreamTitleComponent, rhs: StreamTitleComponent) -> Bool {
@@ -1509,6 +1524,9 @@ private final class StreamTitleComponent: Component {
             return false
         }
         if lhs.isLive != rhs.isLive {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return false
@@ -1558,6 +1576,7 @@ private final class StreamTitleComponent: Component {
         }
         
         func update(component: StreamTitleComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
+            self.liveIndicatorView.update(fontSize: component.fontSize)
             let liveIndicatorWidth: CGFloat = self.liveIndicatorView.desiredWidth
             let liveIndicatorHeight: CGFloat = 20.0
             
@@ -1573,7 +1592,7 @@ private final class StreamTitleComponent: Component {
                     self.titleLabel.invalidateIntrinsicContentSize()
                 }
             }
-            self.titleLabel.font = Font.semibold(presentationData.listsFontSize.baseDisplaySize)
+            self.titleLabel.font = Font.semibold(component.fontSize)
             self.titleLabel.textColor = .white
             self.titleLabel.numberOfLines = 1
             

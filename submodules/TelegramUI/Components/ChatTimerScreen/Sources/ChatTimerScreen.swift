@@ -102,6 +102,16 @@ private final class TimerPickerItemView: UIView {
         }
     }
 
+    var fontSize: CGFloat = 17.0 {
+        didSet {
+            if abs(self.fontSize - oldValue) > .ulpOfOne {
+                self.valueLabel.font = Font.regular(floor(self.fontSize * 24.0 / 17.0))
+                self.unitLabel.font = Font.medium(floor(self.fontSize * 16.0 / 17.0))
+                self.setNeedsLayout()
+            }
+        }
+    }
+
     var value: (Int32, String)? {
         didSet {
             if let (value, string) = self.value {
@@ -125,11 +135,11 @@ private final class TimerPickerItemView: UIView {
     override init(frame: CGRect) {
         self.valueLabel.backgroundColor = nil
         self.valueLabel.isOpaque = false
-        self.valueLabel.font = Font.regular(24.0)
+        self.valueLabel.font = Font.regular(floor(self.fontSize * 24.0 / 17.0))
 
         self.unitLabel.backgroundColor = nil
         self.unitLabel.isOpaque = false
-        self.unitLabel.font = Font.medium(16.0)
+        self.unitLabel.font = Font.medium(floor(self.fontSize * 16.0 / 17.0))
 
         super.init(frame: frame)
 
@@ -233,6 +243,7 @@ public final class ChatTimerPickerContentComponent: Component {
     public let theme: PresentationTheme
     public let strings: PresentationStrings
     public let dateTimeFormat: PresentationDateTimeFormat
+    public let fontSize: CGFloat
     public let safeInsets: UIEdgeInsets
     public let leadingAction: LeadingAction?
     public let completion: (Int32?) -> Void
@@ -242,6 +253,7 @@ public final class ChatTimerPickerContentComponent: Component {
         theme: PresentationTheme,
         strings: PresentationStrings,
         dateTimeFormat: PresentationDateTimeFormat,
+        fontSize: CGFloat,
         safeInsets: UIEdgeInsets,
         leadingAction: LeadingAction?,
         completion: @escaping (Int32?) -> Void
@@ -250,6 +262,7 @@ public final class ChatTimerPickerContentComponent: Component {
         self.theme = theme
         self.strings = strings
         self.dateTimeFormat = dateTimeFormat
+        self.fontSize = fontSize
         self.safeInsets = safeInsets
         self.leadingAction = leadingAction
         self.completion = completion
@@ -584,7 +597,7 @@ public final class ChatTimerPickerContentComponent: Component {
                 let titleSize = self.title.update(
                     transition: transition,
                     component: AnyComponent(
-                        Text(text: titleText, font: Font.semibold(environment.presentationData.listsFontSize.baseDisplaySize), color: titleColor)
+                        Text(text: titleText, font: Font.semibold(component.fontSize), color: titleColor)
                     ),
                     environment: {},
                     containerSize: CGSize(width: titleWidth, height: 44.0)
@@ -630,7 +643,7 @@ public final class ChatTimerPickerContentComponent: Component {
                         pressedColor: component.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                     ),
                     content: AnyComponentWithIdentity(id: AnyHashable(primaryButtonTitle), component: AnyComponent(
-                        Text(text: primaryButtonTitle, font: Font.semibold(environment.presentationData.listsFontSize.baseDisplaySize), color: component.theme.list.itemCheckColors.foregroundColor)
+                        Text(text: primaryButtonTitle, font: Font.semibold(component.fontSize), color: component.theme.list.itemCheckColors.foregroundColor)
                     )),
                     isEnabled: true,
                     displaysProgress: false,
@@ -670,7 +683,7 @@ public final class ChatTimerPickerContentComponent: Component {
                             pressedColor: foregroundColor.withMultipliedAlpha(0.2)
                         ),
                         content: AnyComponentWithIdentity(id: AnyHashable(secondaryButtonTitle), component: AnyComponent(
-                            Text(text: secondaryButtonTitle, font: Font.semibold(environment.presentationData.listsFontSize.baseDisplaySize), color: foregroundColor)
+                            Text(text: secondaryButtonTitle, font: Font.semibold(component.fontSize), color: foregroundColor)
                         )),
                         isEnabled: true,
                         displaysProgress: false,
@@ -726,6 +739,7 @@ public final class ChatTimerPickerContentComponent: Component {
                 itemView = TimerPickerItemView()
             }
             itemView.textColor = self.pickerTextColor(configuration: component.configuration, theme: component.theme)
+            itemView.fontSize = component.fontSize
 
             switch component.configuration.picker {
             case let .fixedValues(values, _, formatter):
@@ -755,18 +769,24 @@ public final class ChatTimerPickerContentComponent: Component {
 private final class ChatTimerSheetContentComponent: Component {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
 
+    let context: AccountContext
     let configuration: ChatTimerScreen.Configuration
     let dismiss: () -> Void
 
     init(
+        context: AccountContext,
         configuration: ChatTimerScreen.Configuration,
         dismiss: @escaping () -> Void
     ) {
+        self.context = context
         self.configuration = configuration
         self.dismiss = dismiss
     }
 
     static func ==(lhs: ChatTimerSheetContentComponent, rhs: ChatTimerSheetContentComponent) -> Bool {
+        if lhs.context !== rhs.context {
+            return false
+        }
         return lhs.configuration == rhs.configuration
     }
 
@@ -806,6 +826,7 @@ private final class ChatTimerSheetContentComponent: Component {
                     theme: environment.theme,
                     strings: environment.strings,
                     dateTimeFormat: environment.dateTimeFormat,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                     safeInsets: environment.safeInsets,
                     leadingAction: ChatTimerPickerContentComponent.LeadingAction(
                         icon: .close,
@@ -847,13 +868,18 @@ private final class ChatTimerSheetContentComponent: Component {
 private final class ChatTimerSheetComponent: Component {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
 
+    let context: AccountContext
     let configuration: ChatTimerScreen.Configuration
 
-    init(configuration: ChatTimerScreen.Configuration) {
+    init(context: AccountContext, configuration: ChatTimerScreen.Configuration) {
+        self.context = context
         self.configuration = configuration
     }
 
     static func ==(lhs: ChatTimerSheetComponent, rhs: ChatTimerSheetComponent) -> Bool {
+        if lhs.context !== rhs.context {
+            return false
+        }
         return lhs.configuration == rhs.configuration
     }
 
@@ -911,6 +937,7 @@ private final class ChatTimerSheetComponent: Component {
                 transition: transition,
                 component: AnyComponent(SheetComponent(
                     content: AnyComponent(ChatTimerSheetContentComponent(
+                        context: component.context,
                         configuration: component.configuration,
                         dismiss: { [weak self] in
                             self?.dismiss()
@@ -1179,7 +1206,7 @@ public final class ChatTimerScreen: ViewControllerComponentContainer {
 
         super.init(
             context: context,
-            component: ChatTimerSheetComponent(configuration: configuration),
+            component: ChatTimerSheetComponent(context: context, configuration: configuration),
             navigationBarAppearance: .none,
             statusBarStyle: .ignore,
             theme: configuration.style == .media ? .dark : .default,

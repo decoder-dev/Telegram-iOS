@@ -118,7 +118,7 @@ private final class SheetPageContent: CombinedComponent {
             
             if let subtitleText = component.title {
                 let subtitle = subtitle.update(
-                    component: MultilineTextComponent(text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(13.0), textColor: theme.list.itemSecondaryTextColor)), truncationType: .end, maximumNumberOfLines: 1),
+                    component: MultilineTextComponent(text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor)), truncationType: .end, maximumNumberOfLines: 1),
                     availableSize: CGSize(width: constrainedTitleWidth, height: context.availableSize.height),
                     transition: .immediate
                 )

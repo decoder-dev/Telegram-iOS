@@ -103,8 +103,6 @@ private final class QrStudioPillLabelView: UIView {
     private static let starSpacing: CGFloat = 1.0
     private static let dotSide: CGFloat = 3.0
     private static let dotSpacing: CGFloat = 5.0
-    private static let titleFont = Font.medium(12.0)
-    private static let detailFont = Font.with(size: 12.0, traits: .monospacedNumbers)
     private static let wordSpacing: CGFloat = 4.0
 
     private let prefixLabel = UILabel()
@@ -114,6 +112,7 @@ private final class QrStudioPillLabelView: UIView {
     private let detailLabel = UILabel()
     private var content: Content?
     private var color: UIColor?
+    private var fontSize: CGFloat?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -129,25 +128,29 @@ private final class QrStudioPillLabelView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private static func titleFont(_ content: Content) -> UIFont {
-        return content.hasSeparator ? self.titleFont : self.detailFont
+    private static func titleFont(content: Content, fontSize: CGFloat) -> UIFont {
+        return content.hasSeparator ? Font.medium(floor(fontSize * 12.0 / 17.0)) : self.detailFont(fontSize: fontSize)
+    }
+
+    private static func detailFont(fontSize: CGFloat) -> UIFont {
+        return Font.with(size: floor(fontSize * 12.0 / 17.0), traits: .monospacedNumbers)
     }
 
     private static func title(_ text: String, font: UIFont, color: UIColor) -> NSAttributedString {
         return NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: color, .kern: -0.24])
     }
 
-    private static func detail(_ text: String, color: UIColor) -> NSAttributedString {
-        return NSAttributedString(string: text, attributes: [.font: self.detailFont, .foregroundColor: color, .kern: -0.24])
+    private static func detail(_ text: String, fontSize: CGFloat, color: UIColor) -> NSAttributedString {
+        return NSAttributedString(string: text, attributes: [.font: self.detailFont(fontSize: fontSize), .foregroundColor: color, .kern: -0.24])
     }
 
-    static func width(_ content: Content) -> CGFloat {
+    static func width(_ content: Content, fontSize: CGFloat) -> CGFloat {
         let bounds = CGSize(width: 1000.0, height: 100.0)
-        let title = ceil(self.title(content.title, font: self.titleFont(content), color: .white).boundingRect(with: bounds, options: .usesLineFragmentOrigin, context: nil).width)
-        let detail = ceil(self.detail(content.detail, color: .white).boundingRect(with: bounds, options: .usesLineFragmentOrigin, context: nil).width)
+        let title = ceil(self.title(content.title, font: self.titleFont(content: content, fontSize: fontSize), color: .white).boundingRect(with: bounds, options: .usesLineFragmentOrigin, context: nil).width)
+        let detail = ceil(self.detail(content.detail, fontSize: fontSize, color: .white).boundingRect(with: bounds, options: .usesLineFragmentOrigin, context: nil).width)
         var width = self.starSide + self.starSpacing + title + detail
         if !content.prefix.isEmpty {
-            width += ceil(self.detail(content.prefix, color: .white).boundingRect(with: bounds, options: .usesLineFragmentOrigin, context: nil).width) + self.wordSpacing
+            width += ceil(self.detail(content.prefix, fontSize: fontSize, color: .white).boundingRect(with: bounds, options: .usesLineFragmentOrigin, context: nil).width) + self.wordSpacing
         }
         if content.hasSeparator {
             width += self.dotSpacing * 2.0 + self.dotSide
@@ -157,25 +160,26 @@ private final class QrStudioPillLabelView: UIView {
         return width
     }
 
-    func update(content: Content, color: UIColor, size: CGSize, transition: ComponentTransition) {
+    func update(content: Content, color: UIColor, fontSize: CGFloat, size: CGSize, transition: ComponentTransition) {
         if self.content?.slashed != content.slashed || self.color != color {
             self.starView.image = QrStudioStarGlyph.image(slashed: content.slashed, color: color)
         }
-        if self.content?.prefix != content.prefix || self.color != color {
-            self.prefixLabel.attributedText = QrStudioPillLabelView.detail(content.prefix, color: color)
+        if self.content?.prefix != content.prefix || self.color != color || self.fontSize != fontSize {
+            self.prefixLabel.attributedText = QrStudioPillLabelView.detail(content.prefix, fontSize: fontSize, color: color)
         }
-        if self.content?.title != content.title || self.content?.hasSeparator != content.hasSeparator || self.color != color {
-            self.titleLabel.attributedText = QrStudioPillLabelView.title(content.title, font: QrStudioPillLabelView.titleFont(content), color: color)
+        if self.content?.title != content.title || self.content?.hasSeparator != content.hasSeparator || self.color != color || self.fontSize != fontSize {
+            self.titleLabel.attributedText = QrStudioPillLabelView.title(content.title, font: QrStudioPillLabelView.titleFont(content: content, fontSize: fontSize), color: color)
         }
-        if self.content?.detail != content.detail || self.color != color {
-            self.detailLabel.attributedText = QrStudioPillLabelView.detail(content.detail, color: color)
+        if self.content?.detail != content.detail || self.color != color || self.fontSize != fontSize {
+            self.detailLabel.attributedText = QrStudioPillLabelView.detail(content.detail, fontSize: fontSize, color: color)
         }
         self.dotLayer.backgroundColor = color.withMultipliedAlpha(0.5).cgColor
         self.content = content
         self.color = color
+        self.fontSize = fontSize
 
         let midY = size.height * 0.5
-        var x = floor((size.width - QrStudioPillLabelView.width(content)) * 0.5)
+        var x = floor((size.width - QrStudioPillLabelView.width(content, fontSize: fontSize)) * 0.5)
 
         func place(_ label: UILabel, font: UIFont) {
             let textSize = label.sizeThatFits(CGSize(width: 1000.0, height: 100.0))
@@ -185,13 +189,13 @@ private final class QrStudioPillLabelView: UIView {
         }
         self.prefixLabel.isHidden = content.prefix.isEmpty
         if !content.prefix.isEmpty {
-            place(self.prefixLabel, font: QrStudioPillLabelView.detailFont)
+            place(self.prefixLabel, font: QrStudioPillLabelView.detailFont(fontSize: fontSize))
             x += QrStudioPillLabelView.wordSpacing
         }
         let starSide = QrStudioPillLabelView.starSide
         transition.setFrame(view: self.starView, frame: CGRect(x: x, y: midY - starSide * 0.5, width: starSide, height: starSide))
         x += starSide + QrStudioPillLabelView.starSpacing
-        place(self.titleLabel, font: QrStudioPillLabelView.titleFont(content))
+        place(self.titleLabel, font: QrStudioPillLabelView.titleFont(content: content, fontSize: fontSize))
         self.dotLayer.isHidden = !content.hasSeparator
         if content.hasSeparator {
             x += QrStudioPillLabelView.dotSpacing
@@ -202,7 +206,7 @@ private final class QrStudioPillLabelView: UIView {
         } else {
             x += QrStudioPillLabelView.wordSpacing
         }
-        place(self.detailLabel, font: QrStudioPillLabelView.detailFont)
+        place(self.detailLabel, font: QrStudioPillLabelView.detailFont(fontSize: fontSize))
     }
 }
 
@@ -251,6 +255,7 @@ final class QrStudioCodePillView: UIView {
     private var lastShapeTick: Double = -1.0
     private var isPressed = false
     private var pillWidth: CGFloat = 0.0
+    private var fontSize: CGFloat = 17.0
 
     private static let heatLevels = 3
     private static let alphaLevels = 5

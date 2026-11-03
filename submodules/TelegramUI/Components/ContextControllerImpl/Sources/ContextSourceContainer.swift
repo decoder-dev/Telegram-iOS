@@ -707,7 +707,7 @@ final class ContextSourceContainer: ASDisplayNode {
                     ),
                     theme: presentationData.theme,
                     customLayout: TabSelectorComponent.CustomLayout(
-                        font: Font.medium(14.0),
+                        font: Font.medium(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)),
                         spacing: 9.0
                     ),
                     items: mappedItems,
@@ -742,7 +742,7 @@ final class ContextSourceContainer: ASDisplayNode {
                     transition: ComponentTransition(footerTransition),
                     component: AnyComponent(
                         MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: footerText, font: Font.regular(13.0), textColor: presentationData.theme.contextMenu.primaryColor.withMultipliedAlpha(0.4))),
+                            text: .plain(NSAttributedString(string: footerText, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: presentationData.theme.contextMenu.primaryColor.withMultipliedAlpha(0.4))),
                             horizontalAlignment: .center,
                             maximumNumberOfLines: 0,
                             lineSpacing: 0.1

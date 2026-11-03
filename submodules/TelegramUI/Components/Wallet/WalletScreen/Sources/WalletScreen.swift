@@ -3768,7 +3768,8 @@ private final class WalletScreenComponent: Component {
                             textColor: textColor,
                             accentColor: accentColor,
                             iconName: "Wallet/InfoFast",
-                            iconColor: accentColor
+                            iconColor: accentColor,
+                            fontSize: fontSize
                         ))
                     ),
                     AnyComponentWithIdentity(
@@ -3780,7 +3781,8 @@ private final class WalletScreenComponent: Component {
                             textColor: textColor,
                             accentColor: accentColor,
                             iconName: "Wallet/InfoCheap",
-                            iconColor: accentColor
+                            iconColor: accentColor,
+                            fontSize: fontSize
                         ))
                     ),
                     AnyComponentWithIdentity(
@@ -3792,7 +3794,8 @@ private final class WalletScreenComponent: Component {
                             textColor: textColor,
                             accentColor: accentColor,
                             iconName: "Wallet/InfoVerified",
-                            iconColor: accentColor
+                            iconColor: accentColor,
+                            fontSize: fontSize
                         ))
                     )
                 ]

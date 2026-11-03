@@ -56,7 +56,8 @@ public final class ChatMessageUnsupportedBubbleContentNode: ChatMessageBubbleCon
                     primaryText: serviceColor.primaryText,
                     isDark: presentationData.theme.theme.overallDarkAppearance
                 )
-                let pillLayout = UnsupportedContentPill.layout(strings: strings, colors: colors, constrainedWidth: constrainedSize.width)
+                let fontSize = item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+                let pillLayout = UnsupportedContentPill.layout(strings: strings, colors: colors, constrainedWidth: constrainedSize.width, fontSize: fontSize)
 
                 return (pillLayout.size.width, { [weak self] boundingWidth in
                     let backgroundSize = CGSize(width: boundingWidth, height: pillLayout.size.height)
@@ -73,6 +74,7 @@ public final class ChatMessageUnsupportedBubbleContentNode: ChatMessageBubbleCon
                             colors: colors,
                             strings: strings,
                             size: backgroundSize,
+                            fontSize: fontSize,
                             wallpaperBackgroundNode: item.controllerInteraction.presentationContext.backgroundNode,
                             animation: animation
                         )

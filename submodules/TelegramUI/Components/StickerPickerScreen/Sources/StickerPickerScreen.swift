@@ -2373,15 +2373,21 @@ private final class InteractiveStickerButtonContent: Component {
 
 private final class InteractiveReactionButtonContent: Component {
     let theme: PresentationTheme
+    let listsFontSizeBase: CGFloat
 
     public init(
-        theme: PresentationTheme
+        theme: PresentationTheme,
+        listsFontSizeBase: CGFloat
     ) {
         self.theme = theme
+        self.listsFontSizeBase = listsFontSizeBase
     }
     
     public static func ==(lhs: InteractiveReactionButtonContent, rhs: InteractiveReactionButtonContent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         return true
@@ -2434,7 +2440,7 @@ private final class InteractiveReactionButtonContent: Component {
                 transition: .immediate,
                 component: AnyComponent(Text(
                     text: "❤️",
-                    font: Font.regular(26.0),
+                    font: Font.regular(floor(component.listsFontSizeBase * 26.0 / 17.0)),
                     color: .white
                 )),
                 environment: {},
@@ -2855,7 +2861,7 @@ final class StoryStickersContentView: UIView, EmojiCustomContentView {
                         content: AnyComponentWithIdentity(
                             id: "reaction",
                             component: AnyComponent(
-                                InteractiveReactionButtonContent(theme: theme)
+                                InteractiveReactionButtonContent(theme: theme, listsFontSizeBase: self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
                             )
                         ),
                         action: { [weak self] in

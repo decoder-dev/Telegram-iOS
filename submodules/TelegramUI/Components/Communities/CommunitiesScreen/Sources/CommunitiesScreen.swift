@@ -366,7 +366,7 @@ private final class CommunitiesScreenComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Community_List_Title,
-                        font: Font.bold(24.0),
+                        font: Font.bold(floor(presentationData.listsFontSize.baseDisplaySize * 24.0 / 17.0)),
                         textColor: theme.rootController.navigationBar.primaryTextColor
                     )),
                     horizontalAlignment: .center,
@@ -428,7 +428,7 @@ private final class CommunitiesScreenComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: subtitleText,
-                        font: Font.regular(15.0),
+                        font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)),
                         textColor: theme.list.itemPrimaryTextColor
                     )),
                     horizontalAlignment: .center,

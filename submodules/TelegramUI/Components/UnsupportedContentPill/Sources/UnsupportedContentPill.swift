@@ -123,7 +123,7 @@ func measureUnsupportedContentPill(
     strings: UnsupportedContentPillStrings,
     colors: UnsupportedContentPillColors,
     constrainedWidth: CGFloat,
-    fontSize: CGFloat = 17.0,
+    fontSize: CGFloat,
     titleNode: TextNode?,
     subtitleNode: TextNode?,
     buttonTitleNode: TextNode?
@@ -215,7 +215,7 @@ public enum UnsupportedContentPill {
         strings: UnsupportedContentPillStrings,
         colors: UnsupportedContentPillColors,
         constrainedWidth: CGFloat,
-        fontSize: CGFloat = 17.0
+        fontSize: CGFloat
     ) -> UnsupportedContentPillLayout {
         let (layout, _) = measureUnsupportedContentPill(
             strings: strings,

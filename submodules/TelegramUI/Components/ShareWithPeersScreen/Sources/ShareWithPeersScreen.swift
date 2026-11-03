@@ -1189,6 +1189,7 @@ final class ShareWithPeersScreenComponent: Component {
                                 style: itemLayout.style,
                                 title: sectionTitle,
                                 actionTitle: (section.id == 1 && !self.selectedPeers.isEmpty) ? environment.strings.Contacts_DeselectAll : nil,
+                                fontSize: baseDisplaySize,
                                 action: { [weak self] in
                                     if let self {
                                         self.selectedPeers = []

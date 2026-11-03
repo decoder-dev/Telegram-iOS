@@ -111,7 +111,7 @@ final class ShareScreenTopicsComponent: Component {
                     let titleSize = button.title.update(
                         transition: .immediate,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: topic.title, font: Font.regular(11.0), textColor: environment.theme.list.itemPrimaryTextColor)),
+                            text: .plain(NSAttributedString(string: topic.title, font: Font.regular(floor(listFontSize * 11.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor)),
                             horizontalAlignment: .center,
                             truncationType: .end,
                             maximumNumberOfLines: 2

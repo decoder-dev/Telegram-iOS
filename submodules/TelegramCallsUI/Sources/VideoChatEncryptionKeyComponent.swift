@@ -196,13 +196,18 @@ private final class EmojiContentLayer: SimpleLayer {
 }
 private final class EmojiItemComponent: Component {
     let emoji: String?
+    let fontSize: CGFloat
 
-    init(emoji: String?) {
+    init(emoji: String?, fontSize: CGFloat) {
         self.emoji = emoji
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: EmojiItemComponent, rhs: EmojiItemComponent) -> Bool {
         if lhs.emoji != rhs.emoji {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -260,10 +265,11 @@ private final class EmojiItemComponent: Component {
                 motionBlurTransition = .easeInOut(duration: 0.2)
             }
 
+            let emojiFont = Font.regular(floor(component.fontSize * 40.0 / 17.0))
             let size = self.measureEmojiView.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: "👍", font: Font.regular(40.0), textColor: .white))
+                    text: .plain(NSAttributedString(string: "👍", font: emojiFont, textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 200.0, height: 200.0)
@@ -288,7 +294,7 @@ private final class EmojiItemComponent: Component {
                     emojiLayer = EmojiContentLayer(size: size)
                     self.emojiLayer = emojiLayer
                 }
-                emojiLayer.setEmoji(emoji: emoji, font: Font.regular(40.0))
+                emojiLayer.setEmoji(emoji: emoji, font: emojiFont)
                 let emojiSize = size
                 let emojiFrame = CGRect(origin: CGPoint(x: pendingContainerInset + floor((size.width - emojiSize.width) * 0.5), y: pendingContainerInset + floor((size.height - emojiSize.height) * 0.5)), size: emojiSize)
 
@@ -363,7 +369,7 @@ private final class EmojiItemComponent: Component {
                         pendingEmojiLayer = EmojiContentLayer(size: size)
                         self.pendingEmojiLayers.append(pendingEmojiLayer)
                     }
-                    pendingEmojiLayer.setEmoji(emoji: pendingEmojiValues[i], font: Font.regular(40.0))
+                    pendingEmojiLayer.setEmoji(emoji: pendingEmojiValues[i], font: emojiFont)
                     let pendingEmojiViewSize = size
                     if pendingEmojiLayer.superlayer == nil {
                         pendingContainerView.contentView.layer.addSublayer(pendingEmojiLayer)
@@ -633,7 +639,8 @@ final class VideoChatEncryptionKeyComponent: Component {
                 return emojiItem.update(
                     transition: transition,
                     component: AnyComponent(EmojiItemComponent(
-                        emoji: i < emoji.count ? emoji[i] : nil
+                        emoji: i < emoji.count ? emoji[i] : nil,
+                        fontSize: component.fontSize
                     )),
                     environment: {},
                     containerSize: CGSize(width: 200.0, height: 200.0)

@@ -137,12 +137,13 @@ public final class AlertPeerComponent: Component {
                 transition.setFrame(view: avatarView, frame: CGRect(origin: CGPoint(x: -6.0, y: verticalInset), size: avatarSizeValue))
             }
 
+            let fontSize = environment.fontSize
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.peer.compactDisplayTitle,
-                        font: Font.semibold(16.0),
+                        font: Font.semibold(floor(fontSize * 16.0 / 17.0)),
                         textColor: environment.theme.actionSheet.primaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -168,7 +169,7 @@ public final class AlertPeerComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: memberCountText,
-                        font: Font.regular(14.0),
+                        font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                         textColor: environment.theme.actionSheet.secondaryTextColor
                     )),
                     maximumNumberOfLines: 1

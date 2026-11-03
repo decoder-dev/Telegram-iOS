@@ -275,7 +275,7 @@ private final class AvatarUploadToastScreenComponent: Component {
             let contentSize = self.content.update(
                 transition: transition,
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.regular(14.0),
+                    font: Font.regular(floor(listFontSize * 14.0 / 17.0)),
                     color: .white,
                     items: textItems
                 )),

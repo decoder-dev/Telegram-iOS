@@ -64,7 +64,7 @@ private final class CommunityPrivateChatContentComponent: Component {
 
         private var hiddenIconImage: UIImage?
 
-        private func infoAttributedText(theme: PresentationTheme, strings: PresentationStrings) -> NSAttributedString {
+        private func infoAttributedText(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat) -> NSAttributedString {
             if self.hiddenIconImage == nil {
                 self.hiddenIconImage = generateTintedImage(
                     image: generateScaledImage(image: UIImage(bundleImageName: "Chat/Message/Hidden"), size: CGSize(width: 20.0, height: 20.0), opaque: false),
@@ -74,7 +74,7 @@ private final class CommunityPrivateChatContentComponent: Component {
 
             let text = NSMutableAttributedString(
                 string: "#  \(strings.Community_PrivateChat_Info)",
-                font: Font.regular(15.0),
+                font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                 textColor: theme.list.itemPrimaryTextColor
             )
             if let image = self.hiddenIconImage {
@@ -87,6 +87,7 @@ private final class CommunityPrivateChatContentComponent: Component {
         func update(component: CommunityPrivateChatContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
             let environment = environment[EnvironmentType.self].value
             let theme = environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
 
             self.backgroundColor = .clear
 
@@ -121,7 +122,7 @@ private final class CommunityPrivateChatContentComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.chatPeer.compactDisplayTitle,
-                        font: Font.semibold(23.0),
+                        font: Font.semibold(floor(fontSize * 23.0 / 17.0)),
                         textColor: theme.list.itemPrimaryTextColor
                     )),
                     horizontalAlignment: .center,
@@ -144,7 +145,7 @@ private final class CommunityPrivateChatContentComponent: Component {
             let infoSize = self.infoText.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(self.infoAttributedText(theme: theme, strings: environment.strings)),
+                    text: .plain(self.infoAttributedText(theme: theme, strings: environment.strings, fontSize: fontSize)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.2

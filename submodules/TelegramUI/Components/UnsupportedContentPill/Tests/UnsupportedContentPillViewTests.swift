@@ -16,11 +16,11 @@ private let testColors = UnsupportedContentPillColors(
 )
 
 private func makeUpdatedPill(width: CGFloat = 320.0) -> (UnsupportedContentPillView, UnsupportedContentPillLayout, CGSize) {
-    let layout = UnsupportedContentPill.layout(strings: testStrings, colors: testColors, constrainedWidth: width)
+    let layout = UnsupportedContentPill.layout(strings: testStrings, colors: testColors, constrainedWidth: width, fontSize: 17.0)
     let size = CGSize(width: width, height: layout.size.height)
     let view = UnsupportedContentPillView()
     view.frame = CGRect(origin: CGPoint(), size: size)
-    view.update(layout: layout, colors: testColors, strings: testStrings, size: size, wallpaperBackgroundNode: nil, animation: .None)
+    view.update(layout: layout, colors: testColors, strings: testStrings, size: size, fontSize: 17.0, wallpaperBackgroundNode: nil, animation: .None)
     return (view, layout, size)
 }
 
@@ -102,7 +102,7 @@ final class UnsupportedContentPillViewTests: XCTestCase {
     func testRepeatedUpdatesDoNotAccumulateSubviews() {
         let (view, layout, size) = makeUpdatedPill()
         let countAfterFirst = view.subviews.count
-        view.update(layout: layout, colors: testColors, strings: testStrings, size: size, wallpaperBackgroundNode: nil, animation: .None)
+        view.update(layout: layout, colors: testColors, strings: testStrings, size: size, fontSize: 17.0, wallpaperBackgroundNode: nil, animation: .None)
         XCTAssertEqual(view.subviews.count, countAfterFirst)
     }
 

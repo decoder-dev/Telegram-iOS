@@ -391,6 +391,7 @@ final class CountriesMultiselectionScreenComponent: Component {
                                 style: .plain,
                                 title: sectionTitle,
                                 actionTitle: nil,
+                                fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                                 action: nil
                             )),
                             environment: {},

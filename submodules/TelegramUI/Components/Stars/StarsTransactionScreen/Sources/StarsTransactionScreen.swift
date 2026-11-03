@@ -2344,7 +2344,7 @@ private final class TransactionCellComponent: Component {
                     MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: component.transactionId,
-                            font: Font.monospace(15.0),
+                            font: Font.monospace(floor(fontSize * 15.0 / 17.0)),
                             textColor: component.textColor,
                             paragraphAlignment: .left
                         )),

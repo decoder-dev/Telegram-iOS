@@ -247,6 +247,7 @@ private final class SheetContent: Component {
                 transition: isChangingPreview ? ComponentTransition.immediate.withUserData(ProfileLevelRatingBarComponent.TransitionHint(animate: true)) : .immediate,
                 component: AnyComponent(ProfileLevelRatingBarComponent(
                     theme: environment.theme,
+                    fontSize: fontSize,
                     value: levelFraction,
                     leftLabel: currentLevel < 0 ? "" : environment.strings.ProfileLevelInfo_LevelIndex(Int32(currentLevel)),
                     rightLabel: currentLevel < 0 ? environment.strings.ProfileLevelInfo_NegativeRating : nextLevel.flatMap { environment.strings.ProfileLevelInfo_LevelIndex(Int32($0)) } ?? "",
@@ -784,7 +785,7 @@ private final class ItemComponent: Component {
             let badgeTextSize = self.badgeText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.badge, font: Font.semibold(11.0), textColor: component.isBadgeAccent ? component.theme.chatList.unreadBadgeActiveTextColor : component.theme.chatList.unreadBadgeInactiveTextColor))
+                    text: .plain(NSAttributedString(string: component.badge, font: Font.semibold(floor(fontSize * 11.0 / 17.0)), textColor: component.isBadgeAccent ? component.theme.chatList.unreadBadgeActiveTextColor : component.theme.chatList.unreadBadgeInactiveTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 1000.0, height: 10000.0)

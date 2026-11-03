@@ -12,15 +12,18 @@ private final class BlurModeComponent: Component {
     let title: String
     let icon: UIImage?
     let isSelected: Bool
+    let listsFontSizeBase: CGFloat
     
     init(
         title: String,
         icon: UIImage?,
-        isSelected: Bool
+        isSelected: Bool,
+        listsFontSizeBase: CGFloat
     ) {
         self.title = title
         self.icon = icon
         self.isSelected = isSelected
+        self.listsFontSizeBase = listsFontSizeBase
     }
     
     static func ==(lhs: BlurModeComponent, rhs: BlurModeComponent) -> Bool {
@@ -31,6 +34,9 @@ private final class BlurModeComponent: Component {
             return false
         }
         if lhs.isSelected != rhs.isSelected {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         return true
@@ -73,7 +79,7 @@ private final class BlurModeComponent: Component {
                 component: AnyComponent(
                     Text(
                         text: component.title,
-                        font: Font.bold(13.0),
+                        font: Font.bold(floor(component.listsFontSizeBase * 13.0 / 17.0)),
                         color: component.isSelected ? UIColor(rgb: 0xffd300) : UIColor(rgb: 0x808080)
                     )
                 ),
@@ -117,6 +123,7 @@ final class BlurComponent: Component {
     typealias EnvironmentType = Empty
     
     let strings: PresentationStrings
+    let listsFontSizeBase: CGFloat
     let value: BlurValue
     let hasPortrait: Bool
     let valueUpdated: (BlurValue) -> Void
@@ -124,12 +131,14 @@ final class BlurComponent: Component {
     
     init(
         strings: PresentationStrings,
+        listsFontSizeBase: CGFloat,
         value: BlurValue,
         hasPortrait: Bool,
         valueUpdated: @escaping (BlurValue) -> Void,
         isTrackingUpdated: @escaping (Bool) -> Void
     ) {
         self.strings = strings
+        self.listsFontSizeBase = listsFontSizeBase
         self.value = value
         self.hasPortrait = hasPortrait
         self.valueUpdated = valueUpdated
@@ -138,6 +147,9 @@ final class BlurComponent: Component {
     
     static func ==(lhs: BlurComponent, rhs: BlurComponent) -> Bool {
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         if lhs.value != rhs.value {
@@ -193,12 +205,13 @@ final class BlurComponent: Component {
             
             let valueUpdated = component.valueUpdated
             
+            let modeTitleFont = Font.bold(floor(component.listsFontSizeBase * 13.0 / 17.0))
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(
                     Text(
                         text: component.strings.Story_Editor_Blur_Title,
-                        font: Font.bold(13.0),
+                        font: modeTitleFont,
                         color: UIColor(rgb: 0x808080)
                     )
                 ),
@@ -221,7 +234,8 @@ final class BlurComponent: Component {
                             BlurModeComponent(
                                 title: component.strings.Story_Editor_Blur_Off,
                                 icon: self.offImage,
-                                isSelected: state.value.mode == .off
+                                isSelected: state.value.mode == .off,
+                                listsFontSizeBase: component.listsFontSizeBase
                             )
                         ),
                         action: { [weak state] in
@@ -242,7 +256,8 @@ final class BlurComponent: Component {
                             BlurModeComponent(
                                 title: component.strings.Story_Editor_Blur_Radial,
                                 icon: self.radialImage,
-                                isSelected: state.value.mode == .radial
+                                isSelected: state.value.mode == .radial,
+                                listsFontSizeBase: component.listsFontSizeBase
                             )
                         ),
                         action: { [weak state] in
@@ -263,7 +278,8 @@ final class BlurComponent: Component {
                             BlurModeComponent(
                                 title: component.strings.Story_Editor_Blur_Linear,
                                 icon: self.linearImage,
-                                isSelected: state.value.mode == .linear
+                                isSelected: state.value.mode == .linear,
+                                listsFontSizeBase: component.listsFontSizeBase
                             )
                         ),
                         action: { [weak state] in
@@ -284,7 +300,8 @@ final class BlurComponent: Component {
                             BlurModeComponent(
                                 title: component.strings.Story_Editor_Blur_Portrait,
                                 icon: self.portraitImage,
-                                isSelected: state.value.mode == .portrait
+                                isSelected: state.value.mode == .portrait,
+                                listsFontSizeBase: component.listsFontSizeBase
                             )
                         ),
                         action: { [weak state] in

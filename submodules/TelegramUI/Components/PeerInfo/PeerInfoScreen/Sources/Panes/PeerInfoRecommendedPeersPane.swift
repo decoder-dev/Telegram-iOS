@@ -389,8 +389,9 @@ final class PeerInfoRecommendedPeersPaneNode: ASDisplayNode, PeerInfoPaneNode {
                 unlockButton.updateTheme(SolidRoundedButtonTheme(theme: presentationData.theme))
             }
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFontSize = floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)
+            let textFont = Font.regular(textFontSize)
+            let boldTextFont = Font.semibold(textFontSize)
             let textColor = presentationData.theme.list.itemSecondaryTextColor
             let linkColor = presentationData.theme.list.itemAccentColor
             let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: boldTextFont, textColor: linkColor), linkAttribute: { _ in

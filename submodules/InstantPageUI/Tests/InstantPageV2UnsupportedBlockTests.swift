@@ -18,7 +18,7 @@ private let testColors = UnsupportedContentPillColors(
 
 /// A real pill item (so its height is the component's real height), moved to `y`.
 private func makeUnsupportedItem(y: CGFloat, isTopLevel: Bool = true) -> InstantPageV2LaidOutItem {
-    let items = layoutUnsupportedBlock(boundingWidth: 320.0, horizontalInset: 17.0, strings: testStrings, colors: testColors, isTopLevel: isTopLevel)
+    let items = layoutUnsupportedBlock(boundingWidth: 320.0, horizontalInset: 17.0, strings: testStrings, colors: testColors, fontSize: 17.0, isTopLevel: isTopLevel)
     guard case var .unsupportedContent(item) = items[0] else {
         preconditionFailure("layoutUnsupportedBlock did not produce an .unsupportedContent item")
     }
@@ -79,7 +79,7 @@ final class InstantPageV2UnsupportedBlockTests: XCTestCase {
     /// The pill is a rounded card, so it is laid out inside the page's horizontal insets like a
     /// paragraph — not flush to the page edge like a document row — and it stretches to fill them.
     func testPillIsLaidOutInsideThePageInsets() {
-        let items = layoutUnsupportedBlock(boundingWidth: 320.0, horizontalInset: 17.0, strings: testStrings, colors: testColors, isTopLevel: true)
+        let items = layoutUnsupportedBlock(boundingWidth: 320.0, horizontalInset: 17.0, strings: testStrings, colors: testColors, fontSize: 17.0, isTopLevel: true)
 
         XCTAssertEqual(items.count, 1)
         guard case let .unsupportedContent(item) = items[0] else {
@@ -94,8 +94,8 @@ final class InstantPageV2UnsupportedBlockTests: XCTestCase {
     /// amount of space and the pill is clipped or floats.
     func testPillHeightMatchesTheComponent() {
         let contentWidth = 320.0 - 17.0 * 2.0
-        let expected = UnsupportedContentPill.layout(strings: testStrings, colors: testColors, constrainedWidth: contentWidth)
-        let items = layoutUnsupportedBlock(boundingWidth: 320.0, horizontalInset: 17.0, strings: testStrings, colors: testColors, isTopLevel: true)
+        let expected = UnsupportedContentPill.layout(strings: testStrings, colors: testColors, constrainedWidth: contentWidth, fontSize: 17.0)
+        let items = layoutUnsupportedBlock(boundingWidth: 320.0, horizontalInset: 17.0, strings: testStrings, colors: testColors, fontSize: 17.0, isTopLevel: true)
 
         guard case let .unsupportedContent(item) = items[0] else {
             return XCTFail("expected an .unsupportedContent item, got \(items[0])")

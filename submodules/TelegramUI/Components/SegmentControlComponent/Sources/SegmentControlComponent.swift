@@ -73,6 +73,7 @@ public final class SegmentControlComponent: Component {
     let items: [Item]
     let selectedId: AnyHashable?
     let fillWidth: Bool
+    let fontSize: CGFloat
     let action: (AnyHashable) -> Void
 
     public init(
@@ -80,12 +81,14 @@ public final class SegmentControlComponent: Component {
         items: [Item],
         selectedId: AnyHashable?,
         fillWidth: Bool = false,
+        fontSize: CGFloat = 17.0,
         action: @escaping (AnyHashable) -> Void
     ) {
         self.theme = theme
         self.items = items
         self.selectedId = selectedId
         self.fillWidth = fillWidth
+        self.fontSize = fontSize
         self.action = action
     }
 
@@ -94,6 +97,7 @@ public final class SegmentControlComponent: Component {
         items: [Item],
         selectedId: AnyHashable?,
         fillWidth: Bool = false,
+        fontSize: CGFloat = 17.0,
         action: @escaping (AnyHashable) -> Void
     ) {
         self.init(
@@ -101,6 +105,7 @@ public final class SegmentControlComponent: Component {
             items: items,
             selectedId: selectedId,
             fillWidth: fillWidth,
+            fontSize: fontSize,
             action: action
         )
     }
@@ -116,6 +121,9 @@ public final class SegmentControlComponent: Component {
             return false
         }
         if lhs.fillWidth != rhs.fillWidth {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -176,6 +184,8 @@ public final class SegmentControlComponent: Component {
         
         func update(component: SegmentControlComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             let themeUpdated = self.component?.theme != component.theme
+            let fontUpdated = self.component?.fontSize != component.fontSize
+            let itemFont = Font.semibold(floor(component.fontSize * 14.0 / 17.0))
             
             self.component = component
             
@@ -201,9 +211,9 @@ public final class SegmentControlComponent: Component {
 
                 segmentedView.selectedSegmentIndex = component.items.firstIndex(where: { $0.id == component.selectedId }) ?? 0
                 
-                if themeUpdated {
+                if themeUpdated || fontUpdated {
                     segmentedView.setTitleTextAttributes([
-                        .font: Font.semibold(14.0),
+                        .font: itemFont,
                         .foregroundColor: component.theme.textColor
                     ], for: .normal)
                     segmentedView.foregroundColor = component.theme.foregroundColor
@@ -227,12 +237,15 @@ public final class SegmentControlComponent: Component {
                         let controlTheme = SegmentedControlTheme(backgroundColor: component.theme.legacyBackgroundColor, foregroundColor: component.theme.foregroundColor, shadowColor: .clear, textColor: component.theme.textColor, dividerColor: component.theme.dividerColor)
                         segmentedNode.updateTheme(controlTheme)
                     }
+                    if fontUpdated {
+                        segmentedNode.updateFontSize(component.fontSize)
+                    }
                 } else {
                     let mappedItems: [SegmentedControlItem] = component.items.map { item -> SegmentedControlItem in
                         return SegmentedControlItem(title: item.title)
                     }
                     let controlTheme = SegmentedControlTheme(backgroundColor: component.theme.legacyBackgroundColor, foregroundColor: component.theme.foregroundColor, shadowColor: .clear, textColor: component.theme.textColor, dividerColor: component.theme.dividerColor)
-                    segmentedNode = SegmentedControlNode(theme: controlTheme, items: mappedItems, selectedIndex: component.items.firstIndex(where: { $0.id == component.selectedId }) ?? 0, cornerRadius: 18.0)
+                    segmentedNode = SegmentedControlNode(theme: controlTheme, items: mappedItems, selectedIndex: component.items.firstIndex(where: { $0.id == component.selectedId }) ?? 0, cornerRadius: 18.0, fontSize: component.fontSize)
                     self.legacySegmentedNode = segmentedNode
                     self.addSubnode(segmentedNode)
                     

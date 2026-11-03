@@ -68,11 +68,12 @@ private final class EmojiKeyAlertComponet: CombinedComponent {
         return { context in
             let titleFontSize = floor(context.component.fontSize * 16.0 / 17.0)
             let textFontSize = floor(context.component.fontSize * 13.0 / 17.0)
+            let emojiKeyFontSize = floor(context.component.fontSize * 40.0 / 17.0)
             
             /*let emojiKeyItems = context.component.emojiKey.map { item in
                 return emojiKeyItems[item].update(
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: context.component.emojiKey.joined(separator: ""), font: Font.semibold(40.0), textColor: context.component.theme.actionSheet.primaryTextColor)),
+                        text: .plain(NSAttributedString(string: context.component.emojiKey.joined(separator: ""), font: Font.semibold(emojiKeyFontSize), textColor: context.component.theme.actionSheet.primaryTextColor)),
                         horizontalAlignment: .center
                     )),
                     environment: {},
@@ -83,7 +84,7 @@ private final class EmojiKeyAlertComponet: CombinedComponent {
             
             let emojiKey = emojiKey.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: context.component.emojiKey.joined(separator: ""), font: Font.semibold(40.0), textColor: context.component.theme.actionSheet.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: context.component.emojiKey.joined(separator: ""), font: Font.semibold(emojiKeyFontSize), textColor: context.component.theme.actionSheet.primaryTextColor)),
                     horizontalAlignment: .center
                 ),
                 availableSize: CGSize(width: context.availableSize.width, height: 10000.0),

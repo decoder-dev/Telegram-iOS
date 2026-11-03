@@ -45,6 +45,7 @@ final class InstantPageV2UnsupportedView: UIView, InstantPageItemView {
             colors: theme.unsupportedPillColors,
             strings: item.strings,
             size: size,
+            fontSize: item.fontSize,
             wallpaperBackgroundNode: renderContext?.wallpaperBackgroundNode(),
             animation: .None
         )

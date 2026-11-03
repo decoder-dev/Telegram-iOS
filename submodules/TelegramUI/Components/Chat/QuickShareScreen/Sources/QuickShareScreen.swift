@@ -574,7 +574,7 @@ private final class ItemComponent: Component {
             let textSize = self.text.update(
                 transition: .immediate,
                 component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: title, font: Font.semibold(13.0), textColor: .white)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: title, font: Font.semibold(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: .white)))
                 ),
                 environment: {},
                 containerSize: CGSize(width: 160.0, height: 33.0)

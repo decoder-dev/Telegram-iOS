@@ -11,7 +11,7 @@ final class WalletTooltipComponent: Component {
     let colors: (UIColor, UIColor)
     let fontSize: CGFloat
 
-    init(text: String, colors: (UIColor, UIColor) = WalletTooltipComponent.defaultColors, fontSize: CGFloat = 17.0) {
+    init(text: String, colors: (UIColor, UIColor) = WalletTooltipComponent.defaultColors, fontSize: CGFloat) {
         self.text = text
         self.colors = colors
         self.fontSize = fontSize

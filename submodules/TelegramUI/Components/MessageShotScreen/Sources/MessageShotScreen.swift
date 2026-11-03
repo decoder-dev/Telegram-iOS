@@ -53,9 +53,10 @@ private final class MessageShotChipNode: HighlightTrackingButtonNode {
     }
 
     /// A toggle chip when `width` is nil (sized to its title), otherwise a full-width action button.
-    func update(title: String, isSelected: Bool, isAction: Bool, width: CGFloat?, theme: PresentationTheme) -> CGSize {
+    func update(title: String, isSelected: Bool, isAction: Bool, width: CGFloat?, theme: PresentationTheme, listsFontSizeBase: CGFloat) -> CGSize {
         let textColor = isSelected ? theme.list.itemCheckColors.foregroundColor : (isAction ? theme.list.itemAccentColor : theme.list.itemPrimaryTextColor)
-        self.labelNode.attributedText = NSAttributedString(string: title, font: isAction ? Font.semibold(15.0) : Font.regular(14.0), textColor: textColor)
+        let fontSize = isAction ? floor(listsFontSizeBase * 15.0 / 17.0) : floor(listsFontSizeBase * 14.0 / 17.0)
+        self.labelNode.attributedText = NSAttributedString(string: title, font: isAction ? Font.semibold(fontSize) : Font.regular(fontSize), textColor: textColor)
         let titleSize = self.labelNode.updateLayout(CGSize(width: 240.0, height: 100.0))
         let size: CGSize
         if let width {

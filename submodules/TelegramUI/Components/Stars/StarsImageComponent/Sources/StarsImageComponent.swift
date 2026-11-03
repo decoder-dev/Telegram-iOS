@@ -453,6 +453,7 @@ public final class StarsImageComponent: Component {
         func update(component: StarsImageComponent, state: EmptyComponentState, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.state = state
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
 
             let isGift: Bool
             if case .gift = component.subject {
@@ -636,7 +637,7 @@ public final class StarsImageComponent: Component {
                     let countSize = self.countView.update(
                         transition: .immediate,
                         component: AnyComponent(
-                            Text(text: "\(media.count)", font: Font.with(size: 30.0, design: .round, weight: .medium), color: .white)
+                            Text(text: "\(media.count)", font: Font.with(size: floor(fontSize * 30.0 / 17.0), design: .round, weight: .medium), color: .white)
                         ),
                         environment: {},
                         containerSize: imageFrame.size
@@ -751,7 +752,7 @@ public final class StarsImageComponent: Component {
                     let countSize = self.countView.update(
                         transition: .immediate,
                         component: AnyComponent(
-                            Text(text: "\(extendedMedia.count)", font: Font.with(size: 30.0, design: .round, weight: .medium), color: .white)
+                            Text(text: "\(extendedMedia.count)", font: Font.with(size: floor(fontSize * 30.0 / 17.0), design: .round, weight: .medium), color: .white)
                         ),
                         environment: {},
                         containerSize: imageFrame.size
@@ -1047,7 +1048,7 @@ public final class StarsImageComponent: Component {
                 let countSize = self.amountView.update(
                     transition: .immediate,
                     component: AnyComponent(
-                        Text(text: "\(amount)", font: Font.with(size: 12.0, design: .round, weight: .bold), color: .white)
+                        Text(text: "\(amount)", font: Font.with(size: floor(fontSize * 12.0 / 17.0), design: .round, weight: .bold), color: .white)
                     ),
                     environment: {},
                     containerSize: imageFrame.size

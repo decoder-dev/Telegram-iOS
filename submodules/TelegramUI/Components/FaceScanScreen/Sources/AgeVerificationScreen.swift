@@ -130,11 +130,12 @@ private final class SheetContent: CombinedComponent {
             )
             
             let constrainedTitleWidth = context.availableSize.width - 16.0 * 2.0
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             
             contentSize.height += 124.0
             
             let title = title.update(
-                component: Text(text: strings.AgeVerification_Title, font: Font.bold(24.0), color: theme.list.itemPrimaryTextColor),
+                component: Text(text: strings.AgeVerification_Title, font: Font.bold(floor(fontSize * 24.0 / 17.0)), color: theme.list.itemPrimaryTextColor),
                 availableSize: CGSize(width: constrainedTitleWidth, height: context.availableSize.height),
                 transition: .immediate
             )
@@ -144,8 +145,8 @@ private final class SheetContent: CombinedComponent {
             contentSize.height += title.size.height
             contentSize.height += 13.0
                           
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let textColor = theme.actionSheet.primaryTextColor
             let linkColor = theme.actionSheet.controlAccentColor
             let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: textFont, textColor: linkColor), linkAttribute: { contents in

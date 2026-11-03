@@ -414,10 +414,10 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                 )
             }
             
-            let titleFont = Font.bold(24.0)
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
             let listFontSize = presentationData.listsFontSize.baseDisplaySize
+            let titleFont = Font.bold(floor(listFontSize * 24.0 / 17.0))
+            let textFont = Font.regular(floor(listFontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(listFontSize * 15.0 / 17.0))
         
             var contentHeight: CGFloat = 32.0
             
@@ -503,7 +503,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                     } else {
                         items.append(
                             AnyComponentWithIdentity(id: "staticIcon", component: AnyComponent(
-                                Text(text: code, font: Font.regular(32.0), color: .black)
+                                Text(text: code, font: Font.regular(floor(listFontSize * 32.0 / 17.0)), color: .black)
                             ))
                         )
                     }

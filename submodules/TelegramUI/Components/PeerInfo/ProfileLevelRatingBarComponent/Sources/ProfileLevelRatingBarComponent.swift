@@ -22,6 +22,7 @@ public final class ProfileLevelRatingBarComponent: Component {
     }
     
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let value: CGFloat
     let leftLabel: String
     let rightLabel: String
@@ -33,6 +34,7 @@ public final class ProfileLevelRatingBarComponent: Component {
     
     public init(
         theme: PresentationTheme,
+        fontSize: CGFloat,
         value: CGFloat,
         leftLabel: String,
         rightLabel: String,
@@ -43,6 +45,7 @@ public final class ProfileLevelRatingBarComponent: Component {
         inversed: Bool = false
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.value = value
         self.leftLabel = leftLabel
         self.rightLabel = rightLabel
@@ -55,6 +58,9 @@ public final class ProfileLevelRatingBarComponent: Component {
     
     public static func ==(lhs: ProfileLevelRatingBarComponent, rhs: ProfileLevelRatingBarComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.value != rhs.value {
@@ -606,7 +612,7 @@ public final class ProfileLevelRatingBarComponent: Component {
             
             transition.setFrame(view: self.barForeground, frame: CGRect(origin: CGPoint(), size: barBackgroundFrame.size))
             
-            let labelFont = Font.semibold(14.0)
+            let labelFont = Font.semibold(floor(component.fontSize * 14.0 / 17.0))
             
             let leftLabelSize = self.backgroundLeftLabel.update(
                 transition: labelsTransition,
@@ -689,6 +695,7 @@ public final class ProfileLevelRatingBarComponent: Component {
                 transition: transition.withUserData(ProfileLevelRatingBarBadge.TransitionHint(animateText: !labelsTransition.animation.isImmediate)),
                 component: AnyComponent(ProfileLevelRatingBarBadge(
                     theme: component.theme,
+                    fontSize: component.fontSize,
                     title: component.level < 0 ? "" : "\(component.badgeValue)",
                     suffix: component.level < 0 ? nil : component.badgeTotal,
                     icon: icon

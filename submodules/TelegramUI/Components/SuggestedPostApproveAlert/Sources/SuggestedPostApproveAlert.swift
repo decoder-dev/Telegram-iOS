@@ -358,8 +358,9 @@ private final class SuggestedPostAlertImpl: AlertController {
                 toast = ComponentView()
                 self.toast = toast
             }
-            let body = MarkdownAttributeSet(font: Font.regular(14.0), textColor: .white)
-            let bold = MarkdownAttributeSet(font: Font.semibold(14.0), textColor: .white)
+            let toastFontSize = floor(self.theme.baseFontSize * 14.0 / 17.0)
+            let body = MarkdownAttributeSet(font: Font.regular(toastFontSize), textColor: .white)
+            let bold = MarkdownAttributeSet(font: Font.semibold(toastFontSize), textColor: .white)
             let playOnce = ActionSlot<Void>()
             let toastSize = toast.update(
                 transition: ComponentTransition(transition),

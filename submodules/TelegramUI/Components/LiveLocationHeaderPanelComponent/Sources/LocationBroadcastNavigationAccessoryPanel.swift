@@ -10,9 +10,6 @@ import Markdown
 import LocalizedPeerData
 import LiveLocationTimerNode
 
-private let titleFont = Font.regular(12.0)
-private let subtitleFont = Font.regular(10.0)
-
 enum LocationBroadcastNavigationAccessoryPanelMode {
     case summary
     case peer
@@ -23,6 +20,7 @@ final class LocationBroadcastNavigationAccessoryPanel: ASDisplayNode {
     private var theme: PresentationTheme
     private var strings: PresentationStrings
     private var nameDisplayOrder: PresentationPersonNameOrder
+    private var fontSize: CGFloat
     
     private let tapAction: () -> Void
     private let close: (UIView) -> Void
@@ -38,11 +36,12 @@ final class LocationBroadcastNavigationAccessoryPanel: ASDisplayNode {
     private var validLayout: (CGSize, CGFloat, CGFloat)?
     private var peersAndMode: ([EnginePeer], LocationBroadcastNavigationAccessoryPanelMode, Bool)?
     
-    init(accountPeerId: EnginePeer.Id, theme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, tapAction: @escaping () -> Void, close: @escaping (UIView) -> Void) {
+    init(accountPeerId: EnginePeer.Id, theme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, fontSize: CGFloat, tapAction: @escaping () -> Void, close: @escaping (UIView) -> Void) {
         self.accountPeerId = accountPeerId
         self.theme = theme
         self.strings = strings
         self.nameDisplayOrder = nameDisplayOrder
+        self.fontSize = fontSize
         
         self.tapAction = tapAction
         self.close = close
@@ -104,6 +103,7 @@ final class LocationBroadcastNavigationAccessoryPanel: ASDisplayNode {
     func updatePresentationData(_ presentationData: PresentationData) {
         self.theme = presentationData.theme
         self.strings = presentationData.strings
+        self.fontSize = presentationData.listsFontSize.baseDisplaySize
         
         self.iconNode.image = generateTintedImage(image: UIImage(bundleImageName: "Chat List/LiveLocationPanelIcon"), color: theme.chat.inputPanel.panelControlColor)
         
@@ -120,6 +120,10 @@ final class LocationBroadcastNavigationAccessoryPanel: ASDisplayNode {
             context.addLine(to: CGPoint(x: 1.0, y: size.height - 1.0))
             context.strokePath()
         }), for: [])
+        
+        if let (size, leftInset, rightInset) = self.validLayout {
+            self.updateLayout(size: size, leftInset: leftInset, rightInset: rightInset, transition: .immediate)
+        }
     }
     
     func updateLayout(size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -127,6 +131,9 @@ final class LocationBroadcastNavigationAccessoryPanel: ASDisplayNode {
         
         transition.updateFrame(node: self.contentNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: size))
         transition.updateAlpha(node: self.contentNode, alpha: isHidden ? 0.0 : 1.0)
+        
+        let titleFont = Font.regular(floor(self.fontSize * 12.0 / 17.0))
+        let subtitleFont = Font.regular(floor(self.fontSize * 10.0 / 17.0))
         
         let titleString = NSAttributedString(string: self.strings.Conversation_LiveLocation, font: titleFont, textColor: self.theme.rootController.navigationBar.primaryTextColor)
         var subtitleString: NSAttributedString?

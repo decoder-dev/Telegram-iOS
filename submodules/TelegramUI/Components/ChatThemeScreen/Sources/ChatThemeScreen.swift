@@ -428,7 +428,8 @@ private final class ThemeSettingsThemeItemIconNode : ListViewItemNode {
                 updatedNightMode = true
             }
             
-            let text = NSAttributedString(string: item.strings.Conversation_Theme_NoTheme, font: Font.semibold(15.0), textColor: item.theme.actionSheet.controlAccentColor)
+            let fontSize = item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let text = NSAttributedString(string: item.strings.Conversation_Theme_NoTheme, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: item.theme.actionSheet.controlAccentColor)
             let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: text, backgroundColor: nil, maximumNumberOfLines: 2, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             
             let emoticon: String
@@ -437,7 +438,7 @@ private final class ThemeSettingsThemeItemIconNode : ListViewItemNode {
             } else {
                 emoticon = "❌"
             }
-            let title = NSAttributedString(string: emoticon, font: Font.regular(22.0), textColor: .black)
+            let title = NSAttributedString(string: emoticon, font: Font.regular(floor(fontSize * 22.0 / 17.0)), textColor: .black)
             let (_, emojiApply) = makeEmojiLayout(TextNodeLayoutArguments(attributedString: title, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             
             let itemLayout = ListViewItemNodeLayout(contentSize: CGSize(width: 120.0, height: 90.0), insets: UIEdgeInsets())
@@ -1676,7 +1677,7 @@ private final class ChatThemeSheetContentComponent: Component {
                 let subtitleSize = self.subtitle.update(
                     transition: transition,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.presentationData.strings.Conversation_Theme_Subtitle(component.peerName).string, font: Font.regular(15.0), textColor: component.presentationData.theme.actionSheet.secondaryTextColor)),
+                        text: .plain(NSAttributedString(string: component.presentationData.strings.Conversation_Theme_Subtitle(component.peerName).string, font: Font.regular(floor(component.presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: component.presentationData.theme.actionSheet.secondaryTextColor)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0
                     )),

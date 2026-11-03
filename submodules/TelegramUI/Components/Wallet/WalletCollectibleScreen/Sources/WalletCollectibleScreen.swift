@@ -329,15 +329,17 @@ private final class WalletCollectibleTraitValueComponent: Component {
     let theme: PresentationTheme
     let value: String
     let rarity: String
+    let fontSize: CGFloat
 
-    init(theme: PresentationTheme, value: String, rarity: String) {
+    init(theme: PresentationTheme, value: String, rarity: String, fontSize: CGFloat) {
         self.theme = theme
         self.value = value
         self.rarity = rarity
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: WalletCollectibleTraitValueComponent, rhs: WalletCollectibleTraitValueComponent) -> Bool {
-        return lhs.theme === rhs.theme && lhs.value == rhs.value && lhs.rarity == rhs.rarity
+        return lhs.theme === rhs.theme && lhs.value == rhs.value && lhs.rarity == rhs.rarity && lhs.fontSize == rhs.fontSize
     }
 
     final class View: UIView {
@@ -357,6 +359,7 @@ private final class WalletCollectibleTraitValueComponent: Component {
         }
 
         func update(component: WalletCollectibleTraitValueComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.fontSize
             let valueSize = self.value.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
@@ -1094,9 +1097,10 @@ private final class WalletCollectibleContentComponent: Component {
             theme: PresentationTheme,
             strings: PresentationStrings,
             dateTimeFormat: PresentationDateTimeFormat,
-            displaysOwner: Bool
+            displaysOwner: Bool,
+            fontSize: CGFloat
         ) -> [TableComponent.Item] {
-            let ownerFont = Font.monospace(15.0)
+            let ownerFont = Font.monospace(floor(fontSize * 15.0 / 17.0))
             let ownerAddress = component.context.walletContext?.stateValue.walletAddress ?? ""
             let ownerText = NSMutableAttributedString()
             var ownerIndex = ownerAddress.startIndex
@@ -1134,7 +1138,8 @@ private final class WalletCollectibleContentComponent: Component {
                         content: AnyComponent(WalletCollectibleTraitValueComponent(
                             theme: theme,
                             value: model.value,
-                            rarity: model.rarity
+                            rarity: model.rarity,
+                            fontSize: fontSize
                         )),
                         action: { [weak self] in
                             self?.openGiftVariants(attributeKey: "model")
@@ -1148,7 +1153,8 @@ private final class WalletCollectibleContentComponent: Component {
                         content: AnyComponent(WalletCollectibleTraitValueComponent(
                             theme: theme,
                             value: backdrop.value,
-                            rarity: backdrop.rarity
+                            rarity: backdrop.rarity,
+                            fontSize: fontSize
                         )),
                         action: { [weak self] in
                             self?.openGiftVariants(attributeKey: "backdrop")
@@ -1162,7 +1168,8 @@ private final class WalletCollectibleContentComponent: Component {
                         content: AnyComponent(WalletCollectibleTraitValueComponent(
                             theme: theme,
                             value: symbol.value,
-                            rarity: symbol.rarity
+                            rarity: symbol.rarity,
+                            fontSize: fontSize
                         )),
                         action: { [weak self] in
                             self?.openGiftVariants(attributeKey: "symbol")
@@ -1196,7 +1203,8 @@ private final class WalletCollectibleContentComponent: Component {
                             content: AnyComponent(WalletCollectibleTraitValueComponent(
                                 theme: theme,
                                 value: "~\(formatCurrencyAmount(valueAmount, currency: valueCurrency))",
-                                rarity: strings.Gift_Unique_LearnMore
+                                rarity: strings.Gift_Unique_LearnMore,
+                                fontSize: fontSize
                             )),
                             action: { [weak self] in
                                 self?.openValue()
@@ -1224,7 +1232,6 @@ private final class WalletCollectibleContentComponent: Component {
             }
 
             let theme = environment.theme
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let headerGift: StarGift.UniqueGift? = component.collectible.kind == .gift ? (component.collectible.nft?.gift ?? self.uniqueGift) : nil
             self.displaysGiftHeader = headerGift != nil
             let giftHeaderButtonHeight: CGFloat = 58.0
@@ -1575,7 +1582,7 @@ private final class WalletCollectibleContentComponent: Component {
                     transition: transition,
                     component: AnyComponent(TableComponent(
                         theme: theme,
-                        items: self.giftTableItems(component: component, theme: theme, strings: environment.strings, dateTimeFormat: environment.dateTimeFormat, displaysOwner: !isDuo)
+                        items: self.giftTableItems(component: component, theme: theme, strings: environment.strings, dateTimeFormat: environment.dateTimeFormat, displaysOwner: !isDuo, fontSize: fontSize)
                     )),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 1000.0)

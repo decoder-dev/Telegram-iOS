@@ -786,12 +786,14 @@ func chatHistoryEntriesForView(
     if includeEmbeddedSavedChatInfo, let peerId = location.peerId {
         if !view.isLoading && view.laterId == nil {
             let string = presentationData.strings.Chat_SavedMessagesTabInfoText
+            let infoFontSize = floor(presentationData.fontSize.baseDisplaySize * 15.0 / 17.0)
+            let infoFont = Font.regular(infoFontSize)
             let formattedString = parseMarkdownIntoAttributedString(
                 string,
                 attributes: MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: .black),
-                    bold: MarkdownAttributeSet(font: Font.regular(15.0), textColor: .black),
-                    link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: .white),
+                    body: MarkdownAttributeSet(font: infoFont, textColor: .black),
+                    bold: MarkdownAttributeSet(font: infoFont, textColor: .black),
+                    link: MarkdownAttributeSet(font: infoFont, textColor: .white),
                     linkAttribute: { url in
                         return ("URL", url)
                     }
@@ -860,13 +862,15 @@ func chatHistoryEntriesForView(
 
         if !serviceHeaders.isEmpty && !view.isLoading && view.laterId == nil && !view.entries.isEmpty {
             let peerId = view.entries[0].message.id.peerId
+            let serviceFontSize = floor(presentationData.fontSize.baseDisplaySize * 15.0 / 17.0)
+            let serviceFont = Font.regular(serviceFontSize)
             for (i, string) in serviceHeaders.reversed().enumerated() {
                 let formattedString = parseMarkdownIntoAttributedString(
                     string,
                     attributes: MarkdownAttributes(
-                        body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: .black),
-                        bold: MarkdownAttributeSet(font: Font.regular(15.0), textColor: .black),
-                        link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: .white),
+                        body: MarkdownAttributeSet(font: serviceFont, textColor: .black),
+                        bold: MarkdownAttributeSet(font: serviceFont, textColor: .black),
+                        link: MarkdownAttributeSet(font: serviceFont, textColor: .white),
                         linkAttribute: { url in
                             return ("URL", url)
                         }

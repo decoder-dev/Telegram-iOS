@@ -141,17 +141,19 @@ private final class ShareScreenHeaderComponent: Component {
     let title: String
     let subtitle: [AnimatedTextComponent.Item]
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let isHidden: Bool
 
-    init(title: String, subtitle: [AnimatedTextComponent.Item], theme: PresentationTheme, isHidden: Bool) {
+    init(title: String, subtitle: [AnimatedTextComponent.Item], theme: PresentationTheme, fontSize: CGFloat, isHidden: Bool) {
         self.title = title
         self.subtitle = subtitle
         self.theme = theme
+        self.fontSize = fontSize
         self.isHidden = isHidden
     }
 
     static func ==(lhs: ShareScreenHeaderComponent, rhs: ShareScreenHeaderComponent) -> Bool {
-        return lhs.title == rhs.title && lhs.subtitle == rhs.subtitle && lhs.theme === rhs.theme && lhs.isHidden == rhs.isHidden
+        return lhs.title == rhs.title && lhs.subtitle == rhs.subtitle && lhs.theme === rhs.theme && lhs.fontSize == rhs.fontSize && lhs.isHidden == rhs.isHidden
     }
 
     final class View: UIView {
@@ -188,7 +190,7 @@ private final class ShareScreenHeaderComponent: Component {
             }
             self.titleText = component.title
             let titleSize = self.title.update(transition: .immediate, component: AnyComponent(Text(
-                text: component.title, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), color: component.theme.list.itemPrimaryTextColor
+                text: component.title, font: Font.semibold(component.fontSize), color: component.theme.list.itemPrimaryTextColor
             )), environment: {}, containerSize: CGSize(width: size.width, height: 22.0))
             if let view = self.title.view {
                 if view.superview == nil {
@@ -201,7 +203,7 @@ private final class ShareScreenHeaderComponent: Component {
                 }
                 view.frame = CGRect(x: floorToScreenPixels((size.width - titleSize.width) * 0.5), y: 0.0, width: titleSize.width, height: titleSize.height)
             }
-            let subtitleFont = Font.regular(12.0)
+            let subtitleFont = Font.regular(floor(component.fontSize * 12.0 / 17.0))
             var subtitleItems: [AnimatedTextComponent.Item] = []
             var remainingWidth = size.width
             for (index, item) in component.subtitle.enumerated() {
@@ -1011,7 +1013,7 @@ private final class ShareScreenComponent: Component {
             let sheetDefaultHeight: CGFloat = loadingNode == nil ? min(540.0, height) : (loadingNode is ShareProlongedLoadingContainerNode ? 420.0 : 260.0)
             let size = self.sheet.update(transition: transition, component: AnyComponent(ResizableSheetComponent<EnvironmentType>(
                 content: AnyComponent(ShareScreenBodyComponent(content: AnyComponent(content), loadingNode: loadingNode, loadingHeight: isEmbedded ? height : sheetDefaultHeight)),
-                titleItem: AnyComponent(ShareScreenHeaderComponent(title: nestedPeer.map { model.displayPeer($0).compactDisplayTitle } ?? strings.ShareScreen_Title, subtitle: model.forumPeer == nil ? subtitle : [AnimatedTextComponent.Item(id: "topic", isUnbreakable: true, content: .text(model.forumPeer?._asPeer().isMonoForum == true ? strings.ShareMenu_SelectChats : strings.ShareMenu_SelectTopic))], theme: theme, isHidden: loadingNode == nil && model.isSearching && nestedPeer == nil)),
+                titleItem: AnyComponent(ShareScreenHeaderComponent(title: nestedPeer.map { model.displayPeer($0).compactDisplayTitle } ?? strings.ShareScreen_Title, subtitle: model.forumPeer == nil ? subtitle : [AnimatedTextComponent.Item(id: "topic", isUnbreakable: true, content: .text(model.forumPeer?._asPeer().isMonoForum == true ? strings.ShareMenu_SelectChats : strings.ShareMenu_SelectTopic))], theme: theme, fontSize: model.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize, isHidden: loadingNode == nil && model.isSearching && nestedPeer == nil)),
                 leftItem: AnyComponent(ShareScreenBarButtonComponent(theme: theme, title: nestedPeer == nil ? strings.Common_Close : strings.Common_Back, icon: nestedPeer == nil ? "Navigation/Close" : "Navigation/Back", isVisible: loadingNode != nil || !model.isSearching || nestedPeer != nil, action: {
                     if loadingNode != nil { (controller() as? ShareScreen)?.close() } else if model.forumPeer != nil { model.closeForum() } else if model.communityPeer != nil { model.closeCommunity() } else { (controller() as? ShareScreen)?.close() }
                 })),

@@ -205,8 +205,8 @@ final class GroupVideoNode: ASDisplayNode, PreviewVideoNode {
         return rotatedAspect
     }
 
-    func updateDebugInfo(text: String) {
-        self.debugTextNode.attributedText = NSAttributedString(string: text, font: Font.regular(14.0), textColor: .white)
+    func updateDebugInfo(text: String, listsFontSizeBase: CGFloat) {
+        self.debugTextNode.attributedText = NSAttributedString(string: text, font: Font.regular(floor(listsFontSizeBase * 14.0 / 17.0)), textColor: .white)
         if let (size, layoutMode) = self.validLayout {
             self.updateLayout(size: size, layoutMode: layoutMode, transition: .immediate)
         }

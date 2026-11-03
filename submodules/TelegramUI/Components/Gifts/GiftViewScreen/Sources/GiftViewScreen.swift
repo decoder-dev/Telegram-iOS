@@ -3740,7 +3740,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                             textColor: secondaryTextColor,
                             accentColor: linkColor,
                             iconName: "Premium/Collectible/Badge",
-                            iconColor: linkColor
+                            iconColor: linkColor,
+                            fontSize: fontSize
                         ))
                     )
                 )
@@ -3754,7 +3755,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                             textColor: secondaryTextColor,
                             accentColor: linkColor,
                             iconName: "Premium/BoostPerk/CoverColor",
-                            iconColor: linkColor
+                            iconColor: linkColor,
+                            fontSize: fontSize
                         ))
                     )
                 )
@@ -3768,7 +3770,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                             textColor: secondaryTextColor,
                             accentColor: linkColor,
                             iconName: "Premium/Collectible/Proof",
-                            iconColor: linkColor
+                            iconColor: linkColor,
+                            fontSize: fontSize
                         ))
                     )
                 )
@@ -3973,7 +3976,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                             textColor: secondaryTextColor,
                             accentColor: linkColor,
                             iconName: "Premium/Collectible/Unique",
-                            iconColor: linkColor
+                            iconColor: linkColor,
+                            fontSize: fontSize
                         ))
                     )
                 )
@@ -3987,7 +3991,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                             textColor: secondaryTextColor,
                             accentColor: linkColor,
                             iconName: "Premium/Collectible/Tradable",
-                            iconColor: linkColor
+                            iconColor: linkColor,
+                            fontSize: fontSize
                         ))
                     )
                 )
@@ -4001,7 +4006,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                             textColor: secondaryTextColor,
                             accentColor: linkColor,
                             iconName: "Premium/Collectible/Wearable",
-                            iconColor: linkColor
+                            iconColor: linkColor,
+                            fontSize: fontSize
                         ))
                     )
                 )

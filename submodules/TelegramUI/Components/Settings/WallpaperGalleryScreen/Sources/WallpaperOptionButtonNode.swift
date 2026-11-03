@@ -147,9 +147,12 @@ final class WallpaperNavigationButtonNode: HighlightTrackingButtonNode {
         self.iconNode.image = generateTintedImage(image: image, color: self.dark ? .white : .black)
     }
     
-    init(content: Content, dark: Bool) {
+    private let fontSize: CGFloat
+    
+    init(content: Content, dark: Bool, fontSize: CGFloat) {
         self.content = content
         self.dark = dark
+        self.fontSize = fontSize
         
         self.backgroundNode = WallpaperOptionBackgroundNode(enableSaturation: self.enableSaturation, isDark: dark)
         
@@ -175,7 +178,7 @@ final class WallpaperNavigationButtonNode: HighlightTrackingButtonNode {
         }
         
         self.textNode = ImmediateTextNode()
-        self.textNode.attributedText = NSAttributedString(string: title, font: Font.semibold(15.0), textColor: iconColor)
+        self.textNode.attributedText = NSAttributedString(string: title, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: iconColor)
         
         super.init()
         
@@ -269,9 +272,11 @@ public final class WallpaperOptionButtonNode: HighlightTrackingButtonNode {
         }
     }
     
+    private let fontSize: CGFloat
+    
     public var title: String {
         didSet {
-            self.textNode.attributedText = NSAttributedString(string: title, font: Font.medium(13), textColor: self.dark ? .white : .black)
+            self.textNode.attributedText = NSAttributedString(string: title, font: Font.medium(floor(self.fontSize * 13.0 / 17.0)), textColor: self.dark ? .white : .black)
         }
     }
     
@@ -279,14 +284,15 @@ public final class WallpaperOptionButtonNode: HighlightTrackingButtonNode {
         didSet {
             let color: UIColor = self.dark ? .white : .black
             self.checkNode.theme = CheckNodeTheme(backgroundColor: color, strokeColor: .clear, borderColor: color, overlayBorder: false, hasInset: false, hasShadow: false, borderWidth: 1.5)
-            self.textNode.attributedText = NSAttributedString(string: self.title, font: Font.medium(13), textColor: self.dark ? .white : .black)
+            self.textNode.attributedText = NSAttributedString(string: self.title, font: Font.medium(floor(self.fontSize * 13.0 / 17.0)), textColor: self.dark ? .white : .black)
             let _ = self.textNode.updateLayout(CGSize(width: 160.0, height: 40.0))
         }
     }
     
-    public init(title: String, value: WallpaperOptionButtonValue) {
+    public init(title: String, value: WallpaperOptionButtonValue, fontSize: CGFloat) {
         self._value = value
         self.title = title
+        self.fontSize = fontSize
         
         self.backgroundNode = WallpaperOptionBackgroundNode()
         
@@ -297,7 +303,7 @@ public final class WallpaperOptionButtonNode: HighlightTrackingButtonNode {
         
         self.textNode = ImmediateTextNode()
         self.textNode.displaysAsynchronously = false
-        self.textNode.attributedText = NSAttributedString(string: title, font: Font.medium(13), textColor: .white)
+        self.textNode.attributedText = NSAttributedString(string: title, font: Font.medium(floor(fontSize * 13.0 / 17.0)), textColor: .white)
 
         super.init()
         

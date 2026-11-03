@@ -111,7 +111,7 @@ private final class PeerInfoScreenCommunityItemNode: PeerInfoScreenItemNode {
         let avatarSize: CGFloat = 30.0
         let height: CGFloat = 58.0
         let titleFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
-        let subtitleFont = Font.regular(13.0)
+        let subtitleFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0))
 
         let subtitle: String?
         if let chatCount = item.chatCount {

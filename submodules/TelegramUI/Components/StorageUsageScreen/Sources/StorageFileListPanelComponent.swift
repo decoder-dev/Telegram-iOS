@@ -94,9 +94,15 @@ private func extensionImage(fileExtension: String?) -> UIImage? {
         return nil
     }
 }
-private let extensionFont = Font.with(size: 15.0, design: .round, weight: .bold)
-private let mediumExtensionFont = Font.with(size: 14.0, design: .round, weight: .bold)
-private let smallExtensionFont = Font.with(size: 12.0, design: .round, weight: .bold)
+private func extensionFont(fontSize: CGFloat) -> UIFont {
+    Font.with(size: floor(fontSize * 15.0 / 17.0), design: .round, weight: .bold)
+}
+private func mediumExtensionFont(fontSize: CGFloat) -> UIFont {
+    Font.with(size: floor(fontSize * 14.0 / 17.0), design: .round, weight: .bold)
+}
+private func smallExtensionFont(fontSize: CGFloat) -> UIFont {
+    Font.with(size: floor(fontSize * 12.0 / 17.0), design: .round, weight: .bold)
+}
 
 private final class FileListItemComponent: Component {
     enum Icon: Equatable {
@@ -337,6 +343,7 @@ private final class FileListItemComponent: Component {
             self.component = component
             self.state = state
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let contextInset: CGFloat = self.isExtractedToContextMenu ? 12.0 : 0.0
             
             let spacing: CGFloat = 1.0
@@ -407,7 +414,7 @@ private final class FileListItemComponent: Component {
                         transition: .immediate,
                         component: AnyComponent(Text(
                             text: text,
-                            font: text.count > 3 ? mediumExtensionFont : extensionFont,
+                            font: text.count > 3 ? mediumExtensionFont(fontSize: fontSize) : extensionFont(fontSize: fontSize),
                             color: .white
                         )),
                         environment: {},
@@ -521,7 +528,6 @@ private final class FileListItemComponent: Component {
                 }
             }
             
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let titleFontSize = floor(fontSize * 16.0 / 17.0)
             let labelFontSize = fontSize
             let subtitleFontSize = floor(fontSize * 14.0 / 17.0)

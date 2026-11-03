@@ -56,17 +56,20 @@ private final class GiftsTabItemComponent: Component {
     let icons: [ProfileGiftsContext.State.StarGift]
     let title: String
     let theme: PresentationTheme
+    let fontSize: CGFloat
     
     init(
         context: AccountContext,
         icons: [ProfileGiftsContext.State.StarGift],
         title: String,
-        theme: PresentationTheme
+        theme: PresentationTheme,
+        fontSize: CGFloat
     ) {
         self.context = context
         self.icons = icons
         self.title = title
         self.theme = theme
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: GiftsTabItemComponent, rhs: GiftsTabItemComponent) -> Bool {
@@ -77,6 +80,9 @@ private final class GiftsTabItemComponent: Component {
             return false
         }
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -101,7 +107,7 @@ private final class GiftsTabItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.medium(15.0), textColor: effectiveColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.medium(floor(component.fontSize * 15.0 / 17.0)), textColor: effectiveColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -249,7 +255,7 @@ final class PeerInfoPaneTabsContainerPaneNode: ASDisplayNode {
     
     func updateText(context: AccountContext, title: String, icons: [ProfileGiftsContext.State.StarGift] = [], isSelected: Bool, presentationData: PresentationData) {
         self.isSelected = isSelected
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(14.0), textColor: isSelected ? presentationData.theme.list.itemAccentColor : presentationData.theme.list.itemSecondaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: isSelected ? presentationData.theme.list.itemAccentColor : presentationData.theme.list.itemSecondaryTextColor)
         self.icons = icons
         
         if !icons.isEmpty {
@@ -1326,7 +1332,7 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                             icons = Array(gifts)
                         }
                         content = .custom(AnyComponent(
-                            GiftsTabItemComponent(context: self.context, icons: icons, title: presentationData.strings.PeerInfo_PaneGifts, theme: presentationData.theme)
+                            GiftsTabItemComponent(context: self.context, icons: icons, title: presentationData.strings.PeerInfo_PaneGifts, theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize)
                         ))
                         canReorder = true
                     case .polls:

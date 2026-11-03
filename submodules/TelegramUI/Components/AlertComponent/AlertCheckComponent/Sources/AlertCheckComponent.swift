@@ -116,8 +116,9 @@ public final class AlertCheckComponent: Component {
                 hasShadow: false
             )
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFontSize = floor(environment.fontSize * 15.0 / 17.0)
+            let textFont = Font.regular(textFontSize)
+            let boldTextFont = Font.semibold(textFontSize)
             let textColor = environment.theme.actionSheet.primaryTextColor
             let linkColor = environment.theme.actionSheet.controlAccentColor
             let markdownAttributes = MarkdownAttributes(

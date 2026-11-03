@@ -502,7 +502,7 @@ private final class GiftDemoListComponent: CombinedComponent {
             var contentSize = CGSize(width: context.availableSize.width, height: 32.0)
         
             let title = title.update(
-                component: MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Demo_Title, font: Font.bold(25.0), textColor: titleColor))),
+                component: MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Demo_Title, font: Font.bold(floor(fontSize * 25.0 / 17.0)), textColor: titleColor))),
                 availableSize: context.availableSize,
                 transition: context.transition
             )

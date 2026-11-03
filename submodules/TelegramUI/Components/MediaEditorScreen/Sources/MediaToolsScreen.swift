@@ -775,6 +775,7 @@ private final class MediaToolsScreenComponent: Component {
                     transition: optionsTransition,
                     component: AnyComponent(TintComponent(
                         strings: presentationData.strings,
+                        listsFontSizeBase: presentationData.listsFontSize.baseDisplaySize,
                         shadowsValue: mediaEditor?.getToolValue(.shadowsTint) as? TintValue ?? TintValue.initial,
                         highlightsValue: mediaEditor?.getToolValue(.highlightsTint) as? TintValue ?? TintValue.initial,
                         shadowsValueUpdated: { [weak state] value in
@@ -833,6 +834,7 @@ private final class MediaToolsScreenComponent: Component {
                     transition: optionsTransition,
                     component: AnyComponent(BlurComponent(
                         strings: presentationData.strings,
+                        listsFontSizeBase: presentationData.listsFontSize.baseDisplaySize,
                         value: mediaEditor?.getToolValue(.blur) as? BlurValue ?? BlurValue.initial,
                         hasPortrait: mediaEditor?.hasPortraitMask ?? false,
                         valueUpdated: { [weak state] value in

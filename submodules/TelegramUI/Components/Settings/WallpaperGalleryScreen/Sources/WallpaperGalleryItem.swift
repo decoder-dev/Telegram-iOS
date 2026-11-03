@@ -191,11 +191,11 @@ final class WallpaperGalleryItemNode: GalleryItemNode {
         
         self.topButtons = ComponentView<Empty>()
         self.buttonsContainerNode = SparseNode()
-        self.blurButtonNode = WallpaperOptionButtonNode(title: self.presentationData.strings.WallpaperPreview_Blurred, value: .check(false))
+        self.blurButtonNode = WallpaperOptionButtonNode(title: self.presentationData.strings.WallpaperPreview_Blurred, value: .check(false), fontSize: self.presentationData.listsFontSize.baseDisplaySize)
         self.blurButtonNode.setEnabled(false)
-        self.motionButtonNode = WallpaperOptionButtonNode(title: self.presentationData.strings.WallpaperPreview_Motion, value: .check(false))
+        self.motionButtonNode = WallpaperOptionButtonNode(title: self.presentationData.strings.WallpaperPreview_Motion, value: .check(false), fontSize: self.presentationData.listsFontSize.baseDisplaySize)
         self.motionButtonNode.setEnabled(false)
-        self.patternButtonNode = WallpaperOptionButtonNode(title: self.presentationData.strings.WallpaperPreview_Pattern, value: .check(false))
+        self.patternButtonNode = WallpaperOptionButtonNode(title: self.presentationData.strings.WallpaperPreview_Pattern, value: .check(false), fontSize: self.presentationData.listsFontSize.baseDisplaySize)
         self.patternButtonNode.setEnabled(false)
         
         self.serviceBackgroundNode = NavigationBackgroundNode(color: UIColor(rgb: 0x333333, alpha: 0.35))
@@ -205,7 +205,7 @@ final class WallpaperGalleryItemNode: GalleryItemNode {
             sliderValueChangedImpl?(value)
         })
 
-        self.colorsButtonNode = WallpaperOptionButtonNode(title: self.presentationData.strings.WallpaperPreview_WallpaperColors, value: .colors(false, [.clear]))
+        self.colorsButtonNode = WallpaperOptionButtonNode(title: self.presentationData.strings.WallpaperPreview_WallpaperColors, value: .colors(false, [.clear]), fontSize: self.presentationData.listsFontSize.baseDisplaySize)
         self.toolbarNode = WallpaperGalleryToolbarNode(theme: self.presentationData.theme, strings: self.presentationData.strings, listFontSize: self.presentationData.listsFontSize.baseDisplaySize)
 
         self.playButtonPlayImage = generateImage(CGSize(width: 48.0, height: 48.0), rotatedContext: { size, context in
@@ -235,7 +235,7 @@ final class WallpaperGalleryItemNode: GalleryItemNode {
 
         self.playButtonRotateImage = generateTintedImage(image: UIImage(bundleImageName: "Settings/ThemeColorRotateIcon"), color: .white)
 
-        self.playButtonNode = WallpaperNavigationButtonNode(content: .icon(image: self.playButtonPlayImage, size: CGSize(width: 48.0, height: 48.0)), dark: true)
+        self.playButtonNode = WallpaperNavigationButtonNode(content: .icon(image: self.playButtonPlayImage, size: CGSize(width: 48.0, height: 48.0)), dark: true, fontSize: self.presentationData.listsFontSize.baseDisplaySize)
         
         super.init()
         

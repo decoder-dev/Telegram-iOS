@@ -349,10 +349,12 @@ private struct PendingCommunityViewRequestAction {
 private final class CommunityViewPendingAccessoryComponent: Component {
     let count: Int32?
     let theme: PresentationTheme
+    let fontSize: CGFloat
 
-    init(count: Int32?, theme: PresentationTheme) {
+    init(count: Int32?, theme: PresentationTheme, fontSize: CGFloat) {
         self.count = count
         self.theme = theme
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: CommunityViewPendingAccessoryComponent, rhs: CommunityViewPendingAccessoryComponent) -> Bool {
@@ -360,6 +362,9 @@ private final class CommunityViewPendingAccessoryComponent: Component {
             return false
         }
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -398,7 +403,7 @@ private final class CommunityViewPendingAccessoryComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: "\(countValue)",
-                            font: Font.medium(12.0),
+                            font: Font.medium(floor(component.fontSize * 12.0 / 17.0)),
                             textColor: component.theme.list.itemCheckColors.foregroundColor
                         )),
                         horizontalAlignment: .center,
@@ -1604,7 +1609,8 @@ private final class CommunityViewContentComponent: Component {
                     accessory: .custom(ListActionItemComponent.CustomAccessory(
                         component: AnyComponentWithIdentity(id: "pendingRequests-accessory-\(totalCount)", component: AnyComponent(CommunityViewPendingAccessoryComponent(
                             count: totalCount,
-                            theme: theme
+                            theme: theme,
+                            fontSize: presentationData.listsFontSize.baseDisplaySize
                         ))),
                         insets: UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 16.0),
                         isInteractive: false
@@ -1725,7 +1731,7 @@ private final class CommunityViewContentComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: presentationData.strings.Community_View_ShowAsOneChatInfo,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)),
                             textColor: theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0

@@ -10,6 +10,7 @@ final class SectionHeaderComponent: Component {
     let style: ShareWithPeersScreenComponent.Style
     let title: String
     let actionTitle: String?
+    let fontSize: CGFloat
     let action: (() -> Void)?
     
     init(
@@ -17,12 +18,14 @@ final class SectionHeaderComponent: Component {
         style: ShareWithPeersScreenComponent.Style,
         title: String,
         actionTitle: String?,
+        fontSize: CGFloat,
         action: (() -> Void)?
     ) {
         self.theme = theme
         self.style = style
         self.title = title
         self.actionTitle = actionTitle
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -37,6 +40,9 @@ final class SectionHeaderComponent: Component {
             return false
         }
         if lhs.actionTitle != rhs.actionTitle {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -87,7 +93,7 @@ final class SectionHeaderComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(13.0), textColor: component.theme.list.itemSecondaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(floor(component.fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftInset - rightInset, height: 100.0)
@@ -110,7 +116,7 @@ final class SectionHeaderComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         Button(content: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: actionTitle, font: Font.regular(13.0), textColor: component.theme.list.itemSecondaryTextColor))
+                            text: .plain(NSAttributedString(string: actionTitle, font: Font.regular(floor(component.fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                         )), action: { [weak self] in
                             if let self, let component = self.component {
                                 component.action?()

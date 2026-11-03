@@ -995,7 +995,7 @@ private final class StyleItemComponent: Component {
                 ))
             } else {
                 iconComponent = AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: "❌", font: Font.regular(25.0), textColor: .black))
+                    text: .plain(NSAttributedString(string: "❌", font: Font.regular(floor(component.fontSize * 25.0 / 17.0)), textColor: .black))
                 ))
             }
 
@@ -1016,7 +1016,7 @@ private final class StyleItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(10.0), textColor: iconTintColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(floor(component.fontSize * 10.0 / 17.0)), textColor: iconTintColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)

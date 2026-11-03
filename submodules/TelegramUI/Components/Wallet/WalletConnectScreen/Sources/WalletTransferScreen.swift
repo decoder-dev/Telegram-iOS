@@ -164,7 +164,7 @@ private final class WalletTransferSigningCardComponent: Component {
     let controller: () -> ViewController?
     let scrollViewUpdated: (UIScrollView?) -> Void
 
-    init(theme: PresentationTheme, strings: PresentationStrings, content: WalletTransferPresentation.SigningContent, fontSize: CGFloat = 17.0, controller: @escaping () -> ViewController?, scrollViewUpdated: @escaping (UIScrollView?) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, content: WalletTransferPresentation.SigningContent, fontSize: CGFloat, controller: @escaping () -> ViewController?, scrollViewUpdated: @escaping (UIScrollView?) -> Void) {
         self.theme = theme
         self.strings = strings
         self.content = content
@@ -642,7 +642,7 @@ private final class WalletTransferActionsComponent: Component {
         confirmTitle: String,
         isBusy: Bool,
         isConfirming: Bool,
-        fontSize: CGFloat = 17.0,
+        fontSize: CGFloat,
         cancel: @escaping () -> Void,
         confirm: @escaping () -> Void
     ) {

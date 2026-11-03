@@ -132,8 +132,6 @@ private class ThemeSettingsThemeIconItem: ListViewItem {
 }
 
 
-private let textFont = Font.regular(12.0)
-private let selectedTextFont = Font.bold(12.0)
 
 private var cachedBorderImages: [String: UIImage] = [:]
 private func generateBorderImage(theme: PresentationTheme, bordered: Bool, selected: Bool) -> UIImage? {
@@ -285,6 +283,9 @@ private final class ThemeSettingsThemeItemIconNode : ListViewItemNode {
                 updatedSelected = true
             }
             
+            let fontSize = item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let textFont = Font.regular(floor(fontSize * 12.0 / 17.0))
+            let selectedTextFont = Font.bold(floor(fontSize * 12.0 / 17.0))
             let title = NSAttributedString(string: item.title, font: item.selected ? selectedTextFont : textFont, textColor: item.selected ? item.theme.list.itemAccentColor : item.theme.list.itemPrimaryTextColor)
             let (_, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: title, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             

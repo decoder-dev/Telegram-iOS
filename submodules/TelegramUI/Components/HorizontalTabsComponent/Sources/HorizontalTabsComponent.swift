@@ -1206,7 +1206,8 @@ private final class ItemComponent: Component {
                     self.titleContent = titleContent
                 }
                 
-                let font = Font.medium(15.0)
+                let fontSize = component.context?.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize ?? 17.0
+                let font = Font.medium(floor(fontSize * 15.0 / 17.0))
                 
                 let rawAttributedString = ChatTextInputStateText(text: title.text, attributes: title.entities.compactMap { entity -> ChatTextInputStateTextAttribute? in
                     if case let .CustomEmoji(_, fileId) = entity.type {
@@ -1281,7 +1282,7 @@ private final class ItemComponent: Component {
                     transition: badgeTransition,
                     component: AnyComponent(TextBadgeComponent(
                         text: badgeData.title,
-                        font: Font.medium(12.0),
+                        font: Font.medium(floor((component.context?.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize ?? 17.0) * 12.0 / 17.0)),
                         background: badgeData.isAccent ? component.theme.list.itemCheckColors.fillColor : component.theme.chatList.unreadBadgeInactiveBackgroundColor,
                         foreground: component.theme.list.itemCheckColors.foregroundColor,
                         insets: UIEdgeInsets(top: 1.0, left: 5.0, bottom: 2.0, right: 5.0)

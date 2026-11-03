@@ -792,6 +792,7 @@ public final class TabBarComponent: Component {
                     component: AnyComponent(ItemComponent(
                         item: item,
                         theme: component.theme,
+                        contentFontSize: component.contentFontSize,
                         isSearchActive: false,
                         showsTitle: true,
                         isSelected: false,
@@ -856,6 +857,7 @@ public final class TabBarComponent: Component {
                     component: AnyComponent(ItemComponent(
                         item: item,
                         theme: component.theme,
+                        contentFontSize: component.contentFontSize,
                         isSearchActive: search?.isActive == true,
                         showsTitle: !component.isCompact,
                         isSelected: false,
@@ -870,6 +872,7 @@ public final class TabBarComponent: Component {
                     component: AnyComponent(ItemComponent(
                         item: item,
                         theme: component.theme,
+                        contentFontSize: component.contentFontSize,
                         isSearchActive: search?.isActive == true,
                         showsTitle: !component.isCompact,
                         isSelected: true,
@@ -1042,15 +1045,17 @@ public final class TabBarComponent: Component {
 private final class ItemComponent: Component {
     let item: TabBarComponent.Item
     let theme: PresentationTheme
+    let contentFontSize: CGFloat
     let isSearchActive: Bool
     let showsTitle: Bool
     let isSelected: Bool
     let tintSelectedItem: Bool
     let isUnconstrained: Bool
     
-    init(item: TabBarComponent.Item, theme: PresentationTheme, isSearchActive: Bool, showsTitle: Bool, isSelected: Bool, tintSelectedItem: Bool, isUnconstrained: Bool) {
+    init(item: TabBarComponent.Item, theme: PresentationTheme, contentFontSize: CGFloat, isSearchActive: Bool, showsTitle: Bool, isSelected: Bool, tintSelectedItem: Bool, isUnconstrained: Bool) {
         self.item = item
         self.theme = theme
+        self.contentFontSize = contentFontSize
         self.isSearchActive = isSearchActive
         self.showsTitle = showsTitle
         self.isSelected = isSelected
@@ -1063,6 +1068,9 @@ private final class ItemComponent: Component {
             return false
         }
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.contentFontSize != rhs.contentFontSize {
             return false
         }
         if lhs.isSearchActive != rhs.isSearchActive {
@@ -1384,7 +1392,7 @@ private final class ItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: title, font: Font.semibold(10.0), textColor: (component.isSelected && component.tintSelectedItem) ? component.theme.rootController.tabBar.selectedTextColor : component.theme.rootController.tabBar.textColor))
+                    text: .plain(NSAttributedString(string: title, font: Font.semibold(floor(component.contentFontSize * 10.0 / 17.0)), textColor: (component.isSelected && component.tintSelectedItem) ? component.theme.rootController.tabBar.selectedTextColor : component.theme.rootController.tabBar.textColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -1412,7 +1420,7 @@ private final class ItemComponent: Component {
                     transition: badgeTransition,
                     component: AnyComponent(TextBadgeComponent(
                         text: badgeText,
-                        font: Font.regular(13.0),
+                        font: Font.regular(floor(component.contentFontSize * 13.0 / 17.0)),
                         background: component.theme.rootController.tabBar.badgeBackgroundColor,
                         foreground: component.theme.rootController.tabBar.badgeTextColor,
                         insets: UIEdgeInsets(top: 0.0, left: 5.0, bottom: 1.0, right: 5.0)

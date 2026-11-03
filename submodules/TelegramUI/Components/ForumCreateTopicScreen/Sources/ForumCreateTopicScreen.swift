@@ -694,7 +694,7 @@ private final class ForumCreateTopicScreenComponent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.CreateTopic_EnterTopicTitle,
-                        font: Font.regular(13.0),
+                        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                         textColor: environment.theme.list.freeTextColor,
                         paragraphAlignment: .natural)
                     ),
@@ -814,7 +814,7 @@ private final class ForumCreateTopicScreenComponent: CombinedComponent {
                     component: MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.CreateTopic_ShowGeneralInfo,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: environment.theme.list.freeTextColor,
                             paragraphAlignment: .natural)
                         ),
@@ -835,7 +835,7 @@ private final class ForumCreateTopicScreenComponent: CombinedComponent {
                     component: MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.CreateTopic_SelectTopicIcon,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: environment.theme.list.freeTextColor,
                             paragraphAlignment: .natural)
                         ),

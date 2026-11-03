@@ -191,13 +191,14 @@ final class StarsBalanceComponent: Component {
             case .stars:
                 formattedLabel = formatStarsAmountText(component.count, dateTimeFormat: component.dateTimeFormat)
             }
+            let fontSize = component.fontSize
             let labelFont: UIFont
             if formattedLabel.contains(component.dateTimeFormat.decimalSeparator) {
-                labelFont = Font.with(size: 48.0, design: .round, weight: .semibold)
+                labelFont = Font.with(size: floor(fontSize * 48.0 / 17.0), design: .round, weight: .semibold)
             } else {
-                labelFont = Font.with(size: 48.0, design: .round, weight: .semibold)
+                labelFont = Font.with(size: floor(fontSize * 48.0 / 17.0), design: .round, weight: .semibold)
             }
-            let smallLabelFont = Font.with(size: 32.0, design: .round, weight: .regular)
+            let smallLabelFont = Font.with(size: floor(fontSize * 32.0 / 17.0), design: .round, weight: .regular)
             let balanceString = tonAmountAttributedString(formattedLabel, integralFont: labelFont, fractionalFont: smallLabelFont, color: component.theme.list.itemPrimaryTextColor, decimalSeparator: component.dateTimeFormat.decimalSeparator)
             let titleSize = self.title.update(
                 transition: .immediate,
@@ -267,7 +268,7 @@ final class StarsBalanceComponent: Component {
                             AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(Text(text: component.actionTitle, font: Font.semibold(component.fontSize), color: component.theme.list.itemCheckColors.foregroundColor))),
                             AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(HStack([
                                 AnyComponentWithIdentity(id: 1, component: AnyComponent(BundleIconComponent(name: "Chat List/StatusLockIcon", tintColor: component.theme.list.itemCheckColors.fillColor.mixedWith(component.theme.list.itemCheckColors.foregroundColor, alpha: 0.7)))),
-                                AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: stringForRemainingTime(remainingCooldownSeconds), font: Font.with(size: 11.0, weight: .medium, traits: [.monospacedNumbers]), color: component.theme.list.itemCheckColors.fillColor.mixedWith(component.theme.list.itemCheckColors.foregroundColor, alpha: 0.7))))
+                                AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: stringForRemainingTime(remainingCooldownSeconds), font: Font.with(size: floor(fontSize * 11.0 / 17.0), weight: .medium, traits: [.monospacedNumbers]), color: component.theme.list.itemCheckColors.fillColor.mixedWith(component.theme.list.itemCheckColors.foregroundColor, alpha: 0.7))))
                             ], spacing: 3.0)))
                         ], spacing: 1.0)
                     ))
@@ -328,7 +329,7 @@ final class StarsBalanceComponent: Component {
                                 AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(Text(text: secondaryActionTitle, font: Font.semibold(component.fontSize), color: component.theme.list.itemCheckColors.foregroundColor))),
                                 AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(HStack([
                                     AnyComponentWithIdentity(id: 1, component: AnyComponent(BundleIconComponent(name: "Chat List/StatusLockIcon", tintColor: component.theme.list.itemCheckColors.fillColor.mixedWith(component.theme.list.itemCheckColors.foregroundColor, alpha: 0.7)))),
-                                    AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: stringForRemainingTime(remainingSecondaryCooldownSeconds), font: Font.with(size: 11.0, weight: .medium, traits: [.monospacedNumbers]), color: component.theme.list.itemCheckColors.fillColor.mixedWith(component.theme.list.itemCheckColors.foregroundColor, alpha: 0.7))))
+                                    AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: stringForRemainingTime(remainingSecondaryCooldownSeconds), font: Font.with(size: floor(fontSize * 11.0 / 17.0), weight: .medium, traits: [.monospacedNumbers]), color: component.theme.list.itemCheckColors.fillColor.mixedWith(component.theme.list.itemCheckColors.foregroundColor, alpha: 0.7))))
                                 ], spacing: 3.0)))
                             ], spacing: 1.0)
                         )))

@@ -1708,10 +1708,10 @@ final class StorageUsageScreenComponent: Component {
                     transition: transition,
                     /*component: AnyComponent(Text(
                         text: dataSizeString(Int(totalSelectedCategorySize), formatting: DataSizeStringFormatting(strings: environment.strings, decimalSeparator: ".")),
-                        font: Font.with(size: 20.0, design: .round, weight: .bold), color: environment.theme.list.itemPrimaryTextColor
+                        font: Font.with(size: floor(fontSize * 20.0 / 17.0), design: .round, weight: .bold), color: environment.theme.list.itemPrimaryTextColor
                     )),*/
                     component: AnyComponent(AnimatedTextComponent(
-                        font: Font.with(size: 20.0, design: .round, weight: .bold),
+                        font: Font.with(size: floor(fontSize * 20.0 / 17.0), design: .round, weight: .bold),
                         color: environment.theme.list.itemPrimaryTextColor,
                         items: animatedTextItems
                     )),
@@ -3678,7 +3678,7 @@ private class StorageUsageClearProgressOverlayNode: ASDisplayNode {
         let progressTextSize = self.progressText.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: "\(max(1, Int(self.progress * 100.0)))%", font: Font.with(size: 24.0, design: .regular, weight: .semibold, traits: [.monospacedNumbers]), textColor: self.presentationData.theme.actionSheet.primaryTextColor)),
+                text: .plain(NSAttributedString(string: "\(max(1, Int(self.progress * 100.0)))%", font: Font.with(size: floor(self.presentationData.listsFontSize.baseDisplaySize * 24.0 / 17.0), design: .regular, weight: .semibold, traits: [.monospacedNumbers]), textColor: self.presentationData.theme.actionSheet.primaryTextColor)),
                 horizontalAlignment: .center
             )),
             environment: {},

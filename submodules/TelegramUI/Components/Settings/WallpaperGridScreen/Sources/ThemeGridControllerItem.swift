@@ -153,8 +153,9 @@ final class ThemeGridControllerItemNode: GridItemNode {
                 self.addSubnode(textNode)
             }
             
-            let strings = item.context.sharedContext.currentPresentationData.with { $0 }.strings
-            textNode.attributedText = NSAttributedString(string: strings.Wallpaper_NoWallpaper, font: Font.regular(15.0), textColor: theme.list.itemSecondaryTextColor)
+            let presentationData = item.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
+            textNode.attributedText = NSAttributedString(string: presentationData.strings.Wallpaper_NoWallpaper, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor)
         }
         
         self.setNeedsLayout()

@@ -23,17 +23,20 @@ final class ProfileLevelRatingBarBadge: Component {
     }
     
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let title: String
     let suffix: String?
     let icon: Icon
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat,
         title: String,
         suffix: String?,
         icon: Icon
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.title = title
         self.suffix = suffix
         self.icon = icon
@@ -41,6 +44,9 @@ final class ProfileLevelRatingBarBadge: Component {
     
     static func ==(lhs: ProfileLevelRatingBarBadge, rhs: ProfileLevelRatingBarBadge) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.title != rhs.title {
@@ -171,7 +177,7 @@ final class ProfileLevelRatingBarBadge: Component {
             let badgeLabelSize = self.badgeLabel.update(
                 transition: labelsTransition,
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.with(size: 24.0, design: .round, weight: .semibold, traits: []),
+                    font: Font.with(size: floor(component.fontSize * 24.0 / 17.0), design: .round, weight: .semibold, traits: []),
                     color: component.theme.list.itemCheckColors.foregroundColor,
                     items: [AnimatedTextComponent.Item(
                         id: AnyHashable(0),
@@ -187,7 +193,7 @@ final class ProfileLevelRatingBarBadge: Component {
             let badgeSuffixSize = self.suffixLabel.update(
                 transition: labelsTransition,
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.regular(22.0),
+                    font: Font.regular(floor(component.fontSize * 22.0 / 17.0)),
                     color: component.theme.list.itemCheckColors.foregroundColor.withMultipliedAlpha(0.6),
                     items: [AnimatedTextComponent.Item(
                         id: AnyHashable(0),

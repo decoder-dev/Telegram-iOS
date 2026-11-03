@@ -1236,6 +1236,7 @@ private func layoutBlock(
                 horizontalInset: horizontalInset,
                 strings: UnsupportedContentPillStrings(strings: context.strings),
                 colors: context.theme.unsupportedPillColors,
+                fontSize: context.theme.textCategories.paragraph.font.size,
                 isTopLevel: pathPrefix.count == 1
             )
         }
@@ -1398,6 +1399,7 @@ private func layoutBlock(
             horizontalInset: horizontalInset,
             strings: UnsupportedContentPillStrings(strings: context.strings),
             colors: context.theme.unsupportedPillColors,
+            fontSize: context.theme.textCategories.paragraph.font.size,
             // Depth, not `kind`: the top-level sequence starts from an empty prefix and every
             // nesting step appends, so a direct child of the page — and only that — has a
             // one-element path. `kind` cannot tell, because a blockquote lays its children out with

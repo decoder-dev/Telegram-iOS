@@ -52,10 +52,6 @@ public enum ChatMessageInstantVideoItemLayoutData {
     case constrained(left: CGFloat, right: CGFloat)
 }
 
-private let textFont = Font.regular(11.0)
-private let nameFont = Font.medium(14.0)
-private let inlineBotPrefixFont = Font.regular(14.0)
-private let inlineBotNameFont = nameFont
 
 public enum ChatMessageInteractiveInstantVideoNodeStatusType {
     case free
@@ -382,6 +378,9 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                         
                         if let inlineBotNameString = inlineBotNameString {
                             let inlineBotNameColor = serviceMessageColorComponents(theme: item.presentationData.theme.theme, wallpaper: item.presentationData.theme.wallpaper).primaryText
+                            let fontSize = item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+                            let nameFont = Font.medium(floor(fontSize * 14.0 / 17.0))
+                            let inlineBotPrefixFont = Font.regular(floor(fontSize * 14.0 / 17.0))
                             
                             let bodyAttributes = MarkdownAttributeSet(font: nameFont, textColor: inlineBotNameColor)
                             let boldAttributes = MarkdownAttributeSet(font: inlineBotPrefixFont, textColor: inlineBotNameColor)
@@ -439,6 +438,8 @@ public class ChatMessageInteractiveInstantVideoNode: ASDisplayNode {
                     if let attribute = attribute as? SourceReferenceMessageAttribute {
                         if let sourcePeer = item.message.peers[attribute.messageId.peerId] {
                             let inlineBotNameColor = serviceMessageColorComponents(theme: item.presentationData.theme.theme, wallpaper: item.presentationData.theme.wallpaper).primaryText
+                            let fontSize = item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+                            let inlineBotPrefixFont = Font.regular(floor(fontSize * 14.0 / 17.0))
                             
                             let nameString = NSAttributedString(string: EnginePeer(sourcePeer).displayTitle(strings: item.presentationData.strings, displayOrder: item.presentationData.nameDisplayOrder), font: inlineBotPrefixFont, textColor: inlineBotNameColor)
                             

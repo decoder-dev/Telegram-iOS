@@ -213,7 +213,7 @@ private class VoiceChatCameraPreviewControllerNode: ViewControllerTracingNode, A
         self.placeholderIconNode.contentMode = .scaleAspectFit
         self.placeholderIconNode.displaysAsynchronously = false
         
-        self.wheelNode = WheelControlNode(items: [WheelControlNode.Item(title: UIDevice.current.model == "iPad" ? self.presentationData.strings.VoiceChat_VideoPreviewTabletScreen : self.presentationData.strings.VoiceChat_VideoPreviewPhoneScreen), WheelControlNode.Item(title: self.presentationData.strings.VoiceChat_VideoPreviewFrontCamera), WheelControlNode.Item(title: self.presentationData.strings.VoiceChat_VideoPreviewBackCamera)], selectedIndex: self.selectedTabIndex)
+        self.wheelNode = WheelControlNode(items: [WheelControlNode.Item(title: UIDevice.current.model == "iPad" ? self.presentationData.strings.VoiceChat_VideoPreviewTabletScreen : self.presentationData.strings.VoiceChat_VideoPreviewPhoneScreen), WheelControlNode.Item(title: self.presentationData.strings.VoiceChat_VideoPreviewFrontCamera), WheelControlNode.Item(title: self.presentationData.strings.VoiceChat_VideoPreviewBackCamera)], selectedIndex: self.selectedTabIndex, fontSize: self.presentationData.listsFontSize.baseDisplaySize)
         
         super.init()
         
@@ -512,8 +512,13 @@ private class VoiceChatCameraPreviewControllerNode: ViewControllerTracingNode, A
     }
 }
 
-private let textFont = Font.with(size: 14.0, design: .camera, weight: .regular)
-private let selectedTextFont = Font.with(size: 14.0, design: .camera, weight: .semibold)
+private func cameraWheelTextFont(fontSize: CGFloat) -> UIFont {
+    return Font.with(size: floor(fontSize * 14.0 / 17.0), design: .camera, weight: .regular)
+}
+
+private func cameraWheelSelectedTextFont(fontSize: CGFloat) -> UIFont {
+    return Font.with(size: floor(fontSize * 14.0 / 17.0), design: .camera, weight: .semibold)
+}
 
 private class WheelControlNode: ASDisplayNode, ASGestureRecognizerDelegate {
     struct Item: Equatable {
@@ -527,6 +532,7 @@ private class WheelControlNode: ASDisplayNode, ASGestureRecognizerDelegate {
     private let maskNode: ASDisplayNode
     private let containerNode: ASDisplayNode
     private var itemNodes: [HighlightTrackingButtonNode]
+    private let fontSize: CGFloat
     
     private var validLayout: CGSize?
 
@@ -560,9 +566,10 @@ private class WheelControlNode: ASDisplayNode, ASGestureRecognizerDelegate {
     
     public var selectedIndexChanged: (Int) -> Void = { _ in }
         
-    public init(items: [Item], selectedIndex: Int) {
+    public init(items: [Item], selectedIndex: Int, fontSize: CGFloat) {
         self._items = items
         self._selectedIndex = selectedIndex
+        self.fontSize = fontSize
         
         self.maskNode = ASDisplayNode()
         self.maskNode.setLayerBlock({
@@ -575,6 +582,7 @@ private class WheelControlNode: ASDisplayNode, ASGestureRecognizerDelegate {
         })
         self.containerNode = ASDisplayNode()
         
+        let textFont = cameraWheelTextFont(fontSize: fontSize)
         self.itemNodes = items.map { item in
             let itemNode = HighlightTrackingButtonNode()
             itemNode.contentEdgeInsets = UIEdgeInsets(top: 0.0, left: 8.0, bottom: 0.0, right: 8.0)
@@ -637,7 +645,7 @@ private class WheelControlNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 if itemNode.isSelected != isSelected {
                     itemNode.isSelected = isSelected
                     let title = itemNode.attributedTitle(for: .normal)?.string ?? ""
-                    itemNode.setTitle(title, with: isSelected ? selectedTextFont : textFont, with: isSelected ? UIColor(rgb: 0xffd60a) : .white, for: .normal)
+                    itemNode.setTitle(title, with: isSelected ? cameraWheelSelectedTextFont(fontSize: self.fontSize) : cameraWheelTextFont(fontSize: self.fontSize), with: isSelected ? UIColor(rgb: 0xffd60a) : .white, for: .normal)
                     if isSelected {
                         itemNode.accessibilityTraits.insert(.selected)
                     } else {

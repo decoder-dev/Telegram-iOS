@@ -354,6 +354,7 @@ private final class TimeSelectionControlComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
     let dateTimeFormat: PresentationDateTimeFormat
+    let fontSize: CGFloat
     let bottomInset: CGFloat
     let screenCornerRadii: CornerRadii
     let apply: (Int32) -> Void
@@ -363,6 +364,7 @@ private final class TimeSelectionControlComponent: Component {
         theme: PresentationTheme,
         strings: PresentationStrings,
         dateTimeFormat: PresentationDateTimeFormat,
+        fontSize: CGFloat,
         bottomInset: CGFloat,
         screenCornerRadii: CornerRadii,
         apply: @escaping (Int32) -> Void,
@@ -371,6 +373,7 @@ private final class TimeSelectionControlComponent: Component {
         self.theme = theme
         self.strings = strings
         self.dateTimeFormat = dateTimeFormat
+        self.fontSize = fontSize
         self.bottomInset = bottomInset
         self.screenCornerRadii = screenCornerRadii
         self.apply = apply
@@ -429,6 +432,7 @@ private final class TimeSelectionControlComponent: Component {
                     theme: component.theme,
                     strings: component.strings,
                     dateTimeFormat: component.dateTimeFormat,
+                    fontSize: component.fontSize,
                     safeInsets: UIEdgeInsets(top: 0.0, left: 0.0, bottom: component.bottomInset, right: 0.0),
                     leadingAction: ChatTimerPickerContentComponent.LeadingAction(
                         icon: .back,
@@ -506,6 +510,7 @@ final class EmojiStatusPreviewScreenComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
     let dateTimeFormat: PresentationDateTimeFormat
+    let fontSize: CGFloat
     let bottomInset: CGFloat
     let screenCornerRadii: CornerRadii
     let item: EmojiStatusComponent
@@ -515,6 +520,7 @@ final class EmojiStatusPreviewScreenComponent: Component {
         theme: PresentationTheme,
         strings: PresentationStrings,
         dateTimeFormat: PresentationDateTimeFormat,
+        fontSize: CGFloat,
         bottomInset: CGFloat,
         screenCornerRadii: CornerRadii,
         item: EmojiStatusComponent,
@@ -523,6 +529,7 @@ final class EmojiStatusPreviewScreenComponent: Component {
         self.theme = theme
         self.strings = strings
         self.dateTimeFormat = dateTimeFormat
+        self.fontSize = fontSize
         self.bottomInset = bottomInset
         self.screenCornerRadii = screenCornerRadii
         self.item = item
@@ -537,6 +544,9 @@ final class EmojiStatusPreviewScreenComponent: Component {
             return false
         }
         if lhs.dateTimeFormat != rhs.dateTimeFormat {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.bottomInset != rhs.bottomInset {
@@ -659,6 +669,7 @@ final class EmojiStatusPreviewScreenComponent: Component {
                     theme: component.theme,
                     strings: component.strings,
                     dateTimeFormat: component.dateTimeFormat,
+                    fontSize: component.fontSize,
                     bottomInset: component.bottomInset,
                     screenCornerRadii: component.screenCornerRadii,
                     apply: { [weak self] timestamp in

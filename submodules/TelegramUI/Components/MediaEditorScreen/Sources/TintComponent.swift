@@ -108,6 +108,7 @@ final class TintComponent: Component {
     typealias EnvironmentType = Empty
     
     let strings: PresentationStrings
+    let listsFontSizeBase: CGFloat
     let shadowsValue: TintValue
     let highlightsValue: TintValue
     let shadowsValueUpdated: (TintValue) -> Void
@@ -116,6 +117,7 @@ final class TintComponent: Component {
     
     init(
         strings: PresentationStrings,
+        listsFontSizeBase: CGFloat,
         shadowsValue: TintValue,
         highlightsValue: TintValue,
         shadowsValueUpdated: @escaping (TintValue) -> Void,
@@ -123,6 +125,7 @@ final class TintComponent: Component {
         isTrackingUpdated: @escaping (Bool) -> Void
     ) {
         self.strings = strings
+        self.listsFontSizeBase = listsFontSizeBase
         self.shadowsValue = shadowsValue
         self.highlightsValue = highlightsValue
         self.shadowsValueUpdated = shadowsValueUpdated
@@ -132,6 +135,9 @@ final class TintComponent: Component {
     
     static func ==(lhs: TintComponent, rhs: TintComponent) -> Bool {
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         if lhs.highlightsValue != rhs.highlightsValue {
@@ -186,6 +192,7 @@ final class TintComponent: Component {
             let highlightsValueUpdated = component.highlightsValueUpdated
                         
             let topInset: CGFloat = 11.0
+            let sectionLabelFont = Font.bold(floor(component.listsFontSizeBase * 13.0 / 17.0))
             let shadowsButtonSize = self.shadowsButton.update(
                 transition: transition,
                 component: AnyComponent(
@@ -193,7 +200,7 @@ final class TintComponent: Component {
                         content: AnyComponent(
                             Text(
                                 text: component.strings.Story_Editor_Tint_Shadows,
-                                font: Font.bold(13.0),
+                                font: sectionLabelFont,
                                 color: state.section == .shadows ? .white : UIColor(rgb: 0x808080)
                             )
                         ),
@@ -221,7 +228,7 @@ final class TintComponent: Component {
                         content: AnyComponent(
                             Text(
                                 text: component.strings.Story_Editor_Tint_Highlights,
-                                font: Font.bold(13.0),
+                                font: sectionLabelFont,
                                 color: state.section == .highlights ? .white : UIColor(rgb: 0x808080)
                             )
                         ),

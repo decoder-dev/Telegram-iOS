@@ -107,11 +107,13 @@ public final class LiveLocationHeaderPanelComponent: Component {
             if let current = self.panel {
                 panel = current
             } else {
+                let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
                 panel = LocationBroadcastNavigationAccessoryPanel(
                     accountPeerId: component.context.account.peerId,
                     theme: component.theme,
                     strings: component.strings,
-                    nameDisplayOrder: component.context.sharedContext.currentPresentationData.with({ $0 }).nameDisplayOrder,
+                    nameDisplayOrder: presentationData.nameDisplayOrder,
+                    fontSize: presentationData.listsFontSize.baseDisplaySize,
                     tapAction: { [weak self] in
                         guard let self, let component = self.component, let controller = component.controller() else {
                             return
@@ -255,16 +257,17 @@ public final class LiveLocationHeaderPanelComponent: Component {
             panel.update(peers: component.data.peers, mode: mappedMode, canClose: component.data.canClose)
             
             if themeUpdated {
+                let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
                 panel.updatePresentationData(PresentationData(
                     strings: component.strings,
                     theme: component.theme,
                     autoNightModeTriggered: false,
                     chatWallpaper: .builtin(WallpaperSettings()),
-                    chatFontSize: .regular,
+                    chatFontSize: presentationData.chatFontSize,
                     chatBubbleCorners: PresentationChatBubbleCorners(mainRadius: 0.0, auxiliaryRadius: 0.0, mergeBubbleCorners: true),
-                    listsFontSize: .regular,
+                    listsFontSize: presentationData.listsFontSize,
                     dateTimeFormat: PresentationDateTimeFormat(),
-                    nameDisplayOrder: .firstLast,
+                    nameDisplayOrder: presentationData.nameDisplayOrder,
                     nameSortOrder: .firstLast,
                     reduceMotion: false,
                     largeEmoji: false

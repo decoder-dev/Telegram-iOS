@@ -1415,6 +1415,7 @@ public final class EmojiStatusSelectionController: ViewController {
                         theme: self.presentationData.theme,
                         strings: self.presentationData.strings,
                         dateTimeFormat: self.presentationData.dateTimeFormat,
+                        fontSize: self.presentationData.listsFontSize.baseDisplaySize,
                         bottomInset: layout.insets(options: []).bottom,
                         screenCornerRadii: layout.screenCornerRadii,
                         item: EmojiStatusComponent(

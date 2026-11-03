@@ -1442,7 +1442,7 @@ public class VideoMessageCameraScreen: ViewController {
             self.previewContainerContentView.addSubview(self.progressView)
             self.previewContainerContentView.addSubview(self.previewBlurView)
             self.previewContainerContentView.addSubview(self.loadingView)
-            self.countdownLabel.font = Font.with(size: 76.0, design: .round, weight: .bold, traits: .monospacedNumbers)
+            self.countdownLabel.font = Font.with(size: floor(self.presentationData.listsFontSize.baseDisplaySize * 76.0 / 17.0), design: .round, weight: .bold, traits: .monospacedNumbers)
             self.countdownLabel.textColor = .white
             self.countdownLabel.textAlignment = .center
             self.countdownLabel.layer.shadowColor = UIColor.black.cgColor

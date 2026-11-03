@@ -485,7 +485,7 @@ final class FaceScanScreenComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: instructionString, font: Font.semibold(20.0), textColor: .white)),
+                        text: .plain(NSAttributedString(string: instructionString, font: Font.semibold(floor(listFontSize * 20.0 / 17.0)), textColor: .white)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 3,
                         lineSpacing: 0.1

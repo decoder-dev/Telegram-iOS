@@ -130,6 +130,7 @@ final class ChatFolderLinkHeaderComponent: Component {
         private var badge: ComponentView<Empty>?
         
         private var component: ChatFolderLinkHeaderComponent?
+        private var appliedFontSize: CGFloat?
         
         override init(frame: CGRect) {
             super.init(frame: frame)
@@ -155,9 +156,12 @@ final class ChatFolderLinkHeaderComponent: Component {
             let spacing: CGFloat = 16.0
             let badgeSpacing: CGFloat = 6.0
             
-            if themeUpdated {
-                let leftString = NSAttributedString(string: component.strings.FolderLinkPreview_IconTabLeft, font: Font.semibold(14.0), textColor: component.theme.list.freeTextColor)
-                let rightString = NSAttributedString(string: component.strings.FolderLinkPreview_IconTabRight, font: Font.semibold(14.0), textColor: component.theme.list.freeTextColor)
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let fontSizeUpdated = self.appliedFontSize != fontSize
+            self.appliedFontSize = fontSize
+            if themeUpdated || fontSizeUpdated {
+                let leftString = NSAttributedString(string: component.strings.FolderLinkPreview_IconTabLeft, font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: component.theme.list.freeTextColor)
+                let rightString = NSAttributedString(string: component.strings.FolderLinkPreview_IconTabRight, font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: component.theme.list.freeTextColor)
                 
                 let leftStringBounds = leftString.boundingRect(with: CGSize(width: 200.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
                 let rightStringBounds = rightString.boundingRect(with: CGSize(width: 200.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
@@ -247,7 +251,7 @@ final class ChatFolderLinkHeaderComponent: Component {
                     transition: badgeTransition,
                     component: AnyComponent(BadgeComponent(
                         fillColor: component.theme.list.itemCheckColors.fillColor,
-                        content: AnyComponent(Text(text: badge, font: Font.semibold(12.0), color: component.theme.list.itemCheckColors.foregroundColor))
+                        content: AnyComponent(Text(text: badge, font: Font.semibold(floor(fontSize * 12.0 / 17.0)), color: component.theme.list.itemCheckColors.foregroundColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: 100.0, height: 100.0)

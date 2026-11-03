@@ -456,7 +456,8 @@ private final class WalletInfoSheetContent: CombinedComponent {
                         textColor: itemTextColor,
                         accentColor: theme.list.itemAccentColor,
                         iconName: item.iconName,
-                        iconColor: theme.list.itemAccentColor
+                        iconColor: theme.list.itemAccentColor,
+                        fontSize: fontSize
                     ))
                 )
             }

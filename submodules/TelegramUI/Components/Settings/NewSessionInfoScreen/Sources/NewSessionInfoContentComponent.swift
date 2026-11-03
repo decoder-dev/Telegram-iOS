@@ -167,7 +167,7 @@ public final class NewSessionInfoContentComponent: Component {
             contentHeight += 16.0
             
             let titleString = NSMutableAttributedString()
-            titleString.append(NSAttributedString(string: component.strings.SessionReview_Title, font: Font.semibold(19.0), textColor: component.theme.list.itemPrimaryTextColor))
+            titleString.append(NSAttributedString(string: component.strings.SessionReview_Title, font: Font.semibold(floor(fontSize * 19.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor))
             let imageAttachment = NSTextAttachment()
             imageAttachment.image = self.iconBackground.image
             titleString.append(NSAttributedString(attachment: imageAttachment))

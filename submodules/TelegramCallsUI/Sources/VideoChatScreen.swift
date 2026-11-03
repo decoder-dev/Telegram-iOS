@@ -2592,6 +2592,7 @@ final class VideoChatScreenComponent: Component {
                         emoji: self.encryptionKeyEmoji ?? [],
                         isShort: isTwoColumnLayout,
                         isExpanded: self.isEncryptionKeyExpanded,
+                        fontSize: component.initialCall.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                         tapAction: { [weak self] in
                             guard let self else {
                                 return

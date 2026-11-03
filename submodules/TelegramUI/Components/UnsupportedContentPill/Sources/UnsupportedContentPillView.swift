@@ -90,6 +90,7 @@ public final class UnsupportedContentPillView: UIView {
         colors: UnsupportedContentPillColors,
         strings: UnsupportedContentPillStrings,
         size: CGSize,
+        fontSize: CGFloat,
         wallpaperBackgroundNode: WallpaperBackgroundNode?,
         animation: ListViewItemUpdateAnimation
     ) {
@@ -99,6 +100,7 @@ public final class UnsupportedContentPillView: UIView {
             strings: strings,
             colors: colors,
             constrainedWidth: layout.constrainedWidth,
+            fontSize: fontSize,
             titleNode: self.titleNode,
             subtitleNode: self.subtitleNode,
             buttonTitleNode: self.buttonTitleNode

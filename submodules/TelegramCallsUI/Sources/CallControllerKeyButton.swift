@@ -4,13 +4,14 @@ import Display
 import AsyncDisplayKit
 import CallsEmoji
 
-private let labelFont = Font.regular(22.0)
 private let animationNodesCount = 3
 
 private class EmojiSlotNode: ASDisplayNode {
+    private let labelFont: UIFont
+    
     var emoji: String = "" {
         didSet {
-            self.node.attributedText = NSAttributedString(string: emoji, font: labelFont, textColor: .black)
+            self.node.attributedText = NSAttributedString(string: emoji, font: self.labelFont, textColor: .black)
             let _ = self.node.updateLayout(CGSize(width: 100.0, height: 100.0))
         }
     }
@@ -20,7 +21,8 @@ private class EmojiSlotNode: ASDisplayNode {
     private let node: ImmediateTextNode
     private let animationNodes: [ImmediateTextNode]
     
-    override init() {
+    init(fontSize: CGFloat) {
+        self.labelFont = Font.regular(floor(fontSize * 22.0 / 17.0))
         self.maskNode = ASDisplayNode()
         self.containerNode = ASDisplayNode()
         self.node = ImmediateTextNode()
@@ -43,7 +45,7 @@ private class EmojiSlotNode: ASDisplayNode {
     
     func animateIn(duration: Double) {
         for node in self.animationNodes {
-            node.attributedText = NSAttributedString(string: randomCallsEmoji(), font: labelFont, textColor: .black)
+            node.attributedText = NSAttributedString(string: randomCallsEmoji(), font: self.labelFont, textColor: .black)
             let _ = node.updateLayout(CGSize(width: 100.0, height: 100.0))
         }
         self.containerNode.layer.animatePosition(from: CGPoint(x: 0.0, y: -self.containerNode.frame.height + self.bounds.height), to: CGPoint(), duration: duration, delay: 0.1, timingFunction: kCAMediaTimingFunctionSpring, additive: true)
@@ -87,9 +89,9 @@ final class CallControllerKeyButton: HighlightableButtonNode {
         }
     }
     
-    init() {
+    init(fontSize: CGFloat) {
         self.containerNode = ASDisplayNode()
-        self.nodes = (0 ..< 4).map { _ in EmojiSlotNode() }
+        self.nodes = (0 ..< 4).map { _ in EmojiSlotNode(fontSize: fontSize) }
        
         super.init(pointerStyle: nil)
         

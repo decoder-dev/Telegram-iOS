@@ -137,6 +137,7 @@ private final class GiftUpgradeCostScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(ProfileLevelRatingBarComponent(
                     theme: environment.theme,
+                    fontSize: fontSize,
                     value: value,
                     leftLabel: environment.strings.Gift_UpgradeCost_Stars(Int32(clamping: component.upgradePreview.prices.first?.stars ?? 0)),
                     rightLabel: environment.strings.Gift_UpgradeCost_Stars(Int32(clamping: component.upgradePreview.prices.last?.stars ?? 0)),

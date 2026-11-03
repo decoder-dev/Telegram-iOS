@@ -17,15 +17,18 @@ private final class ProgressComponent: Component {
     
     let title: String
     let value: Float
+    let listsFontSizeBase: CGFloat
     let cancel: () -> Void
     
     init(
         title: String,
         value: Float,
+        listsFontSizeBase: CGFloat,
         cancel: @escaping () -> Void
     ) {
         self.title = title
         self.value = value
+        self.listsFontSizeBase = listsFontSizeBase
         self.cancel = cancel
     }
     
@@ -34,6 +37,9 @@ private final class ProgressComponent: Component {
             return false
         }
         if lhs.value != rhs.value {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         return true
@@ -79,7 +85,7 @@ private final class ProgressComponent: Component {
             
             let titleSize = self.title.update(
                 transition: transition,
-                component: AnyComponent(Text(text: component.title, font: Font.regular(14.0), color: .white)),
+                component: AnyComponent(Text(text: component.title, font: Font.regular(floor(component.listsFontSizeBase * 14.0 / 17.0)), color: .white)),
                 environment: {},
                 containerSize: CGSize(width: 160.0, height: 40.0)
             )
@@ -156,13 +162,16 @@ private final class BannerComponent: Component {
     
     let iconName: String
     let text: String
+    let listsFontSizeBase: CGFloat
     
     init(
         iconName: String,
-        text: String
+        text: String,
+        listsFontSizeBase: CGFloat
     ) {
         self.iconName = iconName
         self.text = text
+        self.listsFontSizeBase = listsFontSizeBase
     }
     
     static func ==(lhs: BannerComponent, rhs: BannerComponent) -> Bool {
@@ -170,6 +179,9 @@ private final class BannerComponent: Component {
             return false
         }
         if lhs.text != rhs.text {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         return true
