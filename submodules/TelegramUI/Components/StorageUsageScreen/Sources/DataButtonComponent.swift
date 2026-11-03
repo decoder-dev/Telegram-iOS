@@ -124,14 +124,15 @@ final class DataButtonComponent: Component {
                 self.backgroundColor = component.theme.list.itemBlocksBackgroundColor
             }
             
+            let titleFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
             let titleSize = self.title.update(
                 transition: transition,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: component.theme.list.itemDestructiveColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.title, font: Font.regular(titleFontSize), textColor: component.theme.list.itemDestructiveColor)))),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
             )
             
-            let height: CGFloat = 52.0
+            let height = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, titleSize.height + 20.0)
             
             let titleFrame = CGRect(origin: CGPoint(x: floor((availableSize.width - titleSize.width) / 2.0), y: floor((height - titleSize.height) / 2.0)), size: titleSize)
             

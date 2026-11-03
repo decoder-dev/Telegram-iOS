@@ -159,7 +159,7 @@ public class ItemListTextItemNode: ListViewItemNode, ItemListItemNode {
         let currentItem = self.item
         
         return { [weak self] item, params, neighbors in
-            let leftInset: CGFloat = 15.0
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset - 1.0
             var topInset: CGFloat = 7.0
             var bottomInset: CGFloat = 7.0
             

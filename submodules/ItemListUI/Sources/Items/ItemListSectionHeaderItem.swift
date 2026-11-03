@@ -177,8 +177,8 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
         let previousItem = self.item
         
         return { [weak self] item, params, neighbors in
-            let leftInset: CGFloat = 15.0 + params.leftInset
-            let rightInset: CGFloat = 15.0 + params.rightInset
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.leftInset
+            let rightInset = PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.rightInset
             
             let titleFont = Font.regular(item.presentationData.fontSize.itemListBaseHeaderFontSize)
             
@@ -203,10 +203,11 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
             if let actionText = item.actionText {
                 let actionLayoutAndApplyValue = makeActionLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: actionText, font: titleFont, textColor: item.presentationData.theme.list.itemAccentColor), backgroundColor: nil, maximumNumberOfLines: item.multiline ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.leftInset - params.rightInset - textRightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 actionLayoutAndApply = actionLayoutAndApplyValue
-                textRightInset += max(44.0, actionLayoutAndApplyValue.0.size.width) + 2.0
+                textRightInset += max(PresentationLayoutMetrics.minimumInteractiveSize, actionLayoutAndApplyValue.0.size.width) + 2.0
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.text, font: titleFont, textColor: item.presentationData.theme.list.sectionHeaderTextColor), backgroundColor: nil, maximumNumberOfLines: item.multiline ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.leftInset - params.rightInset - textRightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let usesLargeTextLayout = item.presentationData.fontSize.itemListBaseHeaderFontSize >= PresentationLayoutMetrics.multilineTextThreshold * 13.0 / 17.0
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.text, font: titleFont, textColor: item.presentationData.theme.list.sectionHeaderTextColor), backgroundColor: nil, maximumNumberOfLines: (item.multiline || usesLargeTextLayout) ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.leftInset - params.rightInset - textRightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             var accessoryTextString: NSAttributedString?
             var accessoryIcon: UIImage?
             if let accessoryText = item.accessoryText {
@@ -220,12 +221,12 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
                 accessoryTextString = NSAttributedString(string: accessoryText.value, font: titleFont, textColor: color)
                 accessoryIcon = accessoryText.icon
             }
-            let (accessoryLayout, accessoryApply) = makeAccessoryTextLayout(TextNodeLayoutArguments(attributedString: accessoryTextString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.leftInset - params.rightInset - 20.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (accessoryLayout, accessoryApply) = makeAccessoryTextLayout(TextNodeLayoutArguments(attributedString: accessoryTextString, backgroundColor: nil, maximumNumberOfLines: usesLargeTextLayout ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.leftInset - params.rightInset - 20.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let contentSize: CGSize
             var insets = UIEdgeInsets()
             
-            contentSize = CGSize(width: params.width, height: max(titleLayout.size.height + 13.0, actionLayoutAndApply != nil ? max(44.0, actionLayoutAndApply!.0.size.height) : 0.0))
+            contentSize = CGSize(width: params.width, height: max(titleLayout.size.height + 13.0, actionLayoutAndApply != nil ? max(PresentationLayoutMetrics.minimumInteractiveSize, actionLayoutAndApply!.0.size.height) : 0.0))
             switch neighbors.top {
                 case .none:
                     insets.top += 24.0

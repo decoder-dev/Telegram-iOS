@@ -152,9 +152,10 @@ private final class SubItemComponent: Component {
                 fractionString = ""
             }*/
             
+            let rowFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
             let labelSize = self.label.update(
                 transition: transition,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: dataSizeString(Int(component.value), formatting: DataSizeStringFormatting(strings: component.strings, decimalSeparator: ".")), font: Font.regular(17.0), textColor: component.theme.list.itemSecondaryTextColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: dataSizeString(Int(component.value), formatting: DataSizeStringFormatting(strings: component.strings, decimalSeparator: ".")), font: Font.regular(rowFontSize), textColor: component.theme.list.itemSecondaryTextColor)))),
                 environment: {},
                 containerSize: CGSize(width: availableWidth, height: 100.0)
             )
@@ -162,7 +163,7 @@ private final class SubItemComponent: Component {
             
             let titleValueSize = self.titleValue.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: fractionString, font: Font.regular(17.0), textColor: component.theme.list.itemSecondaryTextColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: fractionString, font: Font.regular(rowFontSize), textColor: component.theme.list.itemSecondaryTextColor)))),
                 environment: {},
                 containerSize: CGSize(width: availableWidth, height: 100.0)
             )
@@ -170,12 +171,12 @@ private final class SubItemComponent: Component {
             
             let titleSize = self.title.update(
                 transition: transition,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.isIncoming ? component.strings.DataUsage_MediaDirectionIncoming : component.strings.DataUsage_MediaDirectionOutgoing, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.isIncoming ? component.strings.DataUsage_MediaDirectionIncoming : component.strings.DataUsage_MediaDirectionOutgoing, font: Font.regular(rowFontSize), textColor: component.theme.list.itemPrimaryTextColor)))),
                 environment: {},
                 containerSize: CGSize(width: availableWidth, height: 100.0)
             )
             
-            let height: CGFloat = 52.0
+            let height = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, titleSize.height + 20.0)
             
             let titleFrame = CGRect(origin: CGPoint(x: leftInset, y: floor((height - titleSize.height) / 2.0)), size: titleSize)
             let titleValueFrame = CGRect(origin: CGPoint(x: titleFrame.maxX + 4.0, y: floor((height - titleValueSize.height) / 2.0)), size: titleValueSize)

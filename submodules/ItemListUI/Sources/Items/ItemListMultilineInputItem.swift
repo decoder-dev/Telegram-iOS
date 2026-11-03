@@ -190,7 +190,7 @@ public class ItemListMultilineInputItemNode: ListViewItemNode, ASEditableTextNod
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.leftInset
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             switch item.style {
                 case .plain:
                     itemBackgroundColor = item.presentationData.theme.list.plainBackgroundColor
@@ -413,7 +413,7 @@ public class ItemListMultilineInputItemNode: ListViewItemNode, ASEditableTextNod
         let insets = self.insets
         let contentSize = CGSize(width: params.width, height: max(1.0, currentValue - insets.top - insets.bottom))
         
-        let leftInset = 16.0 + params.leftInset
+        let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
         let textTopInset: CGFloat = 11.0
         let textBottomInset: CGFloat = 11.0
         

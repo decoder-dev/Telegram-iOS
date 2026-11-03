@@ -160,12 +160,14 @@ final class StoragePeerTypeItemComponent: Component {
             
             let leftInset: CGFloat = 62.0
             let rightInset: CGFloat = 32.0
+            let titleFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
+            let subtitleFontSize = min(20.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 15.0))
             
             var availableWidth: CGFloat = availableSize.width - leftInset - rightInset
             
             let labelSize = self.label.update(
                 transition: transition,
-                component: AnyComponent(Text(text: component.value, font: Font.regular(17.0), color: component.theme.list.itemSecondaryTextColor)),
+                component: AnyComponent(Text(text: component.value, font: Font.regular(titleFontSize), color: component.theme.list.itemSecondaryTextColor)),
                 environment: {},
                 containerSize: CGSize(width: availableWidth, height: 100.0)
             )
@@ -173,7 +175,7 @@ final class StoragePeerTypeItemComponent: Component {
             
             let titleSize = self.title.update(
                 transition: transition,
-                component: AnyComponent(Text(text: component.title, font: Font.regular(17.0), color: component.theme.list.itemPrimaryTextColor)),
+                component: AnyComponent(Text(text: component.title, font: Font.regular(titleFontSize), color: component.theme.list.itemPrimaryTextColor)),
                 environment: {},
                 containerSize: CGSize(width: availableWidth, height: 100.0)
             )
@@ -190,7 +192,7 @@ final class StoragePeerTypeItemComponent: Component {
                 
                 let subtitleSizeValue = subtitle.update(
                     transition: transition,
-                    component: AnyComponent(Text(text: subtitleValue, font: Font.regular(15.0), color: component.theme.list.itemSecondaryTextColor)),
+                    component: AnyComponent(Text(text: subtitleValue, font: Font.regular(subtitleFontSize), color: component.theme.list.itemSecondaryTextColor)),
                     environment: {},
                     containerSize: CGSize(width: availableWidth, height: 100.0)
                 )
@@ -202,9 +204,11 @@ final class StoragePeerTypeItemComponent: Component {
                 }
             }
             
-            var height: CGFloat = 52.0
-            if subtitleSize != nil {
-                height = 64.0
+            var height: CGFloat = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize)
+            if let subtitleSize {
+                height = max(64.0, PresentationLayoutMetrics.minimumInteractiveSize, titleSize.height + subtitleSize.height + 14.0)
+            } else {
+                height = max(height, titleSize.height + 20.0)
             }
             
             let titleFrame: CGRect
