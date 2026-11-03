@@ -85,8 +85,8 @@ private final class SheetContent: CombinedComponent {
             let textSideInset: CGFloat = 32.0 + environment.safeInsets.left
             var contentSize = CGSize(width: context.availableSize.width, height: 75.0)
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let textColor = theme.actionSheet.primaryTextColor
             let linkColor = theme.actionSheet.controlAccentColor
             let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: textFont, textColor: linkColor), linkAttribute: { contents in
@@ -188,7 +188,7 @@ private final class SheetContent: CombinedComponent {
             
             let resultsFooterAttributedText = NSMutableAttributedString(
                 string: strings.EmojiStake_StreakInfo,
-                font: Font.regular(13.0),
+                font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                 textColor: theme.list.freeTextColor
             )
             if let emojiFile = state.emojiFiles?[6] {
@@ -446,6 +446,7 @@ private final class EmojiGameStakeSheetComponent: CombinedComponent {
             }
             
             let theme = environment.theme.withModalBlocksBackground()
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             var buttonItems: [AnyComponentWithIdentity<Empty>] = []
             buttonItems.append(AnyComponentWithIdentity(id: "icon", component: AnyComponent(Image(image: PresentationResourcesItemList.itemListRoundTopupIcon(environment.theme), tintColor: theme.list.itemCheckColors.foregroundColor, size: CGSize(width: 16.0, height: 18.0)))))
@@ -464,7 +465,7 @@ private final class EmojiGameStakeSheetComponent: CombinedComponent {
                         }
                     )),
                     titleItem: AnyComponent(
-                        Text(text: environment.strings.EmojiStake_Title, font: Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: theme.list.itemPrimaryTextColor)
+                        Text(text: environment.strings.EmojiStake_Title, font: Font.bold(floor(fontSize * 24.0 / 17.0)), color: theme.list.itemPrimaryTextColor)
                     ),
                     leftItem: AnyComponent(
                         GlassBarButtonComponent(
@@ -1307,6 +1308,9 @@ private final class ResultCellComponent: Component {
                 transition.setFrame(view: backgroundView, frame: backgroundFrame)
             }
             
+            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
+            
             let value = Double(component.value) / 1000.0
             let titleString = String(format: "%0.1f", value).replacingOccurrences(of: ".0", with: "").replacingOccurrences(of: ",0", with: "")
             
@@ -1350,7 +1354,7 @@ private final class ResultCellComponent: Component {
                 transition: transition,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: "×\(titleString)", font: Font.semibold(11.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: "×\(titleString)", font: Font.semibold(floor(fontSize * 11.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 1
                     )
@@ -1546,8 +1550,9 @@ private final class AmountPresetComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             
-            let attributedText = NSMutableAttributedString(string: "$ \(formatTonAmountText(component.value, dateTimeFormat: presentationData.dateTimeFormat))", font: Font.semibold(14.0), textColor: component.theme.list.itemAccentColor)
+            let attributedText = NSMutableAttributedString(string: "$ \(formatTonAmountText(component.value, dateTimeFormat: presentationData.dateTimeFormat))", font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: component.theme.list.itemAccentColor)
             if let range = attributedText.string.range(of: "$") {
                 attributedText.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .ton(tinted: true)), range: NSRange(range, in: attributedText.string))
                 attributedText.addAttribute(.baselineOffset, value: 1.0, range: NSRange(range, in: attributedText.string))

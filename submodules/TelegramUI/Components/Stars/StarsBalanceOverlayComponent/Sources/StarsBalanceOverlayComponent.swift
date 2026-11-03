@@ -133,6 +133,7 @@ public final class StarsBalanceOverlayComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             let balance = presentationStringsFormattedNumber(Int32(self.starsBalance), presentationData.dateTimeFormat.groupingSeparator)
             
             let rawString: String
@@ -152,9 +153,9 @@ public final class StarsBalanceOverlayComponent: Component {
             let attributedText = parseMarkdownIntoAttributedString(
                 rawString,
                 attributes: MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.rootController.navigationBar.primaryTextColor),
-                    bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: component.theme.rootController.navigationBar.primaryTextColor),
-                    link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.rootController.navigationBar.primaryTextColor),
+                    body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.rootController.navigationBar.primaryTextColor),
+                    bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.rootController.navigationBar.primaryTextColor),
+                    link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.rootController.navigationBar.primaryTextColor),
                     linkAttribute: { _ in
                         return nil
                     }
@@ -207,7 +208,7 @@ public final class StarsBalanceOverlayComponent: Component {
                 if self.cachedChevronImage == nil || self.cachedChevronImage?.1 !== component.theme {
                     self.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Item List/InlineTextRightArrow"), color: component.theme.rootController.navigationBar.accentTextColor)!, component.theme)
                 }
-                let actionText = NSMutableAttributedString(string: presentationData.strings.StarsBalance_GetMoreStars, font: Font.regular(13.0), textColor: component.theme.rootController.navigationBar.accentTextColor)
+                let actionText = NSMutableAttributedString(string: presentationData.strings.StarsBalance_GetMoreStars, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.rootController.navigationBar.accentTextColor)
                 if let range = actionText.string.range(of: ">"), let chevronImage = self.cachedChevronImage?.0 {
                     actionText.addAttribute(.attachment, value: chevronImage, range: NSRange(range, in: actionText.string))
                     actionText.addAttribute(.baselineOffset, value: 1.0, range: NSRange(range, in: actionText.string))

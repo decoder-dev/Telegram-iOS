@@ -578,7 +578,7 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
             let items: [AnyComponentWithIdentity<Empty>] = [
                 AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(text: .plain(buttonAttributedString)))),
                 AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(AnimatedTextComponent(
-                    font: Font.with(size: 12.0, weight: .medium, traits: .monospacedNumbers),
+                    font: Font.with(size: floor(fontSize * 12.0 / 17.0), weight: .medium, traits: .monospacedNumbers),
                     color: theme.list.itemCheckColors.foregroundColor.withAlphaComponent(0.7),
                     items: buttonAnimatedTitleItems,
                     noDelay: true

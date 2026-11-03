@@ -911,6 +911,7 @@ private final class MediaToolsScreenComponent: Component {
                     transition: optionsTransition,
                     component: AnyComponent(CurvesComponent(
                         strings: presentationData.strings,
+                        listsFontSizeBase: presentationData.listsFontSize.baseDisplaySize,
                         histogram: state.histogram,
                         internalState: internalState
                     )),

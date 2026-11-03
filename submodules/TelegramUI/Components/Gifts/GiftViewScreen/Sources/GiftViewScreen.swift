@@ -4370,7 +4370,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                             AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: "\(strings.Gift_Unique_Collectible) #", font: textFont, color: .white, tintColor: textColor)))
                         ]
                         
-                        let numberFont = Font.with(size: 13.0, traits: .monospacedNumbers)
+                        let numberFont = Font.with(size: floor(fontSize * 13.0 / 17.0), traits: .monospacedNumbers)
                         let spinningItems: [AnyComponentWithIdentity<Empty>] = [
                             AnyComponentWithIdentity(id: "0", component: AnyComponent(Text(text: "0", font: numberFont, color: textColor))),
                             AnyComponentWithIdentity(id: "1", component: AnyComponent(Text(text: "1", font: numberFont, color: textColor))),
@@ -5940,7 +5940,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         }
                         
                         buttonTitleItems.append(AnyComponentWithIdentity(id: "animated_label", component: AnyComponent(AnimatedTextComponent(
-                            font: Font.with(size: 17.0, weight: .semibold, traits: .monospacedNumbers),
+                            font: Font.with(size: floor(fontSize * 17.0 / 17.0), weight: .semibold, traits: .monospacedNumbers),
                             color: theme.list.itemCheckColors.foregroundColor,
                             items: buttonAnimatedTitleItems,
                             noDelay: true,
@@ -5982,7 +5982,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     }
                     
                     buttonTitleItems.append(AnyComponentWithIdentity(id: "timer", component: AnyComponent(AnimatedTextComponent(
-                        font: Font.with(size: 11.0, weight: .medium, traits: .monospacedNumbers),
+                        font: Font.with(size: floor(fontSize * 11.0 / 17.0), weight: .medium, traits: .monospacedNumbers),
                         color: environment.theme.list.itemCheckColors.foregroundColor.withAlphaComponent(0.7),
                         items: buttonAnimatedTitleItems,
                         noDelay: true

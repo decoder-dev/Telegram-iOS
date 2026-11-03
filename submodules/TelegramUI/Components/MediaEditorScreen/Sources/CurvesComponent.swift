@@ -77,21 +77,27 @@ final class CurvesComponent: Component {
     typealias EnvironmentType = Empty
     
     let strings: PresentationStrings
+    let listsFontSizeBase: CGFloat
     let histogram: MediaEditorHistogram?
     let internalState: CurvesInternalState
     
     init(
         strings: PresentationStrings,
+        listsFontSizeBase: CGFloat,
         histogram: MediaEditorHistogram?,
         internalState: CurvesInternalState
     ) {
         self.strings = strings
+        self.listsFontSizeBase = listsFontSizeBase
         self.histogram = histogram
         self.internalState = internalState
     }
     
     static func ==(lhs: CurvesComponent, rhs: CurvesComponent) -> Bool {
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         if lhs.histogram != rhs.histogram {
@@ -144,6 +150,10 @@ final class CurvesComponent: Component {
         func update(component: CurvesComponent, availableSize: CGSize, state: State, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.state = state
+            
+            let fontSize = component.listsFontSizeBase
+            let channelLabelFont = Font.bold(floor(fontSize * 13.0 / 17.0))
+            let axisValueFont = Font.medium(floor(fontSize * 13.0 / 17.0))
                     
             let topInset: CGFloat = 11.0
             let allButtonSize = self.allButton.update(
@@ -153,7 +163,7 @@ final class CurvesComponent: Component {
                         content: AnyComponent(
                             Text(
                                 text: component.strings.Story_Editor_Curves_All,
-                                font: Font.bold(13.0),
+                                font: channelLabelFont,
                                 color: state.section == .all ? .white : UIColor(rgb: 0x808080)
                             )
                         ),
@@ -181,7 +191,7 @@ final class CurvesComponent: Component {
                         content: AnyComponent(
                             Text(
                                 text: component.strings.Story_Editor_Curves_Red,
-                                font: Font.bold(13.0),
+                                font: channelLabelFont,
                                 color: state.section == .red ? .white : UIColor(rgb: 0x808080)
                             )
                         ),
@@ -209,7 +219,7 @@ final class CurvesComponent: Component {
                         content: AnyComponent(
                             Text(
                                 text: component.strings.Story_Editor_Curves_Green,
-                                font: Font.bold(13.0),
+                                font: channelLabelFont,
                                 color: state.section == .green ? .white : UIColor(rgb: 0x808080)
                             )
                         ),
@@ -237,7 +247,7 @@ final class CurvesComponent: Component {
                         content: AnyComponent(
                             Text(
                                 text: component.strings.Story_Editor_Curves_Blue,
-                                font: Font.bold(13.0),
+                                font: channelLabelFont,
                                 color: state.section == .blue ? .white : UIColor(rgb: 0x808080)
                             )
                         ),
@@ -536,7 +546,7 @@ final class CurvesScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: String(format: "%.2f", value.blacks),
-                                font: Font.medium(13.0),
+                                font: axisValueFont,
                                 textColor: UIColor(rgb: 0xffffff)
                             )
                         ),
@@ -563,7 +573,7 @@ final class CurvesScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: String(format: "%.2f", value.shadows),
-                                font: Font.medium(13.0),
+                                font: axisValueFont,
                                 textColor: UIColor(rgb: 0xffffff)
                             )
                         ),
@@ -590,7 +600,7 @@ final class CurvesScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: String(format: "%.2f", value.midtones),
-                                font: Font.medium(13.0),
+                                font: axisValueFont,
                                 textColor: UIColor(rgb: 0xffffff)
                             )
                         ),
@@ -617,7 +627,7 @@ final class CurvesScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: String(format: "%.2f", value.highlights),
-                                font: Font.medium(13.0),
+                                font: axisValueFont,
                                 textColor: UIColor(rgb: 0xffffff)
                             )
                         ),
@@ -644,7 +654,7 @@ final class CurvesScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: String(format: "%.2f", value.whites),
-                                font: Font.medium(13.0),
+                                font: axisValueFont,
                                 textColor: UIColor(rgb: 0xffffff)
                             )
                         ),

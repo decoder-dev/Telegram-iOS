@@ -359,3 +359,7 @@ Wallet screens/send/import/connect/transactions, Stars transaction/withdrawal и
 ## GiftView, NewContact и оставшийся Components chrome
 
 GiftView/Craft/Auction, NewContact, PeerAllowedReactions, StickerPack edit title, Business links, PostSuggestions, Wallet receive/info/peer selection, Stars purchase/transfer, SendInvite/CommunityRequests, ChatList notices, ForwardInfo, Collectible content, Share collectible info, EditableTokenList — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Gift auction / Stars overlay / Curves / EntityKeyboard
+
+GiftAuctionBid Badge/PeerPlace/SliderBackground принимают `fontSize` из listsFontSize (без stub `= 17.0`); GiftView/Craft/Auction wear timers и monospaced CTA — `floor(fontSize * N / 17.0)`. GiftValue/UpgradeVariants/AuctionInfo paragraphs, StarsBalanceOverlay/StarsIntro, NewsPostFeedback, CurvesComponent (+ MediaTools listsFontSizeBase), EntityKeyboard GroupHeader, EmojiGameStake labels — тот же шаблон. Branding Liquid: 7 pass. Simulator NOT RUN.

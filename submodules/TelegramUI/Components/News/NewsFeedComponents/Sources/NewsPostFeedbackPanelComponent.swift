@@ -190,6 +190,7 @@ public final class NewsPostFeedbackPanelComponent: Component {
             self.component = component
             let theme = component.theme
             let strings = component.strings
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let channelTitle = component.peer.compactDisplayTitle
             let choices = NewsPostFeedbackPanelComponent.choices(tab: component.tab)
 
@@ -205,14 +206,14 @@ public final class NewsPostFeedbackPanelComponent: Component {
             let iconSize = self.headerIconView.image?.size ?? CGSize(width: 18.0, height: 15.0)
             let undoSize = self.undoTitle.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Undo_Undo, font: Font.semibold(15.0), textColor: theme.list.itemAccentColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Undo_Undo, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemAccentColor)))),
                 environment: {},
                 containerSize: CGSize(width: cardWidth, height: 100.0)
             )
             let titleWidth = max(1.0, cardWidth - padding * 2.0 - headerInset * 2.0 - iconSize.width - spacing * 2.0 - undoSize.width)
             let titleSize = self.headerTitle.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.News_Feedback_Hidden, font: Font.semibold(15.0), textColor: theme.list.itemPrimaryTextColor)), maximumNumberOfLines: 1)),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.News_Feedback_Hidden, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)), maximumNumberOfLines: 1)),
                 environment: {},
                 containerSize: CGSize(width: titleWidth, height: 100.0)
             )
@@ -308,7 +309,7 @@ public final class NewsPostFeedbackPanelComponent: Component {
                 }
                 let titleSize = self.choiceTitles[index].update(
                     transition: .immediate,
-                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: title, font: Font.regular(15.0), textColor: titleColor)), maximumNumberOfLines: 1)),
+                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: title, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: titleColor)), maximumNumberOfLines: 1)),
                     environment: {},
                     containerSize: CGSize(width: max(1.0, frame.width - 12.0 - 24.0 - 10.0 - 12.0), height: choiceHeight)
                 )
@@ -339,7 +340,7 @@ public final class NewsPostFeedbackPanelComponent: Component {
             let checkSize = self.checkmarkView.image?.size ?? CGSize(width: 26.0, height: 26.0)
             let confirmationSize = self.confirmationText.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: confirmation, font: Font.semibold(15.0), textColor: theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.8))), horizontalAlignment: .center, maximumNumberOfLines: 2)),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: confirmation, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.8))), horizontalAlignment: .center, maximumNumberOfLines: 2)),
                 environment: {},
                 containerSize: CGSize(width: max(1.0, cardWidth - 40.0), height: 100.0)
             )

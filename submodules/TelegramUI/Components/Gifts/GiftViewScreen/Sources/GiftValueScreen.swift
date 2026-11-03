@@ -264,7 +264,7 @@ private final class GiftValueSheetContent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: titleString,
-                        font: Font.with(size: 24.0, design: .round, weight: .bold),
+                        font: Font.with(size: floor(fontSize * 24.0 / 17.0), design: .round, weight: .bold),
                         textColor: theme.list.itemCheckColors.foregroundColor,
                         paragraphAlignment: .center
                     )),
@@ -307,8 +307,8 @@ private final class GiftValueSheetContent: CombinedComponent {
                     state.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Settings/TextArrowRight"), color: linkColor)!, theme)
                 }
                 
-                let textFont =  Font.regular(15.0)
-                let boldTextFont =  Font.semibold(15.0)
+                let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+                let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
                 let textColor = theme.list.itemPrimaryTextColor
                 
                 let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: textFont, textColor: linkColor), linkAttribute: { contents in
@@ -318,7 +318,7 @@ private final class GiftValueSheetContent: CombinedComponent {
                 descriptionText = descriptionText.replacingOccurrences(of: " >]", with: "\u{00A0}>]")
                 let attributedString = parseMarkdownIntoAttributedString(descriptionText, attributes: markdownAttributes, textAlignment: .center).mutableCopy() as! NSMutableAttributedString
                 if let range = attributedString.string.range(of: "*"), let starImage = state.cachedSmallStarImage?.0 {
-                    attributedString.addAttribute(.font, value: Font.regular(13.0), range: NSRange(range, in: attributedString.string))
+                    attributedString.addAttribute(.font, value: Font.regular(floor(fontSize * 13.0 / 17.0)), range: NSRange(range, in: attributedString.string))
                     attributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: attributedString.string))
                     attributedString.addAttribute(.baselineOffset, value: 1.0, range: NSRange(range, in: attributedString.string))
                 }
@@ -358,7 +358,7 @@ private final class GiftValueSheetContent: CombinedComponent {
                 originY += 9.0
             }
                         
-            let tableFont = Font.regular(15.0)
+            let tableFont = Font.regular(floor(fontSize * 15.0 / 17.0))
             let tableTextColor = theme.list.itemPrimaryTextColor
     
             var tableItems: [TableComponent.Item] = []

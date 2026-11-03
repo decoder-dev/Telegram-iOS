@@ -201,6 +201,8 @@ final class GroupHeaderLayer: UIView {
             textConstrainedWidth -= clearWidth + 8.0
         }
         
+        let fontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        
         let textSize: CGSize
         if let currentTextLayout = self.currentTextLayout, currentTextLayout.string == title, currentTextLayout.color == color, currentTextLayout.constrainedWidth == textConstrainedWidth {
             textSize = currentTextLayout.size
@@ -208,10 +210,10 @@ final class GroupHeaderLayer: UIView {
             let font: UIFont
             let stringValue: String
             if subtitle == nil {
-                font = Font.medium(13.0)
+                font = Font.medium(floor(fontSize * 13.0 / 17.0))
                 stringValue = title.uppercased()
             } else {
-                font = Font.semibold(16.0)
+                font = Font.semibold(floor(fontSize * 16.0 / 17.0))
                 stringValue = title
             }
             let string = NSAttributedString(string: stringValue, font: font, textColor: color)
@@ -242,7 +244,7 @@ final class GroupHeaderLayer: UIView {
         var badgeSize: CGSize = .zero
         if let badge {
             func generateBadgeImage(color: UIColor) -> UIImage? {
-                let string = NSAttributedString(string: badge, font: Font.semibold(11.0), textColor: .white)
+                let string = NSAttributedString(string: badge, font: Font.semibold(floor(fontSize * 11.0 / 17.0)), textColor: .white)
                 let stringBounds = string.boundingRect(with: CGSize(width: 120, height: 18.0), options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], context: nil)
                 
                 let badgeSize = CGSize(width: stringBounds.width + 8.0, height: 16.0)
@@ -366,8 +368,8 @@ final class GroupHeaderLayer: UIView {
             if let currentSubtitleLayout = self.currentSubtitleLayout, currentSubtitleLayout.string == subtitle, currentSubtitleLayout.color == subtitleColor, currentSubtitleLayout.constrainedWidth == textConstrainedWidth {
                 subtitleSize = currentSubtitleLayout.size
             } else {
-                let string = NSAttributedString(string: subtitle, font: Font.regular(15.0), textColor: subtitleColor)
-                let whiteString = NSAttributedString(string: subtitle, font: Font.regular(15.0), textColor: .black)
+                let string = NSAttributedString(string: subtitle, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: subtitleColor)
+                let whiteString = NSAttributedString(string: subtitle, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: .black)
                 let stringBounds = string.boundingRect(with: CGSize(width: textConstrainedWidth, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
                 subtitleSize = CGSize(width: ceil(stringBounds.width), height: ceil(stringBounds.height))
                 updateSubtitleContents = generateImage(subtitleSize, opaque: false, scale: 0.0, rotatedContext: { size, context in

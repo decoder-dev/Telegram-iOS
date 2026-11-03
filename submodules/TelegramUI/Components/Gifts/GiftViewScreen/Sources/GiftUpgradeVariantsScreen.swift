@@ -640,6 +640,8 @@ private final class GiftUpgradeVariantsScreenComponent: Component {
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             let themeUpdated = self.environment?.theme !== environment.theme
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             let resetScrolling = self.scrollView.bounds.width != availableSize.width
             
             // Narrowed by the side safe insets only where there is one on each side. Beside iPhone Duo's side strip
@@ -873,7 +875,7 @@ private final class GiftUpgradeVariantsScreenComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(20.0), textColor: .white))
+                    text: .plain(NSAttributedString(string: titleText, font: Font.semibold(floor(fontSize * 20.0 / 17.0)), textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
@@ -900,7 +902,7 @@ private final class GiftUpgradeVariantsScreenComponent: Component {
             let subtitleSize = self.subtitle.update(
                 transition: .spring(duration: 0.2),
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.regular(14.0),
+                    font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                     color: secondaryTextColor,
                     items: subtitleItems,
                     noDelay: true,
@@ -938,6 +940,7 @@ private final class GiftUpgradeVariantsScreenComponent: Component {
                     transition: transition,
                     component: AnyComponent(AttributeInfoComponent(
                         strings: environment.strings,
+                        listsFontSizeBase: fontSize,
                         backgroundColor: UIColor.white.withAlphaComponent(0.16),
                         secondaryTextColor: secondaryTextColor.mixedWith(.white, alpha: 0.3),
                         badgeColor: badgeColor,
@@ -1036,8 +1039,8 @@ private final class GiftUpgradeVariantsScreenComponent: Component {
                 itemCount = self.symbolCount
             }
             
-            let descriptionFont = Font.regular(13.0)
-            let descriptionBoldFont = Font.semibold(13.0)
+            let descriptionFont = Font.regular(floor(fontSize * 13.0 / 17.0))
+            let descriptionBoldFont = Font.semibold(floor(fontSize * 13.0 / 17.0))
             let descriptionTextColor = theme.list.itemSecondaryTextColor
             let descriptionLinkColor = theme.list.itemAccentColor
             let descriptionMarkdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: descriptionFont, textColor: descriptionTextColor), bold: MarkdownAttributeSet(font: descriptionBoldFont, textColor: descriptionTextColor), link: MarkdownAttributeSet(font: descriptionFont, textColor: descriptionLinkColor), linkAttribute: { contents in
@@ -1153,7 +1156,7 @@ private final class GiftUpgradeVariantsScreenComponent: Component {
                     isDark: false,
                     state: .tintedGlass,
                     component: AnyComponentWithIdentity(id: "content", component: AnyComponent(
-                        PlayButtonComponent(isPlay: !self.isPlaying, title: !self.isPlaying && self.showRandomizeTip ? environment.strings.Gift_Variants_Randomize : nil)
+                        PlayButtonComponent(isPlay: !self.isPlaying, listsFontSizeBase: fontSize, title: !self.isPlaying && self.showRandomizeTip ? environment.strings.Gift_Variants_Randomize : nil)
                     )),
                     action: { [weak self] _ in
                         guard let self else {
@@ -1361,6 +1364,7 @@ public class GiftUpgradeVariantsScreen: ViewControllerComponentContainer {
 
 private final class AttributeInfoComponent: Component {
     let strings: PresentationStrings
+    let listsFontSizeBase: CGFloat
     let backgroundColor: UIColor
     let secondaryTextColor: UIColor
     let badgeColor: UIColor
@@ -1368,12 +1372,14 @@ private final class AttributeInfoComponent: Component {
     
     init(
         strings: PresentationStrings,
+        listsFontSizeBase: CGFloat,
         backgroundColor: UIColor,
         secondaryTextColor: UIColor,
         badgeColor: UIColor,
         attribute: StarGift.UniqueGift.Attribute
     ) {
         self.strings = strings
+        self.listsFontSizeBase = listsFontSizeBase
         self.backgroundColor = backgroundColor
         self.secondaryTextColor = secondaryTextColor
         self.badgeColor = badgeColor
@@ -1382,6 +1388,9 @@ private final class AttributeInfoComponent: Component {
     
     static func ==(lhs: AttributeInfoComponent, rhs: AttributeInfoComponent) -> Bool {
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         if lhs.backgroundColor != rhs.backgroundColor {
@@ -1455,10 +1464,12 @@ private final class AttributeInfoComponent: Component {
                 rarity = nil
             }
                     
+            let fontSize = component.listsFontSizeBase
+            
             let titleSize = self.title.update(
                 transition: .spring(duration: 0.2),
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.semibold(13.0),
+                    font: Font.semibold(floor(fontSize * 13.0 / 17.0)),
                     color: UIColor.white,
                     items: [AnimatedTextComponent.Item(id: "title", content: .text(title))],
                     noDelay: true,
@@ -1470,7 +1481,7 @@ private final class AttributeInfoComponent: Component {
             let subtitleSize = self.subtitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: subtitle, font: Font.regular(11.0), textColor: .white)),
+                    text: .plain(NSAttributedString(string: subtitle, font: Font.regular(floor(fontSize * 11.0 / 17.0)), textColor: .white)),
                     tintColor: component.secondaryTextColor
                 )),
                 environment: {},
@@ -1537,7 +1548,7 @@ private final class AttributeInfoComponent: Component {
             let badgeSize = self.badge.update(
                 transition: .spring(duration: 0.2),
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.with(size: 12.0, weight: .semibold, traits: .monospacedNumbers),
+                    font: Font.with(size: floor(fontSize * 12.0 / 17.0), weight: .semibold, traits: .monospacedNumbers),
                     color: UIColor.white,
                     items: badgeItems,
                     noDelay: true,
@@ -1574,18 +1585,24 @@ private final class AttributeInfoComponent: Component {
 
 private final class PlayButtonComponent: Component {
     let isPlay: Bool
+    let listsFontSizeBase: CGFloat
     let title: String?
     
     public init(
         isPlay: Bool,
+        listsFontSizeBase: CGFloat,
         title: String?
     ) {
         self.isPlay = isPlay
+        self.listsFontSizeBase = listsFontSizeBase
         self.title = title
     }
     
     static func ==(lhs: PlayButtonComponent, rhs: PlayButtonComponent) -> Bool {
         if lhs.isPlay != rhs.isPlay {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         if lhs.title != rhs.title {
@@ -1629,7 +1646,7 @@ private final class PlayButtonComponent: Component {
             if let titleString = component.title {
                 titleSize = self.title.update(
                     transition: .immediate,
-                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: titleString, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: .white)))),
+                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: titleString, font: Font.semibold(floor(component.listsFontSizeBase * 15.0 / 17.0)), textColor: .white)))),
                     environment: {},
                     containerSize: availableSize
                 )

@@ -136,8 +136,9 @@ private final class GiftAuctionInfoSheetContent: CombinedComponent {
             let sideInset: CGFloat = 30.0 + environment.safeInsets.left
             let textSideInset: CGFloat = 30.0 + environment.safeInsets.left
             
-            let titleFont = Font.bold(24.0)
-            let textFont = Font.regular(15.0)
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let titleFont = Font.bold(floor(fontSize * 24.0 / 17.0))
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
             
             let textColor = theme.actionSheet.primaryTextColor
             let secondaryTextColor = theme.actionSheet.secondaryTextColor
@@ -202,6 +203,7 @@ private final class GiftAuctionInfoSheetContent: CombinedComponent {
                 AnyComponentWithIdentity(
                     id: "top",
                     component: AnyComponent(ParagraphComponent(
+                        listsFontSizeBase: fontSize,
                         title: strings.Gift_Auction_Info_TopBidders_Title(auctionGiftsPerRound),
                         titleColor: textColor,
                         text: strings.Gift_Auction_Info_TopBidders_Text(strings.Gift_Auction_Info_TopBidders_Gifts(auctionGiftsPerRound), strings.Gift_Auction_Info_TopBidders_Rounds(state.rounds), strings.Gift_Auction_Info_TopBidders_Bidders(auctionGiftsPerRound)).string,
@@ -216,6 +218,7 @@ private final class GiftAuctionInfoSheetContent: CombinedComponent {
                 AnyComponentWithIdentity(
                     id: "carryover",
                     component: AnyComponent(ParagraphComponent(
+                        listsFontSizeBase: fontSize,
                         title: strings.Gift_Auction_Info_Carryover_Title,
                         titleColor: textColor,
                         text: strings.Gift_Auction_Info_Carryover_Text("\(auctionGiftsPerRound)").string,
@@ -230,6 +233,7 @@ private final class GiftAuctionInfoSheetContent: CombinedComponent {
                 AnyComponentWithIdentity(
                     id: "missed",
                     component: AnyComponent(ParagraphComponent(
+                        listsFontSizeBase: fontSize,
                         title: strings.Gift_Auction_Info_Missed_Title,
                         titleColor: textColor,
                         text: strings.Gift_Auction_Info_Missed_Text,
@@ -512,6 +516,7 @@ public final class GiftAuctionInfoScreen: ViewControllerComponentContainer {
 }
 
 private final class ParagraphComponent: CombinedComponent {
+    let listsFontSizeBase: CGFloat
     let title: String
     let titleColor: UIColor
     let text: String
@@ -522,6 +527,7 @@ private final class ParagraphComponent: CombinedComponent {
     let action: () -> Void
     
     public init(
+        listsFontSizeBase: CGFloat,
         title: String,
         titleColor: UIColor,
         text: String,
@@ -531,6 +537,7 @@ private final class ParagraphComponent: CombinedComponent {
         iconColor: UIColor,
         action: @escaping () -> Void = {}
     ) {
+        self.listsFontSizeBase = listsFontSizeBase
         self.title = title
         self.titleColor = titleColor
         self.text = text
@@ -542,6 +549,9 @@ private final class ParagraphComponent: CombinedComponent {
     }
     
     static func ==(lhs: ParagraphComponent, rhs: ParagraphComponent) -> Bool {
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
+            return false
+        }
         if lhs.title != rhs.title {
             return false
         }
@@ -581,11 +591,13 @@ private final class ParagraphComponent: CombinedComponent {
             
             let textTopInset: CGFloat = 9.0
             
+            let fontSize = component.listsFontSizeBase
+            
             let title = title.update(
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.title,
-                        font: Font.semibold(15.0),
+                        font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                         textColor: component.titleColor,
                         paragraphAlignment: .natural
                     )),
@@ -596,8 +608,8 @@ private final class ParagraphComponent: CombinedComponent {
                 transition: .immediate
             )
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let textColor = component.textColor
             let accentColor = component.accentColor
             let markdownAttributes = MarkdownAttributes(

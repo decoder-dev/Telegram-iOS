@@ -35,6 +35,7 @@ import ConfettiEffect
 
 private final class BadgeComponent: Component {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let prefix: String?
     let title: String
     let subtitle: String?
@@ -43,6 +44,7 @@ private final class BadgeComponent: Component {
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat,
         prefix: String?,
         title: String,
         subtitle: String?,
@@ -50,6 +52,7 @@ private final class BadgeComponent: Component {
         color: UIColor
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.prefix = prefix
         self.title = title
         self.subtitle = subtitle
@@ -59,6 +62,9 @@ private final class BadgeComponent: Component {
     
     static func ==(lhs: BadgeComponent, rhs: BadgeComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.prefix != rhs.prefix {
@@ -176,6 +182,7 @@ private final class BadgeComponent: Component {
             self.badgeIcon.tintColor = .white
             
             self.badgeLabel.color = .white
+            let fontSize = component.fontSize
                 
             let badgeLabelSize = self.badgeLabel.update(value: component.title, transition: .easeInOut(duration: 0.12))
             let countWidth: CGFloat = badgeLabelSize.width + 3.0
@@ -185,7 +192,7 @@ private final class BadgeComponent: Component {
             if let prefix = component.prefix {
                 let prefixSize = self.prefix.update(
                     transition: .immediate,
-                    component: AnyComponent(Text(text: prefix, font: Font.with(size: 24.0, design: .round, weight: .semibold, traits: []), color: .white)),
+                    component: AnyComponent(Text(text: prefix, font: Font.with(size: floor(fontSize * 24.0 / 17.0), design: .round, weight: .semibold, traits: []), color: .white)),
                     environment: {},
                     containerSize: availableSize
                 )
@@ -201,8 +208,6 @@ private final class BadgeComponent: Component {
             } else if let prefixView = self.prefix.view {
                 prefixView.alpha = 0.0
             }
-            
-            let fontSize: CGFloat = 17.0
             
             if let subtitle = component.subtitle {
                 let subtitleSize = self.subtitle.update(
@@ -371,6 +376,7 @@ private final class BadgeComponent: Component {
 
 private final class PeerPlaceComponent: Component {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let color: UIColor
     let place: Int32?
     let placeIsApproximate: Bool
@@ -378,12 +384,14 @@ private final class PeerPlaceComponent: Component {
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat,
         color: UIColor,
         place: Int32?,
         placeIsApproximate: Bool,
         groupingSeparator: String
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.color = color
         self.place = place
         self.placeIsApproximate = placeIsApproximate
@@ -392,6 +400,9 @@ private final class PeerPlaceComponent: Component {
     
     static func ==(lhs: PeerPlaceComponent, rhs: PeerPlaceComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.color != rhs.color {
@@ -428,6 +439,7 @@ private final class PeerPlaceComponent: Component {
         func update(component: PeerPlaceComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             
+            let fontSize = component.fontSize
             let textColor: UIColor
             let backgroundColors: [UIColor]?
             if let place = component.place, place < 4 {
@@ -474,7 +486,7 @@ private final class PeerPlaceComponent: Component {
             
             let labelSize = self.label.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: placeString, font: Font.with(size: 17.0, traits: .monospacedNumbers), textColor: textColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: placeString, font: Font.with(size: floor(fontSize * 17.0 / 17.0), traits: .monospacedNumbers), textColor: textColor)))),
                 environment: {},
                 containerSize: CGSize(width: 60.0, height: 40.0)
             )
@@ -644,6 +656,7 @@ private final class PeerComponent: Component {
                 component: AnyComponent(
                     PeerPlaceComponent(
                         theme: component.theme,
+                        fontSize: fontSize,
                         color: color,
                         place: component.status == .returned ? nil : component.place,
                         placeIsApproximate: component.placeIsApproximate,
@@ -699,7 +712,7 @@ private final class PeerComponent: Component {
             let amountSize = self.amount.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(Int32(clamping: component.amount), component.groupingSeparator), font: Font.with(size: 15.0, traits: .monospacedNumbers), textColor: component.theme.list.itemSecondaryTextColor))
+                    text: .plain(NSAttributedString(string: presentationStringsFormattedNumber(Int32(clamping: component.amount), component.groupingSeparator), font: Font.with(size: floor(fontSize * 15.0 / 17.0), traits: .monospacedNumbers), textColor: component.theme.list.itemSecondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -740,6 +753,7 @@ private final class PeerComponent: Component {
 private final class SliderBackgroundComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let value: CGFloat
     let topCutoff: CGFloat?
     let giftsPerRound: Int32
@@ -748,6 +762,7 @@ private final class SliderBackgroundComponent: Component {
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: CGFloat,
         value: CGFloat,
         topCutoff: CGFloat?,
         giftsPerRound: Int32,
@@ -755,6 +770,7 @@ private final class SliderBackgroundComponent: Component {
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.value = value
         self.topCutoff = topCutoff
         self.giftsPerRound = giftsPerRound
@@ -766,6 +782,9 @@ private final class SliderBackgroundComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.value != rhs.value {
@@ -846,6 +865,7 @@ private final class SliderBackgroundComponent: Component {
         }
         
         func update(component: SliderBackgroundComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.fontSize
             self.sliderBackground.backgroundColor = component.theme.list.itemPrimaryTextColor.withMultipliedAlpha(component.theme.overallDarkAppearance ? 0.2 : 0.07)
             self.sliderForeground.backgroundColor = component.color
             self.topForegroundLine.backgroundColor = component.theme.list.plainBackgroundColor.cgColor
@@ -2218,7 +2238,7 @@ private final class GiftAuctionBidScreenComponent: Component {
                 component: AnyComponent(
                     Button(
                         content: AnyComponent(
-                            MultilineTextComponent(text: .plain(NSAttributedString(string: "+", font: Font.with(size: 26.0, design: .round, weight: .regular), textColor: environment.theme.list.itemSecondaryTextColor.withAlphaComponent(0.5))))
+                            MultilineTextComponent(text: .plain(NSAttributedString(string: "+", font: Font.with(size: floor(fontSize * 26.0 / 17.0), design: .round, weight: .regular), textColor: environment.theme.list.itemSecondaryTextColor.withAlphaComponent(0.5))))
                         ),
                         action: { [weak self] in
                             self?.presentCustomBidController()
@@ -2372,6 +2392,7 @@ private final class GiftAuctionBidScreenComponent: Component {
                 component: AnyComponent(SliderBackgroundComponent(
                     theme: environment.theme,
                     strings: environment.strings,
+                    fontSize: fontSize,
                     value: progressFraction,
                     topCutoff: topCutoff,
                     giftsPerRound: giftsPerRound,
@@ -2413,6 +2434,7 @@ private final class GiftAuctionBidScreenComponent: Component {
                     transition: transition,
                     component: AnyComponent(BadgeComponent(
                         theme: environment.theme,
+                        fontSize: fontSize,
                         prefix: nil,
                         title: badgeValue,
                         subtitle: subtitle,
@@ -3014,7 +3036,7 @@ private final class GiftAuctionBidScreenComponent: Component {
                 buttonString = environment.strings.Gift_AuctionBid_PlaceBid(" # \(formattedAmount)").string
                 buttonId = "bid"
             }
-            let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.with(size: 17.0, weight: .semibold, traits: .monospacedNumbers), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.with(size: floor(fontSize * 17.0 / 17.0), weight: .semibold, traits: .monospacedNumbers), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             if let range = buttonAttributedString.string.range(of: "#"), let starImage = self.cachedStarImage?.0 {
                 buttonAttributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: buttonAttributedString.string))
                 buttonAttributedString.addAttribute(.foregroundColor, value: environment.theme.list.itemCheckColors.foregroundColor, range: NSRange(range, in: buttonAttributedString.string))
@@ -3543,7 +3565,7 @@ private final class AuctionStatComponent: Component {
             let titleSize = self.title.update(
                 transition: .spring(duration: 0.2),
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.with(size: component.small ? 17.0 : 20.0, weight: .semibold, traits: .monospacedNumbers),
+                    font: Font.with(size: floor(fontSize * (component.small ? 17.0 : 20.0) / 17.0), weight: .semibold, traits: .monospacedNumbers),
                     color: component.theme.list.itemPrimaryTextColor,
                     items: component.title,
                     noDelay: true,

@@ -1729,7 +1729,7 @@ private final class SheetContainerComponent: CombinedComponent {
                             id: AnyHashable("level"),
                             component: AnyComponent(
                                 AnimatedTextComponent(
-                                    font: Font.with(size: 13.0, weight: .medium, traits: .monospacedNumbers),
+                                    font: Font.with(size: floor(fontSize * 13.0 / 17.0), weight: .medium, traits: .monospacedNumbers),
                                     color: environment.theme.list.itemCheckColors.foregroundColor,
                                     items: buttonAnimatedItems,
                                     noDelay: true
