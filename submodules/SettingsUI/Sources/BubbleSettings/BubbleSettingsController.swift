@@ -503,8 +503,9 @@ private final class BubbleSettingsToolbarNode: ASDisplayNode {
         self.separatorNode.backgroundColor = presentationData.theme.rootController.tabBar.separatorColor
         self.topSeparatorNode.backgroundColor = presentationData.theme.rootController.tabBar.separatorColor
         
-        self.cancelButton.setTitle(presentationData.strings.Common_Cancel, with: Font.regular(17.0), with: presentationData.theme.list.itemPrimaryTextColor, for: [])
-        self.doneButton.setTitle(presentationData.strings.Wallpaper_Set, with: Font.regular(17.0), with: presentationData.theme.list.itemPrimaryTextColor, for: [])
+        let barFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
+        self.cancelButton.setTitle(presentationData.strings.Common_Cancel, with: barFont, with: presentationData.theme.list.itemPrimaryTextColor, for: [])
+        self.doneButton.setTitle(presentationData.strings.Wallpaper_Set, with: barFont, with: presentationData.theme.list.itemPrimaryTextColor, for: [])
         
         self.cancelButton.accessibilityLabel = presentationData.strings.Common_Cancel
         self.doneButton.accessibilityLabel = presentationData.strings.Wallpaper_Set

@@ -1879,8 +1879,9 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
             let accentColor = theme.list.itemAccentColor
             let subtitleColor = theme.list.itemSecondaryTextColor
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFontSize = floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)
+            let textFont = Font.regular(textFontSize)
+            let boldTextFont = Font.semibold(textFontSize)
             
             var link = ""
             let textString: String
@@ -2836,7 +2837,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                     let infoTitle = infoTitle.update(
                         component: MultilineTextComponent(
                             text: .plain(
-                                NSAttributedString(string: strings.Premium_AboutTitle.uppercased(), font: Font.regular(14.0), textColor: environment.theme.list.freeTextColor)
+                                NSAttributedString(string: strings.Premium_AboutTitle.uppercased(), font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: environment.theme.list.freeTextColor)
                             ),
                             horizontalAlignment: .natural,
                             maximumNumberOfLines: 0,
