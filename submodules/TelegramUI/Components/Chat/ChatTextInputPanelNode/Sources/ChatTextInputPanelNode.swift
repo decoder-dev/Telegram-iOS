@@ -3393,7 +3393,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             if let current = self.slowmodePlaceholderNode {
                 slowmodePlaceholderNode = current
             } else {
-                slowmodePlaceholderNode = ChatTextInputSlowmodePlaceholderNode(theme: interfaceState.theme)
+                slowmodePlaceholderNode = ChatTextInputSlowmodePlaceholderNode(theme: interfaceState.theme, fontSize: interfaceState.fontSize.baseDisplaySize)
                 self.slowmodePlaceholderNode = slowmodePlaceholderNode
                 self.textInputContainerBackgroundView.contentView.insertSubview(slowmodePlaceholderNode.view, aboveSubview: self.textPlaceholderNode.view)
             }

@@ -664,11 +664,13 @@ final class EmojiSearchSearchBarComponent: Component {
                 textColor = component.useOpaqueTheme ? component.theme.chat.inputMediaPanel.panelContentOpaqueSearchOverlayColor : component.theme.chat.inputMediaPanel.panelContentVibrantSearchOverlayColor
             }
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             let textSize = self.textView.update(
                 transition: .immediate,
                 component: AnyComponent(Text(
                     text: component.strings.Common_Search,
-                    font: Font.regular(17.0),
+                    font: Font.regular(fontSize),
                     color: textColor
                 )),
                 environment: {},
@@ -678,7 +680,7 @@ final class EmojiSearchSearchBarComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(Text(
                     text: component.strings.Common_Search,
-                    font: Font.regular(17.0),
+                    font: Font.regular(fontSize),
                     color: .black
                 )),
                 environment: {},

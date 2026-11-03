@@ -10,6 +10,7 @@ import ChatPresentationInterfaceState
 
 public final class ChatTextInputSlowmodePlaceholderNode: ASDisplayNode {
     private var theme: PresentationTheme
+    private let fontSize: CGFloat
     private let iconNode: ASImageNode
     private let iconArrowContainerNode: ASDisplayNode
     private let iconArrowNode: ASImageNode
@@ -20,8 +21,9 @@ public final class ChatTextInputSlowmodePlaceholderNode: ASDisplayNode {
     
     private var timer: SwiftSignalKit.Timer?
     
-    public init(theme: PresentationTheme) {
+    public init(theme: PresentationTheme, fontSize: CGFloat = 17.0) {
         self.theme = theme
+        self.fontSize = fontSize
         self.textNode = ImmediateTextNode()
         self.textNode.displaysAsynchronously = false
         
@@ -71,11 +73,11 @@ public final class ChatTextInputSlowmodePlaceholderNode: ASDisplayNode {
         if let slowmodeState = self.slowmodeState {
             switch slowmodeState.variant {
             case .pendingMessages:
-                self.textNode.attributedText = NSAttributedString(string: stringForDuration(slowmodeState.timeout), font: Font.regular(17.0), textColor: self.theme.chat.inputPanel.inputPlaceholderColor)
+                self.textNode.attributedText = NSAttributedString(string: stringForDuration(slowmodeState.timeout), font: Font.regular(self.fontSize), textColor: self.theme.chat.inputPanel.inputPlaceholderColor)
             case let .timestamp(timeoutTimestamp):
                 let timestamp = Int32(Date().timeIntervalSince1970)
                 let timeout = max(0, timeoutTimestamp - timestamp)
-                self.textNode.attributedText = NSAttributedString(string: stringForDuration(timeout), font: Font.regular(17.0), textColor: self.theme.chat.inputPanel.inputPlaceholderColor)
+                self.textNode.attributedText = NSAttributedString(string: stringForDuration(timeout), font: Font.regular(self.fontSize), textColor: self.theme.chat.inputPanel.inputPlaceholderColor)
                 if timeout <= 30 {
                     if self.iconArrowNode.layer.animation(forKey: "rotation") == nil {
                         let basicAnimation = CABasicAnimation(keyPath: "transform.rotation.z")

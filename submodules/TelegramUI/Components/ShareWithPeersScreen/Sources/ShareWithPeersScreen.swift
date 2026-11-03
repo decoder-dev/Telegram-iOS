@@ -1889,7 +1889,7 @@ final class ShareWithPeersScreenComponent: Component {
                                     AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                         text: .plain(NSAttributedString(
                                             string: environment.strings.Stories_Post_Album,
-                                            font: Font.regular(17.0),
+                                            font: Font.regular(listFontSize),
                                             textColor: environment.theme.list.itemPrimaryTextColor
                                         )),
                                         maximumNumberOfLines: 1
@@ -1898,6 +1898,7 @@ final class ShareWithPeersScreenComponent: Component {
                                 accessory: .custom(ListActionItemComponent.CustomAccessory(component: AnyComponentWithIdentity(id: 0, component: AnyComponent(AlbumLabelComponent(
                                     theme: environment.theme,
                                     title: foldersText,
+                                    fontSize: listFontSize,
                                     action: { [weak self] sourceView in
                                         guard let self else {
                                             return
@@ -2116,7 +2117,7 @@ final class ShareWithPeersScreenComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: environment.strings.Contacts_Search_NoResults, font: Font.semibold(17.0), textColor: environment.theme.list.itemSecondaryTextColor)),
+                            text: .plain(NSAttributedString(string: environment.strings.Contacts_Search_NoResults, font: Font.semibold(baseDisplaySize), textColor: environment.theme.list.itemSecondaryTextColor)),
                             horizontalAlignment: .center
                         )
                     ),
@@ -2335,6 +2336,9 @@ final class ShareWithPeersScreenComponent: Component {
             }
             
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize
+            let listFontSize = fontSize.itemListBaseFontSize
+            let baseDisplaySize = fontSize.baseDisplaySize
             let themeUpdated = self.environment?.theme !== environment.theme
             
             // iPhone Duo: the list and the header keep to the band beside the side strip (and clear of the status corner
@@ -2893,7 +2897,7 @@ final class ShareWithPeersScreenComponent: Component {
                     List([
                         AnyComponentWithIdentity(
                             id: "title",
-                            component: AnyComponent(Text(text: title, font: Font.semibold(17.0), color: environment.theme.rootController.navigationBar.primaryTextColor))
+                            component: AnyComponent(Text(text: title, font: Font.semibold(baseDisplaySize), color: environment.theme.rootController.navigationBar.primaryTextColor))
                         ),
                         AnyComponentWithIdentity(
                             id: "subtitle",
@@ -2903,7 +2907,7 @@ final class ShareWithPeersScreenComponent: Component {
                     centerAlignment: true)
                 )
             } else {
-                titleComponent = AnyComponent(Text(text: title, font: Font.semibold(17.0), color: environment.theme.rootController.navigationBar.primaryTextColor))
+                titleComponent = AnyComponent(Text(text: title, font: Font.semibold(baseDisplaySize), color: environment.theme.rootController.navigationBar.primaryTextColor))
             }
             
             let navigationTitleSize = self.navigationTitle.update(
@@ -3656,15 +3660,18 @@ final class HeaderContextReferenceContentSource: ContextReferenceContentSource {
 private final class AlbumLabelComponent: Component {
     let theme: PresentationTheme
     let title: String
+    let fontSize: CGFloat
     let action: (UIView) -> Void
     
     init(
         theme: PresentationTheme,
         title: String,
+        fontSize: CGFloat = 17.0,
         action: @escaping (UIView) -> Void
     ) {
         self.theme = theme
         self.title = title
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -3673,6 +3680,9 @@ private final class AlbumLabelComponent: Component {
             return false
         }
         if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -3713,7 +3723,7 @@ private final class AlbumLabelComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: component.theme.list.itemSecondaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(component.fontSize), textColor: component.theme.list.itemSecondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - rightTextInset, height: height)

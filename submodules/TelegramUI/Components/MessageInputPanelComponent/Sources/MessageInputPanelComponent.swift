@@ -2561,6 +2561,7 @@ public final class MessageInputPanelComponent: Component {
                         cancelFraction: self.mediaCancelFraction,
                         inputInsets: insets,
                         insets: mediaInsets,
+                        fontSize: fontSize,
                         cancelAction: { [weak self] in
                             guard let self, let component = self.component else {
                                 return

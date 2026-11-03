@@ -206,6 +206,7 @@ private final class SheetContent: CombinedComponent {
                             text: state.link,
                             link: true,
                             placeholderText: strings.MediaEditor_Link_LinkTo_Placeholder,
+                            fontSize: presentationData.listsFontSize.baseDisplaySize,
                             textUpdated: { [weak state] text in
                                 state?.link = text
                                 state?.updated()
@@ -280,6 +281,7 @@ private final class SheetContent: CombinedComponent {
                                     text: state.name,
                                     link: false,
                                     placeholderText: strings.MediaEditor_Link_LinkName_Placeholder,
+                                    fontSize: presentationData.listsFontSize.baseDisplaySize,
                                     textUpdated: { [weak state] text in
                                         state?.name = text
                                     },
@@ -702,6 +704,7 @@ private final class LinkFieldComponent: Component {
     let text: String
     let link: Bool
     let placeholderText: String
+    let fontSize: CGFloat
     let textUpdated: (String) -> Void
     let textReturned: () -> Void
     let tag: AnyObject?
@@ -712,6 +715,7 @@ private final class LinkFieldComponent: Component {
         text: String,
         link: Bool,
         placeholderText: String,
+        fontSize: CGFloat = 17.0,
         textUpdated: @escaping (String) -> Void,
         textReturned: @escaping () -> Void,
         tag: AnyObject? = nil
@@ -721,6 +725,7 @@ private final class LinkFieldComponent: Component {
         self.text = text
         self.link = link
         self.placeholderText = placeholderText
+        self.fontSize = fontSize
         self.textUpdated = textUpdated
         self.textReturned = textReturned
         self.tag = tag
@@ -737,6 +742,9 @@ private final class LinkFieldComponent: Component {
             return false
         }
         if lhs.placeholderText != rhs.placeholderText {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -815,7 +823,7 @@ private final class LinkFieldComponent: Component {
         func update(component: LinkFieldComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
             self.textField.textColor = component.textColor
             self.textField.text = component.text
-            self.textField.font = Font.regular(17.0)
+            self.textField.font = Font.regular(component.fontSize)
             self.textField.keyboardAppearance = .dark
             
             if component.link {
@@ -836,7 +844,7 @@ private final class LinkFieldComponent: Component {
                 component: AnyComponent(
                     Text(
                         text: component.placeholderText,
-                        font: Font.regular(17.0),
+                        font: Font.regular(component.fontSize),
                         color: component.placeholderColor
                     )
                 ),

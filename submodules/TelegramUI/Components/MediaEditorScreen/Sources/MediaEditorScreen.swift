@@ -840,6 +840,8 @@ final class MediaEditorScreenComponent: Component {
             self.component = component
             self.state = state
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             self.setupIfNeeded()
                         
             let mediaEditor = controller.node.mediaEditor
@@ -2878,7 +2880,7 @@ final class MediaEditorScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(Button(
                     content: AnyComponent(
-                        Text(text: environment.strings.Common_Cancel, font: Font.regular(17.0), color: .white)
+                        Text(text: environment.strings.Common_Cancel, font: Font.regular(fontSize), color: .white)
                     ),
                     action: { [weak controller] in
                         if let controller {
@@ -2907,7 +2909,7 @@ final class MediaEditorScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(Button(
                     content: AnyComponent(
-                        Text(text: environment.strings.Common_Done, font: Font.regular(17.0), color: .white)
+                        Text(text: environment.strings.Common_Done, font: Font.regular(fontSize), color: .white)
                     ),
                     action: { [weak controller] in
                         if let controller {

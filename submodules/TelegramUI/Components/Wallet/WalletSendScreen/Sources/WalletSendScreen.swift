@@ -1359,7 +1359,8 @@ private final class WalletSendScreenComponent: Component {
                                 alertController.dismiss(completion: { [weak self] in
                                     self?.copyRecipientAddress(recipientAddress)
                                 })
-                            }
+                            },
+                            fontSize: presentationData.listsFontSize.baseDisplaySize
                         ))
                     )
                 ],

@@ -22,6 +22,7 @@ public final class MediaRecordingPanelComponent: Component {
     public let cancelFraction: CGFloat
     public let inputInsets: UIEdgeInsets
     public let insets: UIEdgeInsets
+    public let fontSize: CGFloat
     public let cancelAction: () -> Void
     
     public init(
@@ -33,6 +34,7 @@ public final class MediaRecordingPanelComponent: Component {
         cancelFraction: CGFloat,
         inputInsets: UIEdgeInsets,
         insets: UIEdgeInsets,
+        fontSize: CGFloat = 17.0,
         cancelAction: @escaping () -> Void
     ) {
         self.theme = theme
@@ -43,6 +45,7 @@ public final class MediaRecordingPanelComponent: Component {
         self.cancelFraction = cancelFraction
         self.inputInsets = inputInsets
         self.insets = insets
+        self.fontSize = fontSize
         self.cancelAction = cancelAction
     }
     
@@ -69,6 +72,9 @@ public final class MediaRecordingPanelComponent: Component {
             return false
         }
         if lhs.insets != rhs.insets {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -361,13 +367,13 @@ public final class MediaRecordingPanelComponent: Component {
             
             let cancelButtonTextSize = self.cancelButtonText.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: component.strings.Common_Cancel, font: Font.regular(17.0), color: .white)),
+                component: AnyComponent(Text(text: component.strings.Common_Cancel, font: Font.regular(component.fontSize), color: .white)),
                 environment: {},
                 containerSize: CGSize(width: max(30.0, availableSize.width - 100.0), height: 44.0)
             )
             let _ = self.vibrancyCancelButtonText.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: component.strings.Common_Cancel, font: Font.regular(17.0), color: .clear)),
+                component: AnyComponent(Text(text: component.strings.Common_Cancel, font: Font.regular(component.fontSize), color: .clear)),
                 environment: {},
                 containerSize: CGSize(width: max(30.0, availableSize.width - 100.0), height: 44.0)
             )

@@ -420,11 +420,13 @@ public final class EmojiSearchHeaderView: UIView, UITextFieldDelegate {
             cancelColor = useOpaqueTheme ? theme.list.itemAccentColor : theme.chat.inputMediaPanel.panelContentVibrantSearchOverlayColor
         }
         
+        let fontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        
         let cancelTextSize = self.cancelButtonTitle.update(
             transition: .immediate,
             component: AnyComponent(Text(
                 text: strings.Common_Cancel,
-                font: Font.regular(17.0),
+                font: Font.regular(fontSize),
                 color: cancelColor
             )),
             environment: {},
@@ -434,7 +436,7 @@ public final class EmojiSearchHeaderView: UIView, UITextFieldDelegate {
             transition: .immediate,
             component: AnyComponent(Text(
                 text: strings.Common_Cancel,
-                font: Font.regular(17.0),
+                font: Font.regular(fontSize),
                 color: .black
             )),
             environment: {},

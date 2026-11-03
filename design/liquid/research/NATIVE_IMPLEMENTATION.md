@@ -271,3 +271,7 @@ PhoneInputItem принимает listsFontSize; Gift auction/value/bid, ForumCr
 ## Message input, stars, wallpaper color, text processing
 
 MessageInputPanel, NavigationSearch, Stars withdrawal/transactions, WallpaperColorPanel, QuickReplySetup, TextProcessing (+ language selection), EmojiGameStake, Avatar ColorPicker, CreateBot/CommunityEdit, ChatFolderLink preview items и CreateExternalMediaStream масштабируют основные labels от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Share, passkeys, media editor и context menu
+
+ShareWithPeers/Share panels, PeerSelection, Passkeys, BusinessMessage setup, MiniApp list, MediaRecording/MediaEditor/CreateLink, ListTextField, Emoji search bar/header, ContextMenu action fonts (через Controllers arguments), Wallet send/transfer и slowmode placeholder масштабируются от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.

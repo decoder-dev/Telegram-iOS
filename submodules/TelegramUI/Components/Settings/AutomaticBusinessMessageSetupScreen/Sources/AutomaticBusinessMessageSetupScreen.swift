@@ -695,11 +695,12 @@ final class AutomaticBusinessMessageSetupScreenComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             
             let navigationTitleSize = self.navigationTitle.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.mode == .greeting ? environment.strings.BusinessMessageSetup_TitleGreetingMessage : environment.strings.BusinessMessageSetup_TitleAwayMessage, font: Font.semibold(17.0), textColor: environment.theme.rootController.navigationBar.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.mode == .greeting ? environment.strings.BusinessMessageSetup_TitleGreetingMessage : environment.strings.BusinessMessageSetup_TitleAwayMessage, font: Font.semibold(fontSize), textColor: environment.theme.rootController.navigationBar.primaryTextColor)),
                     horizontalAlignment: .center
                 )),
                 environment: {},
@@ -1037,7 +1038,7 @@ final class AutomaticBusinessMessageSetupScreenComponent: Component {
                         icon = ListActionItemComponent.Icon(component: AnyComponentWithIdentity(id: 0, component: AnyComponent(HStack([
                             AnyComponentWithIdentity(id: 0, component: AnyComponent(PlainButtonComponent(
                                 content: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: dateText, font: Font.regular(17.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                                text: .plain(NSAttributedString(string: dateText, font: Font.regular(fontSize), textColor: environment.theme.list.itemPrimaryTextColor))
                                 )),
                                 background: AnyComponent(RoundedRectangle(color: environment.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.1), cornerRadius: 6.0)),
                                 effectAlignment: .center,
@@ -1054,7 +1055,7 @@ final class AutomaticBusinessMessageSetupScreenComponent: Component {
                             ))),
                             AnyComponentWithIdentity(id: 1, component: AnyComponent(PlainButtonComponent(
                                 content: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: timeText, font: Font.regular(17.0), textColor: environment.theme.list.itemPrimaryTextColor))
+                                text: .plain(NSAttributedString(string: timeText, font: Font.regular(fontSize), textColor: environment.theme.list.itemPrimaryTextColor))
                                 )),
                                 background: AnyComponent(RoundedRectangle(color: environment.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.1), cornerRadius: 6.0)),
                                 effectAlignment: .center,

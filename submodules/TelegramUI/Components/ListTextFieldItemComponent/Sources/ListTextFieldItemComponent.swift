@@ -37,6 +37,7 @@ public final class ListTextFieldItemComponent: Component {
     public let autocorrectionType: UITextAutocorrectionType
     public let returnKeyType: UIReturnKeyType
     public let contentInsets: UIEdgeInsets
+    public let fontSize: CGFloat
     public let updated: ((String) -> Void)?
     public let shouldUpdateText: (String) -> Bool
     public let onReturn: (() -> Void)?
@@ -54,6 +55,7 @@ public final class ListTextFieldItemComponent: Component {
         autocorrectionType: UITextAutocorrectionType = .default,
         returnKeyType: UIReturnKeyType = .default,
         contentInsets: UIEdgeInsets = .zero,
+        fontSize: CGFloat = 17.0,
         updated: ((String) -> Void)?,
         shouldUpdateText: @escaping (String) -> Bool = { _ in return true },
         onReturn: (() -> Void)? = nil,
@@ -70,6 +72,7 @@ public final class ListTextFieldItemComponent: Component {
         self.autocorrectionType = autocorrectionType
         self.returnKeyType = returnKeyType
         self.contentInsets = contentInsets
+        self.fontSize = fontSize
         self.updated = updated
         self.shouldUpdateText = shouldUpdateText
         self.onReturn = onReturn
@@ -108,6 +111,9 @@ public final class ListTextFieldItemComponent: Component {
             return false
         }
         if lhs.contentInsets != rhs.contentInsets {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if (lhs.updated == nil) != (rhs.updated == nil) {
@@ -251,9 +257,10 @@ public final class ListTextFieldItemComponent: Component {
             }
             
             let themeUpdated = component.theme !== previousComponent?.theme
+            let fontSizeUpdated = component.fontSize != previousComponent?.fontSize
             
-            if themeUpdated {
-                self.textField.font = Font.regular(17.0)
+            if themeUpdated || fontSizeUpdated {
+                self.textField.font = Font.regular(component.fontSize)
                 self.textField.textColor = component.theme.list.itemPrimaryTextColor
             }
             
@@ -276,7 +283,7 @@ public final class ListTextFieldItemComponent: Component {
             let placeholderSize = self.placeholder.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.placeholder.isEmpty ? " " : component.placeholder, font: Font.regular(17.0), textColor: component.theme.list.itemPlaceholderTextColor))
+                    text: .plain(NSAttributedString(string: component.placeholder.isEmpty ? " " : component.placeholder, font: Font.regular(component.fontSize), textColor: component.theme.list.itemPlaceholderTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0 - textFieldRightInset - component.contentInsets.left - component.contentInsets.right, height: 100.0)

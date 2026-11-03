@@ -123,6 +123,7 @@ final class PasskeysScreenListComponent: Component {
             let sideInset: CGFloat = 16.0 + component.insets.left
             let rightSideInset: CGFloat = 16.0 + component.insets.right
             let bandCenterX: CGFloat = component.insets.left + (availableSize.width - component.insets.left - component.insets.right) * 0.5
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.itemListBaseFontSize
 
             var contentHeight: CGFloat = 0.0
             contentHeight += component.insets.top
@@ -248,7 +249,7 @@ final class PasskeysScreenListComponent: Component {
                         AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: passkey.name.isEmpty ? component.strings.Passkeys_EmptyName : passkey.name,
-                                font: Font.regular(17.0),
+                                font: Font.regular(listFontSize),
                                 textColor: component.theme.list.itemPrimaryTextColor
                             )),
                             maximumNumberOfLines: 1
@@ -290,7 +291,7 @@ final class PasskeysScreenListComponent: Component {
                         AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: component.strings.Passkeys_AddPasskey,
-                                font: Font.regular(17.0),
+                                font: Font.regular(listFontSize),
                                 textColor: component.theme.list.itemAccentColor
                             )),
                             maximumNumberOfLines: 1

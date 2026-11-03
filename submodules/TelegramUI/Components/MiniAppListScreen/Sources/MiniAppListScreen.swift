@@ -435,6 +435,8 @@ final class MiniAppListScreenComponent: Component {
             self.component = component
             self.state = state
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             if themeUpdated {
                 self.backgroundColor = environment.theme.list.plainBackgroundColor
             }
@@ -480,7 +482,7 @@ final class MiniAppListScreenComponent: Component {
                         fieldStyle: .glass,
                         displayBackground: false
                     )
-                    searchBarNode.placeholderString = NSAttributedString(string: environment.strings.Common_Search, font: Font.regular(17.0), textColor: searchBarTheme.placeholder)
+                    searchBarNode.placeholderString = NSAttributedString(string: environment.strings.Common_Search, font: Font.regular(fontSize), textColor: searchBarTheme.placeholder)
                     self.searchBarNode = searchBarNode
                     searchBarNode.cancel = { [weak self] in
                         guard let self else {
@@ -619,7 +621,7 @@ final class MiniAppListScreenComponent: Component {
                 let emptySearchStateSize = emptySearchState.update(
                     transition: .immediate,
                     component: AnyComponent(BalancedTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.Conversation_SearchNoResults, font: Font.regular(17.0), textColor: environment.theme.list.freeTextColor, paragraphAlignment: .center)),
+                        text: .plain(NSAttributedString(string: environment.strings.Conversation_SearchNoResults, font: Font.regular(fontSize), textColor: environment.theme.list.freeTextColor, paragraphAlignment: .center)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0
                     )),

@@ -93,7 +93,7 @@ final class ContextMenuNode: ASDisplayNode {
     
     private let feedback: HapticFeedback?
     
-    init(actions: [ContextMenuAction], dismiss: @escaping () -> Void, dismissOnTap: @escaping (UIView, CGPoint) -> Bool, catchTapsOutside: Bool, hasHapticFeedback: Bool, blurred: Bool = false, isDark: Bool = true) {
+    init(actions: [ContextMenuAction], dismiss: @escaping () -> Void, dismissOnTap: @escaping (UIView, CGPoint) -> Bool, catchTapsOutside: Bool, hasHapticFeedback: Bool, blurred: Bool = false, isDark: Bool = true, fontSize: CGFloat = 17.0) {
         self.blurred = blurred
         self.isDark = isDark
         
@@ -107,7 +107,7 @@ final class ContextMenuNode: ASDisplayNode {
         self.contentNode.clipsToBounds = true
         
         self.actionNodes = actions.map { action in
-            return ContextMenuActionNode(action: action, blurred: blurred, isDark: isDark)
+            return ContextMenuActionNode(action: action, blurred: blurred, isDark: isDark, fontSize: fontSize)
         }
         
         self.pageLeftNode = ArrowNode(isLeft: true, isDark: isDark)

@@ -15,13 +15,15 @@ final class WalletSendRecipientAlertContentComponent: Component {
     let address: String
     let openChat: (() -> Void)?
     let copyAddress: () -> Void
+    let fontSize: CGFloat
 
-    init(title: String, recipientName: String?, address: String, openChat: (() -> Void)?, copyAddress: @escaping () -> Void) {
+    init(title: String, recipientName: String?, address: String, openChat: (() -> Void)?, copyAddress: @escaping () -> Void, fontSize: CGFloat = 17.0) {
         self.title = title
         self.recipientName = recipientName
         self.address = address
         self.openChat = openChat
         self.copyAddress = copyAddress
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: WalletSendRecipientAlertContentComponent, rhs: WalletSendRecipientAlertContentComponent) -> Bool {
@@ -29,6 +31,7 @@ final class WalletSendRecipientAlertContentComponent: Component {
             && lhs.recipientName == rhs.recipientName
             && lhs.address == rhs.address
             && (lhs.openChat == nil) == (rhs.openChat == nil)
+            && lhs.fontSize == rhs.fontSize
     }
 
     final class View: UIView {
@@ -72,7 +75,7 @@ final class WalletSendRecipientAlertContentComponent: Component {
             let recipientLinkAttribute = NSAttributedString.Key("WalletRecipientPeer")
             if let recipientName = component.recipientName {
                 let linkedAddress = strings.Wallet_Recipient_LinkedAddress(recipientName)
-                text.append(NSAttributedString(string: linkedAddress.string, font: Font.regular(17.0), textColor: theme.actionSheet.primaryTextColor))
+                text.append(NSAttributedString(string: linkedAddress.string, font: Font.regular(component.fontSize), textColor: theme.actionSheet.primaryTextColor))
                 for range in linkedAddress.ranges where range.index == 0 {
                     text.addAttribute(.foregroundColor, value: theme.actionSheet.controlAccentColor, range: range.range)
                     if component.openChat != nil {
@@ -80,7 +83,7 @@ final class WalletSendRecipientAlertContentComponent: Component {
                     }
                 }
             } else {
-                text.append(NSAttributedString(string: strings.Wallet_Recipient_UnlinkedAddress, font: Font.regular(17.0), textColor: theme.actionSheet.primaryTextColor))
+                text.append(NSAttributedString(string: strings.Wallet_Recipient_UnlinkedAddress, font: Font.regular(component.fontSize), textColor: theme.actionSheet.primaryTextColor))
             }
             let textSize = self.text.update(
                 transition: transition,

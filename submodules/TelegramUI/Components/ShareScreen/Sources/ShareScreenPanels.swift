@@ -189,6 +189,7 @@ final class BottomPanelComponent: Component {
             let previousInputIsVisible = self.component.map { ($0.actionBadge ?? 0) > 0 }
             self.component = component
             self.state = state
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let hasSelection = (component.actionBadge ?? 0) > 0
             if previousInputIsVisible != hasSelection { self.visibilityGeneration += 1 }
             if hasSelection || component.actionTitle != nil {
@@ -380,7 +381,7 @@ final class BottomPanelComponent: Component {
             } else {
                 buttonTitle = AnyComponentWithIdentity(id: component.actionTitle ?? "", component: AnyComponent(Text(
                     text: component.actionTitle ?? "",
-                    font: Font.semibold(17.0),
+                    font: Font.semibold(fontSize),
                     color: component.theme.list.itemCheckColors.foregroundColor
                 )))
             }
@@ -705,6 +706,7 @@ final class SearchInputPanelComponent: Component {
             let previousComponent = self.component
             self.component = component
             self.state = state
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.isUserInteractionEnabled = component.isVisible
             self.accessibilityElementsHidden = !component.isVisible
 
@@ -747,10 +749,10 @@ final class SearchInputPanelComponent: Component {
 
             if themeUpdated {
                 self.textField.accessibilityLabel = component.strings.Common_Search
-                self.textField.font = Font.regular(17.0)
                 self.textField.textColor = component.theme.list.itemPrimaryTextColor
                 self.textField.keyboardAppearance = component.theme.overallDarkAppearance ? .dark : .light
             }
+            self.textField.font = Font.regular(fontSize)
 
             let backgroundColor = component.theme.list.plainBackgroundColor.withMultipliedAlpha(0.75)
 
@@ -873,7 +875,7 @@ final class SearchInputPanelComponent: Component {
             let placeholderSize = self.placeholder.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.placeholder ?? component.strings.Common_Search, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.6)))
+                    text: .plain(NSAttributedString(string: component.placeholder ?? component.strings.Common_Search, font: Font.regular(fontSize), textColor: component.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.6)))
                 )),
                 environment: {},
                 containerSize: CGSize(width: fieldContentWidth, height: 100.0)

@@ -6,6 +6,7 @@ import ComponentFlow
 import ViewControllerComponent
 import ComponentDisplayAdapters
 import TelegramPresentationData
+import TelegramUIPreferences
 import HexColor
 
 private struct WallpaperColorPanelNodeState: Equatable {

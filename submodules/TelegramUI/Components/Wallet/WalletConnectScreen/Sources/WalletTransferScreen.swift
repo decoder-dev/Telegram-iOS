@@ -160,19 +160,21 @@ private final class WalletTransferSigningCardComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
     let content: WalletTransferPresentation.SigningContent
+    let fontSize: CGFloat
     let controller: () -> ViewController?
     let scrollViewUpdated: (UIScrollView?) -> Void
 
-    init(theme: PresentationTheme, strings: PresentationStrings, content: WalletTransferPresentation.SigningContent, controller: @escaping () -> ViewController?, scrollViewUpdated: @escaping (UIScrollView?) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, content: WalletTransferPresentation.SigningContent, fontSize: CGFloat = 17.0, controller: @escaping () -> ViewController?, scrollViewUpdated: @escaping (UIScrollView?) -> Void) {
         self.theme = theme
         self.strings = strings
         self.content = content
+        self.fontSize = fontSize
         self.controller = controller
         self.scrollViewUpdated = scrollViewUpdated
     }
 
     static func ==(lhs: WalletTransferSigningCardComponent, rhs: WalletTransferSigningCardComponent) -> Bool {
-        return lhs.theme === rhs.theme && lhs.strings === rhs.strings && lhs.content == rhs.content
+        return lhs.theme === rhs.theme && lhs.strings === rhs.strings && lhs.content == rhs.content && lhs.fontSize == rhs.fontSize
     }
 
     final class View: UIView {
@@ -211,7 +213,7 @@ private final class WalletTransferSigningCardComponent: Component {
                 let titleSize = self.warningTitle.update(
                     transition: transition,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.strings.Wallet_Sign_BinaryContent, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: component.strings.Wallet_Sign_BinaryContent, font: Font.regular(component.fontSize), textColor: component.theme.list.itemPrimaryTextColor)),
                         maximumNumberOfLines: 0
                     )),
                     environment: {},
@@ -225,7 +227,7 @@ private final class WalletTransferSigningCardComponent: Component {
                 let textSize = self.warningText.update(
                     transition: transition,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.strings.Wallet_Sign_BinaryWarning, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: component.strings.Wallet_Sign_BinaryWarning, font: Font.regular(component.fontSize), textColor: component.theme.list.itemPrimaryTextColor)),
                         maximumNumberOfLines: 0
                     )),
                     environment: {},
@@ -353,6 +355,7 @@ private final class WalletTransferSheetContent: Component {
         ) -> CGSize {
             let environment = environment[EnvironmentType.self].value
             let theme = environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             transition.setBackgroundColor(view: self, color: theme.list.modalPlainBackgroundColor)
 
             let safeContentWidth = max(
@@ -400,7 +403,7 @@ private final class WalletTransferSheetContent: Component {
                     }
                     contentHeight += size.height
                 }
-                addText(environment.strings.Wallet_Sign_Data, view: self.dataTitle, font: Font.semibold(17.0), topInset: 0.0)
+                addText(environment.strings.Wallet_Sign_Data, view: self.dataTitle, font: Font.semibold(fontSize), topInset: 0.0)
                 contentHeight += 12.0
                 self.signingCard.parentState = state
                 let cardSize = self.signingCard.update(
@@ -409,6 +412,7 @@ private final class WalletTransferSheetContent: Component {
                         theme: theme,
                         strings: environment.strings,
                         content: signingContent,
+                        fontSize: fontSize,
                         controller: environment.controller,
                         scrollViewUpdated: component.scrollViewUpdated
                     )),
@@ -628,6 +632,7 @@ private final class WalletTransferActionsComponent: Component {
     let confirmTitle: String
     let isBusy: Bool
     let isConfirming: Bool
+    let fontSize: CGFloat
     let cancel: () -> Void
     let confirm: () -> Void
 
@@ -637,6 +642,7 @@ private final class WalletTransferActionsComponent: Component {
         confirmTitle: String,
         isBusy: Bool,
         isConfirming: Bool,
+        fontSize: CGFloat = 17.0,
         cancel: @escaping () -> Void,
         confirm: @escaping () -> Void
     ) {
@@ -645,6 +651,7 @@ private final class WalletTransferActionsComponent: Component {
         self.confirmTitle = confirmTitle
         self.isBusy = isBusy
         self.isConfirming = isConfirming
+        self.fontSize = fontSize
         self.cancel = cancel
         self.confirm = confirm
     }
@@ -655,6 +662,7 @@ private final class WalletTransferActionsComponent: Component {
             && lhs.confirmTitle == rhs.confirmTitle
             && lhs.isBusy == rhs.isBusy
             && lhs.isConfirming == rhs.isConfirming
+            && lhs.fontSize == rhs.fontSize
     }
 
     final class View: UIView {
@@ -697,7 +705,7 @@ private final class WalletTransferActionsComponent: Component {
                         id: "cancel",
                         component: AnyComponent(Text(
                             text: component.strings.Common_Cancel,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.fontSize),
                             color: component.theme.list.itemPrimaryTextColor
                         ))
                     ),
@@ -730,7 +738,7 @@ private final class WalletTransferActionsComponent: Component {
                         id: "confirm",
                         component: AnyComponent(Text(
                             text: component.confirmTitle,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.fontSize),
                             color: component.theme.list.itemCheckColors.foregroundColor
                         ))
                     ),
@@ -915,6 +923,7 @@ private final class WalletTransferSheetComponent: CombinedComponent {
             let controller = environment.controller
             let theme = environment.theme.withModalBlocksBackground()
             let isSigning = WalletTransferPresentation(request: component.request, walletState: componentState.walletState).isSigning
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
 
             let dismiss: (Bool) -> Void = { [weak componentState] animated in
                 componentState?.finish(
@@ -981,7 +990,7 @@ private final class WalletTransferSheetComponent: CombinedComponent {
                         id: "title",
                         component: AnyComponent(Text(
                             text: isSigning ? environment.strings.Wallet_Sign_SignData : environment.strings.Wallet_Sign_ConfirmAction,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(fontSize),
                             color: theme.actionSheet.primaryTextColor
                         ))
                     ),
@@ -1043,6 +1052,7 @@ private final class WalletTransferSheetComponent: CombinedComponent {
                         confirmTitle: isSigning ? environment.strings.Wallet_Sign_Sign : environment.strings.Wallet_Sign_Confirm,
                         isBusy: componentState.isBusy,
                         isConfirming: componentState.isConfirming,
+                        fontSize: fontSize,
                         cancel: {
                             dismiss(true)
                         },

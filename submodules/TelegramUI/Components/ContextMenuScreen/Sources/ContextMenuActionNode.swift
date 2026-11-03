@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
+import TelegramPresentationData
 
 final private class ContextMenuActionButton: HighlightTrackingButton {
     override func convert(_ point: CGPoint, from view: UIView?) -> CGPoint {
@@ -25,7 +26,7 @@ final class ContextMenuActionNode: ASDisplayNode {
     
     var dismiss: (() -> Void)?
     
-    init(action: ContextMenuAction, blurred: Bool, isDark: Bool) {
+    init(action: ContextMenuAction, blurred: Bool, isDark: Bool, fontSize: CGFloat = 17.0) {
         self.actionArea = AccessibilityAreaNode()
         self.actionArea.accessibilityTraits = .button
         
@@ -46,7 +47,7 @@ final class ContextMenuActionNode: ASDisplayNode {
             let textNode = ImmediateTextNode()
             textNode.isUserInteractionEnabled = false
             textNode.displaysAsynchronously = false
-            textNode.attributedText = NSAttributedString(string: title, font: Font.regular(17.0), textColor: isDark ? .white : .black)
+            textNode.attributedText = NSAttributedString(string: title, font: Font.regular(fontSize), textColor: isDark ? .white : .black)
             textNode.isAccessibilityElement = false
             
             let iconView = UIImageView()
@@ -60,7 +61,7 @@ final class ContextMenuActionNode: ASDisplayNode {
             let textNode = ImmediateTextNode()
             textNode.isUserInteractionEnabled = false
             textNode.displaysAsynchronously = false
-            textNode.attributedText = NSAttributedString(string: title, font: Font.regular(17.0), textColor: isDark ? .white : .black)
+            textNode.attributedText = NSAttributedString(string: title, font: Font.regular(fontSize), textColor: isDark ? .white : .black)
             textNode.isAccessibilityElement = false
             
             let subtitleNode = ImmediateTextNode()

@@ -442,6 +442,7 @@ final class PeerSelectionScreenComponent: Component {
             
             let title: String
             let subtitle: String
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             switch component.initialData.mode {
             case .personalChannel:
                 title = strings.Settings_PersonalChannelSelectTitle
@@ -455,7 +456,7 @@ final class PeerSelectionScreenComponent: Component {
                 title: "",
                 titleComponent: AnyComponent(VStack([
                     AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: title, font: Font.semibold(17.0), textColor: theme.rootController.navigationBar.primaryTextColor))
+                        text: .plain(NSAttributedString(string: title, font: Font.semibold(fontSize), textColor: theme.rootController.navigationBar.primaryTextColor))
                     ))),
                     AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(string: subtitle, font: Font.regular(12.0), textColor: theme.rootController.navigationBar.secondaryTextColor))
@@ -615,6 +616,8 @@ final class PeerSelectionScreenComponent: Component {
             self.component = component
             self.state = state
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             let alphaTransition: ComponentTransition = transition.animation.isImmediate ? transition : transition.withAnimation(.curve(duration: 0.25, curve: .easeInOut))
             let _ = alphaTransition
             
@@ -664,7 +667,7 @@ final class PeerSelectionScreenComponent: Component {
                         fieldStyle: .glass,
                         displayBackground: false
                     )
-                    searchBarNode.placeholderString = NSAttributedString(string: environment.strings.Common_Search, font: Font.regular(17.0), textColor: searchBarTheme.placeholder)
+                    searchBarNode.placeholderString = NSAttributedString(string: environment.strings.Common_Search, font: Font.regular(fontSize), textColor: searchBarTheme.placeholder)
                     self.searchBarNode = searchBarNode
                     searchBarNode.cancel = { [weak self] in
                         guard let self else {
@@ -795,7 +798,7 @@ final class PeerSelectionScreenComponent: Component {
                 let emptySearchStateSize = emptySearchState.update(
                     transition: .immediate,
                     component: AnyComponent(BalancedTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.Conversation_SearchNoResults, font: Font.regular(17.0), textColor: environment.theme.list.freeTextColor, paragraphAlignment: .center)),
+                        text: .plain(NSAttributedString(string: environment.strings.Conversation_SearchNoResults, font: Font.regular(fontSize), textColor: environment.theme.list.freeTextColor, paragraphAlignment: .center)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0
                     )),
