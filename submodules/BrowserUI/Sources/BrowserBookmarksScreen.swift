@@ -568,7 +568,7 @@ private class BottomPanelNode: ASDisplayNode {
 
         var buttonItems: [AnyComponentWithIdentity<Empty>] = []
         buttonItems.append(AnyComponentWithIdentity(id: "icon", component: AnyComponent(BundleIconComponent(name: "Chat/Context Menu/Fave", tintColor: self.theme.list.itemCheckColors.foregroundColor))))
-        buttonItems.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: self.strings.WebBrowser_Bookmarks_BookmarkCurrent, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: self.theme.list.itemCheckColors.foregroundColor))))
+        buttonItems.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: self.strings.WebBrowser_Bookmarks_BookmarkCurrent, font: Font.semibold(17.0), color: self.theme.list.itemCheckColors.foregroundColor))))
         
         let buttonSize = self.button.update(
             transition: .immediate,

@@ -1849,7 +1849,7 @@ private final class ErrorComponent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: context.component.title,
-                        font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize),
+                        font: Font.semibold(17.0),
                         textColor: context.component.theme.list.itemSecondaryTextColor
                     )),
                     horizontalAlignment: .center

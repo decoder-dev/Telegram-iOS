@@ -361,7 +361,7 @@ final class AddressBarContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: title, font: Font.regular(component.contentFontSize), textColor: theme.rootController.navigationSearchBar.inputTextColor)),
+                        text: .plain(NSAttributedString(string: title, font: Font.regular(17.0), textColor: theme.rootController.navigationSearchBar.inputTextColor)),
                         horizontalAlignment: .center,
                         truncationType: .start,
                         maximumNumberOfLines: 1
@@ -417,7 +417,7 @@ final class AddressBarContentComponent: Component {
             let placeholderSize = self.placeholderContent.update(
                 transition: transition,
                 component: AnyComponent(
-                    Text(text: strings.WebBrowser_AddressPlaceholder, font: Font.regular(component.contentFontSize), color: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+                    Text(text: strings.WebBrowser_AddressPlaceholder, font: Font.regular(17.0), color: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
                 ),
                 environment: {},
                 containerSize: size
