@@ -251,6 +251,7 @@ final class PostSuggestionsSettingsScreenComponent: Component {
         }
         
         func update(component: PostSuggestionsSettingsScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.isUpdating = true
             defer {
                 self.isUpdating = false
@@ -343,9 +344,9 @@ final class PostSuggestionsSettingsScreenComponent: Component {
             contentHeight += 129.0
             
             let subtitleString = NSMutableAttributedString(attributedString: parseMarkdownIntoAttributedString(environment.strings.ChannelMessages_Info, attributes: MarkdownAttributes(
-                body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.freeTextColor),
-                bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.freeTextColor),
-                link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                 linkAttribute: { attributes in
                     return ("URL", "")
                 }), textAlignment: .center
@@ -489,7 +490,7 @@ final class PostSuggestionsSettingsScreenComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.ChannelMessages_PriceSectionTitle,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -497,7 +498,7 @@ final class PostSuggestionsSettingsScreenComponent: Component {
                     footer: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.ChannelMessages_PriceSectionFooterValue("\(component.channelMessageSuggestionCommissionPermille / 10)").string,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: self.starCount == 0 ? .clear : environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -549,7 +550,7 @@ final class PostSuggestionsSettingsScreenComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.ChannelMessages_LinkTitle.uppercased(),
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0

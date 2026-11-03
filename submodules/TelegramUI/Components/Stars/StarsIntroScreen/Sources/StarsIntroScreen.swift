@@ -59,7 +59,8 @@ private final class SheetContent: CombinedComponent {
             let textSideInset: CGFloat = 30.0 + environment.safeInsets.left
             
             let titleFont = Font.semibold(20.0)
-            let textFont = Font.regular(15.0)
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
             
             let textColor = theme.actionSheet.primaryTextColor
             let secondaryTextColor = theme.actionSheet.secondaryTextColor
@@ -127,6 +128,7 @@ private final class SheetContent: CombinedComponent {
                 AnyComponentWithIdentity(
                     id: "gift",
                     component: AnyComponent(ParagraphComponent(
+                        listsFontSizeBase: fontSize,
                         title: strings.Stars_Info_Gift_Title,
                         titleColor: textColor,
                         text: strings.Stars_Info_Gift_Text,
@@ -141,6 +143,7 @@ private final class SheetContent: CombinedComponent {
                 AnyComponentWithIdentity(
                     id: "miniapp",
                     component: AnyComponent(ParagraphComponent(
+                        listsFontSizeBase: fontSize,
                         title: strings.Stars_Info_Miniapp_Title,
                         titleColor: textColor,
                         text: strings.Stars_Info_Miniapp_Text,
@@ -158,6 +161,7 @@ private final class SheetContent: CombinedComponent {
                 AnyComponentWithIdentity(
                     id: "media",
                     component: AnyComponent(ParagraphComponent(
+                        listsFontSizeBase: fontSize,
                         title: strings.Stars_Info_Media_Title,
                         titleColor: textColor,
                         text: strings.Stars_Info_Media_Text,
@@ -172,6 +176,7 @@ private final class SheetContent: CombinedComponent {
                 AnyComponentWithIdentity(
                     id: "reaction",
                     component: AnyComponent(ParagraphComponent(
+                        listsFontSizeBase: fontSize,
                         title: strings.Stars_Info_Reaction_Title,
                         titleColor: textColor,
                         text: strings.Stars_Info_Reaction_Text,
@@ -371,6 +376,7 @@ public final class StarsIntroScreen: ViewControllerComponentContainer {
 }
 
 private final class ParagraphComponent: CombinedComponent {
+    let listsFontSizeBase: CGFloat
     let title: String
     let titleColor: UIColor
     let text: String
@@ -381,6 +387,7 @@ private final class ParagraphComponent: CombinedComponent {
     let action: () -> Void
     
     public init(
+        listsFontSizeBase: CGFloat,
         title: String,
         titleColor: UIColor,
         text: String,
@@ -390,6 +397,7 @@ private final class ParagraphComponent: CombinedComponent {
         iconColor: UIColor,
         action: @escaping () -> Void = {}
     ) {
+        self.listsFontSizeBase = listsFontSizeBase
         self.title = title
         self.titleColor = titleColor
         self.text = text
@@ -401,6 +409,9 @@ private final class ParagraphComponent: CombinedComponent {
     }
     
     static func ==(lhs: ParagraphComponent, rhs: ParagraphComponent) -> Bool {
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
+            return false
+        }
         if lhs.title != rhs.title {
             return false
         }
@@ -449,11 +460,13 @@ private final class ParagraphComponent: CombinedComponent {
             
             let textTopInset: CGFloat = 9.0
             
+            let fontSize = component.listsFontSizeBase
+            
             let title = title.update(
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.title,
-                        font: Font.semibold(15.0),
+                        font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                         textColor: component.titleColor,
                         paragraphAlignment: .natural
                     )),
@@ -464,8 +477,8 @@ private final class ParagraphComponent: CombinedComponent {
                 transition: .immediate
             )
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let textColor = component.textColor
             let accentColor = component.accentColor
             let markdownAttributes = MarkdownAttributes(

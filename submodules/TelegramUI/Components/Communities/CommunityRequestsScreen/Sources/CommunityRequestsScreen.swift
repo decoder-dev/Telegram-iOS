@@ -65,7 +65,8 @@ private final class CommunityRequestsEmptyPlaceholderView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func update(theme: PresentationTheme, strings: PresentationStrings, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
+    func update(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
+        let fontSize = listFontSize
         let imageSpacing: CGFloat = 10.0
         let textSpacing: CGFloat = 8.0
         let imageSize = CGSize(width: 112.0, height: 112.0)
@@ -77,7 +78,7 @@ private final class CommunityRequestsEmptyPlaceholderView: UIView {
             component: AnyComponent(MultilineTextComponent(
                 text: .plain(NSAttributedString(
                     string: strings.Community_Request_EmptyTitle,
-                    font: Font.bold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
+                    font: Font.bold(fontSize),
                     textColor: theme.list.freeTextColor
                 )),
                 horizontalAlignment: .center,
@@ -91,7 +92,7 @@ private final class CommunityRequestsEmptyPlaceholderView: UIView {
             component: AnyComponent(MultilineTextComponent(
                 text: .plain(NSAttributedString(
                     string: strings.Community_Request_EmptyText,
-                    font: Font.regular(14.0),
+                    font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                     textColor: theme.list.freeTextColor
                 )),
                 horizontalAlignment: .center,
@@ -400,9 +401,10 @@ private final class CommunityRequestsScreenComponent: Component {
         }
 
         private func alertText(_ text: String, boldText: String, presentationData: PresentationData) -> NSAttributedString {
-            let result = NSMutableAttributedString(string: text, font: Font.regular(13.0), textColor: presentationData.theme.actionSheet.primaryTextColor)
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
+            let result = NSMutableAttributedString(string: text, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: presentationData.theme.actionSheet.primaryTextColor)
             if let range = text.range(of: boldText) {
-                result.addAttribute(.font, value: Font.semibold(13.0), range: NSRange(range, in: text))
+                result.addAttribute(.font, value: Font.semibold(floor(fontSize * 13.0 / 17.0)), range: NSRange(range, in: text))
             }
             return result
         }
@@ -646,6 +648,7 @@ private final class CommunityRequestsScreenComponent: Component {
         }
 
         func update(component: CommunityRequestsScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.component = component
             self.state = state
             let environment = environment[EnvironmentType.self].value
@@ -683,8 +686,8 @@ private final class CommunityRequestsScreenComponent: Component {
                 }
 
                 let linkAttributeKey = NSAttributedString.Key(rawValue: "URL")
-                let body = MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.freeTextColor)
-                let link = MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.itemAccentColor)
+                let body = MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.freeTextColor)
+                let link = MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.itemAccentColor)
                 let approvalInfoRawText = environment.strings.Community_Request_ApprovalInfo.replacingOccurrences(of: " >]", with: "\u{00A0}>]")
                 let approvalInfoAttributedText = NSMutableAttributedString(attributedString: parseMarkdownIntoAttributedString(approvalInfoRawText, attributes: MarkdownAttributes(
                     body: body,
@@ -829,6 +832,7 @@ private final class CommunityRequestsScreenComponent: Component {
                     let _ = emptyPlaceholderView.update(
                         theme: theme,
                         strings: environment.strings,
+                        listFontSize: fontSize,
                         availableSize: CGSize(width: placeholderWidth, height: placeholderHeight),
                         transition: emptyPlaceholderTransition
                     )

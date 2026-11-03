@@ -542,7 +542,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                        
             var descriptionText: String = ""
           
-            let tableFont = Font.regular(15.0)
+            let tableFont = Font.regular(floor(fontSize * 15.0 / 17.0))
             let tableTextColor = theme.list.itemPrimaryTextColor
     
             let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
@@ -789,7 +789,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: titleString,
-                        font: Font.bold(20.0),
+                        font: Font.bold(floor(fontSize * 20.0 / 17.0)),
                         textColor: .white,
                         paragraphAlignment: .center
                     )),
@@ -810,7 +810,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                     color: buttonColor,
                     tinted: true,
                     starsColor: isEnded ? .clear : UIColor(white: 1.0, alpha: 0.5),
-                    font: Font.medium(13.0),
+                    font: Font.medium(floor(fontSize * 13.0 / 17.0)),
                     height: 24.0
                 ),
                 availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0 - 50.0, height: CGFloat.greatestFiniteMagnitude),
@@ -820,8 +820,8 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                 .position(CGPoint(x: context.availableSize.width / 2.0, y: 167.0 + description.size.height / 2.0))
             )
             
-            let textFont = Font.regular(13.0)
-            let boldTextFont = Font.semibold(13.0)
+            let textFont = Font.regular(floor(fontSize * 13.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 13.0 / 17.0))
             let textColor = UIColor.white
             let linkColor = UIColor.white
             let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: textFont, textColor: linkColor), linkAttribute: { contents in
@@ -1043,7 +1043,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                     component: PlainButtonComponent(content: AnyComponent(
                         HStack([
                             AnyComponentWithIdentity(id: "view", component: AnyComponent(
-                                MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Auction_ViewVariants, font: Font.regular(13.0), textColor: theme.actionSheet.controlAccentColor)))
+                                MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Auction_ViewVariants, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.actionSheet.controlAccentColor)))
                             )),
                             AnyComponentWithIdentity(id: "spacing", component: AnyComponent(
                                 Rectangle(color: .clear, width: 7.0, height: 1.0)
@@ -1082,7 +1082,7 @@ private final class GiftAuctionViewSheetContent: CombinedComponent {
                                 )
                             )),
                             AnyComponentWithIdentity(id: "text", component: AnyComponent(
-                                MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Auction_Variants(upgradeVariantsCount))", font: Font.regular(13.0), textColor: theme.actionSheet.controlAccentColor)))
+                                MultilineTextComponent(text: .plain(NSAttributedString(string: "  \(strings.Gift_Auction_Variants(upgradeVariantsCount))", font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.actionSheet.controlAccentColor)))
                             )),
                             AnyComponentWithIdentity(id: "arrow", component: AnyComponent(
                                 BundleIconComponent(name: "Item List/InlineTextRightArrow", tintColor: theme.actionSheet.controlAccentColor)

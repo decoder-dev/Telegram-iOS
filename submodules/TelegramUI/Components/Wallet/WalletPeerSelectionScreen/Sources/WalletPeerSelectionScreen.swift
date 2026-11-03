@@ -175,6 +175,7 @@ private final class WalletPeerSelectionRecipientView: UIControl {
     func update(
         recipient: WalletContext.ResolvedTransferRecipient,
         theme: PresentationTheme,
+        listsFontSizeBase: CGFloat,
         size: CGSize,
         transition: ComponentTransition
     ) {
@@ -189,10 +190,10 @@ private final class WalletPeerSelectionRecipientView: UIControl {
         }
 
         self.titleLabel.text = title
-        self.titleLabel.font = Font.medium(16.0)
+        self.titleLabel.font = Font.medium(floor(listsFontSizeBase * 16.0 / 17.0))
         self.titleLabel.textColor = theme.list.itemPrimaryTextColor
         self.subtitleLabel.text = subtitle
-        self.subtitleLabel.font = Font.regular(14.0)
+        self.subtitleLabel.font = Font.regular(floor(listsFontSizeBase * 14.0 / 17.0))
         self.subtitleLabel.textColor = theme.list.itemSecondaryTextColor
         self.subtitleLabel.isHidden = subtitle == nil
         self.chevronView.image = generateTintedImage(
@@ -1413,6 +1414,7 @@ private final class WalletPeerSelectionScreenComponent: Component {
             }
 
             let environment = environment[EnvironmentType.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let themeUpdated = self.environment?.theme !== environment.theme
             self.component = component
             self.environment = environment
@@ -1525,7 +1527,7 @@ private final class WalletPeerSelectionScreenComponent: Component {
                             id: AnyHashable("paste"),
                             component: AnyComponent(Text(
                                 text: environment.strings.Common_Paste,
-                                font: Font.semibold(15.0),
+                                font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                                 color: environment.theme.list.itemAccentColor
                             ))
                         ),
@@ -1685,6 +1687,7 @@ private final class WalletPeerSelectionScreenComponent: Component {
                 self.recipientView.update(
                     recipient: recipient,
                     theme: environment.theme,
+                    listsFontSizeBase: fontSize,
                     size: recipientFrame.size,
                     transition: .immediate
                 )
@@ -1916,7 +1919,7 @@ private final class WalletPeerSelectionScreenComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: emptyResultsText,
-                            font: Font.regular(15.0),
+                            font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                             textColor: environment.theme.list.itemSecondaryTextColor
                         )),
                         horizontalAlignment: .center,

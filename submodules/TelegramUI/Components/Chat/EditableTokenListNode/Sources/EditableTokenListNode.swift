@@ -130,7 +130,7 @@ private final class TokenNode: ASDisplayNode {
         
         self.addSubnode(self.backgroundNode)
         self.addSubnode(self.selectedBackgroundNode)
-        self.titleNode.attributedText = NSAttributedString(string: token.title, font: Font.regular(15.0), textColor: self.isSelected ? self.theme.list.itemCheckColors.foregroundColor : self.theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: token.title, font: Font.regular(floor(context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: self.isSelected ? self.theme.list.itemCheckColors.foregroundColor : self.theme.list.itemPrimaryTextColor)
         self.addSubnode(self.titleNode)
         self.addSubnode(self.removeIconNode)
         
@@ -217,7 +217,7 @@ private final class TokenNode: ASDisplayNode {
             }
         }
         
-        self.titleNode.attributedText = NSAttributedString(string: token.title, font: Font.regular(15.0), textColor: self.isSelected ? self.theme.list.itemCheckColors.foregroundColor : self.theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: token.title, font: Font.regular(floor(self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: self.isSelected ? self.theme.list.itemCheckColors.foregroundColor : self.theme.list.itemPrimaryTextColor)
         self.titleNode.redrawIfPossible()
     }
 }
@@ -261,13 +261,15 @@ public final class EditableTokenListNode: ASDisplayNode, UITextFieldDelegate {
         self.placeholderNode = ASTextNode()
         self.placeholderNode.isUserInteractionEnabled = false
         self.placeholderNode.maximumNumberOfLines = 1
-        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(15.0), textColor: theme.list.itemPlaceholderTextColor)
+        let listFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        let fieldFont = Font.regular(floor(listFontSize * 15.0 / 17.0))
+        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: fieldFont, textColor: theme.list.itemPlaceholderTextColor)
         
         self.textFieldScrollNode = ASScrollNode()
         self.textFieldScrollNode.view.scrollsToTop = false
         
         self.textFieldNode = TextFieldNode()
-        self.textFieldNode.textField.font = Font.regular(15.0)
+        self.textFieldNode.textField.font = fieldFont
         self.textFieldNode.textField.textColor = theme.list.itemPrimaryTextColor
         self.textFieldNode.textField.autocorrectionType = .no
         self.textFieldNode.textField.returnKeyType = .done
@@ -312,7 +314,7 @@ public final class EditableTokenListNode: ASDisplayNode, UITextFieldDelegate {
                 placeholderSnapshot = self.placeholderNode.layer.snapshotContentTreeAsView()
                 placeholderSnapshot?.frame = self.placeholderNode.frame
             }
-            self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(15.0), textColor: self.theme.list.itemPlaceholderTextColor)
+            self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(floor(self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: self.theme.list.itemPlaceholderTextColor)
         }
         
         for i in (0 ..< self.tokenNodes.count).reversed() {

@@ -88,18 +88,6 @@ class ChatListNoticeItem: ListViewItem {
 
 private let separatorHeight = 1.0 / UIScreen.main.scale
 
-private let titleFont = Font.semibold(15.0)
-private let titleBoldFont = Font.bold(15.0)
-private let titleItalicFont = Font.semiboldItalic(15.0)
-private let titleBoldItalicFont = Font.semiboldItalic(15.0)
-
-private let textFont = Font.regular(15.0)
-private let textBoldFont = Font.semibold(15.0)
-private let textItalicFont = Font.italic(15.0)
-private let textBoldItalicFont = Font.semiboldItalic(15.0)
-
-private let smallTextFont = Font.regular(14.0)
-
 final class ChatListNoticeItemNode: ItemListRevealOptionsItemNode {
     private let contentContainer: ASDisplayNode
     private let titleNode: TextNodeWithEntities
@@ -169,6 +157,17 @@ final class ChatListNoticeItemNode: ItemListRevealOptionsItemNode {
         let makeCancelButtonTextLayout = TextNode.asyncLayout(self.cancelButtonText)
         
         return { [weak self] item, params, last in
+            let fontSize = item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let titleFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
+            let titleBoldFont = Font.bold(floor(fontSize * 15.0 / 17.0))
+            let titleItalicFont = Font.semiboldItalic(floor(fontSize * 15.0 / 17.0))
+            let titleBoldItalicFont = Font.semiboldItalic(floor(fontSize * 15.0 / 17.0))
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let textBoldFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
+            let textItalicFont = Font.italic(floor(fontSize * 15.0 / 17.0))
+            let textBoldItalicFont = Font.semiboldItalic(floor(fontSize * 15.0 / 17.0))
+            let smallTextFont = Font.regular(floor(fontSize * 14.0 / 17.0))
+
             let baseWidth = params.width - params.leftInset - params.rightInset
             let _ = baseWidth
             

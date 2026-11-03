@@ -163,6 +163,7 @@ final class BusinessLinkListItemComponent: Component {
         }
         
         func update(component: BusinessLinkListItemComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let previousComponent = self.component
             let _ = previousComponent
             
@@ -193,7 +194,7 @@ final class BusinessLinkListItemComponent: Component {
             let viewCountSize = self.viewCount.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: viewCountText, font: Font.regular(14.0), textColor: component.theme.list.itemSecondaryTextColor))
+                    text: .plain(NSAttributedString(string: viewCountText, font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)
@@ -212,7 +213,7 @@ final class BusinessLinkListItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.link.title ?? component.link.url, font: Font.regular(16.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.link.title ?? component.link.url, font: Font.regular(floor(fontSize * 16.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftInset - leftContentInset - rightInset - viewCountSize.width - titleViewCountSpacing, height: 100.0)
@@ -248,13 +249,13 @@ final class BusinessLinkListItemComponent: Component {
                 codeBlockTitleColor: nil,
                 codeBlockAccentColor: nil,
                 codeBlockBackgroundColor: nil,
-                baseFont: Font.regular(15.0),
-                linkFont: Font.regular(15.0),
-                boldFont: Font.semibold(15.0),
-                italicFont: Font.italic(15.0),
-                boldItalicFont: Font.semiboldItalic(15.0),
-                fixedFont: Font.monospace(15.0),
-                blockQuoteFont: Font.regular(15.0),
+                baseFont: Font.regular(floor(fontSize * 15.0 / 17.0)),
+                linkFont: Font.regular(floor(fontSize * 15.0 / 17.0)),
+                boldFont: Font.semibold(floor(fontSize * 15.0 / 17.0)),
+                italicFont: Font.italic(floor(fontSize * 15.0 / 17.0)),
+                boldItalicFont: Font.semiboldItalic(floor(fontSize * 15.0 / 17.0)),
+                fixedFont: Font.monospace(floor(fontSize * 15.0 / 17.0)),
+                blockQuoteFont: Font.regular(floor(fontSize * 15.0 / 17.0)),
                 underlineLinks: false,
                 external: false,
                 message: nil,

@@ -57,6 +57,7 @@ private func generateRemoveIcon(_ color: UIColor) -> UIImage? {
 }
 
 final class EditableTokenListNodeTheme {
+    let listFontSize: CGFloat
     let backgroundColor: UIColor
     let separatorColor: UIColor
     let placeholderTextColor: UIColor
@@ -67,7 +68,8 @@ final class EditableTokenListNodeTheme {
     let accentColor: UIColor
     let keyboardColor: PresentationThemeKeyboardColor
     
-    init(backgroundColor: UIColor, separatorColor: UIColor, placeholderTextColor: UIColor, primaryTextColor: UIColor, tokenBackgroundColor: UIColor, selectedTextColor: UIColor, selectedBackgroundColor: UIColor, accentColor: UIColor, keyboardColor: PresentationThemeKeyboardColor) {
+    init(listFontSize: CGFloat = 17.0, backgroundColor: UIColor, separatorColor: UIColor, placeholderTextColor: UIColor, primaryTextColor: UIColor, tokenBackgroundColor: UIColor, selectedTextColor: UIColor, selectedBackgroundColor: UIColor, accentColor: UIColor, keyboardColor: PresentationThemeKeyboardColor) {
+        self.listFontSize = listFontSize
         self.backgroundColor = backgroundColor
         self.separatorColor = separatorColor
         self.placeholderTextColor = placeholderTextColor
@@ -97,7 +99,7 @@ private final class TokenNode: ASDisplayNode {
     var isSelected: Bool = false
     //        didSet {
     //            if self.isSelected != oldValue {
-    //                self.titleNode.attributedText = NSAttributedString(string: token.title, font: Font.regular(14.0), textColor: self.isSelected ? self.theme.selectedTextColor : self.theme.primaryTextColor)
+    //                self.titleNode.attributedText = NSAttributedString(string: token.title, font: Font.regular(floor(self.theme.listFontSize * 14.0 / 17.0)), textColor: self.isSelected ? self.theme.selectedTextColor : self.theme.primaryTextColor)
     //                self.titleNode.redrawIfPossible()
     //                self.backgroundNode.isHidden = self.isSelected
     //                self.selectedBackgroundNode.isHidden = !self.isSelected
@@ -156,7 +158,7 @@ private final class TokenNode: ASDisplayNode {
         
         self.addSubnode(self.backgroundNode)
         self.addSubnode(self.selectedBackgroundNode)
-        self.titleNode.attributedText = NSAttributedString(string: token.title, font: Font.regular(14.0), textColor: self.isSelected ? self.theme.selectedTextColor : self.theme.primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: token.title, font: Font.regular(floor(self.theme.listFontSize * 14.0 / 17.0)), textColor: self.isSelected ? self.theme.selectedTextColor : self.theme.primaryTextColor)
         self.addSubnode(self.titleNode)
         self.addSubnode(self.removeIconNode)
         
@@ -259,7 +261,7 @@ private final class TokenNode: ASDisplayNode {
             self.titleNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
         }
         
-        self.titleNode.attributedText = NSAttributedString(string: token.title, font: Font.regular(14.0), textColor: self.isSelected ? self.theme.selectedTextColor : self.theme.primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: token.title, font: Font.regular(floor(self.theme.listFontSize * 14.0 / 17.0)), textColor: self.isSelected ? self.theme.selectedTextColor : self.theme.primaryTextColor)
         self.titleNode.redrawIfPossible()
     }
 }
@@ -313,13 +315,13 @@ final class EditableTokenListNode: ASDisplayNode, UITextFieldDelegate {
         self.placeholderNode.isUserInteractionEnabled = false
         self.placeholderNode.maximumNumberOfLines = 1
         self.placeholderNode.displaysAsynchronously = false
-        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(15.0), textColor: theme.placeholderTextColor)
+        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(floor(self.theme.listFontSize * 15.0 / 17.0)), textColor: theme.placeholderTextColor)
         
         self.textFieldScrollNode = ASScrollNode()
         self.textFieldScrollNode.view.scrollsToTop = false
         
         self.textFieldNode = TextFieldNode()
-        self.textFieldNode.textField.font = Font.regular(15.0)
+        self.textFieldNode.textField.font = Font.regular(floor(self.theme.listFontSize * 15.0 / 17.0))
         self.textFieldNode.textField.textColor = theme.primaryTextColor
         self.textFieldNode.textField.autocorrectionType = .no
         self.textFieldNode.textField.returnKeyType = .done

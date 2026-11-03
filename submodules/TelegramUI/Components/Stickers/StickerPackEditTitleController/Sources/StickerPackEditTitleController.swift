@@ -229,6 +229,7 @@ private let validIdentifierSet: CharacterSet = {
 
 private final class ImportStickerPackTitleInputFieldNode: ASDisplayNode, UITextFieldDelegate {
     private var theme: PresentationTheme
+    private let listFontSize: CGFloat
     private let backgroundNode: ASImageNode
     private let textInputNode: TextField
     private let clearButton: HighlightableButtonNode
@@ -240,12 +241,16 @@ private final class ImportStickerPackTitleInputFieldNode: ASDisplayNode, UITextF
     private let backgroundInsets = UIEdgeInsets(top: 8.0, left: 16.0, bottom: 15.0, right: 16.0)
     private let inputInsets = UIEdgeInsets(top: 8.0, left: 8.0, bottom: 8.0, right: 8.0)
     
+    private var fieldFont: UIFont {
+        Font.regular(floor(self.listFontSize * 14.0 / 17.0))
+    }
+    
     var text: String {
         get {
             return self.textInputNode.attributedText?.string ?? ""
         }
         set {
-            self.textInputNode.attributedText = NSAttributedString(string: newValue, font: Font.regular(14.0), textColor: self.theme.actionSheet.inputTextColor)
+            self.textInputNode.attributedText = NSAttributedString(string: newValue, font: self.fieldFont, textColor: self.theme.actionSheet.inputTextColor)
             self.textInputNode.placeholderLabel.isHidden = !newValue.isEmpty
             if self.textInputNode.isFirstResponder {
                 self.clearButton.isHidden = newValue.isEmpty
@@ -257,7 +262,7 @@ private final class ImportStickerPackTitleInputFieldNode: ASDisplayNode, UITextF
     
     var prefix: String = "" {
         didSet {
-            self.textInputNode.prefixString = NSAttributedString(string: self.prefix, font: Font.regular(14.0), textColor: self.theme.actionSheet.inputTextColor)
+            self.textInputNode.prefixString = NSAttributedString(string: self.prefix, font: self.fieldFont, textColor: self.theme.actionSheet.inputTextColor)
         }
     }
     
@@ -269,9 +274,12 @@ private final class ImportStickerPackTitleInputFieldNode: ASDisplayNode, UITextF
     
     private let maxLength: Int
     
-    init(theme: PresentationTheme, placeholder: String, maxLength: Int, keyboardType: UIKeyboardType = .default, returnKeyType: UIReturnKeyType = .done, hasClearButton: Bool = false) {
+    init(theme: PresentationTheme, placeholder: String, maxLength: Int, listFontSize: CGFloat, keyboardType: UIKeyboardType = .default, returnKeyType: UIReturnKeyType = .done, hasClearButton: Bool = false) {
         self.theme = theme
+        self.listFontSize = listFontSize
         self.maxLength = maxLength
+        
+        let fieldFont = Font.regular(floor(listFontSize * 14.0 / 17.0))
         
         self.backgroundNode = ASImageNode()
         self.backgroundNode.displaysAsynchronously = false
@@ -279,10 +287,10 @@ private final class ImportStickerPackTitleInputFieldNode: ASDisplayNode, UITextF
         self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 12.0, color: theme.actionSheet.inputHollowBackgroundColor, strokeColor: theme.actionSheet.inputBorderColor, strokeWidth: 1.0)
         
         self.textInputNode = TextField()
-        self.textInputNode.font = Font.regular(14.0)
-        self.textInputNode.typingAttributes = [NSAttributedString.Key.font: Font.regular(14.0), NSAttributedString.Key.foregroundColor: theme.actionSheet.inputTextColor]
+        self.textInputNode.font = fieldFont
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font: fieldFont, NSAttributedString.Key.foregroundColor: theme.actionSheet.inputTextColor]
         self.textInputNode.clipsToBounds = true
-        self.textInputNode.placeholderString = NSAttributedString(string: placeholder, font: Font.regular(14.0), textColor: theme.actionSheet.secondaryTextColor)
+        self.textInputNode.placeholderString = NSAttributedString(string: placeholder, font: fieldFont, textColor: theme.actionSheet.secondaryTextColor)
         self.textInputNode.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
         self.textInputNode.keyboardType = keyboardType
         self.textInputNode.autocapitalizationType = .sentences
@@ -326,7 +334,8 @@ private final class ImportStickerPackTitleInputFieldNode: ASDisplayNode, UITextF
         self.textInputNode.keyboardAppearance = self.theme.rootController.keyboardColor.keyboardAppearance
         self.textInputNode.tintColor = self.theme.actionSheet.controlAccentColor
         self.textInputNode.textColor = self.theme.actionSheet.inputTextColor
-        self.textInputNode.typingAttributes = [NSAttributedString.Key.font: Font.regular(14.0), NSAttributedString.Key.foregroundColor: self.theme.actionSheet.inputTextColor]
+        self.textInputNode.font = self.fieldFont
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font: self.fieldFont, NSAttributedString.Key.foregroundColor: self.theme.actionSheet.inputTextColor]
         self.clearButton.setImage(generateTintedImage(image: UIImage(bundleImageName: "Components/Search Bar/Clear"), color: self.theme.actionSheet.inputClearButtonColor), for: [])
     }
     
@@ -510,7 +519,7 @@ private final class ImportStickerPackTitleAlertContentNode: AlertContentNode {
                 text = self.text
                 color = self.alertTheme.primaryColor
             }
-            self.textNode.attributedText = NSAttributedString(string: text, font: Font.regular(13.0), textColor: color)
+            self.textNode.attributedText = NSAttributedString(string: text, font: Font.regular(floor(self.titleFontSize * 13.0 / 17.0)), textColor: color)
             if let size = self.validLayout {
                 _ = self.updateLayout(size: size, transition: .immediate)
             }
@@ -561,7 +570,7 @@ private final class ImportStickerPackTitleAlertContentNode: AlertContentNode {
         self.activityIndicator = ActivityIndicator(type: .custom(ptheme.rootController.navigationBar.secondaryTextColor, 20.0, 1.5, false), speed: .slow)
         self.activityIndicator.isHidden = true
                 
-        self.inputFieldNode = ImportStickerPackTitleInputFieldNode(theme: ptheme, placeholder: placeholder, maxLength: maxLength, keyboardType: asciiOnly ? .asciiCapable : .default, returnKeyType: asciiOnly ? .done : .next, hasClearButton: hasClearButton)
+        self.inputFieldNode = ImportStickerPackTitleInputFieldNode(theme: ptheme, placeholder: placeholder, maxLength: maxLength, listFontSize: titleFontSize, keyboardType: asciiOnly ? .asciiCapable : .default, returnKeyType: asciiOnly ? .done : .next, hasClearButton: hasClearButton)
         if asciiOnly {
             self.inputFieldNode.prefix = "t.me/addstickers/"
         }

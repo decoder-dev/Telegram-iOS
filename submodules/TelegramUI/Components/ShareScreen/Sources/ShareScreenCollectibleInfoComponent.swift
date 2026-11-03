@@ -13,18 +13,20 @@ import LottieSettings
 final class ShareScreenCollectibleInfoComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let listsFontSizeBase: CGFloat
     let info: TelegramCollectibleItemInfo
     let openUrl: (String) -> Void
 
-    init(theme: PresentationTheme, strings: PresentationStrings, info: TelegramCollectibleItemInfo, openUrl: @escaping (String) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, listsFontSizeBase: CGFloat, info: TelegramCollectibleItemInfo, openUrl: @escaping (String) -> Void) {
         self.theme = theme
         self.strings = strings
+        self.listsFontSizeBase = listsFontSizeBase
         self.info = info
         self.openUrl = openUrl
     }
 
     static func ==(lhs: ShareScreenCollectibleInfoComponent, rhs: ShareScreenCollectibleInfoComponent) -> Bool {
-        return lhs.theme === rhs.theme && lhs.strings === rhs.strings && lhs.info == rhs.info
+        return lhs.theme === rhs.theme && lhs.strings === rhs.strings && lhs.listsFontSizeBase == rhs.listsFontSizeBase && lhs.info == rhs.info
     }
 
     private final class RunDelegateData {
@@ -59,6 +61,7 @@ final class ShareScreenCollectibleInfoComponent: Component {
         }
 
         private func makeText(component: ShareScreenCollectibleInfoComponent) -> NSAttributedString {
+            let fontSize = component.listsFontSizeBase
             let info = component.info
             let strings = component.strings
             var username = ""
@@ -83,9 +86,9 @@ final class ShareScreenCollectibleInfoComponent: Component {
             }
             let (currencyText, currencySign, _) = formatCurrencyAmountCustom(info.currencyAmount, currency: info.currency)
             let rawText = strings.CollectibleItemInfo_UsernameText("@\(username)", strings.CollectibleItemInfo_StoreName, dateText, "\(cryptoCurrencySign)\(cryptoCurrencyText)", "\(currencySign)\(currencyText)")
-            let result = NSMutableAttributedString(string: rawText.string, font: Font.regular(14.0), textColor: component.theme.list.itemPrimaryTextColor)
+            let result = NSMutableAttributedString(string: rawText.string, font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor)
             for range in rawText.ranges where [0, 1, 3].contains(range.index) {
-                result.addAttribute(.font, value: Font.semibold(14.0), range: range.range)
+                result.addAttribute(.font, value: Font.semibold(floor(fontSize * 14.0 / 17.0)), range: range.range)
             }
 
             if self.currencySymbolIcon == nil, let image = UIImage(bundleImageName: "Wallet/TransactionGram") {
@@ -101,7 +104,7 @@ final class ShareScreenCollectibleInfoComponent: Component {
             if currencySymbolRange.location != NSNotFound, let currencySymbolIcon = self.currencySymbolIcon {
                 result.replaceCharacters(in: currencySymbolRange, with: "$")
                 result.addAttribute(.attachment, value: currencySymbolIcon, range: currencySymbolRange)
-                let font = Font.semibold(14.0)
+                let font = Font.semibold(floor(fontSize * 14.0 / 17.0))
                 let data = RunDelegateData(ascent: font.ascender, descent: font.descender, width: currencySymbolIcon.size.width + 1.0)
                 var callbacks = CTRunDelegateCallbacks(
                     version: kCTRunDelegateCurrentVersion,
@@ -133,7 +136,7 @@ final class ShareScreenCollectibleInfoComponent: Component {
                 })?.withRenderingMode(.alwaysTemplate)
             }
             result.append(NSAttributedString(string: " \(strings.CollectibleItemInfo_ShareInlineText_LearnMore)", attributes: [
-                .font: Font.medium(14.0),
+                .font: Font.medium(floor(fontSize * 14.0 / 17.0)),
                 .foregroundColor: component.theme.list.itemAccentColor,
                 NSAttributedString.Key(rawValue: "URL"): ""
             ]))

@@ -103,6 +103,8 @@ import TelegramCore
         func update(component: CollectibleItemInfoScreenContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             
+            let fontSize: CGFloat = 17.0
+            
             let sideInset: CGFloat = 16.0
             let sideIconInset: CGFloat = 40.0
             
@@ -161,15 +163,15 @@ import TelegramCore
             let mainText = NSMutableAttributedString()
             mainText.append(parseMarkdownIntoAttributedString(text, attributes: MarkdownAttributes(
                 body: MarkdownAttributeSet(
-                    font: Font.regular(15.0),
+                    font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                     textColor: component.theme.list.itemSecondaryTextColor
                 ),
                 bold: MarkdownAttributeSet(
-                    font: Font.semibold(15.0),
+                    font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                     textColor: component.theme.list.itemSecondaryTextColor
                 ),
                 link: MarkdownAttributeSet(
-                    font: Font.regular(15.0),
+                    font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                     textColor: component.theme.list.itemAccentColor,
                     additionalAttributes: [:]
                 ),
@@ -268,7 +270,7 @@ import TelegramCore
                 let titleSize = item.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: itemDesc.title, font: Font.semibold(15.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: itemDesc.title, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor)),
                         maximumNumberOfLines: 0,
                         lineSpacing: 0.2
                     )),
@@ -278,7 +280,7 @@ import TelegramCore
                 let textSize = item.text.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: itemDesc.text, font: Font.regular(15.0), textColor: component.theme.list.itemSecondaryTextColor)),
+                        text: .plain(NSAttributedString(string: itemDesc.text, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor)),
                         maximumNumberOfLines: 0,
                         lineSpacing: 0.18
                     )),

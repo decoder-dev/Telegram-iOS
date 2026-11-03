@@ -861,13 +861,21 @@ private final class WalletReceiveAddressRingComponent: Component {
 
 private final class WalletReceiveAddressGridComponent: Component {
     let address: String
+    let listFontSize: CGFloat
 
-    init(address: String) {
+    init(address: String, listFontSize: CGFloat) {
         self.address = address
+        self.listFontSize = listFontSize
     }
 
     static func ==(lhs: WalletReceiveAddressGridComponent, rhs: WalletReceiveAddressGridComponent) -> Bool {
-        return lhs.address == rhs.address
+        if lhs.address != rhs.address {
+            return false
+        }
+        if lhs.listFontSize != rhs.listFontSize {
+            return false
+        }
+        return true
     }
 
     final class View: UIView {
@@ -900,10 +908,12 @@ private final class WalletReceiveAddressGridComponent: Component {
             transition: ComponentTransition
         ) -> CGSize {
             let groups = Self.groupedAddress(component.address)
+            let labelFontSize = floor(component.listFontSize * 17.0 / 17.0)
+            let labelFont = Font.with(size: labelFontSize, design: .monospace, weight: .semibold)
             while self.labels.count < groups.count {
                 let label = UILabel()
                 label.backgroundColor = .clear
-                label.font = Font.with(size: 17.0, design: .monospace, weight: .semibold)
+                label.font = labelFont
                 label.textAlignment = .center
                 self.labels.append(label)
                 self.addSubview(label)
@@ -923,6 +933,7 @@ private final class WalletReceiveAddressGridComponent: Component {
                 }
                 label.isHidden = false
                 label.text = groups[index]
+                label.font = labelFont
                 label.textColor = index.isMultiple(of: 2) ? .black : UIColor(rgb: 0x8e8e93)
 
                 let column = index % columnCount
@@ -1270,7 +1281,7 @@ private final class WalletReceiveSheetContent: Component {
                     id: "showQr",
                     component: AnyComponent(Text(
                         text: component.isOwnWallet ? environment.strings.Wallet_Receive_ShowQR : environment.strings.Wallet_Receive_PeerShowQR,
-                        font: Font.semibold(14.0),
+                        font: Font.semibold(floor(fontSize * 14.0 / 17.0)),
                         color: UIColor(rgb: 0x087cff)
                     ))
                 )
@@ -1292,7 +1303,7 @@ private final class WalletReceiveSheetContent: Component {
                             id: "title",
                             component: AnyComponent(Text(
                                 text: component.isOwnWallet ? environment.strings.Wallet_Receive_CopyAddress : environment.strings.Wallet_CopyAddress,
-                                font: Font.semibold(14.0),
+                                font: Font.semibold(floor(fontSize * 14.0 / 17.0)),
                                 color: UIColor(rgb: 0x087cff)
                             ))
                         )
@@ -1329,7 +1340,7 @@ private final class WalletReceiveSheetContent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.isOwnWallet ? environment.strings.Wallet_Receive_Text : environment.strings.Wallet_Receive_PeerText,
-                        font: Font.regular(15.0),
+                        font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                         textColor: .white
                     )),
                     horizontalAlignment: .center,
@@ -1451,7 +1462,7 @@ private final class WalletReceiveSheetContent: Component {
                             id: "check",
                             component: AnyComponent(Text(
                                 text: "✓",
-                                font: Font.semibold(14.0),
+                                font: Font.semibold(floor(fontSize * 14.0 / 17.0)),
                                 color: UIColor(rgb: 0x087cff)
                             ))
                         ),
@@ -1459,7 +1470,7 @@ private final class WalletReceiveSheetContent: Component {
                             id: "title",
                             component: AnyComponent(Text(
                                 text: environment.strings.Wallet_AddressCopied,
-                                font: Font.semibold(14.0),
+                                font: Font.semibold(floor(fontSize * 14.0 / 17.0)),
                                 color: UIColor(rgb: 0x087cff)
                             ))
                         )
@@ -1475,7 +1486,7 @@ private final class WalletReceiveSheetContent: Component {
                 if self.displaysAddress {
                     let addressGridSize = self.addressGrid.update(
                         transition: cardContentTransition,
-                        component: AnyComponent(WalletReceiveAddressGridComponent(address: component.address)),
+                        component: AnyComponent(WalletReceiveAddressGridComponent(address: component.address, listFontSize: fontSize)),
                         environment: {},
                         containerSize: CGSize(width: max(1.0, cardWidth - 52.0), height: cardHeight)
                     )
@@ -1862,6 +1873,7 @@ private final class WalletReceiveSheetComponent: CombinedComponent {
         let sheetExternalState = SheetComponent<EnvironmentType>.ExternalState()
 
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[EnvironmentType.self]
             let controller = environment.controller
             let componentState = context.state

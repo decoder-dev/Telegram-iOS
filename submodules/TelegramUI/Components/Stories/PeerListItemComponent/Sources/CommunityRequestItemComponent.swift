@@ -171,7 +171,7 @@ public final class CommunityRequestItemComponent: Component {
             component.open(component.chatPeer)
         }
 
-        private func requesterAttributedText(component: CommunityRequestItemComponent) -> NSAttributedString {
+        private func requesterAttributedText(component: CommunityRequestItemComponent, fontSize: CGFloat) -> NSAttributedString {
             let requesterName: String
             if let requestedByPeer = component.requestedByPeer, !requestedByPeer.compactDisplayTitle.isEmpty {
                 requesterName = requestedByPeer.compactDisplayTitle
@@ -190,7 +190,7 @@ public final class CommunityRequestItemComponent: Component {
 
             let result = NSMutableAttributedString(
                 string: text.string,
-                font: Font.regular(15.0),
+                font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                 textColor: component.theme.list.itemSecondaryTextColor
             )
             for range in text.ranges where range.index == 0 {
@@ -207,6 +207,7 @@ public final class CommunityRequestItemComponent: Component {
             let previousComponent = self.component
             let themeUpdated = previousComponent?.theme !== component.theme
             self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
 
             self.containerButton.isEnabled = component.isEnabled
             self.containerButton.alpha = component.isEnabled ? 1.0 : 0.55
@@ -230,7 +231,7 @@ public final class CommunityRequestItemComponent: Component {
             let requesterSize = self.requesterText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(self.requesterAttributedText(component: component)),
+                    text: .plain(self.requesterAttributedText(component: component, fontSize: fontSize)),
                     maximumNumberOfLines: 1
                 )),
                 environment: {},
@@ -243,7 +244,7 @@ public final class CommunityRequestItemComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.chatPeer.compactDisplayTitle,
-                        font: Font.semibold(16.0),
+                        font: Font.semibold(floor(fontSize * 16.0 / 17.0)),
                         textColor: component.theme.list.itemPrimaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -275,7 +276,7 @@ public final class CommunityRequestItemComponent: Component {
                                 MultilineTextComponent(
                                     text: .plain(NSAttributedString(
                                         string: memberCountText,
-                                        font: Font.regular(15.0),
+                                        font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                                         textColor: component.theme.list.itemSecondaryTextColor
                                     )),
                                     maximumNumberOfLines: 1
@@ -312,7 +313,7 @@ public final class CommunityRequestItemComponent: Component {
                                 MultilineTextComponent(
                                     text: .plain(NSAttributedString(
                                         string: component.strings.Community_Request_PrivateStatus,
-                                        font: Font.regular(15.0),
+                                        font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                                         textColor: component.theme.list.itemSecondaryTextColor
                                     )),
                                     maximumNumberOfLines: 1

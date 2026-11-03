@@ -306,6 +306,7 @@ private final class PeerInfoScreenBusinessHoursItemNode: PeerInfoScreenItemNode 
         self.item = item
         self.presentationData = presentationData
         self.theme = presentationData.theme
+        let fontSize = presentationData.listsFontSize.baseDisplaySize
         self.activateArea.accessibilityTraits = [.button]
         self.activateArea.activate = { [weak self] in
             guard let self else {
@@ -323,7 +324,7 @@ private final class PeerInfoScreenBusinessHoursItemNode: PeerInfoScreenItemNode 
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
         
-        self.labelNode.attributedText = NSAttributedString(string: item.label, font: Font.regular(14.0), textColor: presentationData.theme.list.itemPrimaryTextColor)
+        self.labelNode.attributedText = NSAttributedString(string: item.label, font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: presentationData.theme.list.itemPrimaryTextColor)
         
         let labelSize = self.labelNode.updateLayout(CGSize(width: width - sideInset - sideInsetRight, height: .greatestFiniteMagnitude))
         
@@ -418,7 +419,7 @@ private final class PeerInfoScreenBusinessHoursItemNode: PeerInfoScreenItemNode 
         let currentStatusTextSize = self.currentStatusText.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: openStatusText, font: Font.regular(15.0), textColor: isOpen ? presentationData.theme.list.freeTextSuccessColor : presentationData.theme.list.itemDestructiveColor))
+                text: .plain(NSAttributedString(string: openStatusText, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: isOpen ? presentationData.theme.list.freeTextSuccessColor : presentationData.theme.list.itemDestructiveColor))
             )),
             environment: {},
             containerSize: CGSize(width: width - sideInset - sideInsetRight, height: 100.0)
@@ -438,7 +439,7 @@ private final class PeerInfoScreenBusinessHoursItemNode: PeerInfoScreenItemNode 
         let currentDayTextSize = self.currentDayText.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: currentDayStatusText, font: Font.regular(15.0), textColor: presentationData.theme.list.itemSecondaryTextColor)),
+                text: .plain(NSAttributedString(string: currentDayStatusText, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: presentationData.theme.list.itemSecondaryTextColor)),
                 horizontalAlignment: .right,
                 maximumNumberOfLines: 0
             )),
@@ -605,7 +606,7 @@ private final class PeerInfoScreenBusinessHoursItemNode: PeerInfoScreenItemNode 
             let dayTitleSize = dayTitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: dayTitleValue, font: Font.regular(15.0), textColor: presentationData.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: dayTitleValue, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: presentationData.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: width - sideInset - sideInsetRight, height: 100.0)
@@ -626,7 +627,7 @@ private final class PeerInfoScreenBusinessHoursItemNode: PeerInfoScreenItemNode 
             let dayValueSize = dayValue.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: businessHoursText, font: Font.regular(15.0), textColor: presentationData.theme.list.itemSecondaryTextColor, paragraphAlignment: .right)),
+                    text: .plain(NSAttributedString(string: businessHoursText, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: presentationData.theme.list.itemSecondaryTextColor, paragraphAlignment: .right)),
                     horizontalAlignment: .right,
                     maximumNumberOfLines: 0
                 )),

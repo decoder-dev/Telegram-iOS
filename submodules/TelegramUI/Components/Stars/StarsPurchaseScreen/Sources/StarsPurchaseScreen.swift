@@ -206,8 +206,8 @@ private final class StarsPurchaseScreenContentComponent: CombinedComponent {
             let textColor = theme.list.itemPrimaryTextColor
             let accentColor = theme.list.itemAccentColor
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             
             let textString: String
             switch context.component.purpose {
@@ -456,7 +456,7 @@ private final class StarsPurchaseScreenContentComponent: CombinedComponent {
             size.height += 23.0
 
             
-            let termsFont = Font.regular(13.0)
+            let termsFont = Font.regular(floor(fontSize * 13.0 / 17.0))
             let termsTextColor = environment.theme.list.freeTextColor
             let termsMarkdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: termsFont, textColor: termsTextColor), bold: MarkdownAttributeSet(font: termsFont, textColor: termsTextColor), link: MarkdownAttributeSet(font: termsFont, textColor: environment.theme.list.itemAccentColor), linkAttribute: { contents in
                 return (TelegramTextAttributes.URL, contents)
@@ -777,6 +777,7 @@ private final class StarsPurchaseScreenComponent: CombinedComponent {
         let contentExternalState = StarsPurchaseScreenContentComponent.ExternalState()
                 
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[EnvironmentType.self].value
             let state = context.state
             
@@ -841,7 +842,7 @@ private final class StarsPurchaseScreenComponent: CombinedComponent {
             
             let title = title.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleText, font: Font.bold(28.0), textColor: environment.theme.rootController.navigationBar.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: titleText, font: Font.bold(floor(fontSize * 28.0 / 17.0)), textColor: environment.theme.rootController.navigationBar.primaryTextColor)),
                     horizontalAlignment: .center,
                     truncationType: .end,
                     maximumNumberOfLines: 1
@@ -854,7 +855,7 @@ private final class StarsPurchaseScreenComponent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Stars_Purchase_Balance,
-                        font: Font.regular(14.0),
+                        font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                         textColor: environment.theme.actionSheet.primaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -864,8 +865,8 @@ private final class StarsPurchaseScreenComponent: CombinedComponent {
             )
             
             let formattedBalance = formatStarsAmountText(state.starsState?.balance ?? StarsAmount.zero, dateTimeFormat: environment.dateTimeFormat)
-            let smallLabelFont = Font.regular(11.0)
-            let labelFont = Font.semibold(14.0)
+            let smallLabelFont = Font.regular(floor(fontSize * 11.0 / 17.0))
+            let labelFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
             let balanceText = tonAmountAttributedString(formattedBalance, integralFont: labelFont, fractionalFont: smallLabelFont, color: environment.theme.actionSheet.primaryTextColor, decimalSeparator: environment.dateTimeFormat.decimalSeparator)
             let balanceValue = balanceValue.update(
                 component: MultilineTextComponent(

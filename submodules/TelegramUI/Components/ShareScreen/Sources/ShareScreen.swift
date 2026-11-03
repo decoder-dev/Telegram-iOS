@@ -962,7 +962,7 @@ private final class ShareScreenComponent: Component {
                 )))
             } else if let info = hostScreen?.collectibleItemInfo {
                 let sharedContext = model.context.sharedContext
-                contentHeader = AnyComponentWithIdentity(id: "collectible", component: AnyComponent(ShareScreenCollectibleInfoComponent(theme: theme, strings: strings, info: info, openUrl: { url in
+                contentHeader = AnyComponentWithIdentity(id: "collectible", component: AnyComponent(ShareScreenCollectibleInfoComponent(theme: theme, strings: strings, listsFontSizeBase: sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize, info: info, openUrl: { url in
                     sharedContext.applicationBindings.openUrl(url)
                 })))
             }

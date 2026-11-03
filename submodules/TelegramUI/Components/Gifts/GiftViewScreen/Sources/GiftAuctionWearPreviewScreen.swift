@@ -197,6 +197,7 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
         let giftCompositionExternalState = GiftCompositionComponent.ExternalState()
         
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[ViewControllerComponentContainer.Environment.self].value
             let component = context.component
             let theme = environment.theme.withModalBlocksBackground()
@@ -220,7 +221,7 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: peerNameString,
-                        font: Font.bold(20.0),
+                        font: Font.bold(floor(fontSize * 20.0 / 17.0)),
                         textColor: .white,
                         paragraphAlignment: .center
                     )),
@@ -321,8 +322,8 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
                 .position(CGPoint(x: 16.0 + closeButton.size.width / 2.0, y: 16.0 + closeButton.size.height / 2.0))
             )
             
-            let textFont = Font.regular(13.0)
-            let boldTextFont = Font.semibold(13.0)
+            let textFont = Font.regular(floor(fontSize * 13.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 13.0 / 17.0))
             let textColor = UIColor.white
             let linkColor = UIColor.white
             let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: textFont, textColor: linkColor), linkAttribute: { contents in
@@ -410,7 +411,7 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
             
             let upgradeLabel = upgradeLabel.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: strings.Gift_WearPreview_FreeUpgrade, font: Font.medium(13.0), textColor: theme.list.itemSecondaryTextColor)),
+                    text: .plain(NSAttributedString(string: strings.Gift_WearPreview_FreeUpgrade, font: Font.medium(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 2,
                     lineSpacing: 0.1
@@ -452,7 +453,8 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
                         badgeGraphPosition: position,
                         invertProgress: true,
                         leftString: "",
-                        groupingSeparator: environment.dateTimeFormat.groupingSeparator
+                        groupingSeparator: environment.dateTimeFormat.groupingSeparator,
+                        listFontSize: fontSize
                     ),
                     availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: context.availableSize.height),
                     transition: context.transition
@@ -463,9 +465,9 @@ private final class GiftAuctionWearPreviewSheetContent: CombinedComponent {
                 
                 if let giftsPerRound = gift.auctionGiftsPerRound {
                     let footerAttributes = MarkdownAttributes(
-                        body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.freeTextColor),
-                        bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: theme.list.freeTextColor),
-                        link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.itemAccentColor),
+                        body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.freeTextColor),
+                        bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.freeTextColor),
+                        link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.itemAccentColor),
                         linkAttribute: { contents in
                             return (TelegramTextAttributes.URL, contents)
                         }

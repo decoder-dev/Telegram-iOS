@@ -354,6 +354,7 @@ private final class CraftGiftPageContent: Component {
             let bandCenterX: CGFloat = environment.safeInsets.left + (availableSize.width - environment.safeInsets.left - environment.safeInsets.right) / 2.0
             
             self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.state = state
             self.environment = environment
             
@@ -441,8 +442,8 @@ private final class CraftGiftPageContent: Component {
             
             let giftTitle = "\(selectedMainGift.title) #\(formatCollectibleNumber(selectedMainGift.number, dateTimeFormat: environment.dateTimeFormat))"
             
-            let descriptionFont = Font.regular(13.0)
-            let descriptionBoldFont = Font.semibold(13.0)
+            let descriptionFont = Font.regular(floor(fontSize * 13.0 / 17.0))
+            let descriptionBoldFont = Font.semibold(floor(fontSize * 13.0 / 17.0))
             let descriptionColor = UIColor.white
             let rawDescriptionString = environment.strings.Gift_Craft_Description(giftTitle).string
             let descriptionString = parseMarkdownIntoAttributedString(rawDescriptionString, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: descriptionFont, textColor: descriptionColor), bold: MarkdownAttributeSet(font: descriptionBoldFont, textColor: descriptionColor), link: MarkdownAttributeSet(font: descriptionFont, textColor: descriptionColor), linkAttribute: { _ in return nil })).mutableCopy() as! NSMutableAttributedString
@@ -746,7 +747,7 @@ private final class CraftGiftPageContent: Component {
                 let variantsString = environment.strings.Gift_Craft_ViewVariants
                 let variantsButtonMeasure = self.variantsButtonMeasure.update(
                     transition: .immediate,
-                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: variantsString, font: Font.semibold(13.0), textColor: .clear)))),
+                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: variantsString, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: .clear)))),
                     environment: {},
                     containerSize: availableSize
                 )
@@ -827,7 +828,7 @@ private final class CraftGiftPageContent: Component {
                                         )
                                     )),
                                     AnyComponentWithIdentity(id: "text", component: AnyComponent(
-                                        MultilineTextComponent(text: .plain(NSAttributedString(string: variantsString, font: Font.semibold(13.0), textColor: .white)))
+                                        MultilineTextComponent(text: .plain(NSAttributedString(string: variantsString, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: .white)))
                                     )),
                                     AnyComponentWithIdentity(id: "arrow", component: AnyComponent(
                                         BundleIconComponent(name: "Item List/InlineTextRightArrow", tintColor: .white)
@@ -877,7 +878,7 @@ private final class CraftGiftPageContent: Component {
                 let craftingTitleSize = self.craftingTitle.update(
                     transition: transition,
                     component: AnyComponent(
-                        MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Crafting_Title, font: Font.bold(20.0), textColor: .white)))
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Crafting_Title, font: Font.bold(floor(fontSize * 20.0 / 17.0)), textColor: .white)))
                     ),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width - sideInset - rightSideInset, height: 100.0)
@@ -899,7 +900,7 @@ private final class CraftGiftPageContent: Component {
                 let craftingSubtitleSize = self.craftingSubtitle.update(
                     transition: transition,
                     component: AnyComponent(
-                        MultilineTextComponent(text: .plain(NSAttributedString(string: giftTitle, font: Font.semibold(13.0), textColor: .white.withAlphaComponent(0.5))))
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: giftTitle, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: .white.withAlphaComponent(0.5))))
                     ),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width - sideInset - rightSideInset, height: 100.0)
@@ -918,8 +919,8 @@ private final class CraftGiftPageContent: Component {
                 craftingOriginY += craftingSubtitleSize.height
                 craftingOriginY += 21.0
                 
-                let descriptionFont = Font.regular(13.0)
-                let descriptionBoldFont = Font.semibold(13.0)
+                let descriptionFont = Font.regular(floor(fontSize * 13.0 / 17.0))
+                let descriptionBoldFont = Font.semibold(floor(fontSize * 13.0 / 17.0))
                 let descriptionColor = UIColor.white.withAlphaComponent(0.5)
                 let rawDescriptionString = environment.strings.Gift_Craft_Crafting_Description
                 let descriptionString = parseMarkdownIntoAttributedString(rawDescriptionString, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: descriptionFont, textColor: descriptionColor), bold: MarkdownAttributeSet(font: descriptionBoldFont, textColor: descriptionColor), link: MarkdownAttributeSet(font: descriptionFont, textColor: descriptionColor), linkAttribute: { _ in return nil })).mutableCopy() as! NSMutableAttributedString
@@ -954,7 +955,7 @@ private final class CraftGiftPageContent: Component {
                 let craftingProbabilityString = environment.strings.Gift_Craft_Crafting_SuccessChance("\(permilleValue / 10)").string
                 let craftingProbabilityMeasure = self.craftingProbabilityMeasure.update(
                     transition: .immediate,
-                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: craftingProbabilityString, font: Font.semibold(13.0), textColor: .clear)))),
+                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: craftingProbabilityString, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: .clear)))),
                     environment: {},
                     containerSize: availableSize
                 )
@@ -969,7 +970,7 @@ private final class CraftGiftPageContent: Component {
                             isDark: true,
                             state: .tintedGlass,
                             component:  AnyComponentWithIdentity(id: "text", component: AnyComponent(
-                                MultilineTextComponent(text: .plain(NSAttributedString(string: craftingProbabilityString, font: Font.semibold(13.0), textColor: .white)))
+                                MultilineTextComponent(text: .plain(NSAttributedString(string: craftingProbabilityString, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: .white)))
                             )),
                             action: nil
                         )
@@ -1022,7 +1023,7 @@ private final class CraftGiftPageContent: Component {
                 let failureTitleSize = self.failureTitle.update(
                     transition: transition,
                     component: AnyComponent(
-                        MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_CraftingFailed_Title, font: Font.bold(20.0), textColor: UIColor(rgb: 0xff746d))))
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_CraftingFailed_Title, font: Font.bold(floor(fontSize * 20.0 / 17.0)), textColor: UIColor(rgb: 0xff746d))))
                     ),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width - sideInset - rightSideInset, height: 100.0)
@@ -1041,8 +1042,8 @@ private final class CraftGiftPageContent: Component {
                 failureOriginY += failureTitleSize.height
                 failureOriginY += 17.0
                 
-                let descriptionFont = Font.regular(13.0)
-                let descriptionBoldFont = Font.semibold(13.0)
+                let descriptionFont = Font.regular(floor(fontSize * 13.0 / 17.0))
+                let descriptionBoldFont = Font.semibold(floor(fontSize * 13.0 / 17.0))
                 let descriptionColor = UIColor(rgb: 0xf7af8c)
                 let rawDescriptionString = environment.strings.Gift_Craft_CraftingFailed_Text(Int32(component.selectedGiftIds.count))
                 let descriptionString = parseMarkdownIntoAttributedString(rawDescriptionString, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: descriptionFont, textColor: descriptionColor), bold: MarkdownAttributeSet(font: descriptionBoldFont, textColor: descriptionColor), link: MarkdownAttributeSet(font: descriptionFont, textColor: descriptionColor), linkAttribute: { _ in return nil })).mutableCopy() as! NSMutableAttributedString
@@ -1309,7 +1310,7 @@ private final class CraftGiftPageContent: Component {
             let infoTitleSize = self.infoTitle.update(
                 transition: transition,
                 component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Info_Title, font: Font.bold(20.0), textColor: .white)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_Craft_Info_Title, font: Font.bold(floor(fontSize * 20.0 / 17.0)), textColor: .white)))
                 ),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset - rightSideInset, height: 100.0)
@@ -1328,9 +1329,9 @@ private final class CraftGiftPageContent: Component {
                     text: .markdown(
                         text: environment.strings.Gift_Craft_Info_Description,
                         attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(14.0), textColor: UIColor(rgb: 0xffffff, alpha: 0.6)),
-                            bold: MarkdownAttributeSet(font: Font.semibold(14.0), textColor: UIColor(rgb: 0xffffff, alpha: 0.6)),
-                            link: MarkdownAttributeSet(font: Font.regular(14.0), textColor: UIColor(rgb: 0xffffff, alpha: 0.6)),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: UIColor(rgb: 0xffffff, alpha: 0.6)),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: UIColor(rgb: 0xffffff, alpha: 0.6)),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: UIColor(rgb: 0xffffff, alpha: 0.6)),
                             linkAttribute: { _ in return nil }
                         )
                     ),
@@ -1542,6 +1543,7 @@ private final class SheetContainerComponent: CombinedComponent {
         return { context in
             let component = context.component
             let environment = context.environment[EnvironmentType.self]
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let state = context.state
             
             let strings = environment.strings

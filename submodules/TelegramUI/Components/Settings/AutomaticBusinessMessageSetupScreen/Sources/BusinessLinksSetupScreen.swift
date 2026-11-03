@@ -258,6 +258,7 @@ final class BusinessLinksSetupScreenComponent: Component {
         }
         
         func update(component: BusinessLinksSetupScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.isUpdating = true
             defer {
                 self.isUpdating = false
@@ -363,9 +364,9 @@ final class BusinessLinksSetupScreenComponent: Component {
             contentHeight += 129.0
             
             let subtitleString = NSMutableAttributedString(attributedString: parseMarkdownIntoAttributedString(environment.strings.Business_Links_Text, attributes: MarkdownAttributes(
-                body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.freeTextColor),
-                bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.freeTextColor),
-                link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                 linkAttribute: { attributes in
                     return ("URL", "")
                 }), textAlignment: .center
@@ -448,9 +449,9 @@ final class BusinessLinksSetupScreenComponent: Component {
                     header: nil,
                     footer: footerText.isEmpty ? nil : AnyComponent(MultilineTextComponent(
                         text: .markdown(text: footerText, attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.freeTextColor),
-                            bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: environment.theme.list.freeTextColor),
-                            link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: environment.theme.list.itemAccentColor),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                             linkAttribute: { link in
                                 return ("URL", link)
                             }

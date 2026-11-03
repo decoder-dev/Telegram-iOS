@@ -545,7 +545,7 @@ final class StarsTransactionsScreenComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: titleString, font: Font.bold(28.0), textColor: environment.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: titleString, font: Font.bold(floor(fontSize * 28.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor)),
                         horizontalAlignment: .center,
                         truncationType: .end,
                         maximumNumberOfLines: 1
@@ -568,7 +568,7 @@ final class StarsTransactionsScreenComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Stars_Intro_Balance,
-                        font: Font.regular(14.0),
+                        font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                         textColor: environment.theme.actionSheet.primaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -583,8 +583,8 @@ final class StarsTransactionsScreenComponent: Component {
             } else {
                 formattedBalance = formatStarsAmountText(self.starsState?.balance ?? StarsAmount.zero, dateTimeFormat: environment.dateTimeFormat)
             }
-            let smallLabelFont = Font.regular(11.0)
-            let labelFont = Font.semibold(14.0)
+            let smallLabelFont = Font.regular(floor(fontSize * 11.0 / 17.0))
+            let labelFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
             let balanceText = tonAmountAttributedString(formattedBalance, integralFont: labelFont, fractionalFont: smallLabelFont, color: environment.theme.actionSheet.primaryTextColor, decimalSeparator: environment.dateTimeFormat.decimalSeparator)
             
             let topBalanceValueSize = self.topBalanceValueView.update(
@@ -664,7 +664,7 @@ final class StarsTransactionsScreenComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     BalancedTextComponent(
-                        text: .plain(NSAttributedString(string: descriptionString, font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: descriptionString, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0,
                         lineSpacing: 0.2
@@ -737,7 +737,7 @@ final class StarsTransactionsScreenComponent: Component {
                 contentHeight += 31.0
             }
             
-            let termsFont = Font.regular(13.0)
+            let termsFont = Font.regular(floor(fontSize * 13.0 / 17.0))
             let termsTextColor = environment.theme.list.freeTextColor
             let termsMarkdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: termsFont, textColor: termsTextColor), bold: MarkdownAttributeSet(font: termsFont, textColor: termsTextColor), link: MarkdownAttributeSet(font: termsFont, textColor: environment.theme.list.itemAccentColor), linkAttribute: { contents in
                 return (TelegramTextAttributes.URL, contents)

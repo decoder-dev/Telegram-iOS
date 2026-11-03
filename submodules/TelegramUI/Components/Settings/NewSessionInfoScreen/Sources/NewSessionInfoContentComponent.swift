@@ -101,6 +101,8 @@ public final class NewSessionInfoContentComponent: Component {
         func update(component: NewSessionInfoContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             let sideInset: CGFloat = 16.0
             let noticeInsetX: CGFloat = 16.0
             let noticeInsetY: CGFloat = 12.0
@@ -112,7 +114,7 @@ public final class NewSessionInfoContentComponent: Component {
             let noticeSize = self.notice.update(
                 transition: .immediate,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.SessionReview_NoticeText, font: Font.semibold(15.0), textColor: component.theme.list.itemDestructiveColor)),
+                    text: .plain(NSAttributedString(string: component.strings.SessionReview_NoticeText, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemDestructiveColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.2
@@ -193,15 +195,15 @@ public final class NewSessionInfoContentComponent: Component {
             let mainText = NSMutableAttributedString()
             mainText.append(parseMarkdownIntoAttributedString(text, attributes: MarkdownAttributes(
                 body: MarkdownAttributeSet(
-                    font: Font.regular(15.0),
+                    font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                     textColor: component.theme.list.itemPrimaryTextColor
                 ),
                 bold: MarkdownAttributeSet(
-                    font: Font.semibold(15.0),
+                    font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                     textColor: component.theme.list.itemPrimaryTextColor
                 ),
                 link: MarkdownAttributeSet(
-                    font: Font.regular(15.0),
+                    font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                     textColor: component.theme.list.itemAccentColor,
                     additionalAttributes: [:]
                 ),

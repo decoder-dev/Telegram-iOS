@@ -281,6 +281,7 @@ private final class SheetContent: CombinedComponent {
         let info = Child(BalancedTextComponent.self)
 
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[EnvironmentType.self]
             let component = context.component
             let state = context.state
@@ -384,7 +385,7 @@ private final class SheetContent: CombinedComponent {
             }
             
             let title = title.update(
-                component: Text(text: titleString, font: Font.bold(24.0), color: theme.list.itemPrimaryTextColor),
+                component: Text(text: titleString, font: Font.bold(floor(fontSize * 24.0 / 17.0)), color: theme.list.itemPrimaryTextColor),
                 availableSize: CGSize(width: constrainedTitleWidth, height: context.availableSize.height),
                 transition: .immediate
             )
@@ -421,8 +422,8 @@ private final class SheetContent: CombinedComponent {
                 contentSize.height += 13.0
             }
                         
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let textColor = theme.actionSheet.primaryTextColor
             let linkColor = theme.actionSheet.controlAccentColor
             let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: textFont, textColor: linkColor), linkAttribute: { contents in
@@ -512,7 +513,7 @@ private final class SheetContent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Stars_Transfer_Balance,
-                        font: Font.regular(14.0),
+                        font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                         textColor: textColor
                     )),
                     maximumNumberOfLines: 1
@@ -521,8 +522,8 @@ private final class SheetContent: CombinedComponent {
                 transition: .immediate
             )
             
-            let smallLabelFont = Font.regular(11.0)
-            let labelFont = Font.semibold(14.0)
+            let smallLabelFont = Font.regular(floor(fontSize * 11.0 / 17.0))
+            let labelFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
             let formattedBalance = formatStarsAmountText(state.balance ?? StarsAmount.zero, dateTimeFormat: environment.dateTimeFormat)
             let balanceText = tonAmountAttributedString(formattedBalance, integralFont: labelFont, fractionalFont: smallLabelFont, color: textColor, decimalSeparator: environment.dateTimeFormat.decimalSeparator)
             
@@ -688,7 +689,7 @@ private final class SheetContent: CombinedComponent {
             
             contentSize.height += 14.0
             
-            let termsTextFont = Font.regular(13.0)
+            let termsTextFont = Font.regular(floor(fontSize * 13.0 / 17.0))
             let termsTextColor = theme.actionSheet.secondaryTextColor
             let termsLinkColor = theme.actionSheet.controlAccentColor
             let termsMarkdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: termsTextFont, textColor: termsTextColor), bold: MarkdownAttributeSet(font: termsTextFont, textColor: termsTextColor), link: MarkdownAttributeSet(font: termsTextFont, textColor: termsLinkColor), linkAttribute: { contents in

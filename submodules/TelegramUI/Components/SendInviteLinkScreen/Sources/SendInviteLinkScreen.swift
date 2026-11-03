@@ -126,8 +126,10 @@ private final class SendInviteLinkContentComponent: Component {
         }
         
         func update(component: SendInviteLinkContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = environment[EnvironmentType.self].value
             let theme = component.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             self.component = component
             self.state = state
@@ -202,7 +204,7 @@ private final class SendInviteLinkContentComponent: Component {
                 let premiumTitleSize = premiumTitle.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.SendInviteLink_TitleUpgradeToPremium, font: Font.semibold(24.0), textColor: theme.list.itemPrimaryTextColor))
+                        text: .plain(NSAttributedString(string: environment.strings.SendInviteLink_TitleUpgradeToPremium, font: Font.semibold(floor(fontSize * 24.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
@@ -300,8 +302,8 @@ private final class SendInviteLinkContentComponent: Component {
                     }
                 }
                 
-                let body = MarkdownAttributeSet(font: Font.regular(15.0), textColor: theme.list.itemPrimaryTextColor)
-                let bold = MarkdownAttributeSet(font: Font.semibold(15.0), textColor: theme.list.itemPrimaryTextColor)
+                let body = MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)
+                let bold = MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)
                 
                 let premiumTextSize = premiumText.update(
                     transition: .immediate,
@@ -407,7 +409,7 @@ private final class SendInviteLinkContentComponent: Component {
                     let premiumSeparatorTextSize = premiumSeparatorText.update(
                         transition: .immediate,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: environment.strings.SendInviteLink_PremiumOrSendSectionSeparator, font: Font.regular(15.0), textColor: theme.list.itemSecondaryTextColor))
+                            text: .plain(NSAttributedString(string: environment.strings.SendInviteLink_PremiumOrSendSectionSeparator, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor))
                         )),
                         environment: {},
                         containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
@@ -485,7 +487,7 @@ private final class SendInviteLinkContentComponent: Component {
                 let titleSize = title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: titleText, font: Font.semibold(24.0), textColor: theme.list.itemPrimaryTextColor))
+                        text: .plain(NSAttributedString(string: titleText, font: Font.semibold(floor(fontSize * 24.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
@@ -537,8 +539,8 @@ private final class SendInviteLinkContentComponent: Component {
                     }
                 }
                 
-                let body = MarkdownAttributeSet(font: Font.regular(15.0), textColor: theme.list.itemPrimaryTextColor)
-                let bold = MarkdownAttributeSet(font: Font.semibold(15.0), textColor: theme.list.itemPrimaryTextColor)
+                let body = MarkdownAttributeSet(font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)
+                let bold = MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)
                 
                 let descriptionTextSize = descriptionText.update(
                     transition: .immediate,

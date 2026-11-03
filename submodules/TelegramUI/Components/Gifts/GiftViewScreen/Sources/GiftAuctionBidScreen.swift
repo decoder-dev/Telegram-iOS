@@ -202,10 +202,12 @@ private final class BadgeComponent: Component {
                 prefixView.alpha = 0.0
             }
             
+            let fontSize: CGFloat = 17.0
+            
             if let subtitle = component.subtitle {
                 let subtitleSize = self.subtitle.update(
                     transition: .immediate,
-                    component: AnyComponent(Text(text: subtitle, font: Font.regular(11.0), color: UIColor.white)),
+                    component: AnyComponent(Text(text: subtitle, font: Font.regular(floor(fontSize * 11.0 / 17.0)), color: UIColor.white)),
                     environment: {},
                     containerSize: availableSize
                 )
@@ -896,7 +898,7 @@ private final class SliderBackgroundComponent: Component {
             let topTextSize = self.topForegroundText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.Gift_AuctionBid_Top("\(component.giftsPerRound)").string, font: Font.semibold(15.0), textColor: UIColor(white: 1.0, alpha: 0.4)))
+                    text: .plain(NSAttributedString(string: component.strings.Gift_AuctionBid_Top("\(component.giftsPerRound)").string, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: UIColor(white: 1.0, alpha: 0.4)))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -904,7 +906,7 @@ private final class SliderBackgroundComponent: Component {
             let _ = self.topBackgroundText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.Gift_AuctionBid_Top("\(component.giftsPerRound)").string, font: Font.semibold(15.0), textColor: component.theme.overallDarkAppearance ? UIColor(white: 1.0, alpha: 0.22) : UIColor(white: 0.0, alpha: 0.2)))
+                    text: .plain(NSAttributedString(string: component.strings.Gift_AuctionBid_Top("\(component.giftsPerRound)").string, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.overallDarkAppearance ? UIColor(white: 1.0, alpha: 0.22) : UIColor(white: 0.0, alpha: 0.2)))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -2302,7 +2304,7 @@ private final class GiftAuctionBidScreenComponent: Component {
                 }
                 
                 if let peer = self.peersMap[component.context.account.peerId] {
-                    myBidTitleComponent = AnyComponent(PeerHeaderComponent(color: bidTitleColor, dateTimeFormat: environment.dateTimeFormat, title: bidTitle, giftTitle: giftTitle, giftNumber: giftNumber))
+                    myBidTitleComponent = AnyComponent(PeerHeaderComponent(color: bidTitleColor, dateTimeFormat: environment.dateTimeFormat, title: bidTitle, giftTitle: giftTitle, giftNumber: giftNumber, fontSize: fontSize))
                     myBidComponent = AnyComponent(PeerComponent(
                         context: component.context,
                         theme: environment.theme,
@@ -2341,7 +2343,7 @@ private final class GiftAuctionBidScreenComponent: Component {
                 }
                 
                 if !topBidsComponents.isEmpty {
-                    topBidsTitleComponent = AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_AuctionBid_TopWinnersTotal("\(giftsPerRound)").string.uppercased(), font: Font.medium(13.0), textColor: environment.theme.list.itemSecondaryTextColor))))
+                    topBidsTitleComponent = AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Gift_AuctionBid_TopWinnersTotal("\(giftsPerRound)").string.uppercased(), font: Font.medium(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor))))
                 }
             } else {
                 place = 1
@@ -2821,7 +2823,7 @@ private final class GiftAuctionBidScreenComponent: Component {
             let subtitleSize = self.subtitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: isUpcoming ? "" : subtitleString, font: Font.regular(13.0), textColor: environment.theme.list.itemSecondaryTextColor))
+                    text: .plain(NSAttributedString(string: isUpcoming ? "" : subtitleString, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
@@ -3518,6 +3520,7 @@ private final class AuctionStatComponent: Component {
         }
         
         func update(component: AuctionStatComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let backgroundFrame = CGRect(origin: CGPoint(), size: availableSize)
             let _ = self.background.update(
                 transition: transition,
@@ -3576,7 +3579,7 @@ private final class AuctionStatComponent: Component {
             let subtitleSize = self.subtitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.subtitle, font: Font.regular(11.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.subtitle, font: Font.regular(floor(fontSize * 11.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: backgroundFrame.size
@@ -3642,19 +3645,22 @@ private final class PeerHeaderComponent: CombinedComponent {
     let title: String
     let giftTitle: String?
     let giftNumber: Int32?
+    let fontSize: CGFloat
     
     public init(
         color: UIColor,
         dateTimeFormat: PresentationDateTimeFormat,
         title: String,
         giftTitle: String?,
-        giftNumber: Int32?
+        giftNumber: Int32?,
+        fontSize: CGFloat
     ) {
         self.color = color
         self.dateTimeFormat = dateTimeFormat
         self.title = title
         self.giftTitle = giftTitle
         self.giftNumber = giftNumber
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: PeerHeaderComponent, rhs: PeerHeaderComponent) -> Bool {
@@ -3670,6 +3676,9 @@ private final class PeerHeaderComponent: CombinedComponent {
         if lhs.giftNumber != rhs.giftNumber {
             return false
         }
+        if lhs.fontSize != rhs.fontSize {
+            return false
+        }
         return true
     }
     
@@ -3681,10 +3690,11 @@ private final class PeerHeaderComponent: CombinedComponent {
         
         return { context in
             let component = context.component
+            let fontSize = component.fontSize
             
             let title = title.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title.uppercased(), font: Font.medium(13.0), textColor: component.color))
+                    text: .plain(NSAttributedString(string: component.title.uppercased(), font: Font.medium(floor(fontSize * 13.0 / 17.0)), textColor: component.color))
                 ),
                 availableSize: CGSize(width: context.availableSize.width - 16.0, height: context.availableSize.height),
                 transition: .immediate
@@ -3697,7 +3707,7 @@ private final class PeerHeaderComponent: CombinedComponent {
             if let titleString = component.giftTitle, let giftNumber = component.giftNumber {
                 let giftTitle = giftTitle.update(
                     component: MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: "\(titleString) #\(formatCollectibleNumber(giftNumber, dateTimeFormat: component.dateTimeFormat))", font: Font.regular(12.0), textColor: component.color))
+                        text: .plain(NSAttributedString(string: "\(titleString) #\(formatCollectibleNumber(giftNumber, dateTimeFormat: component.dateTimeFormat))", font: Font.regular(floor(fontSize * 12.0 / 17.0)), textColor: component.color))
                     ),
                     availableSize: CGSize(width: context.availableSize.width - 16.0, height: context.availableSize.height),
                     transition: .immediate

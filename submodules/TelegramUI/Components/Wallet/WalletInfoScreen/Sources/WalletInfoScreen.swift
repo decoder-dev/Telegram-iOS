@@ -316,6 +316,7 @@ private final class WalletInfoSheetContent: CombinedComponent {
         let terms = Child(MultilineTextComponent.self)
 
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[ViewControllerComponentContainer.Environment.self].value
             let component = context.component
             let state = context.state
@@ -330,9 +331,9 @@ private final class WalletInfoSheetContent: CombinedComponent {
             let sideInset: CGFloat = 30.0 + environment.safeInsets.left
             let textSideInset: CGFloat = 30.0 + environment.safeInsets.left
 
-            let titleFont = Font.bold(24.0)
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let titleFont = Font.bold(floor(fontSize * 24.0 / 17.0))
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
 
             let textColor = theme.actionSheet.primaryTextColor
             let secondaryTextColor = theme.list.itemSecondaryTextColor
@@ -531,9 +532,9 @@ private final class WalletInfoSheetContent: CombinedComponent {
                 let terms = terms.update(
                     component: MultilineTextComponent(
                         text: .markdown(text: environment.strings.Wallet_TermsText, attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: secondaryTextColor),
-                            bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: secondaryTextColor),
-                            link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.itemAccentColor),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: secondaryTextColor),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: secondaryTextColor),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.itemAccentColor),
                             linkAttribute: { contents in
                                 return (TelegramTextAttributes.URL, contents)
                             }

@@ -25,6 +25,7 @@ public class GiftRemainingCountComponent: Component {
     private let invertProgress: Bool
     private let leftString: String
     private let groupingSeparator: String
+    private let listFontSize: CGFloat
     
     public init(
         inactiveColor: UIColor,
@@ -40,7 +41,8 @@ public class GiftRemainingCountComponent: Component {
         badgeGraphPosition: CGFloat,
         invertProgress: Bool = false,
         leftString: String,
-        groupingSeparator: String
+        groupingSeparator: String,
+        listFontSize: CGFloat = 17.0
     ) {
         self.inactiveColor = inactiveColor
         self.activeColors = activeColors
@@ -56,6 +58,7 @@ public class GiftRemainingCountComponent: Component {
         self.invertProgress = invertProgress
         self.leftString = leftString
         self.groupingSeparator = groupingSeparator
+        self.listFontSize = listFontSize
     }
     
     public static func ==(lhs: GiftRemainingCountComponent, rhs: GiftRemainingCountComponent) -> Bool {
@@ -99,6 +102,9 @@ public class GiftRemainingCountComponent: Component {
             return false
         }
         if lhs.groupingSeparator != rhs.groupingSeparator {
+            return false
+        }
+        if lhs.listFontSize != rhs.listFontSize {
             return false
         }
         return true
@@ -160,6 +166,7 @@ public class GiftRemainingCountComponent: Component {
         var previousAvailableSize: CGSize?
         func update(component: GiftRemainingCountComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
             self.component = component
+            let fontSize = component.listFontSize
             self.inactiveBackground.backgroundColor = component.inactiveColor.cgColor
             self.activeBackground.backgroundColor = component.activeColors.last?.cgColor
             
@@ -190,7 +197,7 @@ public class GiftRemainingCountComponent: Component {
                             text: .plain(
                                 NSAttributedString(
                                     string: component.inactiveTitle,
-                                    font: Font.semibold(15.0),
+                                    font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                                     textColor: component.activeTitleColor
                                 )
                             )
@@ -213,7 +220,7 @@ public class GiftRemainingCountComponent: Component {
                             text: .plain(
                                 NSAttributedString(
                                     string: component.activeValue,
-                                    font: Font.semibold(15.0),
+                                    font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                                     textColor: component.activeTitleColor
                                 )
                             )
@@ -237,7 +244,7 @@ public class GiftRemainingCountComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: component.inactiveTitle,
-                                font: Font.semibold(15.0),
+                                font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                                 textColor: leftTextColor
                             )
                         )
@@ -260,7 +267,7 @@ public class GiftRemainingCountComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: component.inactiveValue,
-                                font: Font.semibold(15.0),
+                                font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                                 textColor: leftTextColor
                             )
                         )
@@ -283,7 +290,7 @@ public class GiftRemainingCountComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: component.activeTitle,
-                                font: Font.semibold(15.0),
+                                font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                                 textColor: rightTextColor
                             )
                         )
@@ -306,7 +313,7 @@ public class GiftRemainingCountComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: component.activeValue,
-                                font: Font.semibold(15.0),
+                                font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                                 textColor: rightTextColor
                             )
                         )

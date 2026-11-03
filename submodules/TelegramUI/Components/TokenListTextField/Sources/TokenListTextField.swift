@@ -175,6 +175,7 @@ public final class TokenListTextField: Component {
                     context: component.context,
                     presentationTheme: component.theme,
                     theme: EditableTokenListNodeTheme(
+                        listFontSize: presentationData.listsFontSize.baseDisplaySize,
                         backgroundColor: .clear,
                         separatorColor: component.theme.rootController.navigationBar.separatorColor,
                         placeholderTextColor: component.theme.list.itemPlaceholderTextColor,

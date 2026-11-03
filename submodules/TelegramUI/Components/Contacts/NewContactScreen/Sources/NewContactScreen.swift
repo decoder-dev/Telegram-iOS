@@ -306,9 +306,9 @@ final class NewContactScreenComponent: Component {
             let sectionSpacing: CGFloat = 24.0
             
             let footerAttributes = MarkdownAttributes(
-                body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor),
-                bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.freeTextColor),
-                link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
+                body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                 linkAttribute: { contents in
                     return (TelegramTextAttributes.URL, contents)
                 }
@@ -431,7 +431,7 @@ final class NewContactScreenComponent: Component {
                             theme: theme,
                             style: .glass,
                             title: AnyComponent(VStack([
-                                AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "mobile", font: Font.regular(14.0), textColor: theme.list.itemPrimaryTextColor))))),
+                                AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "mobile", font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor))))),
                                 AnyComponentWithIdentity(id: "value", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: formatPhoneNumber(context: component.context, number: phone), font: Font.regular(fontSize), textColor: theme.list.itemAccentColor)))))
                             ], alignment: .left, spacing: 4.0)),
                             contentInsets: UIEdgeInsets(top: 15.0, left: 0.0, bottom: 15.0, right: 0.0),
@@ -445,7 +445,7 @@ final class NewContactScreenComponent: Component {
                             theme: theme,
                             style: .glass,
                             title: AnyComponent(VStack([
-                                AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "mobile", font: Font.regular(14.0), textColor: theme.list.itemPrimaryTextColor))))),
+                                AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "mobile", font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor))))),
                                 AnyComponentWithIdentity(id: "value", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.ContactInfo_PhoneNumberHidden, font: Font.regular(fontSize), textColor: theme.list.itemAccentColor)))))
                             ], alignment: .left, spacing: 4.0)),
                             contentInsets: UIEdgeInsets(top: 15.0, left: 0.0, bottom: 15.0, right: 0.0),
@@ -454,7 +454,7 @@ final class NewContactScreenComponent: Component {
                         )))
                     )
                     phoneFooterComponent = AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: strings.AddContact_ContactWillBeSharedAfterMutual(peer.compactDisplayTitle).string, font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor)),
+                        text: .plain(NSAttributedString(string: strings.AddContact_ContactWillBeSharedAfterMutual(peer.compactDisplayTitle).string, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)),
                         maximumNumberOfLines: 0
                     ))
                 }
@@ -675,7 +675,7 @@ final class NewContactScreenComponent: Component {
                     )))
                 )
                 optionsFooterComponent = AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: strings.AddContact_SharedContactExceptionInfo(peer.compactDisplayTitle).string, font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor)),
+                    text: .plain(NSAttributedString(string: strings.AddContact_SharedContactExceptionInfo(peer.compactDisplayTitle).string, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)),
                     maximumNumberOfLines: 0
                 ))
             }

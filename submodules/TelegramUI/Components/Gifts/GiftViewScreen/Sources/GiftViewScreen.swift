@@ -3221,6 +3221,8 @@ private final class GiftViewSheetContent: CombinedComponent {
             let theme = environment.theme
             let strings = environment.strings
             let dateTimeFormat = environment.dateTimeFormat
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+
             let nameDisplayOrder = component.context.sharedContext.currentPresentationData.with { $0 }.nameDisplayOrder
             let controller = environment.controller
             
@@ -3448,20 +3450,20 @@ private final class GiftViewSheetContent: CombinedComponent {
                         entities: giftMessageEntities,
                         baseColor: .white,
                         linkColor: .white,
-                        baseFont: Font.regular(13.0),
-                        linkFont: Font.regular(13.0),
-                        boldFont: Font.semibold(13.0),
-                        italicFont: Font.italic(13.0),
-                        boldItalicFont: Font.semiboldItalic(13.0),
-                        fixedFont: Font.monospace(13.0),
-                        blockQuoteFont: Font.regular(13.0),
+                        baseFont: Font.regular(floor(fontSize * 13.0 / 17.0)),
+                        linkFont: Font.regular(floor(fontSize * 13.0 / 17.0)),
+                        boldFont: Font.semibold(floor(fontSize * 13.0 / 17.0)),
+                        italicFont: Font.italic(floor(fontSize * 13.0 / 17.0)),
+                        boldItalicFont: Font.semiboldItalic(floor(fontSize * 13.0 / 17.0)),
+                        fixedFont: Font.monospace(floor(fontSize * 13.0 / 17.0)),
+                        blockQuoteFont: Font.regular(floor(fontSize * 13.0 / 17.0)),
                         message: sourceMessage,
                         paragraphAlignment: .left
                     )
                 } else {
                     giftMessageAttributedText = NSAttributedString(
                         string: giftMessageText,
-                        font: Font.regular(13.0),
+                        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                         textColor: .white,
                         paragraphAlignment: .left
                     )
@@ -3551,7 +3553,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     component: MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: peerName,
-                            font: Font.bold(20.0),
+                            font: Font.bold(floor(fontSize * 20.0 / 17.0)),
                             textColor: .white,
                             paragraphAlignment: .center
                         )),
@@ -3583,7 +3585,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     component: MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: strings.Gift_Wear_Wear(giftTitle).string,
-                            font: Font.bold(24.0),
+                            font: Font.bold(floor(fontSize * 24.0 / 17.0)),
                             textColor: theme.actionSheet.primaryTextColor,
                             paragraphAlignment: .center
                         )),
@@ -3597,7 +3599,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     component: MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: strings.Gift_Wear_GetBenefits,
-                            font: Font.regular(15.0),
+                            font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                             textColor: theme.actionSheet.primaryTextColor,
                             paragraphAlignment: .center
                         )),
@@ -3634,12 +3636,12 @@ private final class GiftViewSheetContent: CombinedComponent {
             
             var headerComponents: [() -> Void] = []
             
-            let tableFont = Font.regular(15.0)
-            let tableBoldFont = Font.semibold(15.0)
-            let tableItalicFont = Font.italic(15.0)
-            let tableBoldItalicFont = Font.semiboldItalic(15.0)
-            let tableMonospaceFont = Font.monospace(15.0)
-            let tableLargeMonospaceFont = Font.monospace(16.0)
+            let tableFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let tableBoldFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
+            let tableItalicFont = Font.italic(floor(fontSize * 15.0 / 17.0))
+            let tableBoldItalicFont = Font.semiboldItalic(floor(fontSize * 15.0 / 17.0))
+            let tableMonospaceFont = Font.monospace(floor(fontSize * 15.0 / 17.0))
+            let tableLargeMonospaceFont = Font.monospace(floor(fontSize * 16.0 / 17.0))
             
             let tableTextColor = theme.list.itemPrimaryTextColor
             let tableLinkColor = theme.list.itemAccentColor
@@ -3856,7 +3858,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     }
                     
                     let upgradeDescriptionMeasure = upgradeDescriptionMeasure.update(
-                        component: MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Upgrade_ViewAllVariants, font: Font.semibold(13.0), textColor: .clear))),
+                        component: MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Upgrade_ViewAllVariants, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: .clear))),
                         availableSize: context.availableSize,
                         transition: .immediate
                     )
@@ -3870,7 +3872,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         component: MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: title,
-                                font: Font.bold(20.0),
+                                font: Font.bold(floor(fontSize * 20.0 / 17.0)),
                                 textColor: .white,
                                 paragraphAlignment: .center
                             )),
@@ -3922,7 +3924,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                         )
                                     )),
                                     AnyComponentWithIdentity(id: "text", component: AnyComponent(
-                                        MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Upgrade_ViewAllVariants, font: Font.semibold(13.0), textColor: .white)))
+                                        MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Upgrade_ViewAllVariants, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: .white)))
                                     )),
                                     AnyComponentWithIdentity(id: "arrow", component: AnyComponent(
                                         BundleIconComponent(name: "Item List/InlineTextRightArrow", tintColor: .white)
@@ -4044,7 +4046,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                     selected: state.keepOriginalInfo
                                 ))),
                                 AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
-                                    text: .plain(NSAttributedString(string: keepInfoText, font: Font.regular(13.0), textColor: theme.list.itemSecondaryTextColor))
+                                    text: .plain(NSAttributedString(string: keepInfoText, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor))
                                 )))
                             ],
                             spacing: 10.0
@@ -4160,8 +4162,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                     descriptionText = modifiedString
                 }
                 
-                let titleFont = Font.bold(20.0)
-                let smallTitleFont = Font.bold(15.0)
+                let titleFont = Font.bold(floor(fontSize * 20.0 / 17.0))
+                let smallTitleFont = Font.bold(floor(fontSize * 15.0 / 17.0))
                 let numberFont: UIFont
                 if let number = context.component.subject.arguments?.giftNumber, number < 1000 {
                     numberFont = titleFont
@@ -4195,7 +4197,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 var descriptionOffset: CGFloat = 0.0
                 if let subtitleString {
                     let textColor = theme.actionSheet.secondaryTextColor
-                    let textFont = Font.regular(13.0)
+                    let textFont = Font.regular(floor(fontSize * 13.0 / 17.0))
                     let subtitleAttributedString = parseMarkdownIntoAttributedString(
                         subtitleString,
                         attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: textFont, textColor: textColor), link: MarkdownAttributeSet(font: textFont, textColor: theme.actionSheet.controlAccentColor), linkAttribute: { contents in
@@ -4245,7 +4247,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         case .ton:
                             valueString = "💎\(valueString)"
                         }
-                        let priceButtonAttributedString = NSMutableAttributedString(string: strings.Gift_View_OnSale(valueString).string, font: Font.regular(13.0), textColor: .white)
+                        let priceButtonAttributedString = NSMutableAttributedString(string: strings.Gift_View_OnSale(valueString).string, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .white)
                         let starRange = (priceButtonAttributedString.string as NSString).range(of: "⭐️")
                         if starRange.location != NSNotFound {
                             priceButtonAttributedString.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: true)), range: starRange)
@@ -4335,7 +4337,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     let textColor: UIColor
                     
                     if let _ = uniqueGift {
-                        textFont = Font.regular(13.0)
+                        textFont = Font.regular(floor(fontSize * 13.0 / 17.0))
                         if hasDescriptionButton {
                             textColor = vibrantColor.mixedWith(UIColor.white, alpha: 0.4)
                         } else {
@@ -4343,10 +4345,10 @@ private final class GiftViewSheetContent: CombinedComponent {
                             useDescriptionTint = true
                         }
                     } else {
-                        textFont = soldOut ? Font.medium(15.0) : Font.regular(15.0)
+                        textFont = soldOut ? Font.medium(floor(fontSize * 15.0 / 17.0)) : Font.regular(floor(fontSize * 15.0 / 17.0))
                         textColor = soldOut ? theme.list.itemDestructiveColor : theme.list.itemPrimaryTextColor
                     }
-                    let boldTextFont = hasGiftMessage ? Font.semibold(13.0) : textFont
+                    let boldTextFont = hasGiftMessage ? Font.semibold(floor(fontSize * 13.0 / 17.0)) : textFont
                     let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: useDescriptionTint ? .white : textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: useDescriptionTint ? .white : textColor), link: MarkdownAttributeSet(font: textFont, textColor: linkColor), linkAttribute: { contents in
                         return (TelegramTextAttributes.URL, contents)
                     })
@@ -4354,7 +4356,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     descriptionText = descriptionText.replacingOccurrences(of: " >]", with: "\u{00A0}>]")
                     let attributedString = parseMarkdownIntoAttributedString(descriptionText, attributes: markdownAttributes, textAlignment: .center).mutableCopy() as! NSMutableAttributedString
                     if let range = attributedString.string.range(of: "*"), let starImage = state.cachedSmallStarImage?.0 {
-                        attributedString.addAttribute(.font, value: Font.regular(13.0), range: NSRange(range, in: attributedString.string))
+                        attributedString.addAttribute(.font, value: Font.regular(floor(fontSize * 13.0 / 17.0)), range: NSRange(range, in: attributedString.string))
                         attributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: attributedString.string))
                         attributedString.addAttribute(.baselineOffset, value: 1.0, range: NSRange(range, in: attributedString.string))
                     }
@@ -4608,7 +4610,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 }
                 
                 if nameHidden && uniqueGift == nil {
-                    let textFont = Font.regular(13.0)
+                    let textFont = Font.regular(floor(fontSize * 13.0 / 17.0))
                     let textColor = theme.list.itemSecondaryTextColor
                     
                     let hiddenDescription: String
@@ -4930,6 +4932,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                     buttonColor: buttonColor,
                                     iconName: "Premium/Collectible/Transfer",
                                     isLocked: isMyHostedUniqueGift && !isMyWalletGift,
+                                    listFontSize: fontSize,
                                     action: { [weak state] in
                                         state?.transferGift()
                                     }
@@ -4954,6 +4957,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                 title: isWearing ? strings.Gift_View_Header_TakeOff : strings.Gift_View_Header_Wear,
                                 buttonColor: buttonColor,
                                 iconName: isWearing ? "Premium/Collectible/Unwear" : "Premium/Collectible/Wear",
+                                listFontSize: fontSize,
                                 action: { [weak state] in
                                     if let state {
                                         if isWearing {
@@ -5014,6 +5018,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                     buttonColor: buttonColor,
                                     iconName: (uniqueGift.resellAmounts ?? []).isEmpty ? "Premium/Collectible/Sell" : "Premium/Collectible/Unlist",
                                     isLocked: isMyHostedUniqueGift || isMyWalletGift,
+                                    listFontSize: fontSize,
                                     action: { [weak state] in
                                         state?.resellGift()
                                     }
@@ -5034,7 +5039,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     }
                     
                     if isMyHostedUniqueGift, let address = uniqueGift.giftAddress {
-                        let textFont = Font.regular(13.0)
+                        let textFont = Font.regular(floor(fontSize * 13.0 / 17.0))
                         let textColor = theme.list.itemSecondaryTextColor
                         let linkColor = theme.actionSheet.controlAccentColor
                         
@@ -5159,11 +5164,11 @@ private final class GiftViewSheetContent: CombinedComponent {
                                 title = nil
                                 hasBackground = false
                                 
-                                let tableFont = Font.regular(13.0)
-                                let tableBoldFont = Font.semibold(13.0)
-                                let tableItalicFont = Font.italic(13.0)
-                                let tableBoldItalicFont = Font.semiboldItalic(13.0)
-                                let tableMonospaceFont = Font.monospace(13.0)
+                                let tableFont = Font.regular(floor(fontSize * 13.0 / 17.0))
+                                let tableBoldFont = Font.semibold(floor(fontSize * 13.0 / 17.0))
+                                let tableItalicFont = Font.italic(floor(fontSize * 13.0 / 17.0))
+                                let tableBoldItalicFont = Font.semiboldItalic(floor(fontSize * 13.0 / 17.0))
+                                let tableMonospaceFont = Font.monospace(floor(fontSize * 13.0 / 17.0))
                                 
                                 let senderName = (senderPeerId.flatMap { state.peerMap[$0]?.displayTitle(strings: strings, displayOrder: nameDisplayOrder) })
                                 let recipientName = state.peerMap[recipientPeerId]?.displayTitle(strings: strings, displayOrder: nameDisplayOrder) ?? ""
@@ -5574,7 +5579,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 isChatTheme = true
             }
             if ((incoming && !converted && !upgraded) || exported || selling || isChatTheme) && (!showUpgradePreview && !showWearPreview && !isDismantled) {
-                let textFont = Font.regular(13.0)
+                let textFont = Font.regular(floor(fontSize * 13.0 / 17.0))
                 let textColor = theme.list.itemSecondaryTextColor
                 let linkColor = theme.actionSheet.controlAccentColor
                 
@@ -6096,7 +6101,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     currencyAmount = formatTonAmountText(resellAmount.amount.value, dateTimeFormat: environment.dateTimeFormat, maxDecimalPositions: nil)
                     
                     if let starsAmount = uniqueGift?.resellAmounts?.first(where: { $0.currency == .stars }) {
-                        buttonAttributedSubtitleString = NSMutableAttributedString(string: strings.Gift_View_EqualsTo(" # \(formatStarsAmountText(starsAmount.amount, dateTimeFormat: environment.dateTimeFormat))").string, font: Font.medium(11.0), textColor: theme.list.itemCheckColors.foregroundColor.withAlphaComponent(0.7), paragraphAlignment: .center)
+                        buttonAttributedSubtitleString = NSMutableAttributedString(string: strings.Gift_View_EqualsTo(" # \(formatStarsAmountText(starsAmount.amount, dateTimeFormat: environment.dateTimeFormat))").string, font: Font.medium(floor(fontSize * 11.0 / 17.0)), textColor: theme.list.itemCheckColors.foregroundColor.withAlphaComponent(0.7), paragraphAlignment: .center)
                     }
                 }
                 buyString += "  \(currencySymbol) \(currencyAmount)"
@@ -6190,7 +6195,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 if state.cachedSmallChevronImage == nil || state.cachedSmallChevronImage?.1 !== environment.theme {
                     state.cachedSmallChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Item List/InlineTextRightArrow"), color: theme.actionSheet.controlAccentColor)!, theme)
                 }
-                let attributedString = NSMutableAttributedString(string: strings.Gift_Upgrade_SeePriceDecrease, font: Font.regular(13.0), textColor: theme.actionSheet.controlAccentColor)
+                let attributedString = NSMutableAttributedString(string: strings.Gift_Upgrade_SeePriceDecrease, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.actionSheet.controlAccentColor)
                 if let range = attributedString.string.range(of: ">"), let chevronImage = state.cachedSmallChevronImage?.0 {
                     attributedString.addAttribute(.attachment, value: chevronImage, range: NSRange(range, in: attributedString.string))
                 }
@@ -6703,6 +6708,8 @@ final class GiftViewSheetComponent: CombinedComponent {
         return { context in
             let environment = context.environment[EnvironmentType.self]
             let controller = environment.controller
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+
             
             var headerContent: AnyComponent<Empty>?
             if let headerText = context.component.headerText {
@@ -6710,7 +6717,7 @@ final class GiftViewSheetComponent: CombinedComponent {
                     HeaderContentComponent(
                         attributedText: NSAttributedString(
                             string: headerText,
-                            font: Font.semibold(13.0),
+                            font: Font.semibold(floor(fontSize * 13.0 / 17.0)),
                             textColor: .white
                         )
                     )
@@ -6729,7 +6736,7 @@ final class GiftViewSheetComponent: CombinedComponent {
                         fromPeerName = "\(fromPeerName.prefix(25))…"
                     }
                     let rawString = environment.strings.Gift_View_SenderInfo(fromPeerName, dateString).string
-                    let attributedString = parseMarkdownIntoAttributedString(rawString, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: .white), bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: .white), link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: .white), linkAttribute: { _ in return nil }))
+                    let attributedString = parseMarkdownIntoAttributedString(rawString, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .white), bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: .white), link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .white), linkAttribute: { _ in return nil }))
                     
                     let context = context.component.context
                     headerContent = AnyComponent(
@@ -7507,8 +7514,9 @@ final class ButtonContentComponent: Component {
         func update(component: ButtonContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.componentState = state
-                        
-            let attributedText = NSAttributedString(string: component.text, font: Font.regular(11.0), textColor: component.color)
+            
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let attributedText = NSAttributedString(string: component.text, font: Font.regular(floor(fontSize * 11.0 / 17.0)), textColor: component.color)
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(
@@ -7572,6 +7580,7 @@ private final class HeaderButtonComponent: Component {
     let buttonColor: UIColor
     let iconName: String
     let isLocked: Bool
+    let listFontSize: CGFloat
     let action: () -> Void
     
     public init(
@@ -7579,12 +7588,14 @@ private final class HeaderButtonComponent: Component {
         buttonColor: UIColor,
         iconName: String,
         isLocked: Bool = false,
+        listFontSize: CGFloat = 17.0,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.buttonColor = buttonColor
         self.iconName = iconName
         self.isLocked = isLocked
+        self.listFontSize = listFontSize
         self.action = action
     }
     
@@ -7599,6 +7610,9 @@ private final class HeaderButtonComponent: Component {
             return false
         }
         if lhs.isLocked != rhs.isLocked {
+            return false
+        }
+        if lhs.listFontSize != rhs.listFontSize {
             return false
         }
         return true
@@ -7637,6 +7651,7 @@ private final class HeaderButtonComponent: Component {
             self.component = component
             self.componentState = state
             
+            let fontSize = component.listFontSize
             let bounds = CGRect(origin: .zero, size: availableSize)
             
             self.backgroundView.update(size: bounds.size, cornerRadius: 16.0, isDark: true, tintColor: .init(kind: .custom(style: .default, color: component.buttonColor)), isInteractive: true, transition: transition)
@@ -7667,7 +7682,7 @@ private final class HeaderButtonComponent: Component {
                     MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: component.title,
-                            font: Font.regular(11.0),
+                            font: Font.regular(floor(fontSize * 11.0 / 17.0)),
                             textColor: UIColor.white,
                             paragraphAlignment: .natural
                         )),

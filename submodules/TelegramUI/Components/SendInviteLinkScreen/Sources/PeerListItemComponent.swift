@@ -174,6 +174,7 @@ final class PeerListItemComponent: Component {
             
             self.component = component
             self.state = state
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             if case let .presence(presence) = component.subtitle, let presence {
                 let statusManager: PeerPresenceStatusManager
@@ -275,7 +276,7 @@ final class PeerListItemComponent: Component {
             let labelSize = self.label.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: labelData.0, font: Font.regular(15.0), textColor: labelData.1 ? component.theme.list.itemAccentColor : component.theme.list.itemSecondaryTextColor))
+                    text: .plain(NSAttributedString(string: labelData.0, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: labelData.1 ? component.theme.list.itemAccentColor : component.theme.list.itemSecondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: maxTextSize, height: 100.0)

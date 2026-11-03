@@ -92,6 +92,7 @@ public final class ForwardInfoPanelComponent: Component {
         }
         
         func update(component: ForwardInfoPanelComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.component = component
             self.state = state
             
@@ -118,7 +119,7 @@ public final class ForwardInfoPanelComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.authorName,
-                        font: Font.semibold(14.0),
+                        font: Font.semibold(floor(fontSize * 14.0 / 17.0)),
                         textColor: .white
                     )),
                     maximumNumberOfLines: 1
@@ -134,7 +135,7 @@ public final class ForwardInfoPanelComponent: Component {
                 view.frame = titleFrame
             }
             
-            let textFont = Font.regular(14.0)
+            let textFont = Font.regular(floor(fontSize * 14.0 / 17.0))
             let textColor = UIColor.white
             let attributedText = stringWithAppliedEntities(component.text, entities: component.entities, baseColor: textColor, linkColor: textColor, baseFont: textFont, linkFont: textFont, boldFont: textFont, italicFont: textFont, boldItalicFont: textFont, fixedFont: textFont, blockQuoteFont: textFont, underlineLinks: false, message: nil)
                                     
@@ -258,6 +259,7 @@ public final class MusicPanelComponent: Component {
         }
         
         func update(component: MusicPanelComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.component = component
             self.state = state
             
@@ -270,10 +272,10 @@ public final class MusicPanelComponent: Component {
             let text = NSMutableAttributedString()
             for attribute in component.file.attributes {
                 if case let .Audio(_, _, title, performer, _) = attribute, let title, !title.isEmpty {
-                    text.append(NSAttributedString(string: title, font: Font.semibold(13.0), textColor: .white))
+                    text.append(NSAttributedString(string: title, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: .white))
                     if let performer, !performer.isEmpty {
-                        text.append(NSAttributedString(string: " • ", font: Font.semibold(13.0), textColor: .white.withAlphaComponent(0.28)))
-                        text.append(NSAttributedString(string: performer, font: Font.regular(13.0), textColor: .white))
+                        text.append(NSAttributedString(string: " • ", font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: .white.withAlphaComponent(0.28)))
+                        text.append(NSAttributedString(string: performer, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .white))
                     }
                 }
             }

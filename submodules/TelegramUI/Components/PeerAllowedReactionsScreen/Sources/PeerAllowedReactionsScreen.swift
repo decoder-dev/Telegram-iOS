@@ -372,6 +372,8 @@ final class PeerAllowedReactionsScreenComponent: Component {
         }
         
         func update(component: PeerAllowedReactionsScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+
             self.isUpdating = true
             defer {
                 self.isUpdating = false
@@ -1052,7 +1054,7 @@ final class PeerAllowedReactionsScreenComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.ChannelReactions_GeneralInfoLabel,
-                        font: Font.regular(13.0),
+                        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                         textColor: environment.theme.list.freeTextColor
                     )),
                     maximumNumberOfLines: 0
@@ -1089,7 +1091,7 @@ final class PeerAllowedReactionsScreenComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.ChannelReactions_ReactionsSectionTitle,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -1271,7 +1273,7 @@ final class PeerAllowedReactionsScreenComponent: Component {
                         header: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.PeerInfo_AllowedReactions_MaxCountSectionTitle,
-                                font: Font.regular(13.0),
+                                font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -1279,7 +1281,7 @@ final class PeerAllowedReactionsScreenComponent: Component {
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.PeerInfo_AllowedReactions_MaxCountSectionFooter,
-                                font: Font.regular(13.0),
+                                font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -1339,9 +1341,9 @@ final class PeerAllowedReactionsScreenComponent: Component {
                     }
                     
                     let parsedString = parseMarkdownIntoAttributedString(environment.strings.PeerInfo_AllowedReactions_StarReactionsFooter, attributes: MarkdownAttributes(
-                        body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor),
-                        bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.freeTextColor),
-                        link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
+                        body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                        bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor),
+                        link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.itemAccentColor),
                         linkAttribute: { url in
                             return ("URL", url)
                         }))

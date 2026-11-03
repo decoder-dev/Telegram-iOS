@@ -351,3 +351,11 @@ Gift store/setup/options/demo/item/table, Storage/DataUsage, ChatInputMessageAcc
 ## Wallet, Stars и TextProcessing
 
 Wallet screens/send/import/connect/transactions, Stars transaction/withdrawal и TextProcessing translate/editor labels масштабируют от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Components chrome (Gift/Wallet/Settings sheets)
+
+Оставшиеся hardcode 13–17 pt в product chrome под `TelegramUI/Components` переведены на `floor(listsFontSize.baseDisplaySize * N / 17.0)`: GiftView/GiftCraft/Gift auction wear preview, GiftRemainingCount (listFontSize), StickerPack edit title alert, PeerAllowedReactions, NewContact footers, Business links setup/list items, PostSuggestions settings, Community requests empty/approval copy, Wallet receive/info, Stars purchase/transfer, SendInviteLink, ForwardInfo/Music panels, Collectible info body, ChatList notice, EditableTokenList (listFontSize в theme), PeerInfo business hours. Message-bubble content nodes (gift/action/wallpaper bubbles) не трогались. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## GiftView, NewContact и оставшийся Components chrome
+
+GiftView/Craft/Auction, NewContact, PeerAllowedReactions, StickerPack edit title, Business links, PostSuggestions, Wallet receive/info/peer selection, Stars purchase/transfer, SendInvite/CommunityRequests, ChatList notices, ForwardInfo, Collectible content, Share collectible info, EditableTokenList — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.
