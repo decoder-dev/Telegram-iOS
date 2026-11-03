@@ -928,6 +928,7 @@ final class DataUsageScreenComponent: Component {
                     theme: environment.theme,
                     strings: environment.strings,
                     categories: listCategories,
+                    fontSize: fontSize,
                     toggleCategoryExpanded: { [weak self] key in
                         guard let self else {
                             return
@@ -1016,6 +1017,7 @@ final class DataUsageScreenComponent: Component {
                     theme: environment.theme,
                     strings: environment.strings,
                     categories: totalCategories,
+                    fontSize: fontSize,
                     toggleCategoryExpanded: nil
                 )),
                 environment: {},
@@ -1045,6 +1047,7 @@ final class DataUsageScreenComponent: Component {
                         subtitle: stringForAutoDownloadSetting(strings: environment.strings, decimalSeparator: environment.dateTimeFormat.decimalSeparator, settings: self.mediaAutoDownloadSettings, isCellular: self.selectedStats == .mobile),
                         value: "",
                         hasNext: false,
+                        fontSize: fontSize,
                         action: { [weak self] sourceView in
                             guard let self, let component = self.component else {
                                 return
@@ -1109,6 +1112,7 @@ final class DataUsageScreenComponent: Component {
                 component: AnyComponent(DataButtonComponent(
                     theme: environment.theme,
                     title: environment.strings.DataUsage_Reset,
+                    fontSize: fontSize,
                     action: { [weak self] in
                         self?.requestClear()
                     },

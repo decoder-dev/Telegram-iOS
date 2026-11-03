@@ -123,6 +123,7 @@ func measureUnsupportedContentPill(
     strings: UnsupportedContentPillStrings,
     colors: UnsupportedContentPillColors,
     constrainedWidth: CGFloat,
+    fontSize: CGFloat = 17.0,
     titleNode: TextNode?,
     subtitleNode: TextNode?,
     buttonTitleNode: TextNode?
@@ -135,7 +136,7 @@ func measureUnsupportedContentPill(
     // subtracted from the width the title and subtitle get to wrap within.
     let buttonTitleString = NSAttributedString(
         string: strings.action,
-        font: Font.semibold(15.0),
+        font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
         textColor: colors.primaryText
     )
     let (buttonTitleLayout, buttonTitleApply) = makeButtonTitleLayout(TextNodeLayoutArguments(
@@ -158,7 +159,7 @@ func measureUnsupportedContentPill(
 
     let titleString = NSAttributedString(
         string: strings.title,
-        font: Font.semibold(15.0),
+        font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
         textColor: colors.primaryText
     )
     let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(
@@ -174,7 +175,7 @@ func measureUnsupportedContentPill(
 
     let subtitleString = NSAttributedString(
         string: strings.text,
-        font: Font.regular(13.0),
+        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
         textColor: colors.primaryText.withMultipliedAlpha(pillSubtitleAlpha)
     )
     let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(
@@ -213,12 +214,14 @@ public enum UnsupportedContentPill {
     public static func layout(
         strings: UnsupportedContentPillStrings,
         colors: UnsupportedContentPillColors,
-        constrainedWidth: CGFloat
+        constrainedWidth: CGFloat,
+        fontSize: CGFloat = 17.0
     ) -> UnsupportedContentPillLayout {
         let (layout, _) = measureUnsupportedContentPill(
             strings: strings,
             colors: colors,
             constrainedWidth: constrainedWidth,
+            fontSize: fontSize,
             titleNode: nil,
             subtitleNode: nil,
             buttonTitleNode: nil

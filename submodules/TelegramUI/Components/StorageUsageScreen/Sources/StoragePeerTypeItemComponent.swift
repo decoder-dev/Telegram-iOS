@@ -26,6 +26,7 @@ final class StoragePeerTypeItemComponent: Component {
     let subtitle: String?
     let value: String
     let hasNext: Bool
+    let fontSize: CGFloat
     let action: (View) -> Void
     
     init(
@@ -35,6 +36,7 @@ final class StoragePeerTypeItemComponent: Component {
         subtitle: String?,
         value: String,
         hasNext: Bool,
+        fontSize: CGFloat,
         action: @escaping (View) -> Void
     ) {
         self.theme = theme
@@ -43,6 +45,7 @@ final class StoragePeerTypeItemComponent: Component {
         self.subtitle = subtitle
         self.value = value
         self.hasNext = hasNext
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -63,6 +66,9 @@ final class StoragePeerTypeItemComponent: Component {
             return false
         }
         if lhs.hasNext != rhs.hasNext {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -160,8 +166,8 @@ final class StoragePeerTypeItemComponent: Component {
             
             let leftInset: CGFloat = 62.0
             let rightInset: CGFloat = 32.0
-            let titleFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
-            let subtitleFontSize = min(20.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 15.0))
+            let titleFontSize = component.fontSize
+            let subtitleFontSize = floor(component.fontSize * 15.0 / 17.0)
             
             var availableWidth: CGFloat = availableSize.width - leftInset - rightInset
             

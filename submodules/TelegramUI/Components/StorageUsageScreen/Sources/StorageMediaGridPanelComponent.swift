@@ -17,7 +17,6 @@ import AvatarNode
 import PhotoResources
 import SemanticStatusNode
 
-private let badgeFont = Font.regular(12.0)
 private let videoIcon = generateTintedImage(image: UIImage(bundleImageName: "Chat List/MiniThumbnailPlay"), color: .white)
 
 private final class MediaGridLayer: SimpleLayer {
@@ -117,8 +116,9 @@ private final class MediaGridLayer: SimpleLayer {
             })
         }
         
+        let fontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         let text: String = dataSizeString(Int(size), formatting: DataSizeStringFormatting(strings: strings, decimalSeparator: "."))
-        let attributedText = NSAttributedString(string: text, font: badgeFont, textColor: .white)
+        let attributedText = NSAttributedString(string: text, font: Font.regular(floor(fontSize * 12.0 / 17.0)), textColor: .white)
         let textBounds = attributedText.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
         let textSize = CGSize(width: ceil(textBounds.width), height: ceil(textBounds.height))
         let textLeftInset: CGFloat

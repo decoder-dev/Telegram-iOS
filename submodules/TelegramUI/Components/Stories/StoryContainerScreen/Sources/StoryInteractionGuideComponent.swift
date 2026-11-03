@@ -188,17 +188,18 @@ final class StoryInteractionGuideComponent: Component {
             let textSpacing: CGFloat = 7.0
             let itemsSpacing: CGFloat = 36.0
             let buttonSpacing: CGFloat = 50.0
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let titleSize = self.titleLabel.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Story_Guide_Title, font: Font.semibold(20.0), textColor: .white, paragraphAlignment: .center)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Story_Guide_Title, font: Font.semibold(floor(fontSize * 20.0 / 17.0)), textColor: .white, paragraphAlignment: .center)))),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: availableSize.height)
             )
            
             let textSize = self.descriptionLabel.update(
                 transition: .immediate,
-                component: AnyComponent(BalancedTextComponent(text: .plain(NSAttributedString(string: strings.Story_Guide_Description, font: Font.regular(15.0), textColor: UIColor(rgb: 0xffffff, alpha: 0.6), paragraphAlignment: .center)), maximumNumberOfLines: 0, lineSpacing: 0.2)),
+                component: AnyComponent(BalancedTextComponent(text: .plain(NSAttributedString(string: strings.Story_Guide_Description, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: UIColor(rgb: 0xffffff, alpha: 0.6), paragraphAlignment: .center)), maximumNumberOfLines: 0, lineSpacing: 0.2)),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: availableSize.height)
             )
@@ -206,7 +207,7 @@ final class StoryInteractionGuideComponent: Component {
             let buttonSize = self.proceedButton.update(
                 transition: .immediate,
                 component: AnyComponent(Button(
-                    content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Story_Guide_Proceed, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: .white, paragraphAlignment: .center)))),
+                    content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Story_Guide_Proceed, font: Font.semibold(fontSize), textColor: .white, paragraphAlignment: .center)))),
                     action: { [weak self] in
                         self?.handleTap()
                     }
@@ -391,11 +392,12 @@ private final class GuideItemComponent: Component {
             }
             
             let availableTextWidth = availableSize.width - originX - 60.0 - 18.0
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let titleSize = self.titleLabel.update(
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: .white, paragraphAlignment: .natural)),
+                        text: .plain(NSAttributedString(string: component.title, font: Font.semibold(fontSize), textColor: .white, paragraphAlignment: .natural)),
                         maximumNumberOfLines: 2
                     )
                 ),
@@ -414,7 +416,7 @@ private final class GuideItemComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.text, font: Font.regular(15.0), textColor: UIColor(rgb: 0xffffff, alpha: 0.6), paragraphAlignment: .natural)),
+                        text: .plain(NSAttributedString(string: component.text, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: UIColor(rgb: 0xffffff, alpha: 0.6), paragraphAlignment: .natural)),
                         maximumNumberOfLines: 3
                     )
                 ),

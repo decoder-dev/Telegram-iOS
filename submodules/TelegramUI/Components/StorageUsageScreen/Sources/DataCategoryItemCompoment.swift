@@ -20,19 +20,22 @@ private final class SubItemComponent: Component {
     let isIncoming: Bool
     let value: Int64
     let hasNext: Bool
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
         isIncoming: Bool,
         value: Int64,
-        hasNext: Bool
+        hasNext: Bool,
+        fontSize: CGFloat
     ) {
         self.theme = theme
         self.strings = strings
         self.isIncoming = isIncoming
         self.value = value
         self.hasNext = hasNext
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: SubItemComponent, rhs: SubItemComponent) -> Bool {
@@ -46,6 +49,9 @@ private final class SubItemComponent: Component {
             return false
         }
         if lhs.value != rhs.value {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -152,7 +158,7 @@ private final class SubItemComponent: Component {
                 fractionString = ""
             }*/
             
-            let rowFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
+            let rowFontSize = component.fontSize
             let labelSize = self.label.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: dataSizeString(Int(component.value), formatting: DataSizeStringFormatting(strings: component.strings, decimalSeparator: ".")), font: Font.regular(rowFontSize), textColor: component.theme.list.itemSecondaryTextColor)))),
@@ -242,6 +248,7 @@ final class DataCategoryItemComponent: Component {
     let category: DataCategoriesComponent.CategoryData
     let isExpanded: Bool
     let hasNext: Bool
+    let fontSize: CGFloat
     let action: ((DataUsageScreenComponent.Category) -> Void)?
     
     init(
@@ -250,6 +257,7 @@ final class DataCategoryItemComponent: Component {
         category: DataCategoriesComponent.CategoryData,
         isExpanded: Bool,
         hasNext: Bool,
+        fontSize: CGFloat,
         action: ((DataUsageScreenComponent.Category) -> Void)?
     ) {
         self.theme = theme
@@ -257,6 +265,7 @@ final class DataCategoryItemComponent: Component {
         self.category = category
         self.isExpanded = isExpanded
         self.hasNext = hasNext
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -274,6 +283,9 @@ final class DataCategoryItemComponent: Component {
             return false
         }
         if lhs.hasNext != rhs.hasNext {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -447,7 +459,7 @@ final class DataCategoryItemComponent: Component {
                 fractionString = ""
             }
             
-            let rowFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
+            let rowFontSize = component.fontSize
             let labelSize = self.label.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: dataSizeString(Int(component.category.size), formatting: DataSizeStringFormatting(strings: component.strings, decimalSeparator: ".")), font: Font.regular(rowFontSize), textColor: component.theme.list.itemSecondaryTextColor)))),
@@ -560,7 +572,8 @@ final class DataCategoryItemComponent: Component {
                             strings: component.strings,
                             isIncoming: item.isIncoming,
                             value: item.value,
-                            hasNext: i != items.count - 1
+                            hasNext: i != items.count - 1,
+                            fontSize: component.fontSize
                         )),
                         environment: {},
                         containerSize: CGSize(width: availableSize.width, height: 1000.0)

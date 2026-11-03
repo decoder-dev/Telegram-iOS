@@ -379,3 +379,7 @@ Passkeys intro/list, ChatRankInfo, ProxyServerPreview table, CommunityAdd peer/v
 ## Storage pie chart, Business/Birthday, Chat panels
 
 PieChart/DataUsage listsFontSizeBase (labels/tooltip), Birthday help markdown, BusinessHours/ChatbotSearch/GiftListItem leftovers, ChatSideTopics/ScheduleTime/AudioRecordingCancel, ListItemSlider, MediaEditor/QrStudio/News/PeerInfo panes — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Storage categories, Ad panel, Story guide
+
+Storage categories/peer list/media grid/DataUsage items, ChatAdPanel, StoryInteractionGuide, UnsupportedContentPill, WalletApps leftovers — Dynamic Type от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.

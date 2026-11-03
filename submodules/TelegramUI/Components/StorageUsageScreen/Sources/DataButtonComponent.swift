@@ -17,17 +17,20 @@ import CheckNode
 final class DataButtonComponent: Component {
     let theme: PresentationTheme
     let title: String
+    let fontSize: CGFloat
     let action: () -> Void
     let tag: AnyObject?
     
     init(
         theme: PresentationTheme,
         title: String,
+        fontSize: CGFloat,
         action: @escaping () -> Void,
         tag: AnyObject? = nil
     ) {
         self.theme = theme
         self.title = title
+        self.fontSize = fontSize
         self.action = action
         self.tag = tag
     }
@@ -37,6 +40,9 @@ final class DataButtonComponent: Component {
             return false
         }
         if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.tag !== rhs.tag {
@@ -124,7 +130,7 @@ final class DataButtonComponent: Component {
                 self.backgroundColor = component.theme.list.itemBlocksBackgroundColor
             }
             
-            let titleFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
+            let titleFontSize = component.fontSize
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.title, font: Font.regular(titleFontSize), textColor: component.theme.list.itemDestructiveColor)))),

@@ -26,6 +26,7 @@ final class StorageCategoryItemComponent: Component {
     let isExpandedLevel: Bool
     let isExpanded: Bool
     let hasNext: Bool
+    let fontSize: CGFloat
     let action: (StorageUsageScreenComponent.Category, ActionType) -> Void
     
     init(
@@ -35,6 +36,7 @@ final class StorageCategoryItemComponent: Component {
         isExpandedLevel: Bool,
         isExpanded: Bool,
         hasNext: Bool,
+        fontSize: CGFloat,
         action: @escaping (StorageUsageScreenComponent.Category, ActionType) -> Void
     ) {
         self.theme = theme
@@ -43,6 +45,7 @@ final class StorageCategoryItemComponent: Component {
         self.isExpandedLevel = isExpandedLevel
         self.isExpanded = isExpanded
         self.hasNext = hasNext
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -63,6 +66,9 @@ final class StorageCategoryItemComponent: Component {
             return false
         }
         if lhs.hasNext != rhs.hasNext {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -219,7 +225,7 @@ final class StorageCategoryItemComponent: Component {
                 fractionString = ""
             }
             
-            let rowFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
+            let rowFontSize = component.fontSize
             let labelSize = self.label.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: dataSizeString(Int(component.category.size), formatting: DataSizeStringFormatting(strings: component.strings, decimalSeparator: ".")), font: Font.regular(rowFontSize), textColor: component.theme.list.itemSecondaryTextColor)))),
@@ -359,6 +365,7 @@ final class StorageCategoryItemComponent: Component {
                             isExpandedLevel: true,
                             isExpanded: false,
                             hasNext: i != component.category.subcategories.count - 1,
+                            fontSize: component.fontSize,
                             action: { [weak self] key, _ in
                                 guard let self else {
                                     return

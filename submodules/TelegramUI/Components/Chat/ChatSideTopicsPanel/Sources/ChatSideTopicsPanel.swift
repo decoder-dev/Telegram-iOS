@@ -1167,13 +1167,15 @@ public final class ChatSideTopicsPanel: Component {
         let kind: ChatSideTopicsPanel.Kind
         let theme: PresentationTheme
         let strings: PresentationStrings
+        let fontSize: CGFloat
         let action: (() -> Void)?
         
-        init(isSelected: Bool, kind: ChatSideTopicsPanel.Kind, theme: PresentationTheme, strings: PresentationStrings, action: (() -> Void)?) {
+        init(isSelected: Bool, kind: ChatSideTopicsPanel.Kind, theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat, action: (() -> Void)?) {
             self.isSelected = isSelected
             self.kind = kind
             self.theme = theme
             self.strings = strings
+            self.fontSize = fontSize
             self.action = action
         }
         
@@ -1191,6 +1193,9 @@ public final class ChatSideTopicsPanel: Component {
                 return false
             }
             if lhs.strings !== rhs.strings {
+                return false
+            }
+            if lhs.fontSize != rhs.fontSize {
                 return false
             }
             if (lhs.action == nil) != (rhs.action == nil) {
@@ -1269,11 +1274,10 @@ public final class ChatSideTopicsPanel: Component {
                 } else {
                     titleText = component.strings.Chat_InlineTopicMenu_AllTab
                 }
-                let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 let titleSize = self.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: titleText, font: Font.regular(floor(fontSize * 10.0 / 17.0)), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
+                        text: .plain(NSAttributedString(string: titleText, font: Font.regular(floor(component.fontSize * 10.0 / 17.0)), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
                         maximumNumberOfLines: 2
                     )),
                     environment: {},
@@ -1322,13 +1326,15 @@ public final class ChatSideTopicsPanel: Component {
         let kind: ChatSideTopicsPanel.Kind
         let theme: PresentationTheme
         let strings: PresentationStrings
+        let fontSize: CGFloat
         let action: (() -> Void)?
         
-        init(isSelected: Bool, kind: ChatSideTopicsPanel.Kind, theme: PresentationTheme, strings: PresentationStrings, action: (() -> Void)?) {
+        init(isSelected: Bool, kind: ChatSideTopicsPanel.Kind, theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat, action: (() -> Void)?) {
             self.isSelected = isSelected
             self.kind = kind
             self.theme = theme
             self.strings = strings
+            self.fontSize = fontSize
             self.action = action
         }
         
@@ -1346,6 +1352,9 @@ public final class ChatSideTopicsPanel: Component {
                 return false
             }
             if lhs.strings !== rhs.strings {
+                return false
+            }
+            if lhs.fontSize != rhs.fontSize {
                 return false
             }
             if (lhs.action == nil) != (rhs.action == nil) {
@@ -1411,11 +1420,10 @@ public final class ChatSideTopicsPanel: Component {
                 } else {
                     titleText = component.strings.Chat_InlineTopicMenu_AllTab
                 }
-                let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 let titleSize = self.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: titleText, font: Font.medium(floor(fontSize * 14.0 / 17.0)), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
+                        text: .plain(NSAttributedString(string: titleText, font: Font.medium(floor(component.fontSize * 14.0 / 17.0)), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
                         maximumNumberOfLines: 2
                     )),
                     environment: {},
@@ -1947,6 +1955,7 @@ public final class ChatSideTopicsPanel: Component {
             }
             
             var listItems: [AnyComponentWithIdentity<Empty>] = []
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             switch component.location {
             case .side:
                 listItems.append(AnyComponentWithIdentity(
@@ -1956,6 +1965,7 @@ public final class ChatSideTopicsPanel: Component {
                         kind: component.kind,
                         theme: component.theme,
                         strings: component.strings,
+                        fontSize: fontSize,
                         action: { [weak self] in
                             guard let self, let component = self.component else {
                                 return
@@ -1972,6 +1982,7 @@ public final class ChatSideTopicsPanel: Component {
                         kind: component.kind,
                         theme: component.theme,
                         strings: component.strings,
+                        fontSize: fontSize,
                         action: { [weak self] in
                             guard let self, let component = self.component else {
                                 return

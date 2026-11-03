@@ -377,6 +377,7 @@ private final class WalletAppsScreenComponent: Component {
             }
 
             let theme = environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.backgroundColor = theme.list.blocksBackgroundColor
             let apps = connectedAppSessions(self.sessions ?? [])
             // Per side, so beside iPhone Duo's side strip only that side keeps clear of it; with equal insets both
@@ -389,7 +390,7 @@ private final class WalletAppsScreenComponent: Component {
                     theme: theme,
                     style: .glass,
                     title: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.Wallet_Apps_DisconnectAll, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemDestructiveColor)),
+                        text: .plain(NSAttributedString(string: environment.strings.Wallet_Apps_DisconnectAll, font: Font.regular(fontSize), textColor: theme.list.itemDestructiveColor)),
                         maximumNumberOfLines: 0
                     )),
                     leftIcon: .custom(AnyComponentWithIdentity(id: "icon", component: AnyComponent(BundleIconComponent(name: "Item List/Block", tintColor: theme.list.itemDestructiveColor))), false),
@@ -405,11 +406,11 @@ private final class WalletAppsScreenComponent: Component {
                     style: .glass,
                     title: AnyComponent(VStack<Empty>([
                         AnyComponentWithIdentity(id: "name", component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: manifest.name, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemPrimaryTextColor)),
+                            text: .plain(NSAttributedString(string: manifest.name, font: Font.semibold(fontSize), textColor: theme.list.itemPrimaryTextColor)),
                             maximumNumberOfLines: 1
                         ))),
                         AnyComponentWithIdentity(id: "domain", component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: manifest.domain, font: Font.regular(15.0), textColor: theme.list.itemSecondaryTextColor)),
+                            text: .plain(NSAttributedString(string: manifest.domain, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemSecondaryTextColor)),
                             maximumNumberOfLines: 1
                         )))
                     ], alignment: .left, spacing: 2.0)),
@@ -439,7 +440,7 @@ private final class WalletAppsScreenComponent: Component {
                         maximumNumberOfLines: 0
                     )),
                     footer: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.Wallet_Apps_AllPermissions, font: Font.regular(13.0), textColor: theme.list.freeTextColor)),
+                        text: .plain(NSAttributedString(string: environment.strings.Wallet_Apps_AllPermissions, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: theme.list.freeTextColor)),
                         maximumNumberOfLines: 0
                     )),
                     items: items,

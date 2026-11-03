@@ -40,6 +40,7 @@ final class StorageCategoriesComponent: Component {
     let categories: [CategoryData]
     let isOtherExpanded: Bool
     let displayAction: Bool
+    let fontSize: CGFloat
     let toggleCategorySelection: (StorageUsageScreenComponent.Category) -> Void
     let toggleOtherExpanded: () -> Void
     let clearAction: () -> Void
@@ -50,6 +51,7 @@ final class StorageCategoriesComponent: Component {
         categories: [CategoryData],
         isOtherExpanded: Bool,
         displayAction: Bool,
+        fontSize: CGFloat,
         toggleCategorySelection: @escaping (StorageUsageScreenComponent.Category) -> Void,
         toggleOtherExpanded: @escaping () -> Void,
         clearAction: @escaping () -> Void
@@ -59,6 +61,7 @@ final class StorageCategoriesComponent: Component {
         self.categories = categories
         self.isOtherExpanded = isOtherExpanded
         self.displayAction = displayAction
+        self.fontSize = fontSize
         self.toggleCategorySelection = toggleCategorySelection
         self.toggleOtherExpanded = toggleOtherExpanded
         self.clearAction = clearAction
@@ -78,6 +81,9 @@ final class StorageCategoriesComponent: Component {
             return false
         }
         if lhs.displayAction != rhs.displayAction {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -154,6 +160,7 @@ final class StorageCategoriesComponent: Component {
                         isExpandedLevel: false,
                         isExpanded: expandedCategory == category.key,
                         hasNext: i != component.categories.count - 1,
+                        fontSize: component.fontSize,
                         action: { [weak self] key, actionType in
                             guard let self, let component = self.component else {
                                 return
@@ -214,7 +221,7 @@ final class StorageCategoriesComponent: Component {
                     label = dataSizeString(totalSelectedSize, formatting: DataSizeStringFormatting(strings: component.strings, decimalSeparator: "."))
                 }
                 
-                let clearButtonFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
+                let clearButtonFontSize = component.fontSize
                 var buttonContents: [AnyComponentWithIdentity<Empty>] = [
                     AnyComponentWithIdentity(id: "title", component: AnyComponent(
                         MultilineTextComponent(text: .plain(NSMutableAttributedString(string: clearTitle, font: Font.semibold(clearButtonFontSize), textColor: component.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)))

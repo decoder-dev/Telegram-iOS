@@ -210,7 +210,8 @@ final class ChatAdPanelNode: ASDisplayNode {
         if self.theme !== theme {
             self.theme = theme
             self.removeBackgroundNode.image = generateStretchableFilledCircleImage(diameter: 15.0, color: theme.chat.inputPanel.panelControlColor.withMultipliedAlpha(0.1))
-            self.removeTextNode.attributedText = NSAttributedString(string: strings.Chat_BotAd_WhatIsThis, font: Font.regular(11.0), textColor: theme.chat.inputPanel.panelControlColor)
+            let fontSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            self.removeTextNode.attributedText = NSAttributedString(string: strings.Chat_BotAd_WhatIsThis, font: Font.regular(floor(fontSize * 11.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor)
             self.closeButton.setImage(generateImage(CGSize(width: 12.0, height: 12.0), contextGenerator: { size, context in
                 context.clear(CGRect(origin: CGPoint(), size: size))
                 context.setStrokeColor(theme.chat.inputPanel.panelControlColor.cgColor)
@@ -377,7 +378,9 @@ final class ChatAdPanelNode: ASDisplayNode {
             }
         }
         
-        let (adLayout, adApply) = makeAdLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: strings.Chat_BotAd_Title, font: Font.semibold(14.0), textColor: theme.chat.inputPanel.panelControlColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: width, height: .greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: .zero))
+        let fontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        let adTitleFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
+        let (adLayout, adApply) = makeAdLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: strings.Chat_BotAd_Title, font: adTitleFont, textColor: theme.chat.inputPanel.panelControlColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: width, height: .greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: .zero))
         
         let titleConstrainedSize = CGSize(width: width - contentLeftInset - contentRightInset - textRightInset - adLayout.size.width - 90.0, height: CGFloat.greatestFiniteMagnitude)
         let textConstrainedSize = CGSize(width: width - contentLeftInset - contentRightInset - textRightInset, height: CGFloat.greatestFiniteMagnitude)
@@ -386,12 +389,12 @@ final class ChatAdPanelNode: ASDisplayNode {
         if let author = message.author {
             titleText = author.compactDisplayTitle
         }
-        let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: titleText, font: Font.semibold(14.0), textColor: theme.chat.inputPanel.primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: titleConstrainedSize, alignment: .natural, cutout: nil, insets: .zero))
+        let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: titleText, font: adTitleFont, textColor: theme.chat.inputPanel.primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: titleConstrainedSize, alignment: .natural, cutout: nil, insets: .zero))
         
         let (textString, _, isText) = descriptionStringForMessage(contentSettings: context.currentContentSettings.with { $0 }, message: message, strings: strings, nameDisplayOrder: nameDisplayOrder, dateTimeFormat: dateTimeFormat, accountPeerId: accountPeerId)
         
         let messageText: NSAttributedString
-        let textFont = Font.regular(14.0)
+        let textFont = Font.regular(floor(fontSize * 14.0 / 17.0))
         if isText {
             var text = message.text
             var messageEntities = message._asMessage().textEntitiesAttribute?.entities ?? []

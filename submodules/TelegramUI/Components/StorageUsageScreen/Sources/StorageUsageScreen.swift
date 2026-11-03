@@ -1741,6 +1741,7 @@ final class StorageUsageScreenComponent: Component {
                         categories: listCategories,
                         isOtherExpanded: self.isOtherCategoryExpanded,
                         displayAction: component.peer == nil,
+                        fontSize: fontSize,
                         toggleCategorySelection: { [weak self] key in
                             guard let self, let aggregatedData = self.aggregatedData else {
                                 return
@@ -1905,6 +1906,7 @@ final class StorageUsageScreenComponent: Component {
                             subtitle: subtitle,
                             value: optionText,
                             hasNext: i != 4 - 1,
+                            fontSize: fontSize,
                             action: { [weak self] sourceView in
                                 guard let self else {
                                     return

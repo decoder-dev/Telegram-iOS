@@ -42,17 +42,20 @@ final class DataCategoriesComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
     let categories: [CategoryData]
+    let fontSize: CGFloat
     let toggleCategoryExpanded: ((DataUsageScreenComponent.Category) -> Void)?
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
         categories: [CategoryData],
+        fontSize: CGFloat,
         toggleCategoryExpanded: ((DataUsageScreenComponent.Category) -> Void)?
     ) {
         self.theme = theme
         self.strings = strings
         self.categories = categories
+        self.fontSize = fontSize
         self.toggleCategoryExpanded = toggleCategoryExpanded
     }
     
@@ -64,6 +67,9 @@ final class DataCategoriesComponent: Component {
             return false
         }
         if lhs.categories != rhs.categories {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -137,6 +143,7 @@ final class DataCategoriesComponent: Component {
                         category: category,
                         isExpanded: category.isExpanded,
                         hasNext: i != component.categories.count - 1,
+                        fontSize: component.fontSize,
                         action: component.toggleCategoryExpanded == nil ? nil : { [weak self] key in
                             guard let self, let component = self.component else {
                                 return

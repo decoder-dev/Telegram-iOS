@@ -245,7 +245,7 @@ private final class PeerListItemComponent: Component {
             }
             
             let rightInset: CGFloat = contextInset * 2.0 + PresentationLayoutMetrics.listHorizontalInset + component.sideInset
-            let rowFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
+            let rowFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let labelSize = self.label.update(
                 transition: .immediate,
