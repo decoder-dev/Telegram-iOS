@@ -96,15 +96,18 @@ public final class ListItemSliderSelectorComponent: Component {
     public let theme: PresentationTheme
     public let content: Content
     public let preferNative: Bool
+    public let fontSize: CGFloat
     
     public init(
         theme: PresentationTheme,
         content: Content,
-        preferNative: Bool = false
+        preferNative: Bool = false,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.content = content
         self.preferNative = preferNative
+        self.fontSize = fontSize
     }
     
     public static func ==(lhs: ListItemSliderSelectorComponent, rhs: ListItemSliderSelectorComponent) -> Bool {
@@ -115,6 +118,9 @@ public final class ListItemSliderSelectorComponent: Component {
             return false
         }
         if lhs.preferNative != rhs.preferNative {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -148,6 +154,7 @@ public final class ListItemSliderSelectorComponent: Component {
             let sideInset: CGFloat = 13.0
             let titleSideInset: CGFloat = 20.0
             let titleClippingSideInset: CGFloat = 14.0
+            let fontSize = component.fontSize
             
             let titleAreaWidth: CGFloat = availableSize.width - titleSideInset * 2.0
             
@@ -181,7 +188,7 @@ public final class ListItemSliderSelectorComponent: Component {
                     let titleSize = title.update(
                         transition: .immediate,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: discrete.values[i], font: Font.regular(13.0), textColor: component.theme.list.itemSecondaryTextColor))
+                            text: .plain(NSAttributedString(string: discrete.values[i], font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                         )),
                         environment: {},
                         containerSize: CGSize(width: 100.0, height: 100.0)
@@ -222,7 +229,7 @@ public final class ListItemSliderSelectorComponent: Component {
                     let titleSize = title.update(
                         transition: .immediate,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: i == 0 ? continuous.lowerBoundTitle : continuous.upperBoundTitle, font: Font.regular(13.0), textColor: component.theme.list.itemSecondaryTextColor))
+                            text: .plain(NSAttributedString(string: i == 0 ? continuous.lowerBoundTitle : continuous.upperBoundTitle, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                         )),
                         environment: {},
                         containerSize: CGSize(width: 100.0, height: 100.0)
@@ -264,7 +271,7 @@ public final class ListItemSliderSelectorComponent: Component {
                 let mainTitleSize = mainTitle.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: title, font: Font.regular(16.0), textColor: component.theme.list.itemPrimaryTextColor))
+                        text: .plain(NSAttributedString(string: title, font: Font.regular(floor(fontSize * 16.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: 100.0, height: 100.0)
@@ -286,7 +293,7 @@ public final class ListItemSliderSelectorComponent: Component {
                     secondaryTitleSize = secondaryTitle.update(
                         transition: .immediate,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: secondaryTitleValue, font: Font.regular(12.0), textColor: component.theme.list.itemSecondaryTextColor))
+                            text: .plain(NSAttributedString(string: secondaryTitleValue, font: Font.regular(floor(fontSize * 12.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                         )),
                         environment: {},
                         containerSize: CGSize(width: 100.0, height: 100.0)

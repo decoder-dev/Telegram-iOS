@@ -461,10 +461,11 @@ public final class ChatSideTopicsPanel: Component {
                     )
                 }
                 
+                let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 let titleSize = self.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: titleText, font: Font.regular(10.0), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
+                        text: .plain(NSAttributedString(string: titleText, font: Font.regular(floor(fontSize * 10.0 / 17.0)), textColor: component.isSelected ? component.theme.rootController.navigationBar.accentTextColor : component.theme.chat.inputPanel.panelControlColor)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 2
                     )),

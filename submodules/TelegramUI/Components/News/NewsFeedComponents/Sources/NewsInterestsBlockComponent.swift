@@ -14,18 +14,20 @@ public final class NewsInterestChipComponent: Component {
     public let theme: PresentationTheme
     public let category: EngineInterestCategory
     public let isSelected: Bool
+    public let fontSize: CGFloat
     public let action: () -> Void
 
-    public init(context: AccountContext, theme: PresentationTheme, category: EngineInterestCategory, isSelected: Bool, action: @escaping () -> Void) {
+    public init(context: AccountContext, theme: PresentationTheme, category: EngineInterestCategory, isSelected: Bool, fontSize: CGFloat, action: @escaping () -> Void) {
         self.context = context
         self.theme = theme
         self.category = category
         self.isSelected = isSelected
+        self.fontSize = fontSize
         self.action = action
     }
 
     public static func ==(lhs: NewsInterestChipComponent, rhs: NewsInterestChipComponent) -> Bool {
-        return lhs.context === rhs.context && lhs.theme === rhs.theme && lhs.category == rhs.category && lhs.isSelected == rhs.isSelected
+        return lhs.context === rhs.context && lhs.theme === rhs.theme && lhs.category == rhs.category && lhs.isSelected == rhs.isSelected && lhs.fontSize == rhs.fontSize
     }
 
     public final class View: UIView {
@@ -71,7 +73,7 @@ public final class NewsInterestChipComponent: Component {
                     action: nil
                 ))
             } else if let emoji = component.category.emoji {
-                emojiComponent = AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: emoji, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: textColor))))
+                emojiComponent = AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: emoji, font: Font.regular(component.fontSize), textColor: textColor))))
             }
 
             var x = horizontalInset
@@ -91,7 +93,7 @@ public final class NewsInterestChipComponent: Component {
 
             let titleSize = self.title.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.category.title, font: Font.medium(13.0), textColor: textColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.category.title, font: Font.medium(floor(component.fontSize * 13.0 / 17.0)), textColor: textColor)))),
                 environment: {},
                 containerSize: CGSize(width: max(1.0, availableSize.width - x - horizontalInset), height: height)
             )
@@ -126,20 +128,22 @@ public final class NewsInterestsBlockComponent: Component {
     public let title: String
     public let categories: [EngineInterestCategory]
     public let selectedIds: Set<Int32>
+    public let fontSize: CGFloat
     public let toggle: (Int32) -> Void
 
-    public init(context: AccountContext, theme: PresentationTheme, icon: String, title: String, categories: [EngineInterestCategory], selectedIds: Set<Int32>, toggle: @escaping (Int32) -> Void) {
+    public init(context: AccountContext, theme: PresentationTheme, icon: String, title: String, categories: [EngineInterestCategory], selectedIds: Set<Int32>, fontSize: CGFloat, toggle: @escaping (Int32) -> Void) {
         self.context = context
         self.theme = theme
         self.icon = icon
         self.title = title
         self.categories = categories
         self.selectedIds = selectedIds
+        self.fontSize = fontSize
         self.toggle = toggle
     }
 
     public static func ==(lhs: NewsInterestsBlockComponent, rhs: NewsInterestsBlockComponent) -> Bool {
-        return lhs.context === rhs.context && lhs.theme === rhs.theme && lhs.icon == rhs.icon && lhs.title == rhs.title && lhs.categories == rhs.categories && lhs.selectedIds == rhs.selectedIds
+        return lhs.context === rhs.context && lhs.theme === rhs.theme && lhs.icon == rhs.icon && lhs.title == rhs.title && lhs.categories == rhs.categories && lhs.selectedIds == rhs.selectedIds && lhs.fontSize == rhs.fontSize
     }
 
     public final class View: UIView {
@@ -159,6 +163,7 @@ public final class NewsInterestsBlockComponent: Component {
 
         func update(component: NewsInterestsBlockComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
             let theme = component.theme
+            let fontSize = component.fontSize
             // NewsFeedPostComponent's metrics, so the block reads as one of the feed's rows.
             let sideInset: CGFloat = 16.0
             let topInset: CGFloat = 10.0
@@ -172,7 +177,7 @@ public final class NewsInterestsBlockComponent: Component {
             let titleSize = self.titleView.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(15.0), textColor: theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)),
                     maximumNumberOfLines: 1
                 )),
                 environment: {},
@@ -188,7 +193,7 @@ public final class NewsInterestsBlockComponent: Component {
 
             let iconTextSize = self.iconView.update(
                 transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.icon, font: Font.regular(14.0), textColor: theme.list.itemPrimaryTextColor)))),
+                component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: component.icon, font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)))),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)
             )
@@ -216,7 +221,7 @@ public final class NewsInterestsBlockComponent: Component {
                 let toggle = component.toggle
                 let chipSize = chip.update(
                     transition: transition,
-                    component: AnyComponent(NewsInterestChipComponent(context: component.context, theme: theme, category: category, isSelected: component.selectedIds.contains(category.id), action: {
+                    component: AnyComponent(NewsInterestChipComponent(context: component.context, theme: theme, category: category, isSelected: component.selectedIds.contains(category.id), fontSize: fontSize, action: {
                         toggle(category.id)
                     })),
                     environment: {},

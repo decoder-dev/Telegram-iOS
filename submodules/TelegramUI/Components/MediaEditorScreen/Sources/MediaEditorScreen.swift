@@ -949,7 +949,7 @@ final class MediaEditorScreenComponent: Component {
                 transition.setBounds(view: cancelButtonView, bounds: CGRect(origin: .zero, size: cancelButtonFrame.size))
             }
             
-            let doneButtonFont = Font.with(size: 16.0, design: .round, weight: .semibold)
+            let doneButtonFont = Font.with(size: floor(fontSize * 16.0 / 17.0), design: .round, weight: .semibold)
             var doneButtonItems: [AnyComponentWithIdentity<Empty>] = []
             var doneButtonExplicitSize: CGSize?
             switch controller.mode {
@@ -2216,7 +2216,7 @@ final class MediaEditorScreenComponent: Component {
                         let scrubberLabelSize = scrubberLabel.update(
                             transition: scrubberTransition,
                             component: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: environment.strings.PhotoEditor_SelectCoverFrame, font: Font.regular(14.0), textColor: UIColor(rgb: 0xffffff, alpha: 0.7)))
+                                text: .plain(NSAttributedString(string: environment.strings.PhotoEditor_SelectCoverFrame, font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: UIColor(rgb: 0xffffff, alpha: 0.7)))
                             )),
                             environment: {},
                             containerSize: availableSize
@@ -2621,7 +2621,8 @@ final class MediaEditorScreenComponent: Component {
                             content: AnyComponent(CutoutButtonContentComponent(
                                 backgroundColor: UIColor(rgb: 0xffffff, alpha: 0.18),
                                 icon: state.image(.undo),
-                                title: environment.strings.MediaEditor_Undo
+                                title: environment.strings.MediaEditor_Undo,
+                                fontSize: fontSize
                             )),
                             effectAlignment: .center,
                             action: {
@@ -2667,7 +2668,8 @@ final class MediaEditorScreenComponent: Component {
                             content: AnyComponent(CutoutButtonContentComponent(
                                 backgroundColor: UIColor(rgb: 0xffffff, alpha: 0.18),
                                 icon: state.image(.cutout),
-                                title: environment.strings.MediaEditor_Cutout
+                                title: environment.strings.MediaEditor_Cutout,
+                                fontSize: fontSize
                             )),
                             effectAlignment: .center,
                             action: {
@@ -2721,7 +2723,8 @@ final class MediaEditorScreenComponent: Component {
                                 icon: state.image(.erase),
                                 title: environment.strings.MediaEditor_Erase,
                                 minWidth: 160.0,
-                                selected: component.isDisplayingTool == .cutoutErase
+                                selected: component.isDisplayingTool == .cutoutErase,
+                                fontSize: fontSize
                             )),
                             effectAlignment: .center,
                             action: {
@@ -2744,7 +2747,8 @@ final class MediaEditorScreenComponent: Component {
                                     icon: state.image(.restore),
                                     title: environment.strings.MediaEditor_Restore,
                                     minWidth: 160.0,
-                                    selected: component.isDisplayingTool == .cutoutRestore
+                                    selected: component.isDisplayingTool == .cutoutRestore,
+                                    fontSize: fontSize
                                 )),
                                 effectAlignment: .center,
                                 action: {
@@ -2825,7 +2829,8 @@ final class MediaEditorScreenComponent: Component {
                                 icon: state.image(.outline),
                                 title: environment.strings.MediaEditor_Outline,
                                 minWidth: 160.0,
-                                selected: isOutlineActive
+                                selected: isOutlineActive,
+                                fontSize: fontSize
                             )),
                             effectAlignment: .center,
                             action: { [weak self, weak controller] in
@@ -8929,15 +8934,18 @@ private final class DoneButtonContentComponent: CombinedComponent {
     let backgroundColor: UIColor
     let icon: UIImage?
     let title: String?
+    let fontSize: CGFloat
 
     init(
         backgroundColor: UIColor,
         icon: UIImage?,
-        title: String?
+        title: String?,
+        fontSize: CGFloat
     ) {
         self.backgroundColor = backgroundColor
         self.icon = icon
         self.title = title
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: DoneButtonContentComponent, rhs: DoneButtonContentComponent) -> Bool {
@@ -8945,6 +8953,9 @@ private final class DoneButtonContentComponent: CombinedComponent {
             return false
         }
         if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -8976,7 +8987,7 @@ private final class DoneButtonContentComponent: CombinedComponent {
                 title = text.update(
                     component: Text(
                         text: titleText,
-                        font: Font.with(size: 16.0, design: .round, weight: .semibold),
+                        font: Font.with(size: floor(context.component.fontSize * 16.0 / 17.0), design: .round, weight: .semibold),
                         color: .white
                     ),
                     availableSize: CGSize(width: 180.0, height: 100.0),
@@ -9033,19 +9044,22 @@ final class CutoutButtonContentComponent: CombinedComponent {
     let title: String?
     let minWidth: CGFloat?
     let selected: Bool
+    let fontSize: CGFloat
     
     init(
         backgroundColor: UIColor,
         icon: UIImage,
         title: String?,
         minWidth: CGFloat? = nil,
-        selected: Bool = false
+        selected: Bool = false,
+        fontSize: CGFloat
     ) {
         self.backgroundColor = backgroundColor
         self.icon = icon
         self.title = title
         self.minWidth = minWidth
         self.selected = selected
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: CutoutButtonContentComponent, rhs: CutoutButtonContentComponent) -> Bool {
@@ -9059,6 +9073,9 @@ final class CutoutButtonContentComponent: CombinedComponent {
             return false
         }
         if lhs.selected != rhs.selected {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -9090,7 +9107,7 @@ final class CutoutButtonContentComponent: CombinedComponent {
                 title = text.update(
                     component: Text(
                         text: titleText,
-                        font: Font.with(size: 17.0, weight: .semibold),
+                        font: Font.with(size: context.component.fontSize, weight: .semibold),
                         color: textColor
                     ),
                     availableSize: CGSize(width: 240.0, height: 100.0),

@@ -589,7 +589,7 @@ final class BusinessHoursSetupScreenComponent: Component {
                     }
                 }
                 
-                let subtitleFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0))
+                let subtitleFont = Font.regular(floor(fontSize * 15.0 / 17.0))
                 
                 if let ranges = self.daysState.days[dayIndex].ranges {
                     if ranges.isEmpty {

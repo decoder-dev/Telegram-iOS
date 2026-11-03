@@ -375,3 +375,7 @@ PhoneConfirmationController принимает listsFontSize (исправлен
 ## Passkeys, RankInfo, Proxy, Community, Wallet panes
 
 Passkeys intro/list, ChatRankInfo, ProxyServerPreview table, CommunityAdd peer/visibility, PeerInfo story pane, VideoMessageCamera labels, Wallet card/app info/connect/screen/peer wallet — Dynamic Type от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Storage pie chart, Business/Birthday, Chat panels
+
+PieChart/DataUsage listsFontSizeBase (labels/tooltip), Birthday help markdown, BusinessHours/ChatbotSearch/GiftListItem leftovers, ChatSideTopics/ScheduleTime/AudioRecordingCancel, ListItemSlider, MediaEditor/QrStudio/News/PeerInfo panes — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.

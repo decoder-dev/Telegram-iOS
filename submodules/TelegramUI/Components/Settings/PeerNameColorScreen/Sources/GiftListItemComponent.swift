@@ -204,6 +204,7 @@ final class GiftListItemComponent: Component {
             self.state = state
             
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
                   
             let sideInset: CGFloat = self.selectedGiftId != 0 ? 18.0 : 16.0
             let edgeInset: CGFloat = 16.0
@@ -248,7 +249,7 @@ final class GiftListItemComponent: Component {
                     ),
                     theme: component.theme,
                     customLayout: TabSelectorComponent.CustomLayout(
-                        font: Font.medium(14.0),
+                        font: Font.medium(floor(fontSize * 14.0 / 17.0)),
                         spacing: 2.0
                     ),
                     items: tabSelectorItems,
@@ -331,7 +332,7 @@ final class GiftListItemComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         BalancedTextComponent(
-                            text: .plain(NSAttributedString(string: emptyText, font: Font.regular(13.0), textColor: component.theme.list.itemSecondaryTextColor)),
+                            text: .plain(NSAttributedString(string: emptyText, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor)),
                             horizontalAlignment: .center,
                             maximumNumberOfLines: 0
                         )
@@ -344,7 +345,7 @@ final class GiftListItemComponent: Component {
                     self.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Settings/TextArrowRight"), color: component.theme.list.itemAccentColor)!, component.theme)
                 }
                 
-                let buttonAttributedString = NSMutableAttributedString(string: component.strings.ProfileColorSetup_BrowseGiftsForPurchase, font: Font.regular(15.0), textColor: component.theme.list.itemAccentColor, paragraphAlignment: .center)
+                let buttonAttributedString = NSMutableAttributedString(string: component.strings.ProfileColorSetup_BrowseGiftsForPurchase, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemAccentColor, paragraphAlignment: .center)
                 if let range = buttonAttributedString.string.range(of: ">"), let chevronImage = self.cachedChevronImage?.0 {
                     buttonAttributedString.addAttribute(.attachment, value: chevronImage, range: NSRange(range, in: buttonAttributedString.string))
                 }

@@ -150,7 +150,7 @@ class ChatScheduleTimeControllerNode: ViewControllerTracingNode, ASScrollViewDel
         
         if let text {
             let textNode = ASTextNode()
-            textNode.attributedText = NSAttributedString(string: text, font: Font.regular(15.0), textColor: textColor)
+            textNode.attributedText = NSAttributedString(string: text, font: Font.regular(floor(titleFontSize * 15.0 / 17.0)), textColor: textColor)
             textNode.maximumNumberOfLines = 0
             textNode.textAlignment = .center
             textNode.lineSpacing = 0.2
@@ -163,7 +163,7 @@ class ChatScheduleTimeControllerNode: ViewControllerTracingNode, ASScrollViewDel
         
         if let subtitle {
             let subtitleNode = ASTextNode()
-            subtitleNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(15.0), textColor: textColor)
+            subtitleNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(floor(titleFontSize * 15.0 / 17.0)), textColor: textColor)
             subtitleNode.maximumNumberOfLines = 0
             subtitleNode.textAlignment = .center
             subtitleNode.lineSpacing = 0.2
@@ -593,8 +593,9 @@ class ChatScheduleTimeControllerNode: ViewControllerTracingNode, ASScrollViewDel
                 toast = ComponentView()
                 self.toast = toast
             }
-            let body = MarkdownAttributeSet(font: Font.regular(14.0), textColor: .white)
-            let bold = MarkdownAttributeSet(font: Font.semibold(14.0), textColor: .white)
+            let toastFontSize = floor(self.presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)
+            let body = MarkdownAttributeSet(font: Font.regular(toastFontSize), textColor: .white)
+            let bold = MarkdownAttributeSet(font: Font.semibold(toastFontSize), textColor: .white)
             let playOnce = ActionSlot<Void>()
             let toastSize = toast.update(
                 transition: ComponentTransition(transition),

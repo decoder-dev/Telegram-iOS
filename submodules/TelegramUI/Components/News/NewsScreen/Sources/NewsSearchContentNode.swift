@@ -86,7 +86,7 @@ final class NewsSearchContentNode: SearchDisplayControllerContentNode {
                 }
             }
             if items.isEmpty {
-                items.append(newsStatusItem(theme: self.presentationData.theme, text: self.presentationData.strings.ChatList_Search_NoResults, actionTitle: nil, action: nil))
+                items.append(newsStatusItem(theme: self.presentationData.theme, text: self.presentationData.strings.ChatList_Search_NoResults, actionTitle: nil, action: nil, fontSize: self.presentationData.listsFontSize.baseDisplaySize))
             }
         }
         let scrollTo = scrollToTop && !items.isEmpty ? CoreListScrollTarget(index: 0, pointOffset: 0.0) : nil

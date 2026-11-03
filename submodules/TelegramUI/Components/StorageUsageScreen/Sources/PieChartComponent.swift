@@ -69,21 +69,22 @@ private func processChartData(data: PieChartComponent.ChartData) -> PieChartComp
     return data
 }
 
-private let chartLabelFont = Font.with(size: 16.0, design: .round, weight: .semibold)
-
 private final class ChartSelectionTooltip: Component {
     let theme: PresentationTheme
+    let listsFontSizeBase: CGFloat
     let fractionText: String
     let title: String
     let sizeText: String
     
     init(
         theme: PresentationTheme,
+        listsFontSizeBase: CGFloat,
         fractionText: String,
         title: String,
         sizeText: String
     ) {
         self.theme = theme
+        self.listsFontSizeBase = listsFontSizeBase
         self.fractionText = fractionText
         self.title = title
         self.sizeText = sizeText
@@ -118,10 +119,11 @@ private final class ChartSelectionTooltip: Component {
             let sideInset: CGFloat = 10.0
             let height: CGFloat = 24.0
             
+            let fontSize = component.listsFontSizeBase
             let text = NSMutableAttributedString()
-            text.append(NSAttributedString(string: component.fractionText + "  ", font: Font.semibold(12.0), textColor: component.theme.list.itemPrimaryTextColor))
-            text.append(NSAttributedString(string: component.title + "  ", font: Font.regular(12.0), textColor: component.theme.list.itemPrimaryTextColor))
-            text.append(NSAttributedString(string: component.sizeText, font: Font.semibold(12.0), textColor: component.theme.list.itemAccentColor))
+            text.append(NSAttributedString(string: component.fractionText + "  ", font: Font.semibold(floor(fontSize * 12.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor))
+            text.append(NSAttributedString(string: component.title + "  ", font: Font.regular(floor(fontSize * 12.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor))
+            text.append(NSAttributedString(string: component.sizeText, font: Font.semibold(floor(fontSize * 12.0 / 17.0)), textColor: component.theme.list.itemAccentColor))
             
             let titleSize = self.title.update(
                 transition: transition,
@@ -176,7 +178,7 @@ private final class ChartLabel: UIView {
         preconditionFailure()
     }
     
-    func update(text: String) -> CGSize {
+    func update(text: String, listsFontSizeBase: CGFloat) -> CGSize {
         if self.currentText == text {
             return self.label.bounds.size
         }
@@ -188,7 +190,7 @@ private final class ChartLabel: UIView {
         }
         
         self.currentText = text
-        self.label.attributedText = NSAttributedString(string: text, font: chartLabelFont, textColor: .white)
+        self.label.attributedText = NSAttributedString(string: text, font: Font.with(size: floor(listsFontSizeBase * 16.0 / 17.0), design: .round, weight: .semibold), textColor: .white)
         let size = self.label.updateLayout(CGSize(width: 100.0, height: 100.0))
         self.label.frame = CGRect(origin: CGPoint(x: floor(-size.width * 0.5), y: floor(-size.height * 0.5)), size: size)
         
@@ -241,16 +243,19 @@ final class PieChartComponent: Component {
     
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let listsFontSizeBase: CGFloat
     let emptyColor: UIColor
     let chartData: ChartData
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        listsFontSizeBase: CGFloat,
         emptyColor: UIColor,
         chartData: ChartData
     ) {
         self.theme = theme
+        self.listsFontSizeBase = listsFontSizeBase
         self.strings = strings
         self.emptyColor = emptyColor
         self.chartData = chartData
@@ -258,6 +263,9 @@ final class PieChartComponent: Component {
     
     static func ==(lhs: PieChartComponent, rhs: PieChartComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         if lhs.strings !== rhs.strings {
@@ -348,17 +356,20 @@ final class PieChartComponent: Component {
         var size: CGSize
         var sections: [CalculatedSection]
         var isEmpty: Bool
+        var listsFontSizeBase: CGFloat
         
-        init(size: CGSize, sections: [CalculatedSection]) {
+        init(size: CGSize, sections: [CalculatedSection], listsFontSizeBase: CGFloat) {
             self.size = size
             self.sections = sections
             self.isEmpty = sections.isEmpty
+            self.listsFontSizeBase = listsFontSizeBase
         }
         
         init(interpolating start: CalculatedLayout, to end: CalculatedLayout, progress: CGFloat, size: CGSize) {
             self.size = size
             self.sections = []
             self.isEmpty = end.isEmpty
+            self.listsFontSizeBase = end.listsFontSizeBase
             
             for i in 0 ..< end.sections.count {
                 let right = end.sections[i]
@@ -392,10 +403,11 @@ final class PieChartComponent: Component {
             }
         }
         
-        init(size: CGSize, items: [ChartData.Item], selectedKey: AnyHashable?, isEmpty: Bool, emptyColor: UIColor) {
+        init(size: CGSize, items: [ChartData.Item], selectedKey: AnyHashable?, isEmpty: Bool, emptyColor: UIColor, listsFontSizeBase: CGFloat) {
             self.size = size
             self.sections = []
             self.isEmpty = isEmpty
+            self.listsFontSizeBase = listsFontSizeBase
             
             if items.isEmpty {
                 return
@@ -531,7 +543,7 @@ final class PieChartComponent: Component {
                 fractionString = "\(fractionValue)%"
             }
             
-            let labelString = NSAttributedString(string: fractionString, font: chartLabelFont, textColor: .white)
+            let labelString = NSAttributedString(string: fractionString, font: Font.with(size: floor(self.listsFontSizeBase * 16.0 / 17.0), design: .round, weight: .semibold), textColor: .white)
             let labelBounds = labelString.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: [.usesLineFragmentOrigin], context: nil)
             let labelSize = CGSize(width: ceil(labelBounds.width), height: ceil(labelBounds.height))
             guard let labelImage = generateImage(labelSize, rotatedContext: { size, context in
@@ -1085,8 +1097,9 @@ final class PieChartComponent: Component {
             return nil
         }
         
-        func setItems(theme: PresentationTheme, emptyColor: UIColor, data: ChartData, selectedKey: AnyHashable?, animated: Bool) {
+        func setItems(theme: PresentationTheme, emptyColor: UIColor, data: ChartData, selectedKey: AnyHashable?, listsFontSizeBase: CGFloat, animated: Bool) {
             self.emptyColor = emptyColor
+            self.listsFontSizeBase = listsFontSizeBase
             
             let data = processChartData(data: data)
             
@@ -1110,7 +1123,8 @@ final class PieChartComponent: Component {
                             items: previousData.items,
                             selectedKey: self.selectedKey,
                             isEmpty: true,
-                            emptyColor: emptyColor
+                            emptyColor: emptyColor,
+                            listsFontSizeBase: listsFontSizeBase
                         )
                     } else {
                         targetLayout = CalculatedLayout(
@@ -1118,7 +1132,8 @@ final class PieChartComponent: Component {
                             items: data.items,
                             selectedKey: self.selectedKey,
                             isEmpty: false,
-                            emptyColor: emptyColor
+                            emptyColor: emptyColor,
+                            listsFontSizeBase: listsFontSizeBase
                         )
                     }
                     
@@ -1131,7 +1146,8 @@ final class PieChartComponent: Component {
                             items: [.init(id: AnyHashable(StorageUsageScreenComponent.Category.other), displayValue: 0.0, displaySize: 0, value: 1.0, color: .green, particle: "Settings/Storage/ParticleOther", title: "", mergeable: false, mergeFactor: 1.0)],
                             selectedKey: self.selectedKey,
                             isEmpty: true,
-                            emptyColor: emptyColor
+                            emptyColor: emptyColor,
+                            listsFontSizeBase: listsFontSizeBase
                         )
                     } else {
                         self.currentLayout = CalculatedLayout(
@@ -1139,7 +1155,8 @@ final class PieChartComponent: Component {
                             items: data.items,
                             selectedKey: self.selectedKey,
                             isEmpty: data.items.isEmpty,
-                            emptyColor: emptyColor
+                            emptyColor: emptyColor,
+                            listsFontSizeBase: listsFontSizeBase
                         )
                     }
                 }
@@ -1307,7 +1324,7 @@ final class PieChartComponent: Component {
             }
             
             transition.setFrame(view: self.dataView, frame: CGRect(origin: CGPoint(x: floor((availableSize.width - 200.0) / 2.0), y: 0.0), size: CGSize(width: 200.0, height: 200.0)))
-            self.dataView.setItems(theme: component.theme, emptyColor: component.emptyColor, data: component.chartData, selectedKey: self.selectedKey, animated: !transition.animation.isImmediate)
+            self.dataView.setItems(theme: component.theme, emptyColor: component.emptyColor, data: component.chartData, selectedKey: self.selectedKey, listsFontSizeBase: component.listsFontSizeBase, animated: !transition.animation.isImmediate)
             
             if let selectedKey = self.selectedKey, let item = component.chartData.items.first(where: { $0.id == selectedKey }) {
                 let tooltip: ComponentView<Empty>
@@ -1346,6 +1363,7 @@ final class PieChartComponent: Component {
                     transition: tooltipTransition,
                     component: AnyComponent(ChartSelectionTooltip(
                         theme: component.theme,
+                        listsFontSizeBase: component.listsFontSizeBase,
                         fractionText: fractionString,
                         title: item.title,
                         sizeText: dataSizeString(Int(item.displaySize), formatting: DataSizeStringFormatting(strings: component.strings, decimalSeparator: "."))

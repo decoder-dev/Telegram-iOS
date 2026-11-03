@@ -378,11 +378,11 @@ private final class DurationLayer: SimpleLayer {
         }
     }
 
-    func update(duration: Int32, isMin: Bool) {
+    func update(duration: Int32, isMin: Bool, fontSize: CGFloat) {
         if isMin {
             self.contents = minDurationImage.cgImage
         } else {
-            let string = NSAttributedString(string: stringForDuration(duration), font: durationFont, textColor: .white)
+            let string = NSAttributedString(string: stringForDuration(duration), font: durationFont(fontSize: fontSize), textColor: .white)
             let bounds = string.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
             let textSize = CGSize(width: ceil(bounds.width), height: ceil(bounds.height))
             let sideInset: CGFloat = 6.0
@@ -526,8 +526,9 @@ private final class ItemLayer: CALayer, SparseItemGridLayer {
         let authorId: EnginePeer.Id?
         let isMin: Bool
         let minFactor: CGFloat
+        let fontSize: CGFloat
         
-        init(size: CGSize, viewCount: Int32?, duration: Int32?, topRightIcon: ItemTopRightIcon?, authorId: EnginePeer.Id?, isMin: Bool, minFactor: CGFloat) {
+        init(size: CGSize, viewCount: Int32?, duration: Int32?, topRightIcon: ItemTopRightIcon?, authorId: EnginePeer.Id?, isMin: Bool, minFactor: CGFloat, fontSize: CGFloat) {
             self.size = size
             self.viewCount = viewCount
             self.duration = duration
@@ -535,6 +536,7 @@ private final class ItemLayer: CALayer, SparseItemGridLayer {
             self.authorId = authorId
             self.isMin = isMin
             self.minFactor = minFactor
+            self.fontSize = fontSize
         }
     }
     
@@ -598,8 +600,8 @@ private final class ItemLayer: CALayer, SparseItemGridLayer {
         self.item = item
     }
 
-    func updateDuration(size: CGSize, viewCount: Int32?, duration: Int32?, topRightIcon: ItemTopRightIcon?, author: EnginePeer?, isMin: Bool, minFactor: CGFloat, directMediaImageCache: DirectMediaImageCache, synchronous: SparseItemGrid.Synchronous) {
-        let params = Params(size: size, viewCount: viewCount, duration: duration, topRightIcon: topRightIcon, authorId: author?.id, isMin: isMin, minFactor: minFactor)
+    func updateDuration(size: CGSize, viewCount: Int32?, duration: Int32?, topRightIcon: ItemTopRightIcon?, author: EnginePeer?, isMin: Bool, minFactor: CGFloat, fontSize: CGFloat, directMediaImageCache: DirectMediaImageCache, synchronous: SparseItemGrid.Synchronous) {
+        let params = Params(size: size, viewCount: viewCount, duration: duration, topRightIcon: topRightIcon, authorId: author?.id, isMin: isMin, minFactor: minFactor, fontSize: fontSize)
         if self.currentParams == params {
             return
         }
@@ -609,11 +611,11 @@ private final class ItemLayer: CALayer, SparseItemGridLayer {
         
         if let viewCount {
             if let viewCountLayer = self.viewCountLayer {
-                viewCountLayer.update(viewCount: viewCount, isMin: isMin)
+                viewCountLayer.update(viewCount: viewCount, isMin: isMin, fontSize: fontSize)
             } else {
                 let viewCountLayer = DurationLayer()
                 viewCountLayer.contentsGravity = .topLeft
-                viewCountLayer.update(viewCount: viewCount, isMin: isMin)
+                viewCountLayer.update(viewCount: viewCount, isMin: isMin, fontSize: fontSize)
                 self.addSublayer(viewCountLayer)
                 viewCountLayer.frame = CGRect(origin: CGPoint(x: 7.0, y: self.bounds.height - 4.0), size: CGSize())
                 viewCountLayer.transform = CATransform3DMakeScale(minFactor, minFactor, 1.0)
@@ -626,10 +628,10 @@ private final class ItemLayer: CALayer, SparseItemGridLayer {
 
         if let duration {
             if let durationLayer = self.durationLayer {
-                durationLayer.update(duration: duration, isMin: isMin)
+                durationLayer.update(duration: duration, isMin: isMin, fontSize: fontSize)
             } else {
                 let durationLayer = DurationLayer()
-                durationLayer.update(duration: duration, isMin: isMin)
+                durationLayer.update(duration: duration, isMin: isMin, fontSize: fontSize)
                 self.addSublayer(durationLayer)
                 durationLayer.frame = CGRect(origin: CGPoint(x: self.bounds.width - 3.0, y: self.bounds.height - 4.0), size: CGSize())
                 durationLayer.transform = CATransform3DMakeScale(minFactor, minFactor, 1.0)
@@ -660,11 +662,11 @@ private final class ItemLayer: CALayer, SparseItemGridLayer {
         
         if let author {
             if let authorLayer = self.authorLayer {
-                authorLayer.update(directMediaImageCache: directMediaImageCache, author: author, constrainedWidth: size.width, synchronous: synchronous)
+                authorLayer.update(directMediaImageCache: directMediaImageCache, author: author, constrainedWidth: size.width, synchronous: synchronous, fontSize: fontSize)
             } else {
                 let authorLayer = DurationLayer()
                 authorLayer.contentsGravity = .bottomLeft
-                authorLayer.update(directMediaImageCache: directMediaImageCache, author: author, constrainedWidth: size.width, synchronous: synchronous)
+                authorLayer.update(directMediaImageCache: directMediaImageCache, author: author, constrainedWidth: size.width, synchronous: synchronous, fontSize: fontSize)
                 self.addSublayer(authorLayer)
                 authorLayer.frame = CGRect(origin: CGPoint(x: 17.0, y: 3.0), size: CGSize())
                 authorLayer.transform = CATransform3DMakeScale(minFactor, minFactor, 1.0)
@@ -1110,6 +1112,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding {
     var strings: PresentationStrings
     var chatPresentationData: ChatPresentationData
     var checkNodeTheme: CheckNodeTheme
+    var listsFontSizeBase: CGFloat
 
     var itemInteraction: VisualMediaItemInteraction?
     var loadHoleImpl: ((SparseItemGrid.HoleAnchor, SparseItemGrid.HoleLocation) -> Signal<Never, NoError>)?
@@ -1135,6 +1138,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding {
 
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
         self.strings = presentationData.strings
+        self.listsFontSizeBase = presentationData.listsFontSize.baseDisplaySize
 
         let themeData = ChatPresentationThemeData(theme: presentationData.theme, wallpaper: presentationData.chatWallpaper)
         self.chatPresentationData = ChatPresentationData(theme: themeData, fontSize: presentationData.chatFontSize, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat, nameDisplayOrder: presentationData.nameDisplayOrder, disableAnimations: true, largeEmoji: presentationData.largeEmoji, chatBubbleCorners: presentationData.chatBubbleCorners, animatedEmojiScale: 1.0)
@@ -1144,6 +1148,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding {
 
     func updatePresentationData(presentationData: PresentationData) {
         self.strings = presentationData.strings
+        self.listsFontSizeBase = presentationData.listsFontSize.baseDisplaySize
 
         let themeData = ChatPresentationThemeData(theme: presentationData.theme, wallpaper: presentationData.chatWallpaper)
         self.chatPresentationData = ChatPresentationData(theme: themeData, fontSize: presentationData.chatFontSize, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat, nameDisplayOrder: presentationData.nameDisplayOrder, disableAnimations: true, largeEmoji: presentationData.largeEmoji, chatBubbleCorners: presentationData.chatBubbleCorners, animatedEmojiScale: 1.0)
@@ -1352,7 +1357,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding {
             isMin = layer.bounds.width < 80.0
         }
         
-        layer.updateDuration(size: layer.bounds.size, viewCount: viewCount, duration: duration, topRightIcon: topRightIcon, author: item.authorPeer, isMin: isMin, minFactor: min(1.0, layer.bounds.height / 74.0), directMediaImageCache: self.directMediaImageCache, synchronous: synchronous)
+        layer.updateDuration(size: layer.bounds.size, viewCount: viewCount, duration: duration, topRightIcon: topRightIcon, author: item.authorPeer, isMin: isMin, minFactor: min(1.0, layer.bounds.height / 74.0), fontSize: self.listsFontSizeBase, directMediaImageCache: self.directMediaImageCache, synchronous: synchronous)
         
         layer.opacity = item.isEnabled ? 1.0 : 0.6
     }
@@ -1423,15 +1428,18 @@ private final class StorySearchHeaderComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
     let count: Int
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
-        count: Int
+        count: Int,
+        fontSize: CGFloat
     ) {
         self.theme = theme
         self.strings = strings
         self.count = count
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: StorySearchHeaderComponent, rhs: StorySearchHeaderComponent) -> Bool {
@@ -1442,6 +1450,9 @@ private final class StorySearchHeaderComponent: Component {
             return false
         }
         if lhs.count != rhs.count {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -1475,7 +1486,7 @@ private final class StorySearchHeaderComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleString, font: Font.regular(13.0), textColor: component.theme.chatList.sectionHeaderTextColor))
+                    text: .plain(NSAttributedString(string: titleString, font: Font.regular(floor(component.fontSize * 13.0 / 17.0)), textColor: component.theme.chatList.sectionHeaderTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - insets.left - insets.right, height: 100.0)
@@ -3884,7 +3895,8 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
                     component: AnyComponent(StorySearchHeaderComponent(
                         theme: self.presentationData.theme,
                         strings: self.presentationData.strings,
-                        count: itemCount
+                        count: itemCount,
+                        fontSize: self.presentationData.listsFontSize.baseDisplaySize
                     )),
                     environment: {},
                     containerSize: CGSize(width: size.width, height: 1000.0)
@@ -4114,7 +4126,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
                 ),
                 theme: self.presentationData.theme,
                 customLayout: TabSelectorComponent.CustomLayout(
-                    font: Font.medium(15.0),
+                    font: Font.medium(floor(self.presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)),
                     spacing: 9.0,
                     verticalInset: 11.0,
                     height: 44.0 - 5.0 * 2.0

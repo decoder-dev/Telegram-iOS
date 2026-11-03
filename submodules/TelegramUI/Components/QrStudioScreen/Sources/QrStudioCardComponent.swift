@@ -17,7 +17,7 @@ final class QrStudioCardComponent: Component {
     let fillSource: QrStudioThemeBackgroundView?
     let fontSize: CGFloat
 
-    init(link: String, username: String?, expires: Int32?, reservesTimer: Bool, animatesLinkChange: Bool, ink: QrStudioColor, isLight: Bool, bounceToken: String, fillSource: QrStudioThemeBackgroundView?, fontSize: CGFloat) {
+    init(link: String, username: String?, expires: Int32?, reservesTimer: Bool, animatesLinkChange: Bool, ink: QrStudioColor, isLight: Bool, bounceToken: String, fillSource: QrStudioThemeBackgroundView?, fontSize: CGFloat = 17.0) {
         self.link = link
         self.username = username
         self.expires = expires
@@ -281,7 +281,7 @@ final class QrStudioCardComponent: Component {
 
             let codeSide = QrStudioCardMetrics.codeSide
             self.codeView.frame = CGRect(x: (size.width - codeSide) * 0.5, y: 50.0, width: codeSide, height: codeSide)
-            let usernameFont = Font.with(size: 24.0, design: .round, weight: .bold)
+            let usernameFont = Font.with(size: floor(component.fontSize * 24.0 / 17.0), design: .round, weight: .bold)
             let usernameMidY = (50.0 + codeSide + size.height) * 0.5
             let usernameBaseline = usernameMidY + usernameFont.capHeight * 0.5
             let usernameHeight = ceil(usernameFont.lineHeight)
@@ -389,13 +389,14 @@ final class QrStudioCardComponent: Component {
             }
             let text = NSMutableAttributedString()
             let color = ink.uiColor
+            let usernamePointSize = floor(component.fontSize * 24.0 / 17.0)
             text.append(NSAttributedString(string: "@", attributes: [
-                .font: Font.with(size: 24.0, design: .round, weight: .heavy),
+                .font: Font.with(size: usernamePointSize, design: .round, weight: .heavy),
                 .foregroundColor: color,
                 .kern: -0.24
             ]))
             text.append(NSAttributedString(string: username.uppercased(), attributes: [
-                .font: Font.with(size: 24.0, design: .round, weight: .bold),
+                .font: Font.with(size: usernamePointSize, design: .round, weight: .bold),
                 .foregroundColor: color,
                 .kern: -0.24
             ]))
@@ -453,7 +454,7 @@ final class QrStudioCardComponent: Component {
             let size = self.timerText.update(
                 transition: transition,
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.with(size: 24.0, design: .round, weight: .bold, traits: .monospacedNumbers),
+                    font: Font.with(size: floor(component.fontSize * 24.0 / 17.0), design: .round, weight: .bold, traits: .monospacedNumbers),
                     color: color,
                     items: [
                         AnimatedTextComponent.Item(id: AnyHashable(0), content: .number(remaining / 60, minDigits: 1)),

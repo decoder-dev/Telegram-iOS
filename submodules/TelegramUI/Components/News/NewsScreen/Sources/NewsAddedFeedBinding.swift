@@ -161,9 +161,9 @@ final class NewsAddedFeedBinding {
             if state.hasError {
                 return Rows(items: [newsStatusItem(theme: theme, text: presentationData.strings.News_Error_Text, actionTitle: presentationData.strings.News_Error_Retry, action: { [weak self] in
                     self?.feed.reload()
-                }, actionTitleFontSize: presentationData.listsFontSize.baseDisplaySize)], positions: [:], firstUnreadItemIndex: nil)
+                }, fontSize: presentationData.listsFontSize.baseDisplaySize)], positions: [:], firstUnreadItemIndex: nil)
             }
-            return Rows(items: [newsStatusItem(theme: theme, text: presentationData.strings.News_Empty_Added, actionTitle: nil, action: nil)], positions: [:], firstUnreadItemIndex: nil)
+            return Rows(items: [newsStatusItem(theme: theme, text: presentationData.strings.News_Empty_Added, actionTitle: nil, action: nil, fontSize: presentationData.listsFontSize.baseDisplaySize)], positions: [:], firstUnreadItemIndex: nil)
         }
 
         let firstUnreadEntryIndex = newsAddedFirstUnreadIndex(entries: entries, readMarkPosition: self.readMarkPosition)

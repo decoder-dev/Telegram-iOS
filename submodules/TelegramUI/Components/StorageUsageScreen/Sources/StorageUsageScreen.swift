@@ -1011,6 +1011,7 @@ final class StorageUsageScreenComponent: Component {
             self.state = state
             
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             if self.aggregatedData == nil {
                 let loadingView: UIActivityIndicatorView
@@ -1166,7 +1167,7 @@ final class StorageUsageScreenComponent: Component {
             let navigationEditButtonSize = self.navigationEditButton.update(
                 transition: transition,
                 component: AnyComponent(Button(
-                    content: AnyComponent(Text(text: environment.strings.Common_Edit, font: Font.regular(min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))), color: environment.theme.chat.inputPanel.panelControlColor)),
+                    content: AnyComponent(Text(text: environment.strings.Common_Edit, font: Font.regular(fontSize), color: environment.theme.chat.inputPanel.panelControlColor)),
                     contentInsets: UIEdgeInsets(top: 0.0, left: 6.0, bottom: 0.0, right: 6.0),
                     action: { [weak self] in
                         guard let self else {
@@ -1191,7 +1192,7 @@ final class StorageUsageScreenComponent: Component {
             let navigationDoneButtonSize = self.navigationDoneButton.update(
                 transition: transition,
                 component: AnyComponent(Button(
-                    content: AnyComponent(Text(text: environment.strings.Common_Done, font: Font.semibold(min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))), color: environment.theme.chat.inputPanel.panelControlColor)),
+                    content: AnyComponent(Text(text: environment.strings.Common_Done, font: Font.semibold(fontSize), color: environment.theme.chat.inputPanel.panelControlColor)),
                     contentInsets: UIEdgeInsets(top: 0.0, left: 6.0, bottom: 0.0, right: 6.0),
                     action: { [weak self] in
                         guard let self, let aggregatedData = self.aggregatedData else {
@@ -1465,6 +1466,7 @@ final class StorageUsageScreenComponent: Component {
                 component: AnyComponent(PieChartComponent(
                     theme: environment.theme,
                     strings: environment.strings,
+                    listsFontSizeBase: fontSize,
                     emptyColor: UIColor(rgb: 0x34C759),
                     chartData: chartData
                 )),
@@ -1548,10 +1550,9 @@ final class StorageUsageScreenComponent: Component {
             } else {
                 headerText = environment.strings.StorageManagement_Title
             }
-            let headerFontSize = min(28.0, UIFontMetrics(forTextStyle: .title3).scaledValue(for: 20.0))
             let headerViewSize = self.headerView.update(
                 transition: transition,
-                component: AnyComponent(Text(text: headerText, font: Font.semibold(headerFontSize), color: environment.theme.list.itemPrimaryTextColor)),
+                component: AnyComponent(Text(text: headerText, font: Font.semibold(floor(fontSize * 20.0 / 17.0)), color: environment.theme.list.itemPrimaryTextColor)),
                 environment: {},
                 containerSize: CGSize(width: floor((availableSize.width - navigationRightButtonMaxWidth * 2.0) / 0.8), height: 100.0)
             )
@@ -1567,9 +1568,8 @@ final class StorageUsageScreenComponent: Component {
             
             contentHeight += 6.0
             
-            let descriptionFontSize = min(20.0, UIFontMetrics(forTextStyle: .footnote).scaledValue(for: 13.0))
-            let body = MarkdownAttributeSet(font: Font.regular(descriptionFontSize), textColor: environment.theme.list.freeTextColor)
-            let bold = MarkdownAttributeSet(font: Font.semibold(descriptionFontSize), textColor: environment.theme.list.freeTextColor)
+            let body = MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)
+            let bold = MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)
             
             var usageFraction: Double = 0.0
             let totalUsageText: String
@@ -1987,6 +1987,7 @@ final class StorageUsageScreenComponent: Component {
                         theme: environment.theme,
                         strings: environment.strings,
                         value: cacheSettings?.defaultCacheStorageLimitGigabytes ?? 16,
+                        fontSize: fontSize,
                         updateValue: { [weak self] value in
                             guard let self, let component = self.component else {
                                 return

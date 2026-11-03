@@ -257,6 +257,7 @@ final class NewsForYouFeedBinding {
                     title: presentationData.strings.News_Interests_Title,
                     categories: interests.categories,
                     selectedIds: self.selectedInterestIds,
+                    fontSize: presentationData.listsFontSize.baseDisplaySize,
                     toggle: { [weak self] id in
                         self?.toggleInterest(id)
                     }
@@ -270,17 +271,17 @@ final class NewsForYouFeedBinding {
         case .error:
             result.append(newsStatusItem(theme: theme, text: presentationData.strings.News_Error_Text, actionTitle: presentationData.strings.News_Error_Retry, action: { [weak self] in
                 self?.feed.loadMore()
-            }, actionTitleFontSize: presentationData.listsFontSize.baseDisplaySize))
+            }, fontSize: presentationData.listsFontSize.baseDisplaySize))
         case .empty:
             result.append(newsStatusItem(theme: theme, text: presentationData.strings.News_Empty_ForYou, actionTitle: presentationData.strings.News_Refresh, action: { [weak self] in
                 self?.feed.refresh()
-            }, actionTitleFontSize: presentationData.listsFontSize.baseDisplaySize))
+            }, fontSize: presentationData.listsFontSize.baseDisplaySize))
         case .loadingMore:
             result.append(contentsOf: newsPlaceholderItems(count: 1, theme: theme, rowLayout: environment.skeletonRowLayout, identityPrefix: "foryou-more"))
         case .loadMoreFailed:
             result.append(newsStatusItem(theme: theme, text: presentationData.strings.News_Error_Text, actionTitle: presentationData.strings.News_Error_Retry, action: { [weak self] in
                 self?.feed.loadMore()
-            }, actionTitleFontSize: presentationData.listsFontSize.baseDisplaySize))
+            }, fontSize: presentationData.listsFontSize.baseDisplaySize))
         case .none:
             break
         }

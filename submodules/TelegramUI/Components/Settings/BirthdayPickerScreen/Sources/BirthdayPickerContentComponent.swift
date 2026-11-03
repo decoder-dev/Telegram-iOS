@@ -138,6 +138,7 @@ public final class BirthdayPickerContentComponent: Component {
             }
 
             let sideInset: CGFloat = 16.0
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         
             var contentHeight: CGFloat = 8.0
             
@@ -153,7 +154,7 @@ public final class BirthdayPickerContentComponent: Component {
                 titleRawString = component.strings.Birthday_Title
             }
             
-            titleString.append(NSAttributedString(string: titleRawString, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemPrimaryTextColor))
+            titleString.append(NSAttributedString(string: titleRawString, font: Font.semibold(fontSize), textColor: component.theme.list.itemPrimaryTextColor))
         
             let titleSize = self.title.update(
                 transition: .immediate,
@@ -214,15 +215,15 @@ public final class BirthdayPickerContentComponent: Component {
                 let mainText = NSMutableAttributedString()
                 mainText.append(parseMarkdownIntoAttributedString(isContacts ? component.strings.Birthday_HelpContacts : component.strings.Birthday_Help, attributes: MarkdownAttributes(
                     body: MarkdownAttributeSet(
-                        font: Font.regular(13.0),
+                        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                         textColor: component.theme.list.itemSecondaryTextColor
                     ),
                     bold: MarkdownAttributeSet(
-                        font: Font.semibold(13.0),
+                        font: Font.semibold(floor(fontSize * 13.0 / 17.0)),
                         textColor: component.theme.list.itemSecondaryTextColor
                     ),
                     link: MarkdownAttributeSet(
-                        font: Font.regular(13.0),
+                        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                         textColor: component.theme.list.itemAccentColor,
                         additionalAttributes: [:]
                     ),

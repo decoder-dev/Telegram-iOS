@@ -79,16 +79,13 @@ final class QrStudioGiftsTabView: UIView, UIScrollViewDelegate {
 
         self.emptyView.isHidden = true
         self.addSubview(self.emptyView)
-        self.emptyTitleLabel.font = Font.semibold(20.0)
         self.emptyTitleLabel.textAlignment = .center
         self.emptyView.addSubview(self.emptyTitleLabel)
-        self.emptyTextLabel.font = Font.regular(15.0)
         self.emptyTextLabel.textAlignment = .center
         self.emptyTextLabel.numberOfLines = 0
         self.emptyView.addSubview(self.emptyTextLabel)
         self.browseButton.clipsToBounds = true
         self.browseButton.addSubview(self.browseLabel)
-        self.browseLabel.font = Font.semibold(15.0)
         self.browseLabel.textColor = .white
         self.browseButton.addTarget(self, action: #selector(self.browsePressed), for: .touchUpInside)
         self.browseButton.highligthedChanged = { [weak self] highlighted in
@@ -130,7 +127,7 @@ final class QrStudioGiftsTabView: UIView, UIScrollViewDelegate {
         return CGRect(x: QrStudioGiftsTabView.sideInset + CGFloat(column) * (itemSide + QrStudioGiftsTabView.spacing), y: QrStudioGiftsTabView.top + CGFloat(row) * (itemSide + QrStudioGiftsTabView.spacing), width: itemSide, height: itemSide)
     }
 
-    func update(size: CGSize, context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, gifts: [QrStudioGift], isLoaded: Bool, selectedId: Int64?, revealSelection: Bool, scrollsToSelection: Bool, fontSize: CGFloat = 17.0) {
+    func update(size: CGSize, context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, gifts: [QrStudioGift], isLoaded: Bool, selectedId: Int64?, revealSelection: Bool, scrollsToSelection: Bool, fontSize: CGFloat) {
         self.params = Params(size: size, context: context, theme: theme, strings: strings, gifts: gifts, selectedId: selectedId)
         self.scrollView.frame = CGRect(origin: CGPoint(), size: size)
 
@@ -191,8 +188,10 @@ final class QrStudioGiftsTabView: UIView, UIScrollViewDelegate {
         self.updateVisibleItems()
     }
 
-    private func updateEmptyState(size: CGSize, theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat = 17.0) {
+    private func updateEmptyState(size: CGSize, theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat) {
+        let titleFontSize = floor(fontSize * 20.0 / 17.0)
         let labelFontSize = floor(fontSize * 15.0 / 17.0)
+        self.emptyTitleLabel.font = Font.semibold(titleFontSize)
         self.emptyTextLabel.font = Font.regular(labelFontSize)
         self.browseLabel.font = Font.semibold(labelFontSize)
         self.emptyView.frame = CGRect(origin: CGPoint(), size: size)

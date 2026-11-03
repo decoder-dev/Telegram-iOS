@@ -682,6 +682,7 @@ final class DataUsageScreenComponent: Component {
                 component: AnyComponent(PieChartComponent(
                     theme: environment.theme,
                     strings: environment.strings,
+                    listsFontSizeBase: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                     emptyColor: environment.theme.list.itemAccentColor,
                     chartData: chartData
                 )),

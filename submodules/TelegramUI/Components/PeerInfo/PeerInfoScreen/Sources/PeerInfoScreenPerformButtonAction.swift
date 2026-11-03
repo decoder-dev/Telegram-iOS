@@ -772,9 +772,10 @@ extension PeerInfoScreenNode {
                                         
                     if canSetupAutoremoveTimeout {
                         let strings = strongSelf.presentationData.strings
+                        let fontSize = strongSelf.presentationData.listsFontSize.baseDisplaySize
                         items.append(.action(ContextMenuActionItem(text: currentAutoremoveTimeout == nil ? strongSelf.presentationData.strings.PeerInfo_EnableAutoDelete : strongSelf.presentationData.strings.PeerInfo_AdjustAutoDelete, icon: { theme in
                             if let currentAutoremoveTimeout = currentAutoremoveTimeout {
-                                let text = NSAttributedString(string: shortTimeIntervalString(strings: strings, value: currentAutoremoveTimeout), font: Font.regular(14.0), textColor: theme.contextMenu.primaryColor)
+                                let text = NSAttributedString(string: shortTimeIntervalString(strings: strings, value: currentAutoremoveTimeout), font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: theme.contextMenu.primaryColor)
                                 let bounds = text.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
                                 return generateImage(bounds.size.integralFloor, rotatedContext: { size, context in
                                     context.clear(CGRect(origin: CGPoint(), size: size))
@@ -1058,9 +1059,10 @@ extension PeerInfoScreenNode {
                     
                     if canSetupAutoremoveTimeout {
                         let strings = strongSelf.presentationData.strings
+                        let fontSize = strongSelf.presentationData.listsFontSize.baseDisplaySize
                         items.append(.action(ContextMenuActionItem(text: currentAutoremoveTimeout == nil ? strongSelf.presentationData.strings.PeerInfo_EnableAutoDelete : strongSelf.presentationData.strings.PeerInfo_AdjustAutoDelete, icon: { theme in
                             if let currentAutoremoveTimeout = currentAutoremoveTimeout {
-                                let text = NSAttributedString(string: shortTimeIntervalString(strings: strings, value: currentAutoremoveTimeout), font: Font.regular(14.0), textColor: theme.contextMenu.primaryColor)
+                                let text = NSAttributedString(string: shortTimeIntervalString(strings: strings, value: currentAutoremoveTimeout), font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: theme.contextMenu.primaryColor)
                                 let bounds = text.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
                                 return generateImage(bounds.size.integralFloor, rotatedContext: { size, context in
                                     context.clear(CGRect(origin: CGPoint(), size: size))
@@ -1195,9 +1197,10 @@ extension PeerInfoScreenNode {
                 } else if case let .legacyGroup(group) = peer {
                     if canSetupAutoremoveTimeout {
                         let strings = strongSelf.presentationData.strings
+                        let fontSize = strongSelf.presentationData.listsFontSize.baseDisplaySize
                         items.append(.action(ContextMenuActionItem(text: currentAutoremoveTimeout == nil ? strongSelf.presentationData.strings.PeerInfo_EnableAutoDelete : strongSelf.presentationData.strings.PeerInfo_AdjustAutoDelete, icon: { theme in
                             if let currentAutoremoveTimeout = currentAutoremoveTimeout {
-                                let text = NSAttributedString(string: shortTimeIntervalString(strings: strings, value: currentAutoremoveTimeout), font: Font.regular(14.0), textColor: theme.contextMenu.primaryColor)
+                                let text = NSAttributedString(string: shortTimeIntervalString(strings: strings, value: currentAutoremoveTimeout), font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: theme.contextMenu.primaryColor)
                                 let bounds = text.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
                                 return generateImage(bounds.size.integralFloor, rotatedContext: { size, context in
                                     context.clear(CGRect(origin: CGPoint(), size: size))

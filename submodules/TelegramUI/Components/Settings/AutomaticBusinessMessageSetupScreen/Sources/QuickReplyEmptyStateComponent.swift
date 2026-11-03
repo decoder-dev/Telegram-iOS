@@ -73,6 +73,7 @@ final class QuickReplyEmptyStateComponent: Component {
 
             // Centred in the band between the side insets when they differ (iPhone Duo's side strip); equal insets keep
             // the full width.
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let bandMinX: CGFloat = component.insets.left != component.insets.right ? component.insets.left : 0.0
             let bandWidth: CGFloat = component.insets.left != component.insets.right ? availableSize.width - component.insets.left - component.insets.right : availableSize.width
             let horizontalContentInset = PresentationLayoutMetrics.listHorizontalInset * 2.0
@@ -133,7 +134,7 @@ final class QuickReplyEmptyStateComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.QuickReplies_EmptyState_Title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.rootController.navigationBar.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.strings.QuickReplies_EmptyState_Title, font: Font.semibold(fontSize), textColor: component.theme.rootController.navigationBar.primaryTextColor)),
                     horizontalAlignment: .center
                 )),
                 environment: {},
@@ -143,7 +144,7 @@ final class QuickReplyEmptyStateComponent: Component {
             let textSize = self.text.update(
                 transition: .immediate,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.QuickReplies_EmptyState_Text, font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.strings.QuickReplies_EmptyState_Text, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 20,
                     lineSpacing: 0.2

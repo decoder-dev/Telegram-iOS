@@ -89,6 +89,7 @@ final class ChatbotSearchResultItemComponent: Component {
             self.component = component
             self.state = state
             
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let sideInset: CGFloat = 10.0
             let avatarDiameter: CGFloat = 40.0
             let avatarTextSpacing: CGFloat = 12.0
@@ -113,7 +114,7 @@ final class ChatbotSearchResultItemComponent: Component {
                     transition: addButtonTransition,
                     component: AnyComponent(PlainButtonComponent(
                         content: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: component.strings.ChatbotSetup_BotAddAction, font: Font.semibold(15.0), textColor: component.theme.list.itemCheckColors.foregroundColor))
+                            text: .plain(NSAttributedString(string: component.strings.ChatbotSetup_BotAddAction, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemCheckColors.foregroundColor))
                         )),
                         background: AnyComponent(RoundedRectangle(color: component.theme.list.itemCheckColors.fillColor, cornerRadius: nil)),
                         effectAlignment: .center,
@@ -218,7 +219,7 @@ final class ChatbotSearchResultItemComponent: Component {
             let titleSize = self.titleLabel.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleValue, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: titleValue, font: Font.semibold(fontSize), textColor: component.theme.list.itemPrimaryTextColor)),
                     maximumNumberOfLines: 1
                 )),
                 environment: {},
@@ -227,7 +228,7 @@ final class ChatbotSearchResultItemComponent: Component {
             let subtitleSize = self.subtitleLabel.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: subtitleValue, font: Font.regular(15.0), textColor: component.theme.list.itemSecondaryTextColor)),
+                    text: .plain(NSAttributedString(string: subtitleValue, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor)),
                     maximumNumberOfLines: 1
                 )),
                 environment: {},
@@ -304,7 +305,7 @@ final class ChatbotSearchResultItemComponent: Component {
                 let notFoundLabelSize = notFoundLabel.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.strings.ChatbotSetup_BotNotFoundStatus, font: Font.regular(13.0), textColor: component.theme.list.itemSecondaryTextColor))
+                        text: .plain(NSAttributedString(string: component.strings.ChatbotSetup_BotNotFoundStatus, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: maxTextWidth, height: 100.0)
