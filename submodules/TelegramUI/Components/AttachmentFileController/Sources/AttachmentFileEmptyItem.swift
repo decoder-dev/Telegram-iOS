@@ -109,7 +109,8 @@ final class AttachmentFileEmptyStateItemNode: ItemListControllerEmptyStateItemNo
             case let .bannedSendMedia(banDescription, _):
                 text = banDescription
         }
-        self.textNode.attributedText = NSAttributedString(string: text.replacingOccurrences(of: "\n", with: " "), font: Font.regular(15.0), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
+        let bodyFontSize = self.item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0
+        self.textNode.attributedText = NSAttributedString(string: text.replacingOccurrences(of: "\n", with: " "), font: Font.regular(bodyFontSize), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
         self.buttonNode.title = strings.Attachment_OpenSettings
         self.buttonNode.updateTheme(SolidRoundedButtonTheme(theme: theme))
     }
@@ -133,10 +134,11 @@ final class AttachmentFileEmptyStateItemNode: ItemListControllerEmptyStateItemNo
         
         let imageHeight = layout.size.width < layout.size.height ? imageSize.height + imageSpacing : 0.0
         
-        let buttonWidth: CGFloat = 248.0
+        let horizontalPadding = PresentationLayoutMetrics.listHorizontalInset * 2.0
+        let buttonWidth: CGFloat = min(248.0, layout.size.width - layout.safeInsets.left - layout.safeInsets.right - horizontalPadding)
         let buttonHeight = self.buttonNode.updateLayout(width: buttonWidth, transition: transition)
         
-        let textSize = self.textNode.updateLayout(CGSize(width: layout.size.width - layout.safeInsets.left - layout.safeInsets.right - 40.0, height: max(1.0, layout.size.height - insets.top - insets.bottom)))
+        let textSize = self.textNode.updateLayout(CGSize(width: layout.size.width - layout.safeInsets.left - layout.safeInsets.right - horizontalPadding, height: max(1.0, layout.size.height - insets.top - insets.bottom)))
         
         let totalHeight = imageHeight + textSpacing + textSize.height + buttonSpacing + buttonHeight + bottomSpacing
         let topOffset = insets.top + floor((layout.size.height - insets.top - insets.bottom - totalHeight) / 2.0)

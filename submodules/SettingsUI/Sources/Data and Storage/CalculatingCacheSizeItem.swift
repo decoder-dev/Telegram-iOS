@@ -170,7 +170,7 @@ private final class CalculatingCacheSizeItemNode: ListViewItemNode {
                             
                             strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: params.width - leftInset, height: separatorHeight))
                         case .blocks:
-                            leftInset = 16.0 + params.leftInset
+                            leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
                             
                             if strongSelf.backgroundNode.supernode == nil {
                                 strongSelf.insertSubnode(strongSelf.backgroundNode, at: 0)
@@ -199,7 +199,7 @@ private final class CalculatingCacheSizeItemNode: ListViewItemNode {
                             let bottomStripeOffset: CGFloat
                             switch neighbors.bottom {
                             case .sameSection(false):
-                                bottomStripeInset = 16.0 + params.leftInset
+                                bottomStripeInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
                                 bottomStripeOffset = -separatorHeight
                                 strongSelf.bottomStripeNode.isHidden = false
                             default:

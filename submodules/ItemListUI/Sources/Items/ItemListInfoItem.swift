@@ -243,8 +243,8 @@ public class InfoItemNode: ListViewItemNode {
         let currentItem = self.item
         
         return { [weak self] item, params, neighbors in
-            let leftInset: CGFloat = 16.0 + params.leftInset
-            let rightInset: CGFloat = 16.0 + params.rightInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+            let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             
             let titleFont = Font.medium(item.presentationData.fontSize.itemListBaseFontSize)
             let smallerTextFont = Font.regular(item.presentationData.fontSize.itemListBaseLabelFontSize / 14.0 * 15.0)
@@ -284,7 +284,7 @@ public class InfoItemNode: ListViewItemNode {
                 insets = UIEdgeInsets()
             }
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor

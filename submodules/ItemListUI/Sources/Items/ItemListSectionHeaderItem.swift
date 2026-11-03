@@ -272,7 +272,7 @@ public class ItemListSectionHeaderItemNode: ListViewItemNode, ItemListItemNode {
                             actionButtonNode.addSubnode(actionNode)
                         }
                         
-                        let actionSize = CGSize(width: max(44.0, actionLayout.size.width), height: contentSize.height)
+                        let actionSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, actionLayout.size.width), height: contentSize.height)
                         actionButtonNode.frame = CGRect(origin: CGPoint(x: params.width - rightInset - actionSize.width, y: 0.0), size: actionSize)
                         
                         actionNode.frame = CGRect(origin: CGPoint(x: actionSize.width - actionLayout.size.width, y: floor((actionSize.height - actionLayout.size.height) / 2.0)), size: actionLayout.size)

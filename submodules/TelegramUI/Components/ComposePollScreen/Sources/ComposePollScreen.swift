@@ -1556,12 +1556,13 @@ final class ComposePollScreenComponent: Component {
             self.component = component
             self.state = state
             
-            let topInset: CGFloat = 16.0
+            let listInset = PresentationLayoutMetrics.listHorizontalInset
+            let topInset: CGFloat = listInset
             let bottomInset: CGFloat = 8.0
             // iPhone Duo: one side's safe inset is the side strip; the right margin is its own and centered
             // content is centered in the band between the insets. With equal insets these are the old values.
-            let sideInset: CGFloat = 16.0 + environment.safeInsets.left
-            let rightSideInset: CGFloat = 16.0 + environment.safeInsets.right
+            let sideInset: CGFloat = listInset + environment.safeInsets.left
+            let rightSideInset: CGFloat = listInset + environment.safeInsets.right
             let bandCenterX: CGFloat = environment.safeInsets.left + (availableSize.width - environment.safeInsets.left - environment.safeInsets.right) / 2.0
             let sectionSpacing: CGFloat = 30.0
             
@@ -1891,7 +1892,7 @@ final class ComposePollScreenComponent: Component {
                 transition: transition
             )
             
-            let sectionHeaderSideInset: CGFloat = 16.0
+            let sectionHeaderSideInset: CGFloat = listInset
             let pollOptionsSectionHeaderSize = self.pollOptionsSectionHeader.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
@@ -2856,7 +2857,8 @@ final class ComposePollScreenComponent: Component {
                 self.scrollView.verticalScrollIndicatorInsets = scrollInsets
             }
             
-            let barButtonSize = CGSize(width: 44.0, height: 44.0)
+            let listInset = PresentationLayoutMetrics.listHorizontalInset
+            let barButtonSize = CGSize(width: PresentationLayoutMetrics.minimumInteractiveSize, height: PresentationLayoutMetrics.minimumInteractiveSize)
             let cancelButtonSize = self.cancelButton.update(
                 transition: transition,
                 component: AnyComponent(GlassBarButtonComponent(
@@ -2888,7 +2890,7 @@ final class ComposePollScreenComponent: Component {
             if let sideColumnButtonFrame {
                 cancelButtonFrame = CGRect(origin: CGPoint(x: floorToScreenPixels(sideColumnButtonFrame.midX - cancelButtonSize.width * 0.5), y: floorToScreenPixels(sideColumnButtonFrame.midY - cancelButtonSize.height * 0.5)), size: cancelButtonSize)
             } else {
-                cancelButtonFrame = CGRect(origin: CGPoint(x: environment.safeInsets.left + 16.0, y: 16.0), size: cancelButtonSize)
+                cancelButtonFrame = CGRect(origin: CGPoint(x: environment.safeInsets.left + listInset, y: listInset), size: cancelButtonSize)
             }
             if let cancelButtonView = self.cancelButton.view {
                 var cancelButtonTransition = transition
@@ -2934,7 +2936,7 @@ final class ComposePollScreenComponent: Component {
                 environment: {},
                 containerSize: CGSize(width: 120.0, height: barButtonSize.height)
             )
-            let doneButtonFrame = CGRect(origin: CGPoint(x: availableSize.width - environment.safeInsets.right - 16.0 - doneButtonSize.width, y: 16.0), size: doneButtonSize)
+            let doneButtonFrame = CGRect(origin: CGPoint(x: availableSize.width - environment.safeInsets.right - listInset - doneButtonSize.width, y: listInset), size: doneButtonSize)
             if let doneButtonView = self.doneButton.view {
                 if doneButtonView.superview == nil {
                     component.overNavigationContainer.addSubview(doneButtonView)
@@ -2962,7 +2964,7 @@ final class ComposePollScreenComponent: Component {
             // With Close in the side strip (iPhone Duo) the row starts at the band's edge.
             let leftClusterMaxX = sideColumnButtonFrame != nil ? environment.safeInsets.left : cancelButtonFrame.maxX
             var titleFrame = CGRect(origin: CGPoint(x: floorToScreenPixels(bandCenterX - titleSize.width / 2.0), y: floorToScreenPixels((environment.navigationHeight - titleSize.height) / 2.0) + 3.0), size: titleSize)
-            if titleFrame.maxX > doneButtonFrame.minX - 16.0 {
+            if titleFrame.maxX > doneButtonFrame.minX - listInset {
                 titleFrame.origin.x = leftClusterMaxX + floorToScreenPixels((doneButtonFrame.minX - leftClusterMaxX) - titleSize.width) / 2.0
             }
                 
@@ -2977,7 +2979,7 @@ final class ComposePollScreenComponent: Component {
                 if let targetView = self.collectTextInputStates().first(where: { $0.view.currentTag === recenterOnTag })?.view {
                     let caretRect = targetView.convert(targetView.bounds, to: self.scrollView)
                     var scrollViewBounds = self.scrollView.bounds
-                    let minButtonDistance: CGFloat = 16.0
+                    let minButtonDistance: CGFloat = listInset
                     if -scrollViewBounds.minY + caretRect.maxY > availableSize.height - combinedBottomInset - minButtonDistance {
                         scrollViewBounds.origin.y = -(availableSize.height - combinedBottomInset - minButtonDistance - caretRect.maxY)
                         if scrollViewBounds.origin.y < 0.0 {

@@ -222,12 +222,12 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
             case .plain:
                 itemBackgroundColor = item.presentationData.theme.list.plainBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemPlainSeparatorColor
-                contentSize = CGSize(width: params.width, height: 44.0)
+                contentSize = CGSize(width: params.width, height: PresentationLayoutMetrics.minimumInteractiveSize)
                 insets = itemListNeighborsPlainInsets(neighbors)
             case .blocks:
                 itemBackgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemBlocksSeparatorColor
-                contentSize = CGSize(width: params.width, height: 44.0)
+                contentSize = CGSize(width: params.width, height: PresentationLayoutMetrics.minimumInteractiveSize)
                 insets = itemListNeighborsGroupedInsets(neighbors, params)
             }
             
@@ -311,7 +311,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
                     
                     let _ = titleApply()
                     
-                    let leftInset = 16.0 + params.leftInset + sideImageInset
+                    let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset + sideImageInset
                     
                     switch item.style {
                         case .plain:
@@ -355,7 +355,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
                             let bottomStripeInset: CGFloat
                             switch neighbors.bottom {
                                 case .sameSection(false):
-                                    bottomStripeInset = 16.0 + params.leftInset + sideImageInset
+                                    bottomStripeInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset + sideImageInset
                                     strongSelf.bottomStripeNode.isHidden = false
                                 default:
                                     bottomStripeInset = 0.0
@@ -399,7 +399,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
                     }
                     strongSelf.switchGestureNode.isHidden = item.enabled
                     
-                    strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -UIScreenPixel), size: CGSize(width: params.width, height: 44.0 + UIScreenPixel + UIScreenPixel))
+                    strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -UIScreenPixel), size: CGSize(width: params.width, height: contentSize.height + UIScreenPixel + UIScreenPixel))
                 }
             })
         }

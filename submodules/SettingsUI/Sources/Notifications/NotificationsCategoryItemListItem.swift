@@ -198,7 +198,7 @@ public class NotificationsCategoryItemListItemNode: ListViewItemNode, ItemListIt
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            var leftInset = 16.0 + params.leftInset
+            var leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             if let _ = item.icon {
                 leftInset += 43.0
             }

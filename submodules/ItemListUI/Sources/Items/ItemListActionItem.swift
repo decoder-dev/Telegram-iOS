@@ -247,8 +247,8 @@ public class ItemListActionItemNode: ListViewItemNode, ItemListItemNode {
                     
                     let _ = titleApply()
                     
-                    let leftInset = 16.0 + params.leftInset
-                    
+                    let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+                                    
                     switch item.style {
                         case .plain:
                             if strongSelf.backgroundNode.supernode != nil {
@@ -292,7 +292,7 @@ public class ItemListActionItemNode: ListViewItemNode, ItemListItemNode {
                             let bottomStripeOffset: CGFloat
                             switch neighbors.bottom {
                                 case .sameSection(false):
-                                    bottomStripeInset = 16.0 + params.leftInset
+                                    bottomStripeInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
                                     bottomStripeOffset = -separatorHeight
                                     strongSelf.bottomStripeNode.isHidden = false
                                 default:

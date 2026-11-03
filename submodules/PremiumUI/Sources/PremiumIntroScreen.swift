@@ -1381,12 +1381,14 @@ final class PerkComponent: CombinedComponent {
         return { context in
             let component = context.component
             
-            let sideInset: CGFloat = 16.0
+            let sideInset = PresentationLayoutMetrics.listHorizontalInset
             let iconTopInset: CGFloat = 15.0
             let textTopInset: CGFloat = 9.0
             let textBottomInset: CGFloat = 9.0
             let spacing: CGFloat = 2.0
             let iconSize = CGSize(width: 30.0, height: 30.0)
+            let titleFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
+            let subtitleFontSize = min(20.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 13.0))
             
             let iconBackground = iconBackground.update(
                 component: RoundedRectangle(
@@ -1411,7 +1413,7 @@ final class PerkComponent: CombinedComponent {
                     text: .plain(
                         NSAttributedString(
                             string: component.title,
-                            font: Font.regular(17),
+                            font: Font.regular(titleFontSize),
                             textColor: component.titleColor
                         )
                     ),
@@ -1427,7 +1429,7 @@ final class PerkComponent: CombinedComponent {
                     text: .plain(
                         NSAttributedString(
                             string: component.subtitle,
-                            font: Font.regular(13),
+                            font: Font.regular(subtitleFontSize),
                             textColor: component.subtitleColor
                         )
                     ),
@@ -1481,7 +1483,7 @@ final class PerkComponent: CombinedComponent {
                 .position(CGPoint(x: iconBackground.size.width + sideInset + subtitle.size.width / 2.0, y: textTopInset + title.size.height + spacing + subtitle.size.height / 2.0))
             )
             
-            let size = CGSize(width: context.availableSize.width, height: textTopInset + title.size.height + spacing + subtitle.size.height + textBottomInset)
+            let size = CGSize(width: context.availableSize.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, textTopInset + title.size.height + spacing + subtitle.size.height + textBottomInset))
             
             if component.displayArrow {
                 let arrow = arrow.update(
@@ -1821,7 +1823,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
         let termsText = Child(MultilineTextComponent.self)
         
         return { context in
-            let sideInset: CGFloat = 16.0
+            let sideInset = PresentationLayoutMetrics.listHorizontalInset
             
             let scrollEnvironment = context.environment[ScrollChildEnvironment.self].value
             let environment = context.environment[ViewControllerComponentContainer.Environment.self].value
@@ -2100,7 +2102,9 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                                             secondaryTextColor: subtitleColor,
                                             accentColor: environment.theme.list.itemAccentColor,
                                             checkForegroundColor: environment.theme.list.itemCheckColors.foregroundColor,
-                                            checkBorderColor: environment.theme.list.itemCheckColors.strokeColor
+                                            checkBorderColor: environment.theme.list.itemCheckColors.strokeColor,
+                                            titleFontSize: presentationData.listsFontSize.baseDisplaySize,
+                                            subtitleFontSize: floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)
                                         )
                                     )
                                 ),
@@ -2140,7 +2144,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                 }
             }
              
-            let textSideInset: CGFloat = 16.0
+            let textSideInset = PresentationLayoutMetrics.listHorizontalInset
             
             let forceDark = context.component.forceDark
             let layoutPerks = { [state] in
@@ -3471,6 +3475,7 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
         return { context in
             let environment = context.environment[EnvironmentType.self].value
             let state = context.state
+            let presentationData = context.component.screenContext.presentationData
             state.navigationController = { [weak environment] in
                 return environment?.controller()?.navigationController as? NavigationController
             }
@@ -3924,17 +3929,20 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
                     UIColor(rgb: 0x8878ff),
                     UIColor(rgb: 0xe46ace)
                 ]
+                let buttonTitleFontSize = presentationData.listsFontSize.baseDisplaySize
+                let buttonSubtitleFontSize = floor(presentationData.listsFontSize.baseDisplaySize * 11.0 / 17.0)
+                let buttonHeight = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, buttonTitleFontSize + 28.0)
                 let buttonContent: AnyComponent<Empty>
                 if let buttonSubtitle {
                     buttonContent = AnyComponent(VStack([
                         AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(Text(
                             text: buttonTitle,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(buttonTitleFontSize),
                             color: .white
                         ))),
                         AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(Text(
                             text: buttonSubtitle,
-                            font: Font.medium(11.0),
+                            font: Font.medium(buttonSubtitleFontSize),
                             color: UIColor.white.withAlphaComponent(0.7)
                         )))
                     ], spacing: 1.0))
@@ -3973,7 +3981,7 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
                             }
                         }
                     ),
-                    availableSize: CGSize(width: context.availableSize.width - buttonInsets.left - buttonInsets.right - buttonBottomInsets.left - buttonBottomInsets.right, height: 52.0),
+                    availableSize: CGSize(width: context.availableSize.width - buttonInsets.left - buttonInsets.right - buttonBottomInsets.left - buttonBottomInsets.right, height: buttonHeight),
                     transition: context.transition)
                                
                 let bottomEdgeEffectHeight = 13.0 + buttonInsets.bottom + button.size.height

@@ -139,7 +139,7 @@ class ItemListSecretChatKeyItemNode: ListViewItemNode {
             let rightInset: CGFloat
             switch item.disclosureStyle {
             case .none:
-                rightInset = 16.0 + params.rightInset
+                rightInset = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             case .arrow, .optionArrows:
                 rightInset = 34.0 + params.rightInset
             }
@@ -168,25 +168,27 @@ class ItemListSecretChatKeyItemNode: ListViewItemNode {
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            var leftInset = 16.0 + params.leftInset
+            var leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             if let _ = item.icon {
                 leftInset += 43.0
             }
             
             let titleFont = Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
+            let usesLargeTextLayout = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+            let titleMaxLines: Int = usesLargeTextLayout ? 2 : 1
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - params.rightInset - 20.0 - leftInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: titleMaxLines, truncationType: .end, constrainedSize: CGSize(width: params.width - params.rightInset - 20.0 - leftInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             switch item.style {
             case .plain:
                 itemBackgroundColor = item.presentationData.theme.list.plainBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemPlainSeparatorColor
-                contentSize = CGSize(width: params.width, height: 22.0 + titleLayout.size.height)
+                contentSize = CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, 22.0 + titleLayout.size.height))
                 insets = itemListNeighborsPlainInsets(neighbors)
             case .blocks:
                 itemBackgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemBlocksSeparatorColor
-                contentSize = CGSize(width: params.width, height: 22.0 + titleLayout.size.height)
+                contentSize = CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, 22.0 + titleLayout.size.height))
                 insets = itemListNeighborsGroupedInsets(neighbors, params)
             }
             

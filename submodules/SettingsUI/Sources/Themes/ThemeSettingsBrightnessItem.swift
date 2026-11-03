@@ -114,7 +114,7 @@ class ThemeSettingsBrightnessItemNode: ListViewItemNode {
             sliderView.trackColor = item.theme.list.itemAccentColor
             sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
             
-            sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 38.0, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 38.0 * 2.0, height: 44.0))
+            sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 38.0, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 38.0 * 2.0, height: PresentationLayoutMetrics.minimumInteractiveSize))
         }
         self.view.addSubview(sliderView)
         sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
@@ -182,7 +182,7 @@ class ThemeSettingsBrightnessItemNode: ListViewItemNode {
                     let bottomStripeOffset: CGFloat
                     switch neighbors.bottom {
                         case .sameSection(false):
-                            bottomStripeInset = params.leftInset + 16.0
+                            bottomStripeInset = params.leftInset + PresentationLayoutMetrics.listHorizontalInset
                             bottomStripeOffset = -separatorHeight
                             strongSelf.bottomStripeNode.isHidden = false
                         default:
@@ -220,7 +220,7 @@ class ThemeSettingsBrightnessItemNode: ListViewItemNode {
                             sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
                         }
                         
-                        sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 38.0, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 38.0 * 2.0, height: 44.0))
+                        sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + 38.0, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - 38.0 * 2.0, height: PresentationLayoutMetrics.minimumInteractiveSize))
                     }
                 }
             })

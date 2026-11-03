@@ -41,6 +41,9 @@ final class EmptySearchResultsView: UIView {
             titleColor = theme.chat.inputMediaPanel.panelContentVibrantSearchOverlayColor
         }
         
+        let titleFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0
+        let titleFont = Font.regular(titleFontSize)
+        
         let iconSize: CGSize
         if let file = file {
             iconSize = self.icon.update(
@@ -62,13 +65,13 @@ final class EmptySearchResultsView: UIView {
         
         let titleSize = self.titleLabel.update(
             transition: .immediate,
-            component: AnyComponent(Text(text: text, font: Font.regular(15.0), color: titleColor)),
+            component: AnyComponent(Text(text: text, font: titleFont, color: titleColor)),
             environment: {},
             containerSize: CGSize(width: size.width, height: 100.0)
         )
         let _ = self.titleTintLabel.update(
             transition: .immediate,
-            component: AnyComponent(Text(text: text, font: Font.regular(15.0), color: .black)),
+            component: AnyComponent(Text(text: text, font: titleFont, color: .black)),
             environment: {},
             containerSize: CGSize(width: size.width, height: 100.0)
         )

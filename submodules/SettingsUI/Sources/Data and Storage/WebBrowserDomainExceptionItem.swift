@@ -362,7 +362,7 @@ final class WebBrowserDomainExceptionItemNode: ItemListRevealOptionsItemNode, It
                     let labelFrame = CGRect(origin: CGPoint(x: leftInset + strongSelf.revealOffset, y: titleFrame.maxY + titleSpacing), size: labelLayout.size)
                     strongSelf.labelNode.frame = labelFrame
                     
-                    let iconFrame = CGRect(origin: CGPoint(x: params.leftInset + 16.0 + strongSelf.revealOffset, y: floorToScreenPixels((contentSize.height - iconSize.height) / 2.0)), size: iconSize)
+                    let iconFrame = CGRect(origin: CGPoint(x: params.leftInset + PresentationLayoutMetrics.listHorizontalInset + strongSelf.revealOffset, y: floorToScreenPixels((contentSize.height - iconSize.height) / 2.0)), size: iconSize)
                     strongSelf.iconPlaceholderNode.frame = iconFrame
                     strongSelf.iconPlaceholderTextNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((iconSize.width - iconPlaceholderTextLayout.size.width) / 2.0) + UIScreenPixel, y: floorToScreenPixels((iconSize.height - iconPlaceholderTextLayout.size.height) / 2.0) + 1.0), size: iconPlaceholderTextLayout.size)
                     strongSelf.iconPlaceholderNode.isHidden = hasResolvedIcon
@@ -399,14 +399,14 @@ final class WebBrowserDomainExceptionItemNode: ItemListRevealOptionsItemNode, It
         super.updateRevealOffset(offset: offset, transition: transition)
         
         if let params = self.layoutParams {
-            let leftInset: CGFloat = 16.0 + params.leftInset + 46.0
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset + 46.0
             
             var iconFrame = self.iconNode.frame
-            iconFrame.origin.x = params.leftInset + 16.0 + offset
+            iconFrame.origin.x = params.leftInset + PresentationLayoutMetrics.listHorizontalInset + offset
             transition.updateFrame(node: self.iconNode, frame: iconFrame)
             
             var iconPlaceholderFrame = self.iconPlaceholderNode.frame
-            iconPlaceholderFrame.origin.x = params.leftInset + 16.0 + offset
+            iconPlaceholderFrame.origin.x = params.leftInset + PresentationLayoutMetrics.listHorizontalInset + offset
             transition.updateFrame(node: self.iconPlaceholderNode, frame: iconPlaceholderFrame)
 
             var titleFrame = self.titleNode.frame

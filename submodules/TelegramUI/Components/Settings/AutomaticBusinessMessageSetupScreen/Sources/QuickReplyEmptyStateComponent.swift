@@ -75,6 +75,7 @@ final class QuickReplyEmptyStateComponent: Component {
             // the full width.
             let bandMinX: CGFloat = component.insets.left != component.insets.right ? component.insets.left : 0.0
             let bandWidth: CGFloat = component.insets.left != component.insets.right ? availableSize.width - component.insets.left - component.insets.right : availableSize.width
+            let horizontalContentInset = PresentationLayoutMetrics.listHorizontalInset * 2.0
 
             let buttonSize = self.button.update(
                 transition: transition,
@@ -105,7 +106,7 @@ final class QuickReplyEmptyStateComponent: Component {
                     }
                 )),
                 environment: {},
-                containerSize: CGSize(width: min(bandWidth - 16.0 * 2.0, 280.0), height: 52.0)
+                containerSize: CGSize(width: min(bandWidth - horizontalContentInset, 280.0), height: 52.0)
             )
             let buttonFrame = CGRect(origin: CGPoint(x: bandMinX + floor((bandWidth - buttonSize.width) * 0.5), y: availableSize.height - component.insets.bottom - 14.0 - buttonSize.height), size: buttonSize)
             if let buttonView = self.button.view {
@@ -136,7 +137,7 @@ final class QuickReplyEmptyStateComponent: Component {
                     horizontalAlignment: .center
                 )),
                 environment: {},
-                containerSize: CGSize(width: bandWidth - 16.0 * 2.0, height: 100.0)
+                containerSize: CGSize(width: bandWidth - horizontalContentInset, height: 100.0)
             )
             
             let textSize = self.text.update(
@@ -148,7 +149,7 @@ final class QuickReplyEmptyStateComponent: Component {
                     lineSpacing: 0.2
                 )),
                 environment: {},
-                containerSize: CGSize(width: bandWidth - 16.0 * 2.0, height: 100.0)
+                containerSize: CGSize(width: bandWidth - horizontalContentInset, height: 100.0)
             )
             
             let topInset: CGFloat = component.insets.top

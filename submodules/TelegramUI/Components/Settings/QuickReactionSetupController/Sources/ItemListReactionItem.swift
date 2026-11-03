@@ -193,7 +193,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
                 updateIcon = true
             }
         
-            var leftInset = 16.0 + params.leftInset
+            var leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             if item.icon != nil {
                 leftInset += 43.0
             }

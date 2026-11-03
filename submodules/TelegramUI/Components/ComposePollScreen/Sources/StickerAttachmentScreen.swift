@@ -1090,7 +1090,8 @@ final class StickerAttachmentScreenComponent: Component {
                 transition.setFrame(view: self.panelHostView, frame: CGRect(origin: CGPoint(x: -12.0, y: 8.0 - UIScreenPixel), size: CGSize(width: keyboardSize.width, height: 0.0)))
             }
             
-            let barButtonSize = CGSize(width: 44.0, height: 44.0)
+            let listInset = PresentationLayoutMetrics.listHorizontalInset
+            let barButtonSize = CGSize(width: PresentationLayoutMetrics.minimumInteractiveSize, height: PresentationLayoutMetrics.minimumInteractiveSize)
             let cancelButtonSize = self.cancelButton.update(
                 transition: transition,
                 component: AnyComponent(GlassBarButtonComponent(
@@ -1120,7 +1121,7 @@ final class StickerAttachmentScreenComponent: Component {
             if let sideColumnButtonFrame = environment.sideColumnNavigationButtonFrame {
                 cancelButtonFrame = CGRect(origin: CGPoint(x: floorToScreenPixels(sideColumnButtonFrame.midX - cancelButtonSize.width * 0.5), y: floorToScreenPixels(sideColumnButtonFrame.midY - cancelButtonSize.height * 0.5)), size: cancelButtonSize)
             } else {
-                cancelButtonFrame = CGRect(origin: CGPoint(x: 16.0, y: 16.0), size: cancelButtonSize)
+                cancelButtonFrame = CGRect(origin: CGPoint(x: listInset, y: listInset), size: cancelButtonSize)
             }
             if let cancelButtonView = self.cancelButton.view {
                 if cancelButtonView.superview == nil {

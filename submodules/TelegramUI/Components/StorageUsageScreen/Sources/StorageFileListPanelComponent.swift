@@ -521,10 +521,13 @@ private final class FileListItemComponent: Component {
                 }
             }
             
+            let titleFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 16.0))
+            let labelFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
+            let subtitleFontSize = min(20.0, UIFontMetrics(forTextStyle: .footnote).scaledValue(for: 14.0))
             let labelSize = self.label.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.label, font: Font.regular(17.0), textColor: component.theme.list.itemSecondaryTextColor))
+                    text: .plain(NSAttributedString(string: component.label, font: Font.regular(labelFontSize), textColor: component.theme.list.itemSecondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftInset - rightInset, height: 100.0)
@@ -539,7 +542,7 @@ private final class FileListItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(16.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(titleFontSize), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftInset - rightInset - labelSize.width - 4.0, height: 100.0)
@@ -548,7 +551,7 @@ private final class FileListItemComponent: Component {
             let subtitleSize = self.subtitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.subtitle, font: Font.regular(14.0), textColor: component.theme.list.itemSecondaryTextColor))
+                    text: .plain(NSAttributedString(string: component.subtitle, font: Font.regular(subtitleFontSize), textColor: component.theme.list.itemSecondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftInset - rightInset - labelSize.width - 4.0, height: 100.0)

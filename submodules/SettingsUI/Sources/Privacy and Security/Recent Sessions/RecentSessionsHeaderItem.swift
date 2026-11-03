@@ -73,7 +73,9 @@ class RecentSessionsHeaderItem: ListViewItem, ItemListItem {
     }
 }
 
-private let titleFont = Font.regular(14.0)
+private func recentSessionsHeaderFont(size: CGFloat) -> UIFont {
+    return Font.regular(min(22.0, UIFontMetrics(forTextStyle: .footnote).scaledValue(for: size)))
+}
 
 class RecentSessionsHeaderItemNode: ListViewItemNode {
     private let titleNode: TextNode
@@ -132,6 +134,7 @@ class RecentSessionsHeaderItemNode: ListViewItemNode {
                 updatedTheme = item.theme
             }
             
+            let titleFont = recentSessionsHeaderFont(size: 14.0)
             let attributedText = parseMarkdownIntoAttributedString(item.text, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: titleFont, textColor: item.theme.list.itemPrimaryTextColor), bold: MarkdownAttributeSet(font: titleFont, textColor: item.theme.list.itemPrimaryTextColor), link: MarkdownAttributeSet(font: titleFont, textColor: item.theme.list.itemAccentColor), linkAttribute: { contents in
                 return (TelegramTextAttributes.URL, contents)
             }))
@@ -161,9 +164,10 @@ class RecentSessionsHeaderItemNode: ListViewItemNode {
                         strongSelf.buttonNode.updateTheme(SolidRoundedButtonTheme(theme: item.theme))
                     }
                     
-                    let buttonSideInset: CGFloat = 16.0
+                    let buttonSideInset = PresentationLayoutMetrics.listHorizontalInset
                     let buttonWidth = min(375, contentSize.width - buttonSideInset * 2.0 - abs(params.leftInset - params.rightInset))
-                    let buttonHeight = 52.0
+                    let buttonFontSize = item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+                    let buttonHeight = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, buttonFontSize + 28.0)
                     let buttonFrame = CGRect(x: params.leftInset + floorToScreenPixels((params.width - params.leftInset - params.rightInset - buttonWidth) / 2.0), y: contentSize.height - buttonHeight + 4.0, width: buttonWidth, height: buttonHeight)
                     strongSelf.buttonNode.frame = buttonFrame
                     
@@ -182,7 +186,7 @@ class RecentSessionsHeaderItemNode: ListViewItemNode {
                                     HStack([
                                         AnyComponentWithIdentity(id: "icon", component: AnyComponent(BundleIconComponent(name: "Settings/QrButtonIcon", tintColor: item.theme.list.itemCheckColors.foregroundColor))),
                                         AnyComponentWithIdentity(id: "label", component: AnyComponent(
-                                            Text(text: item.context.sharedContext.currentPresentationData.with { $0 }.strings.AuthSessions_LinkDesktopDevice, font: Font.semibold(17.0), color: item.theme.list.itemCheckColors.foregroundColor)
+                                            Text(text: item.context.sharedContext.currentPresentationData.with { $0 }.strings.AuthSessions_LinkDesktopDevice, font: Font.semibold(buttonFontSize), color: item.theme.list.itemCheckColors.foregroundColor)
                                         ))
                                     ], spacing: 6.0)
                                 )

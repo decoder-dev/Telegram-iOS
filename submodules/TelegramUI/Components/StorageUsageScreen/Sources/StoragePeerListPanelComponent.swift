@@ -235,15 +235,47 @@ private final class PeerListItemComponent: Component {
             
             let contextInset: CGFloat = self.isExtractedToContextMenu ? 12.0 : 0.0
             
-            let height: CGFloat = 52.0
             let verticalInset: CGFloat = 1.0
             var leftInset: CGFloat = 62.0 + component.sideInset
             var avatarLeftInset: CGFloat = component.sideInset + 10.0
             
-            if case let .editing(isSelected) = component.selectionState {
+            if case .editing = component.selectionState {
                 leftInset += 48.0
                 avatarLeftInset += 48.0
-                
+            }
+            
+            let rightInset: CGFloat = contextInset * 2.0 + PresentationLayoutMetrics.listHorizontalInset + component.sideInset
+            let rowFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
+            
+            let labelSize = self.label.update(
+                transition: .immediate,
+                component: AnyComponent(MultilineTextComponent(
+                    text: .plain(NSAttributedString(string: component.label, font: Font.regular(rowFontSize), textColor: component.theme.list.itemSecondaryTextColor)),
+                    maximumNumberOfLines: rowFontSize >= PresentationLayoutMetrics.multilineTextThreshold ? 0 : 1
+                )),
+                environment: {},
+                containerSize: CGSize(width: availableSize.width - leftInset - rightInset, height: 100.0)
+            )
+            
+            let previousTitleFrame = self.title.view?.frame
+            var previousTitleContents: UIView?
+            if hasSelectionUpdated && !"".isEmpty {
+                previousTitleContents = self.title.view?.snapshotView(afterScreenUpdates: false)
+            }
+            
+            let titleSize = self.title.update(
+                transition: .immediate,
+                component: AnyComponent(MultilineTextComponent(
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(rowFontSize), textColor: component.theme.list.itemPrimaryTextColor)),
+                    maximumNumberOfLines: rowFontSize >= PresentationLayoutMetrics.multilineTextThreshold ? 0 : 1
+                )),
+                environment: {},
+                containerSize: CGSize(width: availableSize.width - leftInset - rightInset - labelSize.width - 4.0, height: 100.0)
+            )
+            
+            let height = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, titleSize.height + 20.0)
+            
+            if case let .editing(isSelected) = component.selectionState {
                 let checkSize: CGFloat = 22.0
                 
                 let checkLayer: CheckLayer
@@ -271,8 +303,6 @@ private final class PeerListItemComponent: Component {
                 }
             }
             
-            let rightInset: CGFloat = contextInset * 2.0 + 16.0 + component.sideInset
-            
             let avatarSize: CGFloat = 40.0
             
             let avatarFrame = CGRect(origin: CGPoint(x: avatarLeftInset, y: floor((height - verticalInset * 2.0 - avatarSize) / 2.0)), size: CGSize(width: avatarSize, height: avatarSize))
@@ -295,29 +325,6 @@ private final class PeerListItemComponent: Component {
                 }
             }
             
-            let labelSize = self.label.update(
-                transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.label, font: Font.regular(17.0), textColor: component.theme.list.itemSecondaryTextColor))
-                )),
-                environment: {},
-                containerSize: CGSize(width: availableSize.width - leftInset - rightInset, height: 100.0)
-            )
-            
-            let previousTitleFrame = self.title.view?.frame
-            var previousTitleContents: UIView?
-            if hasSelectionUpdated && !"".isEmpty {
-                previousTitleContents = self.title.view?.snapshotView(afterScreenUpdates: false)
-            }
-            
-            let titleSize = self.title.update(
-                transition: .immediate,
-                component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor))
-                )),
-                environment: {},
-                containerSize: CGSize(width: availableSize.width - leftInset - rightInset - labelSize.width - 4.0, height: 100.0)
-            )
             let titleFrame = CGRect(origin: CGPoint(x: leftInset, y: floor((height - verticalInset * 2.0 - titleSize.height) / 2.0)), size: titleSize)
             if let titleView = self.title.view {
                 if titleView.superview == nil {

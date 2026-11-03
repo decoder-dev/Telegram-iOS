@@ -1272,13 +1272,14 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
             
             labelInset += reorderInset
             
-            let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: labelAttributedString, backgroundColor: nil, maximumNumberOfLines: labelMaximumNumberOfLines, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 16.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: labelAlignment, lineSpacing: labelLineSpacing, cutout: nil, insets: UIEdgeInsets()))
+            let usesLargeTextLayout = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+            let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: labelAttributedString, backgroundColor: nil, maximumNumberOfLines: usesLargeTextLayout ? 0 : labelMaximumNumberOfLines, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - PresentationLayoutMetrics.listHorizontalInset - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: labelAlignment, lineSpacing: labelLineSpacing, cutout: nil, insets: UIEdgeInsets()))
             
             let constrainedTitleSize = CGSize(width: params.width - leftInset - 12.0 - editingOffset - rightInset - labelLayout.size.width - labelInset - titleIconsWidth, height: CGFloat.greatestFiniteMagnitude)
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: constrainedTitleSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: usesLargeTextLayout ? 0 : 1, truncationType: .end, constrainedSize: constrainedTitleSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let constrainedStatusSize = CGSize(width: params.width - leftInset - 8.0 - editingOffset - rightInset - labelLayout.size.width - labelInset, height: CGFloat.greatestFiniteMagnitude)
-            let (statusLayout, statusApply) = makeStatusLayout(TextNodeLayoutArguments(attributedString: statusAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: constrainedStatusSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (statusLayout, statusApply) = makeStatusLayout(TextNodeLayoutArguments(attributedString: statusAttributedString, backgroundColor: nil, maximumNumberOfLines: usesLargeTextLayout ? 0 : 1, truncationType: .end, constrainedSize: constrainedStatusSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             var insets = itemListNeighborsGroupedInsets(neighbors, params)
             if !item.hasTopGroupInset {
@@ -1299,7 +1300,7 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
             
             let titleSpacing: CGFloat = statusLayout.size.height == 0.0 ? 0.0 : 1.0
             
-            let minHeight: CGFloat = titleLayout.size.height + verticalInset * 2.0
+            let minHeight: CGFloat = max(PresentationLayoutMetrics.minimumInteractiveSize, titleLayout.size.height + verticalInset * 2.0)
             let rawHeight: CGFloat = verticalInset * 2.0 + titleLayout.size.height + titleSpacing + statusLayout.size.height
             
             let contentSize = CGSize(width: params.width, height: max(minHeight, rawHeight))

@@ -117,14 +117,14 @@ public class ItemListPlaceholderItemNode: ListViewItemNode, ItemListItemNode {
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.leftInset
-            let rightInset = 16.0 + params.rightInset
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+            let rightInset = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             
             let textColor = item.theme.list.itemSecondaryTextColor
             
             let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.text, font: textFont, textColor: textColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             
-            let height: CGFloat = 42.0 + textLayout.size.height
+            let height: CGFloat = max(PresentationLayoutMetrics.minimumInteractiveSize, 42.0 + textLayout.size.height)
             
             switch item.style {
                 case .plain:

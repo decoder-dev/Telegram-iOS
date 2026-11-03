@@ -545,8 +545,14 @@ public final class ListActionItemComponent: Component {
             contentHeight += titleSize.height
             contentHeight += contentInsets.bottom
             
-            if case .glass = component.style, contentHeight < 52.0 {
-                contentHeight = 52.0
+            let minimumRowHeight: CGFloat = {
+                if case .glass = component.style {
+                    return max(52.0, PresentationLayoutMetrics.minimumInteractiveSize)
+                }
+                return PresentationLayoutMetrics.minimumInteractiveSize
+            }()
+            if contentHeight < minimumRowHeight {
+                contentHeight = minimumRowHeight
             }
             
             let titleY = floorToScreenPixels((contentHeight - titleSize.height) / 2.0)

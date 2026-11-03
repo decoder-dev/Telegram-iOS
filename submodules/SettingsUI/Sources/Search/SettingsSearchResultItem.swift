@@ -282,7 +282,7 @@ class SettingsSearchResultItemNode: ListViewItemNode {
                     strongSelf.contextSourceNode.contentNode.frame = CGRect(origin: CGPoint(), size: layout.contentSize)
                     
                     let nonExtractedRect = CGRect(origin: CGPoint(), size: CGSize(width: layout.contentSize.width - 16.0, height: layout.contentSize.height))
-                    let extractedRect = CGRect(origin: CGPoint(), size: layout.contentSize).inset(by: UIEdgeInsets(top: 0.0, left: 16.0 + params.leftInset, bottom: 0.0, right: 16.0 + params.rightInset))
+                    let extractedRect = CGRect(origin: CGPoint(), size: layout.contentSize).inset(by: UIEdgeInsets(top: 0.0, left: PresentationLayoutMetrics.listHorizontalInset + params.leftInset, bottom: 0.0, right: PresentationLayoutMetrics.listHorizontalInset + params.rightInset))
                     strongSelf.extractedRect = extractedRect
                     strongSelf.nonExtractedRect = nonExtractedRect
                     

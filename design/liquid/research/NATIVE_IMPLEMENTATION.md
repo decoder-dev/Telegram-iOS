@@ -237,3 +237,9 @@ LocationPickerController принимал presentation updates только пр
 Список прокси: server rows берут fontSize из presentation data, переносят длинный host/status, считают высоту по тексту и расширяют info target. Action rows и browser exception rows переносят заголовки и держат минимум 44 pt. Expandable switch и text-with-label в ItemListUI следуют тем же правилам.
 
 Passcode Cancel/Delete и mode button используют минимум 44 pt. Story/peer list rows масштабируют title/subtitle и не опускаются ниже interactive size. Branding Liquid contrast: 7 pass. Нативная приёмка и Simulator по-прежнему NOT RUN.
+
+## ItemList, настройки, Premium, storage и poll
+
+Оставшиеся ItemList rows (action/switch/placeholder/section header/multiline и single-line input) берут `PresentationLayoutMetrics` для горизонтальных inset и минимума 44 pt; заголовки секций и подписи переносятся при крупном тексте. AccountOrder и соседние peer rows (`ItemListPeerItem`) при крупном тексте переносят title/status/label и не опускаются ниже interactive size.
+
+Premium option rows и CTA на PremiumIntro масштабируются с `listsFontSize`, а ListAction rows держат минимум 44/52 pt. Storage usage: заголовок, описание, Edit/Done, clear button, peer/file/category labels идут через Dynamic Type; peer rows расширяются по тексту. Compose poll option fields читают `listsFontSize` из presentation data и держат минимум interactive height. Theme font/brightness sliders и Recent Sessions header button тоже на метриках. Нативная приёмка по-прежнему NOT RUN.

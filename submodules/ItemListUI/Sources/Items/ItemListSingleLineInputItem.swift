@@ -249,8 +249,8 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
                 styleUpdated = true
             }
             
-            let leftInset: CGFloat = 16.0 + params.leftInset
-            var rightInset: CGFloat = 16.0 + params.rightInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+            var rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             
             if item.clearType.hasButton {
                 rightInset += PresentationLayoutMetrics.minimumInteractiveSize

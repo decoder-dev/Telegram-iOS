@@ -214,15 +214,16 @@ final class StorageCategoriesComponent: Component {
                     label = dataSizeString(totalSelectedSize, formatting: DataSizeStringFormatting(strings: component.strings, decimalSeparator: "."))
                 }
                 
+                let clearButtonFontSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: 17.0))
                 var buttonContents: [AnyComponentWithIdentity<Empty>] = [
                     AnyComponentWithIdentity(id: "title", component: AnyComponent(
-                        MultilineTextComponent(text: .plain(NSMutableAttributedString(string: clearTitle, font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)))
+                        MultilineTextComponent(text: .plain(NSMutableAttributedString(string: clearTitle, font: Font.semibold(clearButtonFontSize), textColor: component.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)))
                     ))
                 ]
                 if let label {
                     buttonContents.append(
                         AnyComponentWithIdentity(id: "label", component: AnyComponent(
-                            MultilineTextComponent(text: .plain(NSMutableAttributedString(string: label, font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor.withMultipliedAlpha(0.6), paragraphAlignment: .center)))
+                            MultilineTextComponent(text: .plain(NSMutableAttributedString(string: label, font: Font.semibold(clearButtonFontSize), textColor: component.theme.list.itemCheckColors.foregroundColor.withMultipliedAlpha(0.6), paragraphAlignment: .center)))
                         ))
                     )
                 }

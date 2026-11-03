@@ -238,10 +238,10 @@ public class ItemListMultilineInputItemNode: ListViewItemNode, ASEditableTextNod
             }
             let attributedMeasureText = NSAttributedString(string: measureText, font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), textColor: .black)
             let attributedText = NSAttributedString(string: item.text, font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), textColor: item.presentationData.theme.list.itemPrimaryTextColor)
-            let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: attributedMeasureText, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - 16.0 - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
+            let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: attributedMeasureText, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - PresentationLayoutMetrics.listHorizontalInset - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
             
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let textTopInset: CGFloat
             let textBottomInset: CGFloat
@@ -258,6 +258,7 @@ public class ItemListMultilineInputItemNode: ListViewItemNode, ASEditableTextNod
             if let minimalHeight = item.minimalHeight {
                 contentHeight = max(minimalHeight, contentHeight)
             }
+            contentHeight = max(PresentationLayoutMetrics.minimumInteractiveSize, contentHeight)
             
             let contentSize = CGSize(width: params.width, height: contentHeight)
             let insets = item.noInsets ? UIEdgeInsets() : itemListNeighborsGroupedInsets(neighbors, params)
@@ -361,10 +362,10 @@ public class ItemListMultilineInputItemNode: ListViewItemNode, ASEditableTextNod
                         strongSelf.maskNode.frame = strongSelf.backgroundNode.frame.inset(by: UIEdgeInsets(top: 0.0, left: params.leftInset, bottom: 0.0, right: params.rightInset))
                         strongSelf.textClippingNode.frame = CGRect(origin: CGPoint(x: leftInset, y: textTopInset), size: CGSize(width: params.width - leftInset - params.rightInset, height: textLayout.size.height))
                     }
-                    strongSelf.textNode.frame = CGRect(origin: CGPoint(), size: CGSize(width: params.width - leftInset - 16.0 - rightInset, height: textLayout.size.height + 1.0))
+                    strongSelf.textNode.frame = CGRect(origin: CGPoint(), size: CGSize(width: params.width - leftInset - PresentationLayoutMetrics.listHorizontalInset - rightInset, height: textLayout.size.height + 1.0))
                     
                     let _ = limitTextApply()
-                    strongSelf.limitTextNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - 16.0 - limitTextLayout.size.width, y: layout.contentSize.height - 15.0 - limitTextLayout.size.height), size: limitTextLayout.size)
+                    strongSelf.limitTextNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - PresentationLayoutMetrics.listHorizontalInset - limitTextLayout.size.width, y: layout.contentSize.height - 15.0 - limitTextLayout.size.height), size: limitTextLayout.size)
                     if limitTextString != nil {
                         if strongSelf.limitTextNode.supernode == nil {
                             strongSelf.addSubnode(strongSelf.limitTextNode)

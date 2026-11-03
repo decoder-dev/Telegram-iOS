@@ -605,9 +605,10 @@ public final class ListComposePollOptionComponent: Component {
             }
             self.wasEditing = isEditing
 
-            let verticalInset: CGFloat = 16.0
-            var leftInset: CGFloat = 16.0
-            var rightInset: CGFloat = 16.0
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let verticalInset = PresentationLayoutMetrics.listHorizontalInset
+            var leftInset = PresentationLayoutMetrics.listHorizontalInset
+            var rightInset = PresentationLayoutMetrics.listHorizontalInset
             let modeSelectorSize = CGSize(width: 32.0, height: 32.0)
             
             if component.hasLeftInset {
@@ -633,7 +634,7 @@ public final class ListComposePollOptionComponent: Component {
                     theme: component.theme,
                     strings: component.strings,
                     externalState: component.externalState ?? TextFieldComponent.ExternalState(),
-                    fontSize: 17.0,
+                    fontSize: fontSize,
                     textColor: component.theme.list.itemPrimaryTextColor,
                     accentColor: component.theme.list.itemPrimaryTextColor,
                     insets: UIEdgeInsets(top: verticalInset, left: 8.0, bottom: verticalInset, right: 8.0),
@@ -643,7 +644,7 @@ public final class ListComposePollOptionComponent: Component {
                     resetText: component.resetText.flatMap { resetText in
                         let result = NSMutableAttributedString(attributedString: resetText.value)
                         result.addAttributes([
-                            .font: Font.regular(17.0),
+                            .font: Font.regular(fontSize),
                             .foregroundColor: component.theme.list.itemPrimaryTextColor
                         ], range: NSRange(location: 0, length: result.length))
                         return result
@@ -688,7 +689,7 @@ public final class ListComposePollOptionComponent: Component {
                 containerSize: CGSize(width: availableSize.width - leftInset - rightInset + 8.0 * 2.0, height: availableSize.height)
             )
             
-            let size = CGSize(width: availableSize.width, height: textFieldSize.height - 1.0)
+            let size = CGSize(width: availableSize.width, height: max(textFieldSize.height - 1.0, max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, fontSize + 28.0)))
             
             var hasReorderIcon = false
             if component.canReorder, let externalState = component.externalState, externalState.hasText {
@@ -824,8 +825,8 @@ public final class ListComposePollOptionComponent: Component {
                 transition.setScale(view: checkView, scale: 0.01)
             }
                 
-            var rightIconsInset: CGFloat = 16.0
-            let minHeight: CGFloat = 52.0
+            var rightIconsInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset
+            let minHeight = max(52.0, PresentationLayoutMetrics.minimumInteractiveSize, fontSize + 28.0)
             
             if let attachment = component.attachment, attachment.alwaysDisplayAttachButton || component.externalState?.hasText == true {
                 var attachButtonTransition = transition
@@ -892,7 +893,7 @@ public final class ListComposePollOptionComponent: Component {
             }
             
             let imageNodeSize = CGSize(width: 40.0, height: 40.0)
-            let imageNodeFrame = CGRect(origin: CGPoint(x: size.width - 16.0 - imageNodeSize.width, y: size.height - minHeight + floor((minHeight - imageNodeSize.height) * 0.5)), size: imageNodeSize)
+            let imageNodeFrame = CGRect(origin: CGPoint(x: size.width - PresentationLayoutMetrics.listHorizontalInset - imageNodeSize.width, y: size.height - minHeight + floor((minHeight - imageNodeSize.height) * 0.5)), size: imageNodeSize)
             
             var isSticker = false
             if let attachment = component.attachment, let file = attachment.media?.media as? TelegramMediaFile, file.isSticker || file.isCustomEmoji {
@@ -1309,9 +1310,10 @@ public final class ListComposePollOptionComponent: Component {
                 return
             }
             
-            let verticalInset: CGFloat = 16.0
-            var leftInset: CGFloat = 16.0
-            let rightInset: CGFloat = 16.0
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let verticalInset = PresentationLayoutMetrics.listHorizontalInset
+            var leftInset = PresentationLayoutMetrics.listHorizontalInset
+            let rightInset = PresentationLayoutMetrics.listHorizontalInset
             
             if component.hasLeftInset {
                 leftInset += 46.0
@@ -1335,7 +1337,7 @@ public final class ListComposePollOptionComponent: Component {
                 let placeholderSize = customPlaceholder.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: value.isEmpty ? " " : value, font: Font.regular(17.0), textColor: component.theme.list.itemPlaceholderTextColor))
+                        text: .plain(NSAttributedString(string: value.isEmpty ? " " : value, font: Font.regular(fontSize), textColor: component.theme.list.itemPlaceholderTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: size.width - leftInset - rightInset, height: 100.0)

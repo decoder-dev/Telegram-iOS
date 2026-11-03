@@ -170,8 +170,8 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
             
             let textColor: UIColor = item.presentationData.theme.list.itemPrimaryTextColor
             
-            let leftInset: CGFloat = 16.0 + params.leftInset
-            let rightInset: CGFloat = 16.0 + params.rightInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+            let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
@@ -208,7 +208,7 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
             let contentSize: CGSize
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
-            let contentHeight = max(item.action == nil ? 0.0 : 44.0, titleLayout.size.height + 22.0)
+            let contentHeight = max(item.action == nil ? 0.0 : PresentationLayoutMetrics.minimumInteractiveSize, titleLayout.size.height + 22.0)
             
             switch item.style {
                 case .plain:

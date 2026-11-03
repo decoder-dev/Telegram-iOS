@@ -5,6 +5,7 @@ import ComponentFlow
 import MultilineTextComponent
 import CheckNode
 import Markdown
+import TelegramPresentationData
 
 final class PremiumOptionComponent: CombinedComponent {
     let title: String
@@ -18,6 +19,8 @@ final class PremiumOptionComponent: CombinedComponent {
     let accentColor: UIColor
     let checkForegroundColor: UIColor
     let checkBorderColor: UIColor
+    let titleFontSize: CGFloat
+    let subtitleFontSize: CGFloat
     
     init(
         title: String,
@@ -30,7 +33,9 @@ final class PremiumOptionComponent: CombinedComponent {
         secondaryTextColor: UIColor,
         accentColor: UIColor,
         checkForegroundColor: UIColor,
-        checkBorderColor: UIColor
+        checkBorderColor: UIColor,
+        titleFontSize: CGFloat = 17.0,
+        subtitleFontSize: CGFloat = 13.0
     ) {
         self.title = title
         self.subtitle = subtitle
@@ -43,6 +48,8 @@ final class PremiumOptionComponent: CombinedComponent {
         self.accentColor = accentColor
         self.checkForegroundColor = checkForegroundColor
         self.checkBorderColor = checkBorderColor
+        self.titleFontSize = titleFontSize
+        self.subtitleFontSize = subtitleFontSize
     }
     
     static func ==(lhs: PremiumOptionComponent, rhs: PremiumOptionComponent) -> Bool {
@@ -79,6 +86,12 @@ final class PremiumOptionComponent: CombinedComponent {
         if lhs.checkBorderColor != rhs.checkBorderColor {
             return false
         }
+        if lhs.titleFontSize != rhs.titleFontSize {
+            return false
+        }
+        if lhs.subtitleFontSize != rhs.subtitleFontSize {
+            return false
+        }
         return true
     }
     
@@ -93,18 +106,19 @@ final class PremiumOptionComponent: CombinedComponent {
         return { context in
             let component = context.component
             
-            var insets = UIEdgeInsets(top: 15.0, left: 46.0, bottom: 17.0, right: 16.0)
+            var insets = UIEdgeInsets(top: 15.0, left: 46.0, bottom: 17.0, right: PresentationLayoutMetrics.listHorizontalInset)
+            let usesLargeTextLayout = component.titleFontSize >= PresentationLayoutMetrics.multilineTextThreshold
                         
             let label = label.update(
                 component: MultilineTextComponent(
                     text: .plain(
                         NSAttributedString(
                             string: component.labelPrice,
-                            font: Font.regular(17),
+                            font: Font.regular(component.titleFontSize),
                             textColor: component.secondaryTextColor
                         )
                     ),
-                    maximumNumberOfLines: 1
+                    maximumNumberOfLines: usesLargeTextLayout ? 0 : 1
                 ),
                 availableSize: context.availableSize,
                 transition: context.transition
@@ -115,11 +129,11 @@ final class PremiumOptionComponent: CombinedComponent {
                     text: .plain(
                         NSAttributedString(
                             string: component.title,
-                            font: Font.regular(17),
+                            font: Font.regular(component.titleFontSize),
                             textColor: component.primaryTextColor
                         )
                     ),
-                    maximumNumberOfLines: 1
+                    maximumNumberOfLines: usesLargeTextLayout ? 0 : 1
                 ),
                 availableSize: CGSize(width: context.availableSize.width - insets.left - insets.right - label.size.width, height: context.availableSize.height),
                 transition: context.transition
@@ -169,7 +183,7 @@ final class PremiumOptionComponent: CombinedComponent {
             if !component.subtitle.isEmpty {
                 spacing = 2.0
                 
-                let subtitleFont = Font.regular(13)
+                let subtitleFont = Font.regular(component.subtitleFontSize)
                 let subtitleColor = component.secondaryTextColor
                 
                 let subtitleString = parseMarkdownIntoAttributedString(
@@ -185,7 +199,7 @@ final class PremiumOptionComponent: CombinedComponent {
                 let subtitle = subtitle.update(
                     component: MultilineTextComponent(
                         text: .plain(subtitleString),
-                        maximumNumberOfLines: 1
+                        maximumNumberOfLines: usesLargeTextLayout ? 0 : 1
                     ),
                     availableSize: CGSize(width: context.availableSize.width - insets.left - insets.right, height: context.availableSize.height),
                     transition: context.transition
@@ -219,7 +233,7 @@ final class PremiumOptionComponent: CombinedComponent {
                 .position(CGPoint(x: insets.left + title.size.width / 2.0, y: insets.top + title.size.height / 2.0))
             )
                
-            let size = CGSize(width: context.availableSize.width, height: insets.top + title.size.height + spacing + subtitleSize.height + insets.bottom)
+            let size = CGSize(width: context.availableSize.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, insets.top + title.size.height + spacing + subtitleSize.height + insets.bottom))
             
             let distance = context.availableSize.width - insets.left - insets.right - label.size.width - subtitleSize.width
             

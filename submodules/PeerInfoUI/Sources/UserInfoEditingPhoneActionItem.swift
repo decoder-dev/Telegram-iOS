@@ -157,7 +157,7 @@ class UserInfoEditingPhoneActionItemNode: ListViewItemNode {
                     
                     let leftInset: CGFloat
                     
-                    leftInset = 16.0 + params.leftInset
+                    leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
                     
                     if strongSelf.backgroundNode.supernode != nil {
                         strongSelf.backgroundNode.removeFromSupernode()

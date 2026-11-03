@@ -343,7 +343,7 @@ public class ItemListDisclosureItemNode: ListViewItemNode, ItemListItemNode {
             var rightInset: CGFloat
             switch item.disclosureStyle {
             case .none:
-                rightInset = 16.0 + params.rightInset
+                rightInset = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             case .arrow:
                 rightInset = 34.0 + params.rightInset
             case .optionArrows:

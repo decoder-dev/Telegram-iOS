@@ -157,8 +157,8 @@ class PeerRemoveTimeoutItemNode: ListViewItemNode, ItemListItemNode {
             sliderView.trackColor = item.enabled ? item.presentationData.theme.list.itemAccentColor : item.presentationData.theme.list.itemDisabledTextColor
             sliderView.knobImage = PresentationResourcesItemList.knobImage(item.presentationData.theme)
             
-            let sliderInset: CGFloat = params.leftInset + 16.0
-            let sliderRightInset: CGFloat = params.rightInset + 16.0
+            let sliderInset: CGFloat = params.leftInset + PresentationLayoutMetrics.listHorizontalInset
+            let sliderRightInset: CGFloat = params.rightInset + PresentationLayoutMetrics.listHorizontalInset
             
             sliderView.frame = CGRect(origin: CGPoint(x: sliderInset, y: 38.0), size: CGSize(width: params.width - sliderInset - sliderRightInset, height: 44.0))
         }
@@ -204,8 +204,8 @@ class PeerRemoveTimeoutItemNode: ListViewItemNode, ItemListItemNode {
                     strongSelf.item = item
                     strongSelf.layoutParams = params
                     
-                    let leftInset = 16.0 + params.leftInset
-                    let rightInset = 16.0 + params.rightInset
+                    let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+                    let rightInset = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
                     
                     strongSelf.backgroundNode.backgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
                     strongSelf.topStripeNode.backgroundColor = item.presentationData.theme.list.itemBlocksSeparatorColor
@@ -242,7 +242,7 @@ class PeerRemoveTimeoutItemNode: ListViewItemNode, ItemListItemNode {
                     let bottomStripeOffset: CGFloat
                     switch neighbors.bottom {
                         case .sameSection(false):
-                            bottomStripeInset = params.leftInset + 16.0
+                            bottomStripeInset = params.leftInset + PresentationLayoutMetrics.listHorizontalInset
                             bottomStripeOffset = -separatorHeight
                             strongSelf.bottomStripeNode.isHidden = false
                         default:

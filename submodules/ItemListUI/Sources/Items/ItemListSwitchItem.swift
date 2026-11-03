@@ -308,12 +308,12 @@ public class ItemListSwitchItemNode: ListViewItemNode, ItemListItemNode {
             case .plain:
                 itemBackgroundColor = item.presentationData.theme.list.plainBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemPlainSeparatorColor
-                contentSize = CGSize(width: params.width, height: 44.0)
+                contentSize = CGSize(width: params.width, height: PresentationLayoutMetrics.minimumInteractiveSize)
                 insets = itemListNeighborsPlainInsets(neighbors)
             case .blocks:
                 itemBackgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemBlocksSeparatorColor
-                contentSize = CGSize(width: params.width, height: 44.0)
+                contentSize = CGSize(width: params.width, height: PresentationLayoutMetrics.minimumInteractiveSize)
                 insets = itemListNeighborsGroupedInsets(neighbors, params)
             }
             

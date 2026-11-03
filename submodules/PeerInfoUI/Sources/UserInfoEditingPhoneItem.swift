@@ -250,7 +250,7 @@ class UserInfoEditingPhoneItemNode: ItemListRevealOptionsItemNode, ItemListItemN
                     
                     let leftInset: CGFloat
                     
-                    leftInset = 16.0 + params.leftInset
+                    leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
                     
                     if strongSelf.backgroundNode.supernode != nil {
                         strongSelf.backgroundNode.removeFromSupernode()
@@ -302,7 +302,7 @@ class UserInfoEditingPhoneItemNode: ItemListRevealOptionsItemNode, ItemListItemN
         }
         
         let revealOffset = offset
-        let leftInset = 16.0 + params.leftInset
+        let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
         
         var controlFrame = self.editableControlNode.frame
         controlFrame.origin.x = params.leftInset + 4.0 + revealOffset

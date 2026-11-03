@@ -159,9 +159,9 @@ class ThemeSettingsFontSizeItemNode: ListViewItemNode, ItemListItemNode {
             sliderView.trackColor = item.enabled ? item.theme.list.itemAccentColor : item.theme.list.itemDisabledTextColor
             sliderView.knobImage = PresentationResourcesItemList.knobImage(item.theme)
             
-            let sliderInset: CGFloat = item.displayIcons ? 38.0 : 16.0
+            let sliderInset: CGFloat = item.displayIcons ? 38.0 : PresentationLayoutMetrics.listHorizontalInset
             
-            sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + sliderInset, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - sliderInset * 2.0, height: 44.0))
+            sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + sliderInset, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - sliderInset * 2.0, height: PresentationLayoutMetrics.minimumInteractiveSize))
         }
         self.view.insertSubview(sliderView, belowSubview: self.disabledOverlayNode.view)
         sliderView.addTarget(self, action: #selector(self.sliderValueChanged), for: .valueChanged)
@@ -210,7 +210,7 @@ class ThemeSettingsFontSizeItemNode: ListViewItemNode, ItemListItemNode {
                     
                     strongSelf.disabledOverlayNode.backgroundColor = item.theme.list.itemBlocksBackgroundColor.withAlphaComponent(0.4)
                     strongSelf.disabledOverlayNode.isHidden = item.enabled
-                    strongSelf.disabledOverlayNode.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset, height: 44.0))
+                    strongSelf.disabledOverlayNode.frame = CGRect(origin: CGPoint(x: params.leftInset, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset, height: PresentationLayoutMetrics.minimumInteractiveSize))
                     
                     if strongSelf.backgroundNode.supernode == nil {
                         strongSelf.insertSubnode(strongSelf.backgroundNode, at: 0)
@@ -239,7 +239,7 @@ class ThemeSettingsFontSizeItemNode: ListViewItemNode, ItemListItemNode {
                     let bottomStripeOffset: CGFloat
                     switch neighbors.bottom {
                         case .sameSection(false):
-                            bottomStripeInset = params.leftInset + 16.0
+                            bottomStripeInset = params.leftInset + PresentationLayoutMetrics.listHorizontalInset
                             bottomStripeOffset = -separatorHeight
                             strongSelf.bottomStripeNode.isHidden = false
                         default:
@@ -303,8 +303,8 @@ class ThemeSettingsFontSizeItemNode: ListViewItemNode, ItemListItemNode {
                             sliderView.value = value
                         }
                         
-                        let sliderInset: CGFloat = item.displayIcons ? 38.0 : 16.0
-                        sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + sliderInset, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - sliderInset * 2.0, height: 44.0))
+                        let sliderInset: CGFloat = item.displayIcons ? 38.0 : PresentationLayoutMetrics.listHorizontalInset
+                        sliderView.frame = CGRect(origin: CGPoint(x: params.leftInset + sliderInset, y: 8.0), size: CGSize(width: params.width - params.leftInset - params.rightInset - sliderInset * 2.0, height: PresentationLayoutMetrics.minimumInteractiveSize))
                     }
                 }
             })
