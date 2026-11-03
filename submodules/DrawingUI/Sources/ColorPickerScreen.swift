@@ -1459,7 +1459,7 @@ private final class ColorSlidersComponent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: "Hex Color #",
-                        font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
+                        font: Font.regular(17.0),
                         textColor: UIColor(rgb: 0xffffff),
                         paragraphAlignment: .center
                     )),
