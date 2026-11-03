@@ -299,9 +299,9 @@ private final class ProxySettingsServerItemNode: ItemListRevealOptionsItemNode {
             let textBottomInset: CGFloat = 12.0 + verticalInset
             let measuredHeight = textTopInset + titleLayout.size.height + textSpacing + statusLayout.size.height + textBottomInset
             let insets = itemListNeighborsGroupedInsets(neighbors, params)
-            let contentSize = CGSize(width: params.width, height: max(64.0 + verticalInset * 2.0, max(PresentationLayoutMetrics.minimumInteractiveSize, measuredHeight)))
+            let contentSize = CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, measuredHeight))
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             let layoutSize = layout.size

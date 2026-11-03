@@ -55,7 +55,7 @@ private final class AccountPeerContextItemNode: ASDisplayNode, ContextMenuCustom
         self.textNode.displaysAsynchronously = false
         let peerTitle = item.peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
         self.textNode.attributedText = NSAttributedString(string: peerTitle, font: textFont, textColor: presentationData.theme.contextMenu.primaryColor)
-        self.textNode.maximumNumberOfLines = 1
+        self.textNode.maximumNumberOfLines = presentationData.listsFontSize.baseDisplaySize >= PresentationLayoutMetrics.multilineTextThreshold ? 0 : 1
         
         self.avatarNode = AvatarNode(font: avatarPlaceholderFont(size: 14.0))
         
@@ -95,7 +95,8 @@ private final class AccountPeerContextItemNode: ASDisplayNode, ContextMenuCustom
     
         let textSize = self.textNode.updateLayout(CGSize(width: constrainedWidth - sideInset - rightTextInset, height: .greatestFiniteMagnitude))
         
-        return (CGSize(width: textSize.width + sideInset + rightTextInset, height: verticalInset * 2.0 + textSize.height), { size, transition in
+        let rowHeight = max(PresentationLayoutMetrics.minimumInteractiveSize, verticalInset * 2.0 + textSize.height)
+        return (CGSize(width: textSize.width + sideInset + rightTextInset, height: rowHeight), { size, transition in
             let verticalOrigin = floor((size.height - textSize.height) / 2.0)
             let textFrame = CGRect(origin: CGPoint(x: iconSideInset + 40.0, y: verticalOrigin), size: textSize)
             transition.updateFrameAdditive(node: self.textNode, frame: textFrame)

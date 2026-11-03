@@ -311,3 +311,7 @@ WebApp/Game/Browser/VideoChat/Counter/RecentActions titles, ChatList empty info,
 ## Alert, QR и GlassControlPanel fontSize
 
 `AlertComponentEnvironment.fontSize` масштабирует title/body AlertContent; QR scan/chat captions берут bold/italic от listsFontSize; ChatList/ItemList/Gallery/TabBar GlassControlPanel передают fontSize в группы. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Sessions, notifications, proxy и attachment captions
+
+Notification category rows stacking label при крупном тексте; Recent Session/Website multiline; Account switcher min 44 pt; Proxy server height от measured layout; Attachment tab captions и Storage clear button — metrics. Branding Liquid: 7 pass. Simulator NOT RUN.

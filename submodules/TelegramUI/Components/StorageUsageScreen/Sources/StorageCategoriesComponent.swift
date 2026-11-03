@@ -256,9 +256,9 @@ final class StorageCategoriesComponent: Component {
                         )
                     ),
                     environment: {},
-                    containerSize: CGSize(width: availableSize.width - 16.0 * 2.0, height: 52.0)
+                    containerSize: CGSize(width: availableSize.width - PresentationLayoutMetrics.listHorizontalInset * 2.0, height: max(52.0, PresentationLayoutMetrics.minimumInteractiveSize))
                 )
-                let buttonFrame = CGRect(origin: CGPoint(x: 16.0, y: contentHeight), size: buttonSize)
+                let buttonFrame = CGRect(origin: CGPoint(x: PresentationLayoutMetrics.listHorizontalInset, y: contentHeight), size: buttonSize)
                 if let buttonView = self.button.view {
                     if buttonView.superview == nil {
                         self.addSubview(buttonView)

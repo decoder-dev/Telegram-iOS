@@ -393,13 +393,17 @@ private final class AttachButtonComponent: CombinedComponent {
                 )
             }
 
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let captionFontSize = max(10.0, min(13.0, floor(listFontSize * 10.0 / 17.0)))
             let titleFont: UIFont
             switch component.style {
             case .glass:
-                titleFont = Font.medium(10.0)
+                titleFont = Font.medium(captionFontSize)
             case .legacy:
-                titleFont = Font.regular(10.0)
+                titleFont = Font.regular(captionFontSize)
             }
+            let titleLines = listFontSize >= PresentationLayoutMetrics.multilineTextThreshold ? 2 : 1
+            let titleMaxWidth = listFontSize >= PresentationLayoutMetrics.multilineTextThreshold ? 80.0 : 64.0
 
             let title = title.update(
                 component: MultilineTextComponent(
@@ -410,9 +414,9 @@ private final class AttachButtonComponent: CombinedComponent {
                         paragraphAlignment: .center)),
                     horizontalAlignment: .center,
                     truncationType: .end,
-                    maximumNumberOfLines: 1
+                    maximumNumberOfLines: titleLines
                 ),
-                availableSize: CGSize(width: 64.0, height: context.availableSize.height),
+                availableSize: CGSize(width: titleMaxWidth, height: context.availableSize.height),
                 transition: .immediate
             )
 
