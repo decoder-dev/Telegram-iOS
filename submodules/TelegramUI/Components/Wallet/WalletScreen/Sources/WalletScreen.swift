@@ -3070,7 +3070,7 @@ private final class WalletScreenComponent: Component {
                     fiatCurrency: self.walletState?.fiat.selectedCurrency ?? .usd,
                     fiatRate: self.walletState?.fiat.selectedRate,
                     dateTimeFormat: environment.dateTimeFormat,
-                    fontSize: fontSize
+                    fontSize: 17.0
                 )),
                 environment: {},
                 containerSize: CGSize(

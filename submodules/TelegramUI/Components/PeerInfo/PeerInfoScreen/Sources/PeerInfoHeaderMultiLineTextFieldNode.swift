@@ -181,7 +181,7 @@ final class PeerInfoHeaderMultiLineTextFieldNode: ASDisplayNode, PeerInfoHeaderT
         if let fontSize = self.fontSize {
             return Font.regular(fontSize.itemListBaseFontSize)
         } else {
-            return Font.regular(presentationData.listsFontSize.baseDisplaySize)
+            return Font.regular(17.0)
         }
     }
     
