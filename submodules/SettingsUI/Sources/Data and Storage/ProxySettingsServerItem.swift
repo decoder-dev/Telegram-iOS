@@ -5,6 +5,7 @@ import AsyncDisplayKit
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
+import TelegramUIPreferences
 import ItemListUI
 import PresentationDataUtils
 import ActivityIndicator
@@ -21,6 +22,7 @@ struct ProxySettingsServerItemEditing: Equatable {
 final class ProxySettingsServerItem: ListViewItem, ItemListItem, ItemListRevealOptionsStatefulItem {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: PresentationFontSize
     let systemStyle: ItemListSystemStyle
     let server: ProxyServerSettings
     let activity: Bool
@@ -39,9 +41,10 @@ final class ProxySettingsServerItem: ListViewItem, ItemListItem, ItemListRevealO
         return self.editing.revealed
     }
     
-    init(theme: PresentationTheme, strings: PresentationStrings, systemStyle: ItemListSystemStyle = .legacy, server: ProxyServerSettings, activity: Bool, active: Bool, color: ItemListCheckboxItemColor, label: String, labelAccent: Bool, editing: ProxySettingsServerItemEditing, sectionId: ItemListSectionId, action: @escaping () -> Void, infoAction: @escaping () -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize, systemStyle: ItemListSystemStyle = .legacy, server: ProxyServerSettings, activity: Bool, active: Bool, color: ItemListCheckboxItemColor, label: String, labelAccent: Bool, editing: ProxySettingsServerItemEditing, sectionId: ItemListSectionId, action: @escaping () -> Void, infoAction: @escaping () -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.systemStyle = systemStyle
         self.server = server
         self.activity = activity
@@ -102,9 +105,6 @@ final class ProxySettingsServerItem: ListViewItem, ItemListItem, ItemListRevealO
         self.action()
     }
 }
-
-private let titleFont = Font.regular(17.0)
-private let statusFont = Font.regular(14.0)
 
 private final class ProxySettingsServerItemNode: ItemListRevealOptionsItemNode {
     private let backgroundNode: ASDisplayNode
@@ -242,6 +242,10 @@ private final class ProxySettingsServerItemNode: ItemListRevealOptionsItemNode {
                 peerRevealOptions = []
             }
             
+            let titleFont = Font.regular(item.fontSize.itemListBaseFontSize)
+            let statusFont = Font.regular(floor(item.fontSize.itemListBaseFontSize * 14.0 / 17.0))
+            let usesLargeTextLayout = item.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+            
             let titleAttributedString = NSMutableAttributedString()
             if case .vless = item.server.connection, let vlessURL = item.server.vlessProxyURL {
                 titleAttributedString.append(NSAttributedString(string: vlessURL, font: titleFont, textColor: item.theme.list.itemPrimaryTextColor))
@@ -279,18 +283,23 @@ private final class ProxySettingsServerItemNode: ItemListRevealOptionsItemNode {
             }
             
             let leftInset: CGFloat = 50.0 + params.leftInset
-            let rightInset: CGFloat = params.rightInset + max(reorderInset, 55.0)
+            let infoButtonWidth = max(55.0, PresentationLayoutMetrics.minimumInteractiveSize)
+            let rightInset: CGFloat = params.rightInset + max(reorderInset, infoButtonWidth)
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: CGSize(width: params.width - leftInset - 12.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-            let (statusLayout, statusApply) = makeStatusLayout(TextNodeLayoutArguments(attributedString: statusAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 8.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: usesLargeTextLayout ? 2 : 1, truncationType: .middle, constrainedSize: CGSize(width: params.width - leftInset - 12.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (statusLayout, statusApply) = makeStatusLayout(TextNodeLayoutArguments(attributedString: statusAttributedString, backgroundColor: nil, maximumNumberOfLines: usesLargeTextLayout ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 8.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             var verticalInset: CGFloat = 0.0
             if case .glass = item.systemStyle {
                 verticalInset = 4.0
             }
             
+            let textTopInset: CGFloat = 12.0 + verticalInset
+            let textSpacing: CGFloat = 3.0
+            let textBottomInset: CGFloat = 12.0 + verticalInset
+            let measuredHeight = textTopInset + titleLayout.size.height + textSpacing + statusLayout.size.height + textBottomInset
             let insets = itemListNeighborsGroupedInsets(neighbors, params)
-            let contentSize = CGSize(width: params.width, height: 64.0 + verticalInset * 2.0)
+            let contentSize = CGSize(width: params.width, height: max(64.0 + verticalInset * 2.0, max(PresentationLayoutMetrics.minimumInteractiveSize, measuredHeight)))
             let separatorHeight = UIScreenPixel
             let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
             
@@ -432,10 +441,11 @@ private final class ProxySettingsServerItemNode: ItemListRevealOptionsItemNode {
                     transition.updateFrame(node: strongSelf.topStripeNode, frame: CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: layoutSize.width, height: separatorHeight)))
                     transition.updateFrame(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height + bottomStripeOffset), size: CGSize(width: layoutSize.width - bottomStripeInset - params.rightInset - separatorRightInset, height: separatorHeight)))
                     
-                    transition.updateFrame(node: strongSelf.titleNode, frame: CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: 12.0 + verticalInset), size: titleLayout.size))
-                    transition.updateFrame(node: strongSelf.statusNode, frame: CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: 37.0 + verticalInset), size: statusLayout.size))
+                    let titleY = floorToScreenPixels((contentSize.height - titleLayout.size.height - textSpacing - statusLayout.size.height) / 2.0)
+                    transition.updateFrame(node: strongSelf.titleNode, frame: CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: titleY), size: titleLayout.size))
+                    transition.updateFrame(node: strongSelf.statusNode, frame: CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: titleY + titleLayout.size.height + textSpacing), size: statusLayout.size))
                     
-                    strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: 0.0), size: CGSize(width: params.width - params.rightInset - 56.0 - (leftInset + revealOffset + editingOffset), height: layout.contentSize.height))
+                    strongSelf.activateArea.frame = CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: 0.0), size: CGSize(width: params.width - params.rightInset - infoButtonWidth - (leftInset + revealOffset + editingOffset), height: layout.contentSize.height))
                     
                     transition.updateAlpha(node: strongSelf.infoIconNode, alpha: item.editing.editing ? 0.0 : 1.0)
                     
@@ -447,11 +457,11 @@ private final class ProxySettingsServerItemNode: ItemListRevealOptionsItemNode {
                     strongSelf.activityNode.isHidden = !item.activity
                     
                     if let infoImage = strongSelf.infoIconNode.image {
-                        transition.updateFrame(node: strongSelf.infoIconNode, frame: CGRect(origin: CGPoint(x: revealOffset + params.width - params.rightInset - 55.0 + floor((55.0 - infoImage.size.width) / 2.0), y: floor((layout.contentSize.height - infoImage.size.height) / 2.0)), size: infoImage.size))
+                        transition.updateFrame(node: strongSelf.infoIconNode, frame: CGRect(origin: CGPoint(x: revealOffset + params.width - params.rightInset - infoButtonWidth + floor((infoButtonWidth - infoImage.size.width) / 2.0), y: floor((layout.contentSize.height - infoImage.size.height) / 2.0)), size: infoImage.size))
                     }
                     
                     strongSelf.infoButtonNode.isUserInteractionEnabled = revealOffset.isZero && !item.editing.editing
-                    strongSelf.infoButtonNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - 55.0, y: 0.0), size: CGSize(width: 55.0, height: layout.contentSize.height))
+                    strongSelf.infoButtonNode.frame = CGRect(origin: CGPoint(x: params.width - params.rightInset - infoButtonWidth, y: 0.0), size: CGSize(width: infoButtonWidth, height: layout.contentSize.height))
                     
                     strongSelf.updateRevealOptionsHighlightedBackgroundFrame(strongSelf.highlightedBackgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: -UIScreenPixel), size: CGSize(width: params.width, height: contentSize.height + UIScreenPixel + UIScreenPixel)), transition: transition, aboveNodes: [strongSelf.bottomStripeNode, strongSelf.topStripeNode, strongSelf.backgroundNode])
                     

@@ -300,7 +300,7 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
                     arguments.presentAddProxyMenu()
                 })
             case let .server(_, theme, strings, settings, active, status, editing, enabled, _):
-                return ProxySettingsServerItem(theme: theme, strings: strings, systemStyle: .glass, server: settings, activity: status.activity, active: active, color: enabled ? .accent : .secondary, label: status.text, labelAccent: status.textActive, editing: editing, sectionId: self.section, action: {
+                return ProxySettingsServerItem(theme: theme, strings: strings, fontSize: presentationData.fontSize, systemStyle: .glass, server: settings, activity: status.activity, active: active, color: enabled ? .accent : .secondary, label: status.text, labelAccent: status.textActive, editing: editing, sectionId: self.section, action: {
                     arguments.activateServer(settings)
                 }, infoAction: {
                     arguments.editServer(settings)

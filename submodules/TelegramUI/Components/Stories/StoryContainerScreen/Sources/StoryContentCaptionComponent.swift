@@ -668,6 +668,8 @@ final class StoryContentCaptionComponent: Component {
                 }))
             }
             
+            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
+            let captionFontSize = floor(presentationData.listsFontSize.baseDisplaySize * 16.0 / 17.0)
             let attributedText = stringWithAppliedEntities(
                 component.text,
                 entities: component.entities,
@@ -679,13 +681,13 @@ final class StoryContentCaptionComponent: Component {
                 codeBlockTitleColor: .white,
                 codeBlockAccentColor: .white,
                 codeBlockBackgroundColor: UIColor(white: 1.0, alpha: 0.2),
-                baseFont: Font.regular(16.0),
-                linkFont: Font.regular(16.0),
-                boldFont: Font.semibold(16.0),
-                italicFont: Font.italic(16.0),
-                boldItalicFont: Font.semiboldItalic(16.0),
-                fixedFont: Font.monospace(16.0),
-                blockQuoteFont: Font.monospace(16.0),
+                baseFont: Font.regular(captionFontSize),
+                linkFont: Font.regular(captionFontSize),
+                boldFont: Font.semibold(captionFontSize),
+                italicFont: Font.italic(captionFontSize),
+                boldItalicFont: Font.semiboldItalic(captionFontSize),
+                fixedFont: Font.monospace(captionFontSize),
+                blockQuoteFont: Font.monospace(captionFontSize),
                 message: nil,
                 entityFiles: component.entityFiles,
                 adjustQuoteFontSize: true,

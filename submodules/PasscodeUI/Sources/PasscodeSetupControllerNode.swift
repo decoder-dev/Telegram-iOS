@@ -170,7 +170,7 @@ final class PasscodeSetupControllerNode: ASDisplayNode {
         let bottomSideInsets = layout.bottomEdgeSideInsets()
         let bottomBandMinX: CGFloat = insetsDiffer ? bottomSideInsets.left : 0.0
         let bottomBandWidth: CGFloat = insetsDiffer ? layout.size.width - bottomSideInsets.left - bottomSideInsets.right : layout.size.width
-        transition.updateFrame(node: self.modeButtonNode, frame: CGRect(origin: CGPoint(x: bottomBandMinX, y: layout.size.height - insets.bottom - 53.0), size: CGSize(width: bottomBandWidth, height: 44.0)))
+        transition.updateFrame(node: self.modeButtonNode, frame: CGRect(origin: CGPoint(x: bottomBandMinX, y: layout.size.height - insets.bottom - PresentationLayoutMetrics.minimumInteractiveSize - 9.0), size: CGSize(width: bottomBandWidth, height: PresentationLayoutMetrics.minimumInteractiveSize)))
     }
     
     override func didLoad() {

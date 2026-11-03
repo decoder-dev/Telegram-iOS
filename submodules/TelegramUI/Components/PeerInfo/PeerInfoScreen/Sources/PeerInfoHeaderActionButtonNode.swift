@@ -24,11 +24,13 @@ final class PeerInfoHeaderActionButtonNode: HighlightableButtonNode {
         self.containerNode.animateScale = false
         
         self.backgroundNode = ASDisplayNode()
-        self.backgroundNode.cornerRadius = 11.0
+        self.backgroundNode.cornerRadius = PresentationLayoutMetrics.minimumInteractiveSize * 0.5
                 
         self.textNode = ImmediateTextNode()
         self.textNode.displaysAsynchronously = false
         self.textNode.isUserInteractionEnabled = false
+        self.textNode.maximumNumberOfLines = 2
+        self.textNode.textAlignment = .center
         
         super.init()
         
@@ -75,9 +77,11 @@ final class PeerInfoHeaderActionButtonNode: HighlightableButtonNode {
             transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(), size: size))
         }
         
-        self.textNode.attributedText = NSAttributedString(string: text, font: Font.semibold(16.0), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
+        let titleFontSize = max(13.0, min(18.0, presentationData.listsFontSize.baseDisplaySize - 1.0))
+        self.textNode.attributedText = NSAttributedString(string: text, font: Font.semibold(titleFontSize), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
         self.accessibilityLabel = text
-        let titleSize = self.textNode.updateLayout(CGSize(width: 120.0, height: .greatestFiniteMagnitude))
+        let titleSize = self.textNode.updateLayout(CGSize(width: max(1.0, size.width - 16.0), height: .greatestFiniteMagnitude))
+        self.backgroundNode.cornerRadius = min(size.height * 0.5, PresentationLayoutMetrics.minimumInteractiveSize * 0.5)
         
         transition.updateFrame(node: self.containerNode, frame: CGRect(origin: CGPoint(), size: size))
         transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(), size: size))

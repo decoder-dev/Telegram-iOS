@@ -90,8 +90,8 @@ private final class PeerInfoScreenCommentItemNode: PeerInfoScreenItemNode {
         self.item = item
         self.presentationData = presentationData
         
-        let sideInset: CGFloat = 16.0 + safeInsets.left
-        let sideInsetRight: CGFloat = 16.0 + safeInsets.right
+        let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
+        let sideInsetRight: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.right
         let verticalInset: CGFloat = 7.0
         
         self.textNode.maximumNumberOfLines = 0

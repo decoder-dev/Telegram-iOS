@@ -643,7 +643,8 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
                 
         let bottomInset = layout.inputHeight ?? 0.0
         
-        let cancelSize = self.cancelButtonNode.measure(layout.size)
+        let cancelLabelSize = self.cancelButtonNode.measure(layout.size)
+        let cancelSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, cancelLabelSize.width), height: max(PresentationLayoutMetrics.minimumInteractiveSize, cancelLabelSize.height))
         var bottomButtonY = layout.size.height - layout.intrinsicInsets.bottom - cancelSize.height - passcodeLayout.keyboard.deleteOffset
         var cancelX = floor(keyboardFrame.minX + keyboardButtonSize.width / 2.0 - cancelSize.width / 2.0)
         var cancelY = bottomButtonY
@@ -658,7 +659,8 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
         
         transition.updateFrame(node: self.cancelButtonNode, frame: CGRect(origin: CGPoint(x: cancelX, y: cancelY), size: cancelSize))
         
-        let deleteSize = self.deleteButtonNode.measure(layout.size)
+        let deleteLabelSize = self.deleteButtonNode.measure(layout.size)
+        let deleteSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, deleteLabelSize.width), height: max(PresentationLayoutMetrics.minimumInteractiveSize, deleteLabelSize.height))
         transition.updateFrame(node: self.deleteButtonNode, frame: CGRect(origin: CGPoint(x: floor(keyboardFrame.maxX - keyboardButtonSize.width / 2.0 - deleteSize.width / 2.0), y: bottomButtonY), size: deleteSize))
         
         if let biometricIcon = self.biometricButtonNode.image(for: .normal) {

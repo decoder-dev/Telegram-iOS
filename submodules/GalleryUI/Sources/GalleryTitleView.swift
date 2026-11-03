@@ -11,9 +11,6 @@ import ComponentFlow
 import ComponentDisplayAdapters
 import MultilineTextComponent
 
-private let titleFont = Font.semibold(17.0)
-private let dateFont = Font.regular(12.0)
-
 public final class GalleryTitleView: UIView, NavigationBarTitleView {
     public final class Content: Equatable {
         let message: EngineMessage?
@@ -148,6 +145,12 @@ public final class GalleryTitleView: UIView, NavigationBarTitleView {
             dateText = nil
         }
 
+        let titleFont = Font.semibold(self.presentationData.listsFontSize.itemListBaseFontSize)
+        let dateFont = Font.regular(floor(self.presentationData.listsFontSize.itemListBaseFontSize * 12.0 / 17.0))
+        let usesLargeTextLayout = self.presentationData.listsFontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+        self.authorNameNode.maximumNumberOfLines = usesLargeTextLayout ? 2 : 1
+        self.dateNode.maximumNumberOfLines = usesLargeTextLayout ? 2 : 1
+        
         if let authorNameText {
             self.authorNameNode.attributedText = NSAttributedString(string: authorNameText, font: titleFont, textColor: .white)
         } else {
@@ -178,7 +181,16 @@ public final class GalleryTitleView: UIView, NavigationBarTitleView {
         let authorNameSize = self.authorNameNode.measure(CGSize(width: max(1.0, size.width - 8.0 * 2.0 - leftInset - rightInset), height: CGFloat.greatestFiniteMagnitude))
         let dateSize = self.dateNode.measure(CGSize(width: max(1.0, size.width - 8.0 * 2.0), height: CGFloat.greatestFiniteMagnitude))
         
-        var backgroundSize = CGSize(width: 0.0, height: 44.0)
+        let labelsSpacing: CGFloat = 2.0
+        let contentHeight: CGFloat
+        if authorNameSize.height.isZero {
+            contentHeight = dateSize.height
+        } else if dateSize.height.isZero {
+            contentHeight = authorNameSize.height
+        } else {
+            contentHeight = authorNameSize.height + labelsSpacing + dateSize.height
+        }
+        var backgroundSize = CGSize(width: 0.0, height: max(PresentationLayoutMetrics.minimumInteractiveSize, contentHeight + 12.0))
         
         if authorNameSize.height.isZero {
             backgroundSize.width = dateSize.width
@@ -191,7 +203,6 @@ public final class GalleryTitleView: UIView, NavigationBarTitleView {
         if authorNameSize.height.isZero {
             self.dateNode.frame = CGRect(origin: CGPoint(x: floor((backgroundSize.width - dateSize.width) / 2.0), y: floor((backgroundSize.height - dateSize.height) / 2.0)), size: dateSize)
         } else {
-            let labelsSpacing: CGFloat = 2.0
             self.authorNameNode.frame = CGRect(origin: CGPoint(x: floor((backgroundSize.width - authorNameSize.width) / 2.0), y: floor((backgroundSize.height - dateSize.height - authorNameSize.height - labelsSpacing) / 2.0)), size: authorNameSize)
             self.dateNode.frame = CGRect(origin: CGPoint(x: floor((backgroundSize.width - dateSize.width) / 2.0), y: floor((backgroundSize.height - dateSize.height - authorNameSize.height - labelsSpacing) / 2.0) + authorNameSize.height + labelsSpacing), size: dateSize)
         }
@@ -204,16 +215,17 @@ public final class GalleryTitleView: UIView, NavigationBarTitleView {
         ComponentTransition(transition).setFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(), size: backgroundFrame.size))
         self.backgroundView.update(size: backgroundSize, cornerRadius: backgroundSize.height * 0.5, isDark: true, tintColor: .init(kind: .panel), isInteractive: self.content?.action != nil, transition: ComponentTransition(transition))
         
+        let overlayTitleFontSize = floor(self.presentationData.listsFontSize.itemListBaseFontSize * 12.0 / 17.0)
         let titleSize = self.title.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: self.titleString ?? "", font: Font.semibold(12.0), textColor: .white))
+                text: .plain(NSAttributedString(string: self.titleString ?? "", font: Font.semibold(overlayTitleFontSize), textColor: .white))
             )),
             environment: {},
             containerSize: CGSize(width: 200.0, height: 100.0)
         )
         let titleInset: CGFloat = 12.0
-        let titleBackgroundSize = CGSize(width: titleInset * 2.0 + titleSize.width, height: 24.0)
+        let titleBackgroundSize = CGSize(width: titleInset * 2.0 + titleSize.width, height: max(24.0, titleSize.height + 8.0))
         let titleBackgroundFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((availableSize.width - titleBackgroundSize.width) * 0.5), y: availableSize.height + 2.0), size: titleBackgroundSize)
         let titleFrame = titleSize.centered(in: CGRect(origin: CGPoint(), size: titleBackgroundSize))
         if let titleView = self.title.view {

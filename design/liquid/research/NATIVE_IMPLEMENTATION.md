@@ -229,3 +229,11 @@ LocationPickerController принимал presentation updates только пр
 ## Локальная контрольная точка 71fe9d593f
 
 После прохода медиапикера/геолокации и group height budget повторно проходят Branding 32, glass bubbles 14, VoiceOver contracts 20, UISizing 6 и все Customization fixtures. Изменённых Swift files относительно main: 90, syntax parse без ошибок. Нативных test methods подготовлено 41; их выполнение и iOS build по-прежнему NOT RUN. Более ранние 54 regression groups не выдаются за прогон текущего HEAD. Полный редизайн и визуальная приёмка всех экранов не завершены. Из сохранённых compiler logs убраны только trailing spaces, raw SHA-256 отмечен в metadata; диагностическое содержимое сохранено.
+
+## Профиль, прокси, vault и story peer rows
+
+Шапка профиля: Message/Add получают высоту не меньше 44 pt, подписи кнопок масштабируются с listsFontSize и переносятся. Caption у круглых действий (message/call/video/…) тоже масштабируется и может занять две строки при крупном тексте. PeerInfo rows (header/comment/contact/encryption key/labeled value/address/info) используют `PresentationLayoutMetrics` и размер системного текста; контактные username/phone при крупном тексте складываются вертикально.
+
+Список прокси: server rows берут fontSize из presentation data, переносят длинный host/status, считают высоту по тексту и расширяют info target. Action rows и browser exception rows переносят заголовки и держат минимум 44 pt. Expandable switch и text-with-label в ItemListUI следуют тем же правилам.
+
+Passcode Cancel/Delete и mode button используют минимум 44 pt. Story/peer list rows масштабируют title/subtitle и не опускаются ниже interactive size. Branding Liquid contrast: 7 pass. Нативная приёмка и Simulator по-прежнему NOT RUN.

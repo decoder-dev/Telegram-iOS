@@ -498,8 +498,8 @@ private final class PeerInfoScreenLabeledValueItemNode: PeerInfoScreenItemNode {
             self.activateArea.activate = nil
         }
                 
-        let sideInset: CGFloat = 16.0 + safeInsets.left
-        let sideInsetRight: CGFloat = 16.0 + safeInsets.right
+        let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
+        let sideInsetRight: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.right
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
         

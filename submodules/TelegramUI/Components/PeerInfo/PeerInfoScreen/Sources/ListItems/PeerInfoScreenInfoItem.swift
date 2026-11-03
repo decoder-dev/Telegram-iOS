@@ -65,7 +65,7 @@ private final class PeerInfoScreenInfoItemNode: PeerInfoScreenItemNode {
         self.item = item
     
         
-        let sideInset: CGFloat = 16.0 + safeInsets.left
+        let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
                 

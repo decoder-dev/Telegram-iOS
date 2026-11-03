@@ -102,21 +102,22 @@ private final class PeerInfoScreenDisclosureEncryptionKeyItemNode: PeerInfoScree
             self.activateArea.activate = nil
         }
         
-        let sideInset: CGFloat = 16.0 + safeInsets.left
-        let sideInsetRight: CGFloat = 16.0 + safeInsets.right
+        let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
+        let sideInsetRight: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.right
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
         
-        self.textNode.maximumNumberOfLines = 1
-        self.textNode.attributedText = NSAttributedString(string: item.text, font: Font.regular(17.0), textColor: presentationData.theme.list.itemPrimaryTextColor)
+        let titleFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
+        let usesLargeTextLayout = titleFont.pointSize >= PresentationLayoutMetrics.multilineTextThreshold
+        self.textNode.maximumNumberOfLines = usesLargeTextLayout ? 0 : 1
+        self.textNode.attributedText = NSAttributedString(string: item.text, font: titleFont, textColor: presentationData.theme.list.itemPrimaryTextColor)
         
-        let textSize = self.textNode.updateLayout(CGSize(width: width - sideInset - sideInsetRight - 44.0, height: .greatestFiniteMagnitude))
+        let textSize = self.textNode.updateLayout(CGSize(width: width - sideInset - sideInsetRight - PresentationLayoutMetrics.minimumInteractiveSize, height: .greatestFiniteMagnitude))
         
         let arrowInset: CGFloat = 18.0
         
-        let textFrame = CGRect(origin: CGPoint(x: sideInset, y: 16.0), size: textSize)
-        
-        let height = textSize.height + 32.0
+        let height = max(PresentationLayoutMetrics.minimumInteractiveSize, textSize.height + 32.0)
+        let textFrame = CGRect(origin: CGPoint(x: sideInset, y: floorToScreenPixels((height - textSize.height) / 2.0)), size: textSize)
         
         if let arrowImage = PresentationResourcesItemList.disclosureArrowImage(presentationData.theme) {
             self.arrowNode.image = arrowImage

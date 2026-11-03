@@ -292,18 +292,22 @@ private final class PeerInfoScreenContactInfoItemNode: PeerInfoScreenItemNode {
 //            self.selectionNode.pressed = nil
 //        }
                 
-        let sideInset: CGFloat = 16.0 + safeInsets.left
-        let sideInsetRight: CGFloat = 16.0 + safeInsets.right
+        let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
+        let sideInsetRight: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.right
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
-           
-        self.usernameNode.attributedText = NSAttributedString(string: item.username, font: Font.regular(15.0), textColor: presentationData.theme.list.itemPrimaryTextColor)
-                
-        self.phoneNumberNode.maximumNumberOfLines = 1
-        self.phoneNumberNode.cutout = nil
-        self.phoneNumberNode.attributedText = NSAttributedString(string: item.phoneNumber, font: Font.regular(15.0), textColor: presentationData.theme.list.itemAccentColor)
         
-        let fontSize: CGFloat = 15.0
+        let bodyFontSize = presentationData.listsFontSize.baseDisplaySize
+        let detailFontSize = floor(bodyFontSize * 15.0 / 17.0)
+        let usesLargeTextLayout = bodyFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+           
+        self.usernameNode.attributedText = NSAttributedString(string: item.username, font: Font.regular(detailFontSize), textColor: presentationData.theme.list.itemPrimaryTextColor)
+                
+        self.phoneNumberNode.maximumNumberOfLines = usesLargeTextLayout ? 0 : 1
+        self.phoneNumberNode.cutout = nil
+        self.phoneNumberNode.attributedText = NSAttributedString(string: item.phoneNumber, font: Font.regular(detailFontSize), textColor: presentationData.theme.list.itemAccentColor)
+        
+        let fontSize = detailFontSize
         
         let baseFont = Font.regular(fontSize)
         let linkFont = baseFont
@@ -330,10 +334,21 @@ private final class PeerInfoScreenContactInfoItemNode: PeerInfoScreenItemNode {
         
         let topOffset = 12.0
         var height = topOffset * 2.0
-        let usernameFrame = CGRect(origin: CGPoint(x: sideInset, y: topOffset), size: usernameSize)
-        let phoneFrame = CGRect(origin: CGPoint(x: usernameSize.width > 0.0 ? width - sideInsetRight - phoneSize.width : sideInset, y: topOffset), size: phoneSize)
-        let textHeight = max(usernameSize.height, phoneSize.height)
+        let stacksPhone = usesLargeTextLayout && usernameSize.width > 0.0 && phoneSize.width > 0.0 && (usernameSize.width + phoneSize.width + 12.0 > width - sideInset - sideInsetRight)
+        let textHeight: CGFloat
+        let usernameFrame: CGRect
+        let phoneFrame: CGRect
+        if stacksPhone {
+            textHeight = usernameSize.height + 3.0 + phoneSize.height
+            usernameFrame = CGRect(origin: CGPoint(x: sideInset, y: topOffset), size: usernameSize)
+            phoneFrame = CGRect(origin: CGPoint(x: sideInset, y: topOffset + usernameSize.height + 3.0), size: phoneSize)
+        } else {
+            textHeight = max(usernameSize.height, phoneSize.height)
+            usernameFrame = CGRect(origin: CGPoint(x: sideInset, y: topOffset), size: usernameSize)
+            phoneFrame = CGRect(origin: CGPoint(x: usernameSize.width > 0.0 ? width - sideInsetRight - phoneSize.width : sideInset, y: topOffset), size: phoneSize)
+        }
         height += textHeight
+        height = max(height, PresentationLayoutMetrics.minimumInteractiveSize)
                 
         let additionalTextFrame = CGRect(origin: CGPoint(x: sideInset, y: topOffset + textHeight + 3.0), size: additionalTextSize)
         transition.updateFrame(node: self.usernameNode, frame: usernameFrame)

@@ -191,7 +191,7 @@ private final class PeerInfoScreenAddressItemNode: PeerInfoScreenItemNode {
         
         self.containerNode.isGestureEnabled = item.contextAction != nil
                 
-        let sideInset: CGFloat = 16.0 + safeInsets.left
+        let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
         
@@ -227,7 +227,7 @@ private final class PeerInfoScreenAddressItemNode: PeerInfoScreenItemNode {
         
         let height = itemNode.contentSize.height
         
-        let separatorRightInset: CGFloat = 16.0
+        let separatorRightInset = PresentationLayoutMetrics.listHorizontalInset
         
         transition.updateFrame(node: self.bottomSeparatorNode, frame: CGRect(origin: CGPoint(x: sideInset, y: height - UIScreenPixel), size: CGSize(width: width - sideInset - separatorRightInset, height: UIScreenPixel)))
         transition.updateAlpha(node: self.bottomSeparatorNode, alpha: bottomItem == nil ? 0.0 : 1.0)

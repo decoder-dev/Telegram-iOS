@@ -325,20 +325,21 @@ public class ItemListExpandableSwitchItemNode: ListViewItemNode, ItemListItemNod
                 updateIcon = true
             }
             
+            let baseRowHeight = item.systemStyle == .glass ? 52.0 : PresentationLayoutMetrics.minimumInteractiveSize
             switch item.style {
             case .plain:
                 itemBackgroundColor = item.presentationData.theme.list.plainBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemPlainSeparatorColor
-                contentSize = CGSize(width: params.width, height: item.systemStyle == .glass ? 52.0 : 44.0)
+                contentSize = CGSize(width: params.width, height: baseRowHeight)
                 insets = itemListNeighborsPlainInsets(neighbors)
             case .blocks:
                 itemBackgroundColor = item.presentationData.theme.list.itemBlocksBackgroundColor
                 itemSeparatorColor = item.presentationData.theme.list.itemBlocksSeparatorColor
-                contentSize = CGSize(width: params.width, height: item.systemStyle == .glass ? 52.0 : 44.0)
+                contentSize = CGSize(width: params.width, height: baseRowHeight)
                 insets = itemListNeighborsGroupedInsets(neighbors, params)
             }
             
-            var leftInset = 16.0 + params.leftInset
+            var leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             if let _ = item.icon {
                 leftInset += 43.0
             }
@@ -348,10 +349,13 @@ public class ItemListExpandableSwitchItemNode: ListViewItemNode, ItemListItemNod
                 insets.bottom = 0.0
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: item.maximumNumberOfLines, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - 64.0 - 32.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let usesLargeTextLayout = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+            let maximumTitleLines = usesLargeTextLayout && item.maximumNumberOfLines == 1 ? 0 : item.maximumNumberOfLines
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: maximumTitleLines, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - 64.0 - 32.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let titleValue = "\(item.subItems.filter(\.isSelected).count)/\(item.subItems.count)"
-            let (titleValueLayout, titleValueApply) = makeTitleValueLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: titleValue, font: Font.bold(14.0), textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - 64.0 - titleLayout.size.width, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let titleValueFontSize = floor(item.presentationData.fontSize.itemListBaseFontSize * 14.0 / 17.0)
+            let (titleValueLayout, titleValueApply) = makeTitleValueLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: titleValue, font: Font.bold(titleValueFontSize), textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - 64.0 - titleLayout.size.width, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                         
             let verticalInset: CGFloat
             switch item.systemStyle {
@@ -362,11 +366,12 @@ public class ItemListExpandableSwitchItemNode: ListViewItemNode, ItemListItemNod
             }
             
             contentSize.height = max(contentSize.height, titleLayout.size.height + verticalInset * 2.0)
+            contentSize.height = max(contentSize.height, PresentationLayoutMetrics.minimumInteractiveSize)
             
             let mainContentHeight = contentSize.height
             var effectiveSubItemsHeight: CGFloat = 0.0
             if item.isExpanded {
-                effectiveSubItemsHeight = CGFloat(item.subItems.count) * (item.systemStyle == .glass ? 52.0 : 44.0)
+                effectiveSubItemsHeight = CGFloat(item.subItems.count) * baseRowHeight
             }
             contentSize.height += effectiveSubItemsHeight
             
@@ -577,12 +582,12 @@ public class ItemListExpandableSwitchItemNode: ListViewItemNode, ItemListItemNod
                         lockedIconNode.removeFromSupernode()
                     }
                     
-                    strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -UIScreenPixel), size: CGSize(width: params.width, height: (item.systemStyle == .glass ? 52.0 : 44.0) + UIScreenPixel + UIScreenPixel))
+                    strongSelf.highlightedBackgroundNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -UIScreenPixel), size: CGSize(width: params.width, height: baseRowHeight + UIScreenPixel + UIScreenPixel))
                     
                     animation.animator.updateFrame(layer: strongSelf.subItemContainer.layer, frame: CGRect(origin: CGPoint(x: 0.0, y: mainContentHeight), size: CGSize(width: params.width, height: effectiveSubItemsHeight)), completion: nil)
                     
                     var validIds: [AnyHashable] = []
-                    let subItemSize = CGSize(width: params.width - params.leftInset - params.rightInset, height: item.systemStyle == .glass ? 52.0 : 44.0)
+                    let subItemSize = CGSize(width: params.width - params.leftInset - params.rightInset, height: baseRowHeight)
                     var nextSubItemPosition = CGPoint(x: params.leftInset, y: 0.0)
                     for subItem in item.subItems {
                         validIds.append(subItem.id)

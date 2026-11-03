@@ -175,7 +175,7 @@ public class ItemListTextWithLabelItemNode: ListViewItemNode {
             }
             
             let insets = itemListNeighborsPlainInsets(neighbors)
-            let leftInset: CGFloat = 16.0 + params.leftInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             let rightInset: CGFloat = 8.0 + params.rightInset
             let separatorHeight = UIScreenPixel
             
@@ -185,6 +185,7 @@ public class ItemListTextWithLabelItemNode: ListViewItemNode {
             let textItalicFont = Font.italic(item.presentationData.fontSize.itemListBaseFontSize)
             let textBoldItalicFont = Font.semiboldItalic(item.presentationData.fontSize.itemListBaseFontSize)
             let textFixedFont = Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
+            let usesLargeTextLayout = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
             
             var leftOffset: CGFloat = 0.0
             var selectionNodeWidthAndApply: (CGFloat, (CGSize, Bool) -> ItemListSelectableControlNode)?
@@ -203,7 +204,7 @@ public class ItemListTextWithLabelItemNode: ListViewItemNode {
             case .highlighted:
                 labelColor = item.presentationData.theme.list.itemHighlightedColor
             }
-            let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.label, font: labelFont, textColor: labelColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftOffset - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.label, font: labelFont, textColor: labelColor), backgroundColor: nil, maximumNumberOfLines: usesLargeTextLayout ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftOffset - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let entities = generateTextEntities(item.text, enabledTypes: item.enabledEntityTypes)
             let baseColor: UIColor
@@ -217,8 +218,8 @@ public class ItemListTextWithLabelItemNode: ListViewItemNode {
             }
             let string = stringWithAppliedEntities(item.text, entities: entities, baseColor: baseColor, linkColor: item.presentationData.theme.list.itemAccentColor, baseFont: textFont, linkFont: textFont, boldFont: textBoldFont, italicFont: textItalicFont, boldItalicFont: textBoldItalicFont, fixedFont: textFixedFont, blockQuoteFont: textFont, message: nil)
             
-            let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: string, backgroundColor: nil, maximumNumberOfLines: item.multiline ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftOffset - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-            let contentSize = CGSize(width: params.width, height: textLayout.size.height + labelLayout.size.height + 22.0)
+            let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: string, backgroundColor: nil, maximumNumberOfLines: (item.multiline || usesLargeTextLayout) ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftOffset - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let contentSize = CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, textLayout.size.height + labelLayout.size.height + 22.0))
             let nodeLayout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             return (nodeLayout, { [weak self] animation in
                 if let strongSelf = self {

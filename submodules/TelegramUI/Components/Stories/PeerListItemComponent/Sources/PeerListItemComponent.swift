@@ -767,14 +767,15 @@ public final class PeerListItemComponent: Component {
             var height: CGFloat
             let titleFont: UIFont
             let subtitleFont: UIFont
+            let baseFontSize = presentationData.listsFontSize.itemListBaseFontSize
             switch component.style {
             case .share:
-                titleFont = Font.regular(17.0)
-                subtitleFont = Font.regular(15.0)
-                height = 60.0
+                titleFont = Font.regular(baseFontSize)
+                subtitleFont = Font.regular(floor(baseFontSize * 15.0 / 17.0))
+                height = max(60.0, PresentationLayoutMetrics.minimumInteractiveSize + verticalInset * 2.0)
             case .generic:
-                titleFont = Font.semibold(17.0)
-                subtitleFont = Font.regular(15.0)
+                titleFont = Font.semibold(baseFontSize)
+                subtitleFont = Font.regular(floor(baseFontSize * 15.0 / 17.0))
                 if let subtitleComponentSize {
                     height = 40.0 + subtitleComponentSize.height + verticalInset * 2.0
                 } else if labelData.0.isEmpty {
@@ -782,18 +783,20 @@ public final class PeerListItemComponent: Component {
                 } else {
                     height = 58.0 + verticalInset * 2.0
                 }
+                height = max(height, PresentationLayoutMetrics.minimumInteractiveSize)
             case .compact:
-                titleFont = Font.semibold(14.0)
-                subtitleFont = Font.regular(14.0)
+                titleFont = Font.semibold(floor(baseFontSize * 14.0 / 17.0))
+                subtitleFont = Font.regular(floor(baseFontSize * 14.0 / 17.0))
                 if let subtitleComponentSize {
                     height = 20.0 + subtitleComponentSize.height + verticalInset * 2.0
                 } else {
                     height = 40.0 + verticalInset * 2.0
                 }
+                height = max(height, PresentationLayoutMetrics.minimumInteractiveSize)
             case .list:
-                titleFont = Font.semibold(floor(presentationData.listsFontSize.itemListBaseFontSize * 16.0 / 17.0))
-                subtitleFont = Font.regular(14.0)
-                height = 48.0 + verticalInset * 2.0
+                titleFont = Font.semibold(floor(baseFontSize * 16.0 / 17.0))
+                subtitleFont = Font.regular(floor(baseFontSize * 14.0 / 17.0))
+                height = max(48.0 + verticalInset * 2.0, PresentationLayoutMetrics.minimumInteractiveSize)
             }
 
             if let rightAccessoryComponentView = self.rightAccessoryComponentView, component.rightAccessoryComponent?.id != previousComponent?.rightAccessoryComponent?.id {

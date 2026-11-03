@@ -192,19 +192,20 @@ final class WebBrowserDomainExceptionItemNode: ItemListRevealOptionsItemNode, It
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.leftInset + 46.0
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset + 46.0
             
             let titleColor: UIColor = item.presentationData.theme.list.itemPrimaryTextColor
             let labelColor: UIColor = item.presentationData.theme.list.itemAccentColor
             
             let titleFont = Font.medium(item.presentationData.fontSize.itemListBaseFontSize)
             let labelFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
+            let usesLargeTextLayout = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
             
             let maxTitleWidth: CGFloat = params.width - params.rightInset - 20.0 - leftInset
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: maxTitleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: usesLargeTextLayout ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: maxTitleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
-            let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.label, font: labelFont, textColor: labelColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: maxTitleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.label, font: labelFont, textColor: labelColor), backgroundColor: nil, maximumNumberOfLines: usesLargeTextLayout ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: maxTitleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let iconPlaceholderText = webBrowserDomainExceptionPlaceholderLetter(item.title)
             let iconPlaceholderFont = Font.with(size: 17.0, design: .round, weight: .semibold)
@@ -219,7 +220,7 @@ final class WebBrowserDomainExceptionItemNode: ItemListRevealOptionsItemNode, It
             }
             let titleSpacing: CGFloat = 1.0
             
-            let height: CGFloat = verticalInset * 2.0 + titleLayout.size.height + titleSpacing + labelLayout.size.height
+            let height: CGFloat = max(PresentationLayoutMetrics.minimumInteractiveSize, verticalInset * 2.0 + titleLayout.size.height + titleSpacing + labelLayout.size.height)
     
             switch item.style {
             case .plain:

@@ -327,9 +327,12 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
             alphaTransition.updateAlpha(node: self.textNode, alpha: isActive ? 1.0 : 0.3)
         }
         
-        self.textNode.attributedText = NSAttributedString(string: text.lowercased(), font: presentationData.theme.bananaGramReference != nil ? Font.medium(11.0) : Font.regular(11.0), textColor: .white)
+        let captionFontSize = max(10.0, min(13.0, floor(presentationData.listsFontSize.baseDisplaySize * 11.0 / 17.0)))
+        self.textNode.maximumNumberOfLines = presentationData.listsFontSize.baseDisplaySize >= PresentationLayoutMetrics.multilineTextThreshold ? 2 : 1
+        self.textNode.textAlignment = .center
+        self.textNode.attributedText = NSAttributedString(string: text.lowercased(), font: presentationData.theme.bananaGramReference != nil ? Font.medium(captionFontSize) : Font.regular(captionFontSize), textColor: .white)
         self.accessibilityLabel = text
-        let titleSize = self.textNode.updateLayout(CGSize(width: 120.0, height: .greatestFiniteMagnitude))
+        let titleSize = self.textNode.updateLayout(CGSize(width: max(1.0, size.width - 4.0), height: .greatestFiniteMagnitude))
         
         transition.updateFrame(node: self.containerNode, frame: CGRect(origin: CGPoint(), size: size))
         transition.updateFrame(node: self.contentNode, frame: CGRect(origin: CGPoint(x: 0.0, y: size.height * 0.5 * (1.0 - fraction)), size: size))
@@ -370,7 +373,8 @@ final class PeerInfoHeaderButtonNode: HighlightableButtonNode {
         if let animatedIconView = self.animatedIcon?.view {
             transition.updateFrame(view: animatedIconView, frame: CGRect(origin: CGPoint(x: floor((size.width - iconSize.width) / 2.0), y: 1.0), size: iconSize))
         }
-        transition.updateFrameAdditiveToCenter(node: self.textNode, frame: CGRect(origin: CGPoint(x: floor((size.width - titleSize.width) / 2.0), y: size.height - titleSize.height - 9.0), size: titleSize))
+        let captionBottomInset: CGFloat = titleSize.height > 14.0 ? 4.0 : 9.0
+        transition.updateFrameAdditiveToCenter(node: self.textNode, frame: CGRect(origin: CGPoint(x: floor((size.width - titleSize.width) / 2.0), y: size.height - titleSize.height - captionBottomInset), size: titleSize))
         
         self.referenceNode.frame = self.containerNode.bounds
         self.updateContextMenuBackground()

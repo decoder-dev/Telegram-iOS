@@ -5,8 +5,11 @@ import AsyncDisplayKit
 import SwiftSignalKit
 import TelegramPresentationData
 
-private let labelFont = Font.regular(17.0)
-private let smallLabelFont = Font.regular(15.0)
+private func toastLabelFont(isNarrowScreen: Bool) -> UIFont {
+    let baseSize: CGFloat = isNarrowScreen ? 15.0 : 17.0
+    let scaledSize = min(22.0, UIFontMetrics(forTextStyle: .body).scaledValue(for: baseSize))
+    return Font.regular(scaledSize)
+}
 
 private enum ToastDescription: Equatable {
     enum Key: Hashable {
@@ -256,8 +259,7 @@ private class CallControllerToastItemNode: ASDisplayNode {
     func update(width: CGFloat, content: Content, transition: ContainedViewLayoutTransition) -> CGFloat {
         let inset: CGFloat = 30.0
         let isNarrowScreen = width <= 320.0
-        let font = isNarrowScreen ? smallLabelFont : labelFont
-        let topInset: CGFloat = isNarrowScreen ? 5.0 : 4.0
+        let font = toastLabelFont(isNarrowScreen: isNarrowScreen)
                 
         if self.currentContent != content || self.currentWidth != width {
             self.currentContent = content
@@ -279,21 +281,22 @@ private class CallControllerToastItemNode: ASDisplayNode {
             } else {
                 self.iconNode.image = image
             }
-                  
+            
+            self.textNode.maximumNumberOfLines = font.pointSize >= PresentationLayoutMetrics.multilineTextThreshold ? 2 : 1
             self.textNode.attributedText = NSAttributedString(string: content.text, font: font, textColor: .white)
             
-            let iconSize = CGSize(width: 44.0, height: 28.0)
+            let iconSize = CGSize(width: PresentationLayoutMetrics.minimumInteractiveSize, height: 28.0)
             let iconSpacing: CGFloat = isNarrowScreen ? 0.0 : 1.0
             let textSize = self.textNode.updateLayout(CGSize(width: width - inset * 2.0 - iconSize.width - iconSpacing, height: 100.0))
             
-            let backgroundSize = CGSize(width: iconSize.width + iconSpacing + textSize.width + 6.0 * 2.0, height: max(28.0, textSize.height + 4.0 * 2.0))
+            let backgroundSize = CGSize(width: iconSize.width + iconSpacing + textSize.width + 6.0 * 2.0, height: max(PresentationLayoutMetrics.minimumInteractiveSize * 0.5 + 6.0, textSize.height + 4.0 * 2.0))
             let backgroundFrame = CGRect(origin: CGPoint(x: floor((width - backgroundSize.width) / 2.0), y: 0.0), size: backgroundSize)
             
             transition.updateFrame(node: self.clipNode, frame: backgroundFrame)
             transition.updateFrame(view: self.effectView, frame: CGRect(origin: CGPoint(), size: backgroundFrame.size))
             
-            self.iconNode.frame = CGRect(origin: CGPoint(), size: iconSize)
-            self.textNode.frame = CGRect(origin: CGPoint(x: iconSize.width + iconSpacing, y: topInset), size: textSize)
+            self.iconNode.frame = CGRect(origin: CGPoint(x: 0.0, y: floor((backgroundSize.height - iconSize.height) / 2.0)), size: iconSize)
+            self.textNode.frame = CGRect(origin: CGPoint(x: iconSize.width + iconSpacing, y: floor((backgroundSize.height - textSize.height) / 2.0)), size: textSize)
             
             self.currentHeight = backgroundSize.height
         }

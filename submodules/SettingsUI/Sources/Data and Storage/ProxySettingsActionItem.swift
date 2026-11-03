@@ -159,11 +159,12 @@ private final class ProxySettingsActionItemNode: ListViewItemNode, ItemListItemN
             if currentItem?.presentationData.theme !== item.presentationData.theme {
                 updatedTheme = item.presentationData.theme
             }
-            let leftInset: CGFloat = (item.icon != .none ? 50.0 : 16.0) + params.leftInset
+            let leftInset: CGFloat = (item.icon != .none ? 50.0 : PresentationLayoutMetrics.listHorizontalInset) + params.leftInset
             
             let editingOffset: CGFloat = (item.editing ? 38.0 : 0.0)
+            let usesLargeTextLayout = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemAccentColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - editingOffset - max(0.0, params.rightInset - params.leftInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemAccentColor), backgroundColor: nil, maximumNumberOfLines: usesLargeTextLayout ? 0 : 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - editingOffset - max(0.0, params.rightInset - params.leftInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let separatorHeight = UIScreenPixel
             let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
@@ -177,7 +178,7 @@ private final class ProxySettingsActionItemNode: ListViewItemNode, ItemListItemN
             }
             
             let insets = itemListNeighborsGroupedInsets(neighbors, params)
-            let contentSize = CGSize(width: params.width, height: verticalInset * 2.0 + titleLayout.size.height)
+            let contentSize = CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, verticalInset * 2.0 + titleLayout.size.height))
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             let layoutSize = layout.size

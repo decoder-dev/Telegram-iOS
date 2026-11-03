@@ -2321,7 +2321,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let buttonSideInset = max(16.0, containerInset)
         
         let actionButtonWidth = (width - stripLeft - stripRight - buttonSideInset * 2.0 + buttonSpacing) / CGFloat(actionButtonKeys.count) - buttonSpacing
-        let actionButtonSize = CGSize(width: actionButtonWidth, height: 40.0)
+        let actionButtonSize = CGSize(width: actionButtonWidth, height: PresentationLayoutMetrics.minimumInteractiveSize)
         var actionButtonRightOrigin = CGPoint(x: width - stripRight - buttonSideInset, y: backgroundHeight - 16.0 - actionButtonSize.height)
         
         for buttonKey in actionButtonKeys.reversed() {

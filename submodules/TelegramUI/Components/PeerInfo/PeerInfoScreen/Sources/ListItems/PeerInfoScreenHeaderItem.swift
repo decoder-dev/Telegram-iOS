@@ -54,12 +54,13 @@ private final class PeerInfoScreenHeaderItemNode: PeerInfoScreenItemNode {
         
         self.item = item
         
-        let sideInset: CGFloat = 16.0 + safeInsets.left
-        let sideInsetRight: CGFloat = 16.0 + safeInsets.right
+        let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
+        let sideInsetRight: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.right
         let verticalInset: CGFloat = 7.0
+        let headerFont = Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize)
         
         self.textNode.maximumNumberOfLines = 0
-        self.textNode.attributedText = NSAttributedString(string: item.text, font: Font.regular(13.0), textColor: presentationData.theme.list.freeTextColor)
+        self.textNode.attributedText = NSAttributedString(string: item.text, font: headerFont, textColor: presentationData.theme.list.freeTextColor)
         self.activateArea.accessibilityLabel = item.text
         
         let textSize = self.textNode.updateLayout(CGSize(width: width - sideInset - sideInsetRight, height: .greatestFiniteMagnitude))
@@ -67,7 +68,7 @@ private final class PeerInfoScreenHeaderItemNode: PeerInfoScreenItemNode {
         let textFrame = CGRect(origin: CGPoint(x: sideInset, y: verticalInset), size: textSize)
         
         self.labelNode.maximumNumberOfLines = 0
-        self.labelNode.attributedText = NSAttributedString(string: item.label ?? "", font: Font.regular(13.0), textColor: presentationData.theme.list.freeTextColor)
+        self.labelNode.attributedText = NSAttributedString(string: item.label ?? "", font: headerFont, textColor: presentationData.theme.list.freeTextColor)
         
         let labelSize = self.labelNode.updateLayout(CGSize(width: max(0.0, width - sideInset - sideInsetRight - textSize.width - 4.0), height: .greatestFiniteMagnitude))
         
