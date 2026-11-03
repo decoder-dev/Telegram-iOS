@@ -747,7 +747,7 @@ final class WalletSendRecipientComponent: Component {
             let canOpenInfo = !component.isLoading && !component.address.isEmpty
             let textOriginX: CGFloat = 60.0
             let textWidth = max(1.0, availableSize.width - textOriginX - 42.0)
-            let addressFont = Font.monospace(14.0)
+            let addressFont = Font.monospace(floor(fontSize * 14.0 / 17.0))
             let addressKerning = ("0" as NSString).size(withAttributes: [.font: addressFont]).width * 0.08
             let addressAttributes: [NSAttributedString.Key: Any] = [
                 .font: addressFont,

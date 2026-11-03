@@ -2882,7 +2882,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             } else {
                 animateCancelSlideIn = transition.isAnimated
                 
-                audioRecordingCancelIndicator = ChatTextInputAudioRecordingCancelIndicator(theme: interfaceState.theme, strings: interfaceState.strings, cancel: { [weak self] in
+                audioRecordingCancelIndicator = ChatTextInputAudioRecordingCancelIndicator(theme: interfaceState.theme, strings: interfaceState.strings, fontSize: interfaceState.fontSize.baseDisplaySize, cancel: { [weak self] in
                     guard let self else {
                         return
                     }

@@ -17,7 +17,7 @@ final class WalletSendRecipientAlertContentComponent: Component {
     let copyAddress: () -> Void
     let fontSize: CGFloat
 
-    init(title: String, recipientName: String?, address: String, openChat: (() -> Void)?, copyAddress: @escaping () -> Void, fontSize: CGFloat = 17.0) {
+    init(title: String, recipientName: String?, address: String, openChat: (() -> Void)?, copyAddress: @escaping () -> Void, fontSize: CGFloat) {
         self.title = title
         self.recipientName = recipientName
         self.address = address
@@ -123,7 +123,7 @@ final class WalletSendRecipientAlertContentComponent: Component {
             }
 
             let addressText = NSMutableAttributedString()
-            let addressFont = Font.monospace(18.0)
+            let addressFont = Font.monospace(floor(component.fontSize * 18.0 / 17.0))
             var index = component.address.startIndex
             var groupIndex = 0
             while index < component.address.endIndex {

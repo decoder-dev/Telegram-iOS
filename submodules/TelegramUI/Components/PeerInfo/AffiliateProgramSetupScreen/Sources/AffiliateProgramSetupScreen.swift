@@ -957,7 +957,8 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                         self.state?.updated(transition: .immediate)
                                     }
                                 )),
-                                preferNative: true
+                                preferNative: true,
+                                fontSize: fontSize
                             )))
                         ],
                         displaySeparators: false
@@ -1036,7 +1037,8 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                         self.state?.updated(transition: .immediate)
                                     }
                                 )),
-                                preferNative: true
+                                preferNative: true,
+                                fontSize: fontSize
                             )))
                         ],
                         displaySeparators: false

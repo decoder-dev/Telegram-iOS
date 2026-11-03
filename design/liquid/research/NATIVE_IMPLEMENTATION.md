@@ -383,3 +383,7 @@ PieChart/DataUsage listsFontSizeBase (labels/tooltip), Birthday help markdown, B
 ## Storage categories, Ad panel, Story guide
 
 Storage categories/peer list/media grid/DataUsage items, ChatAdPanel, StoryInteractionGuide, UnsupportedContentPill, WalletApps leftovers — Dynamic Type от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Wallet send/words и Context/Affiliate
+
+WalletWords/Send keyboard/recipient/collectible, ContextController actions stack, AffiliateProgram/PeerAllowedReactions/LiveStream sliders, QrStudio/PeerNameColor preview, ChatTextInputPanel leftover — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.

@@ -799,7 +799,8 @@ final class LiveStreamSettingsScreenComponent: Component {
                             self.state?.updated(transition: .immediate)
                         }
                     )),
-                    preferNative: true
+                    preferNative: true,
+                    fontSize: presentationData.listsFontSize.baseDisplaySize
                 )
             ))]
             

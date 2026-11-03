@@ -299,9 +299,10 @@ public final class WalletCollectibleHeaderComponent: Component {
 
             var contentHeight = mediaSize.height + 18.0
             let textWidth = max(0.0, availableSize.width - 48.0)
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let titleText = NSMutableAttributedString(attributedString: NSAttributedString(
                 string: component.item.name,
-                font: Font.semibold(20.0),
+                font: Font.semibold(floor(fontSize * 20.0 / 17.0)),
                 textColor: component.theme.actionSheet.primaryTextColor
             ))
             if let numberRange = component.item.name.range(of: "#[0-9]+$", options: .regularExpression) {
@@ -343,7 +344,7 @@ public final class WalletCollectibleHeaderComponent: Component {
                     AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: collectionName,
-                            font: Font.regular(15.0),
+                            font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                             textColor: component.theme.actionSheet.secondaryTextColor
                         )),
                         maximumNumberOfLines: 1

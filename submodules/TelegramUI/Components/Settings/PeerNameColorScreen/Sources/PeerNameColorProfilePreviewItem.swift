@@ -381,11 +381,12 @@ final class PeerNameColorProfilePreviewItemNode: ListViewItemNode {
                     maxTitleWidth -= 4.0 + 34.0
                 }
                 
+                let fontSize = item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 let titleString: String = item.peer?.displayTitle(strings: item.strings, displayOrder: item.nameDisplayOrder) ?? " "
                 let titleSize = self.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: titleString, font: Font.semibold(28.0), textColor: titleColor)),
+                        text: .plain(NSAttributedString(string: titleString, font: Font.semibold(floor(fontSize * 28.0 / 17.0)), textColor: titleColor)),
                         maximumNumberOfLines: 1
                     )),
                     environment: {},
@@ -450,7 +451,7 @@ final class PeerNameColorProfilePreviewItemNode: ListViewItemNode {
                 let subtitleSize = self.subtitle.update(
                     transition: .immediate,
                     component: AnyComponent(Text(
-                        text: subtitleString, font: Font.regular(18.0), color: subtitleColor
+                        text: subtitleString, font: Font.regular(floor(fontSize * 18.0 / 17.0)), color: subtitleColor
                     )),
                     environment: {},
                     containerSize: CGSize(width: coverFrame.width - 16.0, height: 100.0)

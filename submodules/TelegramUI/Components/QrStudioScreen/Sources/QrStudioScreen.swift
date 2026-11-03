@@ -2315,7 +2315,8 @@ final class QrStudioScreenComponent: Component {
                     ink: ink,
                     isLight: backdrop.isLight,
                     bounceToken: backdrop.cardSignature + link,
-                    fillSource: fillSource
+                    fillSource: fillSource,
+                    fontSize: listFontSize
                 )),
                 environment: {},
                 containerSize: availableSize

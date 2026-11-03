@@ -82,9 +82,10 @@ public final class WalletCollectibleItemComponent: Component {
 
             let textOriginX: CGFloat = 46.0
             let textAvailableWidth = max(0.0, availableSize.width - textOriginX)
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let titleText = NSMutableAttributedString(attributedString: NSAttributedString(
                 string: component.collectible.name,
-                font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
+                font: Font.semibold(fontSize),
                 textColor: component.theme.list.itemPrimaryTextColor
             ))
             if let numberRange = component.collectible.name.range(of: "#[0-9]+$", options: .regularExpression) {
@@ -108,7 +109,7 @@ public final class WalletCollectibleItemComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.collectible.subtitle,
-                        font: Font.regular(14.0),
+                        font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                         textColor: component.theme.list.itemSecondaryTextColor
                     )),
                     maximumNumberOfLines: 1

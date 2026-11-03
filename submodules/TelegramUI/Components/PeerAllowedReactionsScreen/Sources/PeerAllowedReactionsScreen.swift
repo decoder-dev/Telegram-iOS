@@ -1305,7 +1305,8 @@ final class PeerAllowedReactionsScreenComponent: Component {
                                         self.state?.updated(transition: .immediate)
                                     }
                                 )),
-                                preferNative: true
+                                preferNative: true,
+                                fontSize: fontSize
                             )))
                         ],
                         displaySeparators: false

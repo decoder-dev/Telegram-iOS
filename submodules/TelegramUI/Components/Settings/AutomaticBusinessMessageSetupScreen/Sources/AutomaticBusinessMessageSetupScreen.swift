@@ -1511,7 +1511,8 @@ final class AutomaticBusinessMessageSetupScreenComponent: Component {
                                         self.state?.updated(transition: .immediate)
                                     }
                                 )),
-                                preferNative: true
+                                preferNative: true,
+                                fontSize: fontSize
                             )))
                         ]
                     )),

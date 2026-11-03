@@ -236,7 +236,7 @@ public final class ContextControllerActionsListActionItemNode: HighlightTracking
             titleBoldFont = Font.semibold(presentationData.listsFontSize.baseDisplaySize)
         }
         
-        let subtitleFont = Font.regular(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)
+        let subtitleFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0))
         var subtitleColor: UIColor
         switch self.item.textColor {
         case .destructive:
@@ -322,7 +322,7 @@ public final class ContextControllerActionsListActionItemNode: HighlightTracking
                     if case .bold = attribute.type {
                         result.addAttribute(NSAttributedString.Key.font, value: titleBoldFont, range: NSRange(location: attribute.range.lowerBound, length: attribute.range.count))
                     } else if case .italic = attribute.type {
-                        result.addAttribute(NSAttributedString.Key.font, value: Font.semibold(15.0), range: NSRange(location: attribute.range.lowerBound, length: attribute.range.count))
+                        result.addAttribute(NSAttributedString.Key.font, value: Font.semibold(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)), range: NSRange(location: attribute.range.lowerBound, length: attribute.range.count))
                     } else if case .textUrl = attribute.type {
                         result.addAttribute(NSAttributedString.Key.foregroundColor, value: linkColor, range: NSRange(location: attribute.range.lowerBound, length: attribute.range.count))
                         result.addAttribute(NSAttributedString.Key.font, value: titleBoldFont, range: NSRange(location: attribute.range.lowerBound, length: attribute.range.count))
@@ -448,7 +448,7 @@ public final class ContextControllerActionsListActionItemNode: HighlightTracking
                 switch badge.style {
                 case .badge:
                     let badgeTextColor: UIColor = presentationData.theme.list.itemCheckColors.foregroundColor
-                    let badgeString = NSAttributedString(string: badge.value, font: Font.regular(13.0), textColor: badgeTextColor)
+                    let badgeString = NSAttributedString(string: badge.value, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: badgeTextColor)
                     let badgeTextBounds = badgeString.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: [.usesLineFragmentOrigin], context: nil)
                     
                     let badgeSideInset: CGFloat = 5.0
@@ -469,7 +469,7 @@ public final class ContextControllerActionsListActionItemNode: HighlightTracking
                     })
                 case .label:
                     let badgeTextColor: UIColor = presentationData.theme.list.itemCheckColors.foregroundColor
-                    let badgeString = NSAttributedString(string: badge.value, font: Font.semibold(11.0), textColor: badgeTextColor)
+                    let badgeString = NSAttributedString(string: badge.value, font: Font.semibold(floor(presentationData.listsFontSize.baseDisplaySize * 11.0 / 17.0)), textColor: badgeTextColor)
                     let badgeTextBounds = badgeString.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: [.usesLineFragmentOrigin], context: nil)
                     
                     let badgeSideInset: CGFloat = 3.0

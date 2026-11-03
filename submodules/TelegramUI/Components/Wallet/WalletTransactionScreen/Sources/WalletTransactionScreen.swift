@@ -3152,7 +3152,7 @@ private final class WalletTransactionContentComponent: Component {
                 let address = WalletContext.transferAddress(from: counterparty, preserveBounce: true) ?? counterparty
                 let formattedAddress = walletTransactionFormattedAddress(
                     address,
-                    font: Font.monospace(15.0),
+                    font: Font.monospace(floor(fontSize * 15.0 / 17.0)),
                     primaryTextColor: valueColor,
                     secondaryTextColor: theme.actionSheet.secondaryTextColor
                 )

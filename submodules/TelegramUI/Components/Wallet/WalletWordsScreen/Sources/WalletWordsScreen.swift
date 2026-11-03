@@ -103,6 +103,7 @@ private final class WalletWordsScreenComponent: Component {
         ) -> CGSize {
             let environment = environment[EnvironmentType.self].value
             let theme = environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.backgroundColor = .clear
 
             let titleText: String
@@ -158,7 +159,7 @@ private final class WalletWordsScreenComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: titleText,
-                        font: Font.bold(28.0),
+                        font: Font.bold(floor(fontSize * 28.0 / 17.0)),
                         textColor: theme.list.itemPrimaryTextColor
                     )),
                     horizontalAlignment: .center,
@@ -188,7 +189,7 @@ private final class WalletWordsScreenComponent: Component {
                 component: AnyComponent(BalancedTextComponent(
                     text: .plain(NSAttributedString(
                         string: bodyText,
-                        font: Font.regular(16.0),
+                        font: Font.regular(floor(fontSize * 16.0 / 17.0)),
                         textColor: theme.list.itemPrimaryTextColor
                     )),
                     horizontalAlignment: .center,

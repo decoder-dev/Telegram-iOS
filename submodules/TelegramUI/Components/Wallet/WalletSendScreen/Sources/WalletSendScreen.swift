@@ -2385,6 +2385,7 @@ private final class WalletSendScreenComponent: Component {
                     mode: .decimal(separator: environment.dateTimeFormat.decimalSeparator),
                     deleteTitle: environment.strings.Common_Delete,
                     isEnabled: isAmountInputEnabled && environment.isVisible && isKeyboardVisible,
+                    fontSize: fontSize,
                     action: { [weak self] action in
                         guard let self, self.isVisible,
                               !self.isPreparingTransfer, !self.isResolvingSigningAccess, !self.isSubmittingTransfer else {

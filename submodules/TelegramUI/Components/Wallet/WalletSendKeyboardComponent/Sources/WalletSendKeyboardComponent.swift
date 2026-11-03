@@ -25,6 +25,7 @@ public final class WalletSendKeyboardComponent: Component {
     let mode: Mode
     let deleteTitle: String
     let isEnabled: Bool
+    let fontSize: CGFloat
     let action: (Action) -> Void
 
     public init(
@@ -36,6 +37,7 @@ public final class WalletSendKeyboardComponent: Component {
         mode: Mode,
         deleteTitle: String,
         isEnabled: Bool,
+        fontSize: CGFloat,
         action: @escaping (Action) -> Void
     ) {
         self.theme = theme
@@ -46,6 +48,7 @@ public final class WalletSendKeyboardComponent: Component {
         self.mode = mode
         self.deleteTitle = deleteTitle
         self.isEnabled = isEnabled
+        self.fontSize = fontSize
         self.action = action
     }
 
@@ -58,6 +61,7 @@ public final class WalletSendKeyboardComponent: Component {
             && lhs.mode == rhs.mode
             && lhs.deleteTitle == rhs.deleteTitle
             && lhs.isEnabled == rhs.isEnabled
+            && lhs.fontSize == rhs.fontSize
     }
 
     private final class KeyTrackingGestureRecognizer: UIGestureRecognizer {
@@ -292,10 +296,11 @@ public final class WalletSendKeyboardComponent: Component {
                 self.accessibilityLabel = component.deleteTitle
                 hasBackground = false
             }
+            let fontSize = component.fontSize
             self.numberTextSize = self.numberText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: number, font: Font.regular(22.0), textColor: textColor)),
+                    text: .plain(NSAttributedString(string: number, font: Font.regular(floor(fontSize * 22.0 / 17.0)), textColor: textColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 1
                 )),
@@ -315,7 +320,7 @@ public final class WalletSendKeyboardComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(string: letters, attributes: [
-                        .font: Font.medium(12.0),
+                        .font: Font.medium(floor(fontSize * 12.0 / 17.0)),
                         .foregroundColor: textColor,
                         .kern: 2.0
                     ])),
