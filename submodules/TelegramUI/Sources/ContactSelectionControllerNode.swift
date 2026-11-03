@@ -181,7 +181,7 @@ final class ContactSelectionControllerNode: ASDisplayNode {
         var shareImpl: (() -> Void)?
         self.countPanelNode = ContactSelectionCountPanelNode(theme: self.presentationData.theme, strings: self.presentationData.strings, action: {
             shareImpl?()
-        })
+        }, contentFontSize: self.presentationData.listsFontSize.baseDisplaySize)
         
         super.init()
         
@@ -525,6 +525,7 @@ final class ContactSelectionControllerNode: ASDisplayNode {
 final class ContactSelectionCountPanelNode: ASDisplayNode {
     private let theme: PresentationTheme
     private let strings: PresentationStrings
+    private let contentFontSize: CGFloat
     
     private let separatorNode: ASDisplayNode
     
@@ -540,7 +541,7 @@ final class ContactSelectionCountPanelNode: ASDisplayNode {
     var count: Int = 0 {
         didSet {
             if self.count != oldValue && self.count > 0 {
-                self.badgeText = NSAttributedString(string: "\(count)", font: Font.regular(14.0), textColor: self.theme.actionSheet.opaqueItemBackgroundColor, paragraphAlignment: .center)
+                self.badgeText = NSAttributedString(string: "\(count)", font: Font.regular(floor(self.contentFontSize * 14.0 / 17.0)), textColor: self.theme.actionSheet.opaqueItemBackgroundColor, paragraphAlignment: .center)
                 self.badgeLabel.isHidden = false
                 self.badgeBackground.isHidden = false
                 
@@ -551,10 +552,11 @@ final class ContactSelectionCountPanelNode: ASDisplayNode {
         }
     }
         
-    init(theme: PresentationTheme, strings: PresentationStrings, action: @escaping () -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, action: @escaping () -> Void, contentFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
         self.action = action
+        self.contentFontSize = contentFontSize
 
         self.separatorNode = ASDisplayNode()
         self.separatorNode.backgroundColor = theme.rootController.navigationBar.separatorColor
@@ -573,7 +575,7 @@ final class ContactSelectionCountPanelNode: ASDisplayNode {
         self.badgeBackground.image = generateStretchableFilledCircleImage(diameter: 22.0, color: theme.actionSheet.controlAccentColor)
         
         self.button = HighlightTrackingButtonNode()
-        self.button.setTitle(strings.ShareMenu_Send, with: Font.medium(self.presentationData.listsFontSize.baseDisplaySize), with: theme.actionSheet.controlAccentColor, for: .normal)
+        self.button.setTitle(strings.ShareMenu_Send, with: Font.medium(contentFontSize), with: theme.actionSheet.controlAccentColor, for: .normal)
         
         super.init()
         

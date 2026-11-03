@@ -309,7 +309,7 @@ final class ChatSearchTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode, Chat
             return super.hitTest(mappedPoint, with: event)
         }
         
-        func update(item: Item, isSelected: Bool, isLocked: Bool, theme: PresentationTheme, height: CGFloat, transition: ComponentTransition) -> CGSize {
+        func update(item: Item, isSelected: Bool, isLocked: Bool, theme: PresentationTheme, height: CGFloat, fontSize: CGFloat = 17.0, transition: ComponentTransition) -> CGSize {
             let spacing: CGFloat = 3.0
             
             let contentsAlpha: CGFloat = isLocked ? 0.6 : 1.0
@@ -342,11 +342,12 @@ final class ChatSearchTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode, Chat
                 containerSize: reactionDisplaySize
             )
             
+            let chipFont = Font.regular(floor(fontSize * 11.0 / 17.0))
             let titleText: String = item.title ?? ""
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleText, font: Font.regular(11.0), textColor: isSelected ? theme.list.itemCheckColors.foregroundColor : theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.6)))
+                    text: .plain(NSAttributedString(string: titleText, font: chipFont, textColor: isSelected ? theme.list.itemCheckColors.foregroundColor : theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.6)))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)
@@ -356,7 +357,7 @@ final class ChatSearchTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode, Chat
             let counterSize = self.counter.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: counterText, font: Font.regular(11.0), textColor: isSelected ? theme.list.itemCheckColors.foregroundColor : theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.6)))
+                    text: .plain(NSAttributedString(string: counterText, font: chipFont, textColor: isSelected ? theme.list.itemCheckColors.foregroundColor : theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.6)))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)
@@ -704,7 +705,7 @@ final class ChatSearchTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode, Chat
                     isSelected = true
                 }
             }
-            let itemSize = itemView.update(item: item, isSelected: isSelected, isLocked: !params.interfaceState.isPremium, theme: params.interfaceState.theme, height: panelHeight, transition: .immediate)
+            let itemSize = itemView.update(item: item, isSelected: isSelected, isLocked: !params.interfaceState.isPremium, theme: params.interfaceState.theme, height: panelHeight, fontSize: params.interfaceState.fontSize.baseDisplaySize, transition: .immediate)
             let itemFrame = CGRect(origin: CGPoint(x: contentSize.width, y: 0.0), size: itemSize)
             
             itemTransition.updatePosition(layer: itemView.layer, position: itemFrame.center)
