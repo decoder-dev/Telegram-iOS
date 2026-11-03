@@ -2473,6 +2473,7 @@ private final class WalletSendScreenComponent: Component {
                 dateTimeFormat: environment.dateTimeFormat,
                 theme: theme,
                 isVisible: environment.isVisible || (!self.openingFinished && self.isRecipientScreenVisible && self.openingInForeground),
+                listsFontSizeBase: fontSize,
                 transition: transition
             )
 
@@ -2554,7 +2555,8 @@ private final class WalletSendScreenComponent: Component {
                 isVisible: environment.isVisible && showRate,
                 isEnabled: showRate && isAmountInputEnabled,
                 timing: (self.amountField as? WalletSendAnimatedAmountField)?.motionTiming,
-                maxWidth: centeringWidth - 64.0
+                maxWidth: centeringWidth - 64.0,
+                listsFontSizeBase: fontSize
             )
             let rateButtonFrame = CGRect(
                 x: centeringMinX + floorToScreenPixels((centeringWidth - rateButtonSize.width) / 2.0),

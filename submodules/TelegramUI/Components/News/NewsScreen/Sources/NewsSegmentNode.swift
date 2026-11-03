@@ -51,7 +51,8 @@ final class NewsSegmentNode: ASDisplayNode {
             selectedTab: AnyHashable(selectedIndex),
             isEditing: false,
             layout: layout,
-            liftWhileSwitching: liftWhileSwitching
+            liftWhileSwitching: liftWhileSwitching,
+            listsFontSizeBase: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         )
     }
 

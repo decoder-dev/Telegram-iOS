@@ -333,7 +333,8 @@ final class MiniAppListScreenComponent: Component {
                     theme: theme,
                     title: strings.MiniAppList_ListSectionHeader,
                     leftInset: sectionHeaderInsetsDiffer ? insets.left : 0.0,
-                    rightInset: sectionHeaderInsetsDiffer ? insets.right : 0.0
+                    rightInset: sectionHeaderInsetsDiffer ? insets.right : 0.0,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 )),
                 environment: {},
                 containerSize: CGSize(width: size.width, height: 1000.0)
@@ -775,17 +776,20 @@ private final class ListHeaderComponent: Component {
     let title: String
     let leftInset: CGFloat
     let rightInset: CGFloat
+    let fontSize: CGFloat
 
     init(
         theme: PresentationTheme,
         title: String,
         leftInset: CGFloat,
-        rightInset: CGFloat
+        rightInset: CGFloat,
+        fontSize: CGFloat
     ) {
         self.theme = theme
         self.title = title
         self.leftInset = leftInset
         self.rightInset = rightInset
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: ListHeaderComponent, rhs: ListHeaderComponent) -> Bool {
@@ -799,6 +803,9 @@ private final class ListHeaderComponent: Component {
             return false
         }
         if lhs.rightInset != rhs.rightInset {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -829,7 +836,7 @@ private final class ListHeaderComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleString, font: Font.regular(13.0), textColor: component.theme.chatList.sectionHeaderTextColor))
+                    text: .plain(NSAttributedString(string: titleString, font: Font.regular(floor(component.fontSize * 13.0 / 17.0)), textColor: component.theme.chatList.sectionHeaderTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - insets.left - insets.right, height: 100.0)

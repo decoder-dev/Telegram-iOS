@@ -18,6 +18,13 @@ final class ItemListControllerTabsContentNode: NavigationBarContentNode {
             }
         }
     }
+    var listsFontSizeBase: CGFloat {
+        didSet {
+            if self.listsFontSizeBase != oldValue {
+                self.update()
+            }
+        }
+    }
     var segments: [String] {
         didSet {
             if self.segments != oldValue {
@@ -46,8 +53,9 @@ final class ItemListControllerTabsContentNode: NavigationBarContentNode {
     
     private var validLayout: (CGSize, CGFloat, CGFloat)?
     
-    init(theme: PresentationTheme, segments: [String], selectedIndex: Int) {
+    init(theme: PresentationTheme, listsFontSizeBase: CGFloat, segments: [String], selectedIndex: Int) {
         self.theme = theme
+        self.listsFontSizeBase = listsFontSizeBase
         self.segments = segments
         self.index = selectedIndex
         
@@ -85,12 +93,13 @@ final class ItemListControllerTabsContentNode: NavigationBarContentNode {
                 ),
                 theme: self.theme,
                 customLayout: TabSelectorComponent.CustomLayout(
-                    font: Font.medium(14.0),
+                    font: Font.medium(floor(self.listsFontSizeBase * 14.0 / 17.0)),
                     spacing: 48.0,
                     innerSpacing: 0.0,
                     lineSelection: true,
                     allowScroll: false
                 ),
+                fontSize: self.listsFontSizeBase,
                 items: mappedItems,
                 selectedId: AnyHashable(self.index),
                 setSelectedId: { [weak self] id in

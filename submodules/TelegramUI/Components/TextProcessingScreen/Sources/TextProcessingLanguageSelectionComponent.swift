@@ -753,7 +753,7 @@ private final class LanguageItemComponent: Component {
     
     init(
         theme: PresentationTheme,
-        fontSize: CGFloat = 17.0,
+        fontSize: CGFloat,
         title: String,
         isSelected: Bool,
         action: @escaping () -> Void
@@ -1062,7 +1062,7 @@ private final class SearchItemComponent: Component {
 
     init(
         theme: PresentationTheme,
-        fontSize: CGFloat = 17.0,
+        fontSize: CGFloat,
         placeholder: String,
         externalState: ExternalState,
         valueChanged: @escaping (String) -> Void

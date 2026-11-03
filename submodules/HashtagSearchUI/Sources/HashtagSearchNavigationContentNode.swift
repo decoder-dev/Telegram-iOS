@@ -201,7 +201,8 @@ final class HashtagSearchNavigationContentNode: NavigationBarContentNode {
                     theme: self.theme,
                     tabs: items,
                     selectedTab: AnyHashable(self.selectedIndex),
-                    isEditing: false
+                    isEditing: false,
+                    listsFontSizeBase: self.contentFontSize
                 )),
                 environment: {},
                 containerSize: CGSize(width: size.width - leftInset - rightInset - 16.0 * 2.0, height: 44.0)

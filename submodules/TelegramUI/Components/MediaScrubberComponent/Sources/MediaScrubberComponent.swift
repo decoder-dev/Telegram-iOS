@@ -1421,7 +1421,7 @@ private class TrackView: UIView, UIScrollViewDelegate, UIGestureRecognizerDelega
             }
             trackTitle = components.joined(separator: " • ")
             
-            let audioTitle = NSAttributedString(string: trackTitle, font: Font.semibold(13.0), textColor: .white)
+            let audioTitle = NSAttributedString(string: trackTitle, font: Font.semibold(floor(context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: .white)
             let audioTitleSize: CGSize
             if !trackTitle.isEmpty {
                 audioTitleSize = self.audioTitle.update(
@@ -1588,7 +1588,7 @@ private class TrackView: UIView, UIScrollViewDelegate, UIGestureRecognizerDelega
             let segmentTitleSize = segmentTitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: "#\(i + 2)", font: Font.semibold(11.0), textColor: .white)),
+                    text: .plain(NSAttributedString(string: "#\(i + 2)", font: Font.semibold(floor(context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 11.0 / 17.0)), textColor: .white)),
                     textShadowColor: UIColor(rgb: 0x000000, alpha: 0.4),
                     textShadowBlur: 1.0
                 )),

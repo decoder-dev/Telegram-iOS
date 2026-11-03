@@ -130,7 +130,7 @@ public final class CallListController: TelegramBaseController {
         
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         
-        self.segmentedTitleView = ItemListControllerSegmentedTitleView(theme: self.presentationData.theme, segments: [self.presentationData.strings.Calls_All, self.presentationData.strings.Calls_Missed], selectedIndex: 0)
+        self.segmentedTitleView = ItemListControllerSegmentedTitleView(theme: self.presentationData.theme, segments: [self.presentationData.strings.Calls_All, self.presentationData.strings.Calls_Missed], selectedIndex: 0, listsFontSizeBase: self.presentationData.listsFontSize.baseDisplaySize)
         
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: true, hideBadge: false))
         

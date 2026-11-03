@@ -2019,7 +2019,8 @@ public class UserAppearanceScreen: ViewControllerComponentContainer {
                 presentationData.strings.ProfileColorSetup_TitleProfile,
                 presentationData.strings.ProfileColorSetup_TitleName
             ],
-            selectedIndex: initialSection.segmentIndex
+            selectedIndex: initialSection.segmentIndex,
+            listsFontSizeBase: presentationData.listsFontSize.baseDisplaySize
         )
 
         super.init(context: context, component: UserAppearanceScreenComponent(

@@ -132,7 +132,8 @@ private final class StatusReactionNode: ASDisplayNode {
                     alternativeTextView.insets = UIEdgeInsets(top: 1.0, left: 1.0, bottom: 1.0, right: 1.0)
                     self.view.addSubview(alternativeTextView)
                 }
-                alternativeTextView.attributedText = NSAttributedString(string: alternativeText, font: Font.regular(10.0), textColor: .black)
+                let fontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+                alternativeTextView.attributedText = NSAttributedString(string: alternativeText, font: Font.regular(floor(fontSize * 10.0 / 17.0)), textColor: .black)
                 let alternativeTextSize = alternativeTextView.updateLayout(CGSize(width: 100.0, height: 100.0))
                 alternativeTextView.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((boundingImageSize.width - alternativeTextSize.width) / 2.0), y: floorToScreenPixels((boundingImageSize.height - alternativeTextSize.height) / 2.0)), size: alternativeTextSize)
             }

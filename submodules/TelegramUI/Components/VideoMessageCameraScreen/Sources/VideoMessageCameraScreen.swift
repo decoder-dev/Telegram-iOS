@@ -8,6 +8,7 @@ import SwiftSignalKit
 import ViewControllerComponent
 import ComponentDisplayAdapters
 import TelegramPresentationData
+import TelegramUIPreferences
 import AccountContext
 import TelegramCore
 import PresentationDataUtils
@@ -114,7 +115,7 @@ private final class RoundVideoZoomDialView: UIView {
 
     private let valueLabel = UILabel()
     private let fadeMaskLayer = CAGradientLayer()
-    private var labelFont = Font.with(size: 11.0, design: .round, weight: .medium)
+    private var labelFont = Font.with(size: floor(PresentationFontSize.regular.baseDisplaySize * 11.0 / 17.0), design: .round, weight: .medium)
     private var labels: [Label] = []
 
     private var lensValues: [CGFloat] = []
@@ -269,8 +270,8 @@ private final class RoundVideoZoomControl: UIView {
     private var buttonValues: [CGFloat] = []
     // The other lenses get a smaller font rather than a scaled-down button, which would shrink their touch area too.
     // Monospaced digits keep the live value from wobbling sideways.
-    private var activeButtonFont = Font.with(size: 13.0, design: .round, weight: .semibold, traits: .monospacedNumbers)
-    private var inactiveButtonFont = Font.with(size: 12.0, design: .round, weight: .semibold)
+    private var activeButtonFont = Font.with(size: floor(PresentationFontSize.regular.baseDisplaySize * 13.0 / 17.0), design: .round, weight: .semibold, traits: .monospacedNumbers)
+    private var inactiveButtonFont = Font.with(size: floor(PresentationFontSize.regular.baseDisplaySize * 12.0 / 17.0), design: .round, weight: .semibold)
 
     override init(frame: CGRect) {
         super.init(frame: frame)

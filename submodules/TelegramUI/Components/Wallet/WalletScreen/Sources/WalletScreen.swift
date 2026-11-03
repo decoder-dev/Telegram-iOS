@@ -1899,7 +1899,8 @@ private final class WalletScreenComponent: Component {
                     selectedTab: self.selectedSection == .transactions ? transactionsTabId : collectiblesTabId,
                     isEditing: false,
                     layout: .fill,
-                    liftWhileSwitching: environment.deviceMetrics.type == .phone
+                    liftWhileSwitching: environment.deviceMetrics.type == .phone,
+                    listsFontSizeBase: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 )),
                 environment: {},
                 containerSize: CGSize(width: containerWidth, height: 40.0)

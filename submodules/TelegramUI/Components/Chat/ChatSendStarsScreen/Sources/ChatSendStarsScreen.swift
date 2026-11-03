@@ -320,7 +320,7 @@ private final class PeerBadgeComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.bold(9.0), textColor: .white))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.bold(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 9.0 / 17.0)), textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0 - titleSpacing - iconSize.width, height: 100.0)

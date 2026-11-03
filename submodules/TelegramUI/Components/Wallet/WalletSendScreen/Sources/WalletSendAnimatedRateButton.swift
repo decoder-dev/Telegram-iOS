@@ -119,7 +119,8 @@ final class WalletSendAnimatedRateButton: UIControl {
         text: String, displaysGramIcon: Bool, mode: WalletSendInputMode,
         dateTimeFormat: PresentationDateTimeFormat, theme: PresentationTheme,
         isVisible: Bool, isEnabled: Bool, timing sharedTiming: WalletSendAmountMotionTiming?,
-        maxWidth: CGFloat
+        maxWidth: CGFloat,
+        listsFontSizeBase: CGFloat
     ) -> CGSize {
         let wasVisible = self.visible
         self.visible = isVisible
@@ -143,7 +144,7 @@ final class WalletSendAnimatedRateButton: UIControl {
             transition: .immediate,
             component: AnyComponent(WalletSendAnimatedTextComponent(
                 text: text,
-                font: WalletSendAmountFonts.rate,
+                font: WalletSendAmountFonts.rate(listsFontSizeBase),
                 color: theme.list.itemSecondaryTextColor,
                 dateTimeFormat: dateTimeFormat,
                 isVisible: isVisible,

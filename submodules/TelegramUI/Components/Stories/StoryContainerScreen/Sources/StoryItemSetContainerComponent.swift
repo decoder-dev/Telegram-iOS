@@ -5332,7 +5332,7 @@ public final class StoryItemSetContainerComponent: Component {
                 
                 let seekLabelSize = self.seekLabel.update(
                     transition: .immediate,
-                    component: AnyComponent(Text(text: component.strings.Story_SlideToSeek, font: Font.semibold(14.0), color: .white)),
+                    component: AnyComponent(Text(text: component.strings.Story_SlideToSeek, font: Font.semibold(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 14.0 / 17.0)), color: .white)),
                     environment: {},
                     containerSize: availableSize
                 )

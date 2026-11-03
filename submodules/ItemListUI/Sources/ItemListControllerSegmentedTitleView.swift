@@ -40,10 +40,19 @@ public final class ItemListControllerSegmentedTitleView: UIView {
     
     public var indexUpdated: ((Int) -> Void)?
     
-    public init(theme: PresentationTheme, segments: [String], selectedIndex: Int) {
+    public var listsFontSizeBase: CGFloat {
+        didSet {
+            if self.listsFontSizeBase != oldValue {
+                self.setNeedsLayout()
+            }
+        }
+    }
+    
+    public init(theme: PresentationTheme, segments: [String], selectedIndex: Int, listsFontSizeBase: CGFloat) {
         self.theme = theme
         self.segments = segments
         self.index = selectedIndex
+        self.listsFontSizeBase = listsFontSizeBase
         
         self.backgroundContainer = GlassBackgroundContainerView()
         self.backgroundView = GlassBackgroundView()
@@ -101,7 +110,8 @@ public final class ItemListControllerSegmentedTitleView: UIView {
                 tabs: mappedItems,
                 selectedTab: AnyHashable(self.index),
                 isEditing: false,
-                layout: .fit
+                layout: .fit,
+                listsFontSizeBase: self.listsFontSizeBase
             )),
             environment: {},
             containerSize: CGSize(width: size.width, height: PresentationLayoutMetrics.minimumInteractiveSize)

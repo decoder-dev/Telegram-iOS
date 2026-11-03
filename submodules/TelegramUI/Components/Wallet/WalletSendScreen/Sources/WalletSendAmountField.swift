@@ -6,6 +6,7 @@ import ComponentFlow
 import AnimatedTextComponent
 import MultilineTextComponent
 import TelegramPresentationData
+import TelegramUIPreferences
 import PresentationDataUtils
 import TelegramStringFormatting
 import WalletContext
@@ -321,12 +322,13 @@ class WalletSendAmountField: UIView, UITextFieldDelegate {
     let fiatIcon = ComponentView<Empty>()
     let textField = WalletSendAmountTextField(frame: .zero)
     let suffix = ComponentView<Empty>()
-    let integralFont = WalletSendAmountFonts.integral
-    let fractionalFont = WalletSendAmountFonts.fractional
+    private(set) var listsFontSizeBase: CGFloat = PresentationFontSize.regular.baseDisplaySize
+    var integralFont: UIFont { WalletSendAmountFonts.integral(self.listsFontSizeBase) }
+    var fractionalFont: UIFont { WalletSendAmountFonts.fractional(self.listsFontSizeBase) }
 
     private let gramIconLayoutSize = CGSize(width: 44.0, height: 44.0)
     var gramAnimationSize: CGSize { return CGSize(width: 48.0, height: 48.0) }
-    var fiatSymbolFont: UIFont { return Font.with(size: 48.0, design: .round, weight: .bold, traits: [.alternateDollarSign]) }
+    var fiatSymbolFont: UIFont { return Font.with(size: floor(self.listsFontSizeBase * 48.0 / 17.0), design: .round, weight: .bold, traits: [.alternateDollarSign]) }
     private var fiatIconSize: CGSize = .zero
     private var fiatSymbolInkBounds: CGRect = .zero
     private var suffixSize: CGSize = .zero
@@ -542,6 +544,7 @@ class WalletSendAmountField: UIView, UITextFieldDelegate {
         dateTimeFormat: PresentationDateTimeFormat,
         theme: PresentationTheme,
         isVisible: Bool,
+        listsFontSizeBase: CGFloat,
         transition: ComponentTransition
     ) {
         let modeChanged = self.mode != mode
@@ -556,6 +559,8 @@ class WalletSendAmountField: UIView, UITextFieldDelegate {
         self.amount = amount
         self.rate = rate
         self.dateTimeFormat = dateTimeFormat
+        self.listsFontSizeBase = listsFontSizeBase
+        self.textField.font = self.integralFont
 
         if textColorChanged {
             self.amountTextColor = theme.list.itemPrimaryTextColor

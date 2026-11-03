@@ -716,7 +716,7 @@ private final class LinkFieldComponent: Component {
         text: String,
         link: Bool,
         placeholderText: String,
-        fontSize: CGFloat = 17.0,
+        fontSize: CGFloat,
         textUpdated: @escaping (String) -> Void,
         textReturned: @escaping () -> Void,
         tag: AnyObject? = nil

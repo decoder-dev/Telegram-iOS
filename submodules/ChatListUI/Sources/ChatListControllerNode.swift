@@ -1763,7 +1763,8 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                     },
                     selectedTab: selectedTab,
                     isEditing: isEditing,
-                    liftWhileSwitching: layout.deviceMetrics.type != .tablet
+                    liftWhileSwitching: layout.deviceMetrics.type != .tablet,
+                    listsFontSizeBase: self.presentationData.listsFontSize.baseDisplaySize
                 ))
             }
                 

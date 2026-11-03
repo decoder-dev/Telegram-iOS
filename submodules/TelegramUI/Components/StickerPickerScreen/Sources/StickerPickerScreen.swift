@@ -920,8 +920,8 @@ public class StickerPickerScreen: ViewController {
                         if let image = generateImage(CGSize(width: 256.0, height: 256.0), scale: 1.0, rotatedContext: { size, context in
                             context.clear(CGRect(origin: .zero, size: size))
 
-                            let fontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
-                            let attributedString = NSAttributedString(string: emoji, attributes: [NSAttributedString.Key.font: Font.regular(floor(fontSize * 200.0 / 17.0)), NSAttributedString.Key.foregroundColor: UIColor.white])
+                            // Fixed 256×256 sticker raster — not Dynamic Type chrome.
+                            let attributedString = NSAttributedString(string: emoji, attributes: [NSAttributedString.Key.font: Font.regular(200), NSAttributedString.Key.foregroundColor: UIColor.white])
                             
                             let line = CTLineCreateWithAttributedString(attributedString)
                             let lineBounds = CTLineGetBoundsWithOptions(line, [.useOpticalBounds])

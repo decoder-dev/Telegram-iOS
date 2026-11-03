@@ -319,7 +319,8 @@ final class HorizontalTabsFillLayoutTests: XCTestCase {
             theme: defaultDarkPresentationTheme,
             tabs: tabs,
             selectedTab: AnyHashable(selectedIndex),
-            isEditing: isEditing
+            isEditing: isEditing,
+            listsFontSizeBase: PresentationFontSize.regular.baseDisplaySize
         )
         let componentView = ComponentView<Empty>()
         let _ = componentView.update(

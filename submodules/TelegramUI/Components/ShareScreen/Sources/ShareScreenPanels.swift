@@ -619,7 +619,8 @@ final class SearchInputPanelComponent: Component {
             if let component = self.component, let view = self.tabs.view {
                 let _ = self.tabs.update(transition: transition, component: AnyComponent(HorizontalTabsComponent(
                     context: component.context, theme: component.theme, tabs: component.tabs,
-                    selectedTab: AnyHashable(selectedTab ?? component.selectedTab), isEditing: false
+                    selectedTab: AnyHashable(selectedTab ?? component.selectedTab), isEditing: false,
+                    listsFontSizeBase: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 )), environment: {}, containerSize: view.bounds.size)
             }
             (self.tabs.view as? HorizontalTabsComponent.View)?.updateTabSwitchFraction(fraction: fraction, isDragging: isDragging, transition: transition)
@@ -958,7 +959,8 @@ final class SearchInputPanelComponent: Component {
                 let tabsTransition: ComponentTransition = previousComponent?.isSearching == true && previousComponent?.selectedTab != component.selectedTab ? .spring(duration: 0.35) : transition
                 let tabsSize = self.tabs.update(transition: tabsTransition, component: AnyComponent(HorizontalTabsComponent(
                     context: component.context, theme: component.theme, tabs: component.tabs,
-                    selectedTab: AnyHashable(self.pagerSelectedTab ?? component.selectedTab), isEditing: false
+                    selectedTab: AnyHashable(self.pagerSelectedTab ?? component.selectedTab), isEditing: false,
+                    listsFontSizeBase: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 )), environment: {}, containerSize: CGSize(width: availableSize.width - 32.0, height: 40.0))
                 backgroundTransition.setFrame(view: tabsBackground, frame: CGRect(x: 16.0, y: 56.0, width: tabsSize.width, height: tabsSize.height))
                 tabsBackground.update(size: tabsSize, cornerRadius: 20.0, isDark: component.theme.overallDarkAppearance, tintColor: .init(kind: .panel), isInteractive: true, isVisible: true, transition: backgroundTransition)
@@ -1254,7 +1256,7 @@ final class ShareScreenCheckOptionComponent: Component {
             let titleSize = self.titleLabel.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(13.0), textColor: component.theme.list.itemSecondaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor)),
                     truncationType: .end
                 )),
                 environment: {},

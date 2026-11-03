@@ -194,7 +194,7 @@ final class WalletSendAnimatedAmountField: WalletSendAmountField {
         return source
     }
     override var gramAnimationSize: CGSize { return CGSize(width: 96.0, height: 96.0) }
-    override var fiatSymbolFont: UIFont { return Font.with(size: 34.0, design: .round, weight: .bold, traits: [.alternateDollarSign]) }
+    override var fiatSymbolFont: UIFont { return Font.with(size: floor(self.listsFontSizeBase * 34.0 / 17.0), design: .round, weight: .bold, traits: [.alternateDollarSign]) }
 
     override var isUserInteractionEnabled: Bool {
         didSet {
@@ -294,7 +294,7 @@ final class WalletSendAnimatedAmountField: WalletSendAmountField {
     override func update(
         mode: WalletSendInputMode, amount: Int64, rate: Double?, fiatCurrency: WalletContext.FiatCurrency,
         dateTimeFormat: PresentationDateTimeFormat, theme: PresentationTheme,
-        isVisible: Bool, transition: ComponentTransition
+        isVisible: Bool, listsFontSizeBase: CGFloat, transition: ComponentTransition
     ) {
         self.updating = true
         defer { self.updating = false }
@@ -305,9 +305,9 @@ final class WalletSendAnimatedAmountField: WalletSendAmountField {
         }
         self.visible = isVisible
         if !isVisible { self.stopSymbolAnimations() }
-        self.canvas.prepareGlyphs(separators: dateTimeFormat.decimalSeparator + dateTimeFormat.groupingSeparator, currencyCode: fiatCurrency.code)
+        self.canvas.prepareGlyphs(separators: dateTimeFormat.decimalSeparator + dateTimeFormat.groupingSeparator, currencyCode: fiatCurrency.code, fontSize: listsFontSizeBase)
         self.canvas.isRenderingEnabled = isVisible && self.isApplicationInForeground
-        super.update(mode: mode, amount: amount, rate: rate, fiatCurrency: fiatCurrency, dateTimeFormat: dateTimeFormat, theme: theme, isVisible: isVisible, transition: .immediate)
+        super.update(mode: mode, amount: amount, rate: rate, fiatCurrency: fiatCurrency, dateTimeFormat: dateTimeFormat, theme: theme, isVisible: isVisible, listsFontSizeBase: listsFontSizeBase, transition: .immediate)
         self.placeholder = self.textField.attributedPlaceholder
         self.layoutIfNeeded()
         if modeChanged, isVisible, self.window != nil, let previousCaretColor, let timing = self.motionTiming {

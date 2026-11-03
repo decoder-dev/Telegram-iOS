@@ -372,7 +372,7 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
                                 if let segmentedTitleView = strongSelf.segmentedTitleView, segmentedTitleView.segments == sections {
                                     segmentedTitleView.index = index
                                 } else {
-                                    let segmentedTitleView = ItemListControllerSegmentedTitleView(theme: controllerState.presentationData.theme, segments: sections, selectedIndex: index)
+                                    let segmentedTitleView = ItemListControllerSegmentedTitleView(theme: controllerState.presentationData.theme, segments: sections, selectedIndex: index, listsFontSizeBase: controllerState.presentationData.fontSize.baseDisplaySize)
                                     strongSelf.segmentedTitleView = segmentedTitleView
                                     strongSelf.navigationItem.titleView = strongSelf.segmentedTitleView
                                     segmentedTitleView.indexUpdated = { [weak self] index in
@@ -392,7 +392,7 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
                                 if let tabsNavigationContentNode = strongSelf.tabsNavigationContentNode, tabsNavigationContentNode.segments == sections {
                                     tabsNavigationContentNode.index = index
                                 } else {
-                                    let tabsNavigationContentNode = ItemListControllerTabsContentNode(theme: controllerState.presentationData.theme, segments: sections, selectedIndex: index)
+                                    let tabsNavigationContentNode = ItemListControllerTabsContentNode(theme: controllerState.presentationData.theme, listsFontSizeBase: controllerState.presentationData.listsFontSize.baseDisplaySize, segments: sections, selectedIndex: index)
                                     strongSelf.tabsNavigationContentNode = tabsNavigationContentNode
                                     strongSelf.navigationBar?.setContentNode(tabsNavigationContentNode, animated: false)
                                     tabsNavigationContentNode.indexUpdated = { [weak self] index in
@@ -572,6 +572,8 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
                         strongSelf.statusBar.updateStatusBarStyle(strongSelf.presentationData.theme.rootController.statusBarStyle.style, animated: true)
                         
                         strongSelf.segmentedTitleView?.theme = controllerState.presentationData.theme
+                        strongSelf.tabsNavigationContentNode?.theme = controllerState.presentationData.theme
+                        strongSelf.tabsNavigationContentNode?.listsFontSizeBase = controllerState.presentationData.listsFontSize.baseDisplaySize
                         
                         if let titleView = strongSelf.navigationItem.titleView as? ItemListTextWithSubtitleTitleView {
                             titleView.updateTheme(theme: controllerState.presentationData.theme)

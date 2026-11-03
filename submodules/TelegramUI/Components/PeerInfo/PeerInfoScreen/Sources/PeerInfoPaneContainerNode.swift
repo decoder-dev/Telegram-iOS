@@ -1387,7 +1387,8 @@ final class PeerInfoPaneContainerNode: ASDisplayNode, ASGestureRecognizerDelegat
                 selectedTab: self.currentPaneKey.flatMap { HorizontalTabsComponent.Tab.Id($0) },
                 isEditing: false,
                 layout: .fit,
-                liftWhileSwitching: deviceMetrics.type != .tablet
+                liftWhileSwitching: deviceMetrics.type != .tablet,
+                listsFontSizeBase: presentationData.listsFontSize.baseDisplaySize
             )),
             environment: {},
             containerSize: tabsContainerSize

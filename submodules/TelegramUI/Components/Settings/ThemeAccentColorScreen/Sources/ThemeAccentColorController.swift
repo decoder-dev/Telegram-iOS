@@ -77,7 +77,7 @@ public final class ThemeAccentColorController: ViewController {
             self.presentationData.strings.Theme_Colors_Background,
             self.presentationData.strings.Theme_Colors_Accent,
             self.presentationData.strings.Theme_Colors_Messages
-        ], selectedIndex: section.rawValue)
+        ], selectedIndex: section.rawValue, listsFontSizeBase: self.presentationData.listsFontSize.baseDisplaySize)
         
         if case .background = mode {
             self.initialBackgroundColor = randomBackgroundColors.randomElement().flatMap { UIColor(rgb: UInt32(bitPattern: $0)) }

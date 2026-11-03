@@ -346,8 +346,8 @@ final class WalletSendAmountCanvas: UIView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func prepareGlyphs(separators: String, currencyCode: String) {
-        prepareGlyphs(WalletSendAmountGlyphAtlas.Key(scale: 1.0, separators: separators, currencyCode: currencyCode).fonts)
+    func prepareGlyphs(separators: String, currencyCode: String, fontSize: CGFloat) {
+        prepareGlyphs(WalletSendAmountGlyphAtlas.Key(scale: 1.0, separators: separators, currencyCode: currencyCode, fontSize: fontSize).fonts)
     }
 
     func prepareGlyphs(text: String, font: UIFont, separators: String) {
@@ -414,9 +414,15 @@ final class WalletSendAmountCanvas: UIView {
 }
 
 enum WalletSendAmountFonts {
-    static let integral = Font.with(size: 48.0, design: .round, weight: .bold, traits: [])
-    static let fractional = Font.with(size: 32.0, design: .round, weight: .bold)
-    static let rate = Font.with(size: 13.0, design: .round, weight: .semibold)
+    static func integral(_ fontSize: CGFloat) -> UIFont {
+        Font.with(size: floor(fontSize * 48.0 / 17.0), design: .round, weight: .bold, traits: [])
+    }
+    static func fractional(_ fontSize: CGFloat) -> UIFont {
+        Font.with(size: floor(fontSize * 32.0 / 17.0), design: .round, weight: .bold)
+    }
+    static func rate(_ fontSize: CGFloat) -> UIFont {
+        Font.with(size: floor(fontSize * 13.0 / 17.0), design: .round, weight: .semibold)
+    }
 }
 
 final class WalletSendAmountGlyphAtlas {
@@ -439,14 +445,14 @@ final class WalletSendAmountGlyphAtlas {
             self.fonts = fonts
         }
 
-        init(scale: CGFloat, separators: String, currencyCode: String) {
+        init(scale: CGFloat, separators: String, currencyCode: String, fontSize: CGFloat) {
             self.scale = scale
             let numericCharacters = "0123456789" + separators
             let suffixCharacters = numericCharacters + "GRAM" + currencyCode
             self.fonts = [
-                FontCharacters(font: WalletSendAmountFonts.integral, characters: numericCharacters),
-                FontCharacters(font: WalletSendAmountFonts.fractional, characters: suffixCharacters),
-                FontCharacters(font: WalletSendAmountFonts.rate, characters: suffixCharacters + "~")
+                FontCharacters(font: WalletSendAmountFonts.integral(fontSize), characters: numericCharacters),
+                FontCharacters(font: WalletSendAmountFonts.fractional(fontSize), characters: suffixCharacters),
+                FontCharacters(font: WalletSendAmountFonts.rate(fontSize), characters: suffixCharacters + "~")
             ]
         }
     }
