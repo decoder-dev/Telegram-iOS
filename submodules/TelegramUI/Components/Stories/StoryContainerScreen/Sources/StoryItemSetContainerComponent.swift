@@ -1867,7 +1867,6 @@ public final class StoryItemSetContainerComponent: Component {
                                     context: component.context,
                                     theme: component.theme,
                                     strings: component.strings,
-                                    fontSize: listFontSize,
                                     peer: component.slice.effectivePeer,
                                     storyItem: item.storyItem,
                                     myReaction: item.storyItem.myReaction.flatMap { value -> StoryFooterPanelComponent.MyReaction? in
@@ -1966,7 +1965,8 @@ public final class StoryItemSetContainerComponent: Component {
                                         }
                                         component.context.engine.messages.cancelStoryUpload(stableId: component.slice.item.storyItem.id)
                                         controller.dismissWithoutTransitionOut()
-                                    }
+                                    },
+                                    fontSize: listFontSize
                                 )),
                                 environment: {},
                                 containerSize: CGSize(width: itemLayout.containerSize.width, height: 200.0)
