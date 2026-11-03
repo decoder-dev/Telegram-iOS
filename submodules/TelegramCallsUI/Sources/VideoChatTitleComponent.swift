@@ -10,6 +10,7 @@ import AnimatedTextComponent
 
 final class VideoChatTitleComponent: Component {
     let title: String
+    let titleFontSize: CGFloat
     let status: [AnimatedTextComponent.Item]
     let isRecording: Bool
     let isLandscape: Bool
@@ -19,6 +20,7 @@ final class VideoChatTitleComponent: Component {
 
     init(
         title: String,
+        titleFontSize: CGFloat = 17.0,
         status: [AnimatedTextComponent.Item],
         isRecording: Bool,
         isLandscape: Bool,
@@ -27,6 +29,7 @@ final class VideoChatTitleComponent: Component {
         longTapAction: (() -> Void)?
     ) {
         self.title = title
+        self.titleFontSize = titleFontSize
         self.status = status
         self.isRecording = isRecording
         self.isLandscape = isLandscape
@@ -37,6 +40,9 @@ final class VideoChatTitleComponent: Component {
 
     static func ==(lhs: VideoChatTitleComponent, rhs: VideoChatTitleComponent) -> Bool {
         if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.titleFontSize != rhs.titleFontSize {
             return false
         }
         if lhs.status != rhs.status {
@@ -211,7 +217,7 @@ final class VideoChatTitleComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(17.0), textColor: .white))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(component.titleFontSize), textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: maxTitleWidth, height: 100.0)

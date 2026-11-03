@@ -39,6 +39,14 @@ final class ChatRecentActionsTitleView: UIView {
         }
     }
     
+    var titleFontSize: CGFloat = 17.0 {
+        didSet {
+            if self.titleFontSize != oldValue {
+                self.setNeedsLayout()
+            }
+        }
+    }
+    
     init(color: UIColor) {
         self.color = color
         
@@ -89,7 +97,7 @@ final class ChatRecentActionsTitleView: UIView {
         self.button.frame = CGRect(origin: CGPoint(), size: size)
         
         let makeLayout = TextNode.asyncLayout(self.titleNode)
-        let (titleLayout, titleApply) = makeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: self.title, font: Font.semibold(17.0), textColor: self.color), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: size, alignment: .center, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
+        let (titleLayout, titleApply) = makeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: self.title, font: Font.semibold(self.titleFontSize), textColor: self.color), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: size, alignment: .center, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
         let titleFrame = CGRect(origin: CGPoint(x: floor((size.width - titleLayout.size.width) / 2.0), y: floor((size.height - titleLayout.size.height) / 2.0)), size: titleLayout.size)
         self.titleNode.frame = titleFrame
         let _ = titleApply()

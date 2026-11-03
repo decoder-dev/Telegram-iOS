@@ -572,7 +572,7 @@ private class VoiceChatRecordingSetupControllerNode: ViewControllerTracingNode, 
             self.selectionNode.frame = landscapeButtonFrame.insetBy(dx: -1.0, dy: -1.0)
         }
                    
-        self.doneButton.update(size: centralButtonSize, buttonSize: CGSize(width: 112.0, height: 112.0), state: .button(text: self.presentationData.strings.VoiceChat_RecordStartRecording), title: "", subtitle: "", dark: false, small: false)
+        self.doneButton.update(size: centralButtonSize, buttonSize: CGSize(width: 112.0, height: 112.0), state: .button(text: self.presentationData.strings.VoiceChat_RecordStartRecording), title: "", subtitle: "", dark: false, small: false, buttonTextFontSize: self.presentationData.listsFontSize.baseDisplaySize)
         
         let cancelButtonHeight = self.cancelButton.updateLayout(width: contentFrame.width - buttonInset * 2.0 - bottomStripInsets.left - bottomStripInsets.right, transition: transition)
         transition.updateFrame(node: self.cancelButton, frame: CGRect(x: buttonInset + bottomStripInsets.left, y: contentHeight - cancelButtonHeight - insets.bottom - 16.0, width: contentFrame.width - bottomStripInsets.left - bottomStripInsets.right, height: cancelButtonHeight))

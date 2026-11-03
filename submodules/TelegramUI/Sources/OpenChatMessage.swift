@@ -295,11 +295,11 @@ func openChatMessageImpl(_ params: OpenChatMessageParams) -> Bool {
                                 }
                                 controller.dismiss()
                                 
-                                presentDocumentPreviewController(rootController: rootController, theme: presentationData.theme, strings: presentationData.strings, postbox: params.context.account.postbox, file: file, canShare: canShare)
+                                presentDocumentPreviewController(rootController: rootController, theme: presentationData.theme, strings: presentationData.strings, postbox: params.context.account.postbox, file: file, canShare: canShare, titleFontSize: presentationData.listsFontSize.baseDisplaySize)
                             }
                             params.navigationController?.pushViewController(controller)
                         } else {
-                            presentDocumentPreviewController(rootController: rootController, theme: presentationData.theme, strings: presentationData.strings, postbox: params.context.account.postbox, file: file, canShare: canShare)
+                            presentDocumentPreviewController(rootController: rootController, theme: presentationData.theme, strings: presentationData.strings, postbox: params.context.account.postbox, file: file, canShare: canShare, titleFontSize: presentationData.listsFontSize.baseDisplaySize)
                         }
                     }
                     if file.mimeType.contains("image/svg") {

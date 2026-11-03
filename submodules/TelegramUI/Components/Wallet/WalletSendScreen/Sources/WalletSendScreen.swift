@@ -2990,7 +2990,8 @@ private final class WalletSendScreenComponent: Component {
                             isVisible: environment.isVisible && showSendButton,
                             mode: self.inputMode,
                             dateTimeFormat: environment.dateTimeFormat,
-                            timing: (self.amountField as? WalletSendAnimatedAmountField)?.motionTiming
+                            timing: (self.amountField as? WalletSendAnimatedAmountField)?.motionTiming,
+                            titleFontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                         ))
                     ),
                     isEnabled: canSend,

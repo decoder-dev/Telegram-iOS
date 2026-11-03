@@ -139,7 +139,7 @@ public final class ThemePreviewController: ViewController {
             isPreview = true
         }
         
-        let titleView = CounterControllerTitleView(theme: self.previewTheme)
+        let titleView = CounterControllerTitleView(theme: self.previewTheme, titleFontSize: self.presentationData.listsFontSize.baseDisplaySize)
         titleView.title = CounterControllerTitle(title: themeName, counter: hasInstallsCount ? " " : "")
         self.navigationItem.titleView = titleView
         self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "___close", style: .plain, target: self, action: #selector(self.cancelPressed))
@@ -154,7 +154,7 @@ public final class ThemePreviewController: ViewController {
         self.disposable = (combineLatest(self.theme.get(), self.presentationTheme.get())
         |> deliverOnMainQueue).start(next: { [weak self] theme, presentationTheme in
             if let strongSelf = self, let theme = theme {
-                let titleView = CounterControllerTitleView(theme: strongSelf.previewTheme)
+                let titleView = CounterControllerTitleView(theme: strongSelf.previewTheme, titleFontSize: strongSelf.presentationData.listsFontSize.baseDisplaySize)
                 titleView.title = CounterControllerTitle(title: themeName, counter: hasInstallsCount ? strongSelf.presentationData.strings.Theme_UsersCount(max(1, theme.installCount ?? 0)) : "")
                 strongSelf.navigationItem.titleView = titleView
                 strongSelf.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationTheme: presentationTheme, presentationStrings: strongSelf.presentationData.strings), transition: .immediate)

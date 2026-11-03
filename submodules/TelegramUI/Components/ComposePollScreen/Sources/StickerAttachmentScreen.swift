@@ -1220,7 +1220,7 @@ final class StickerAttachmentScreen: ViewControllerComponentContainer, Attachmen
                     subtitle = presentationData.strings.RichText_AddEmoji
                 }
             }
-            let titleView = CounterControllerTitleView(theme: presentationData.theme, verticalOffset: -2.0)
+            let titleView = CounterControllerTitleView(theme: presentationData.theme, verticalOffset: -2.0, titleFontSize: presentationData.listsFontSize.baseDisplaySize)
             titleView.title = CounterControllerTitle(title: title, counter: subtitle)
             self.navigationItem.titleView = titleView
         }

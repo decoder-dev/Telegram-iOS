@@ -106,7 +106,7 @@ class ContactMultiselectionControllerImpl: ViewController, ContactMultiselection
         self.limit = params.limit
         self.presentationData = params.updatedPresentationData?.initial ?? params.context.sharedContext.currentPresentationData.with { $0 }
         
-        self.titleView = CounterControllerTitleView(theme: self.presentationData.theme)
+        self.titleView = CounterControllerTitleView(theme: self.presentationData.theme, titleFontSize: self.presentationData.listsFontSize.baseDisplaySize)
         
         super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData))
         self._hasGlassStyle = true

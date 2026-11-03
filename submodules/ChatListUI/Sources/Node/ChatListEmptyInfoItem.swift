@@ -18,13 +18,15 @@ class ChatListEmptyInfoItem: ListViewItem {
 
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let titleFontSize: CGFloat
     
     let selectable: Bool = false
     
-    init(theme: PresentationTheme, strings: PresentationStrings, lottieSettings: LottieRenderingSettings) {
+    init(theme: PresentationTheme, strings: PresentationStrings, lottieSettings: LottieRenderingSettings, titleFontSize: CGFloat = 17.0) {
         self.lottieSettings = lottieSettings
         self.theme = theme
         self.strings = strings
+        self.titleFontSize = titleFontSize
     }
     
     func nodeConfiguredForParams(async: @escaping (@escaping () -> Void) -> Void, params: ListViewItemLayoutParams, synchronousLoads: Bool, neighbors: ListViewItemNeighbors, completion: @escaping (ListViewItemNode, @escaping () -> (Signal<Void, NoError>?, (ListViewItemApply) -> Void)) -> Void) {
@@ -126,7 +128,7 @@ class ChatListEmptyInfoItemNode: ListViewItemNode {
             let bottomInset: CGFloat = 24.0
             let animationHeight: CGFloat = 140.0
             
-            let string = NSMutableAttributedString(string: item.strings.ChatList_EmptyChatList, font: Font.semibold(17.0), textColor: item.theme.list.itemPrimaryTextColor)
+            let string = NSMutableAttributedString(string: item.strings.ChatList_EmptyChatList, font: Font.semibold(item.titleFontSize), textColor: item.theme.list.itemPrimaryTextColor)
             
             let textLayout = makeTextLayout(TextNodeLayoutArguments(attributedString: string, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: baseWidth, height: .greatestFiniteMagnitude), alignment: .center))
             

@@ -178,6 +178,6 @@ func newsPlaceholderItems(count: Int, theme: PresentationTheme, rowLayout: NewsS
     }
 }
 
-func newsStatusItem(theme: PresentationTheme, text: String, actionTitle: String?, action: (() -> Void)?) -> CoreListComponentItem {
-    return CoreListComponentItem(identity: AnyHashable("status"), component: AnyComponent(NewsStatusRowComponent(theme: theme, text: text, actionTitle: actionTitle, action: action)))
+func newsStatusItem(theme: PresentationTheme, text: String, actionTitle: String?, action: (() -> Void)?, actionTitleFontSize: CGFloat = 17.0) -> CoreListComponentItem {
+    return CoreListComponentItem(identity: AnyHashable("status"), component: AnyComponent(NewsStatusRowComponent(theme: theme, text: text, actionTitle: actionTitle, action: action, actionTitleFontSize: actionTitleFontSize)))
 }

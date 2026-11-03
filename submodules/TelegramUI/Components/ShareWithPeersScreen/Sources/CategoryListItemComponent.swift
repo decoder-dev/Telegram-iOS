@@ -26,6 +26,7 @@ final class CategoryListItemComponent: Component {
     let subtitle: String?
     let selectionState: SelectionState
     let hasNext: Bool
+    let fontSize: CGFloat
     let action: () -> Void
     let secondaryAction: () -> Void
     
@@ -38,6 +39,7 @@ final class CategoryListItemComponent: Component {
         subtitle: String?,
         selectionState: SelectionState,
         hasNext: Bool,
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void,
         secondaryAction: @escaping () -> Void
     ) {
@@ -49,6 +51,7 @@ final class CategoryListItemComponent: Component {
         self.subtitle = subtitle
         self.selectionState = selectionState
         self.hasNext = hasNext
+        self.fontSize = fontSize
         self.action = action
         self.secondaryAction = secondaryAction
     }
@@ -76,6 +79,9 @@ final class CategoryListItemComponent: Component {
             return false
         }
         if lhs.hasNext != rhs.hasNext {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -258,7 +264,7 @@ final class CategoryListItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(component.fontSize), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftInset - rightInset, height: 100.0)

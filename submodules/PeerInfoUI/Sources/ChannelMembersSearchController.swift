@@ -54,7 +54,7 @@ public final class ChannelMembersSearchControllerImpl: ViewController, ChannelMe
         switch params.mode {
         case .ownershipTransfer:
             title = self.presentationData.strings.AppointAnotherOwner_Title
-            let titleView = CounterControllerTitleView(theme: self.presentationData.theme)
+            let titleView = CounterControllerTitleView(theme: self.presentationData.theme, titleFontSize: self.presentationData.listsFontSize.baseDisplaySize)
             titleView.title = CounterControllerTitle(title: title, counter: " ")
             self.navigationItem.titleView = titleView
         default:

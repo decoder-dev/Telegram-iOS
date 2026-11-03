@@ -354,7 +354,10 @@ public final class VoiceChatActionButton: HighlightTrackingButtonNode {
         }
     }
     
-    public func update(size: CGSize, buttonSize: CGSize, state: VoiceChatActionButton.State, title: String, subtitle: String, dark: Bool, small: Bool, animated: Bool = false) {
+    private var buttonTextFontSize: CGFloat = 17.0
+    
+    public func update(size: CGSize, buttonSize: CGSize, state: VoiceChatActionButton.State, title: String, subtitle: String, dark: Bool, small: Bool, buttonTextFontSize: CGFloat = 17.0, animated: Bool = false) {
+        self.buttonTextFontSize = buttonTextFontSize
         let previous = self.currentParams
         let previousState = previous?.state
         self.currentParams = (size, buttonSize, state, dark, small, title, subtitle, previous?.snap ?? false)
@@ -377,7 +380,7 @@ public final class VoiceChatActionButton: HighlightTrackingButtonNode {
             case let .button(text):
                 backgroundState = .button
                 self.buttonTitleLabel.alpha = 1.0
-                self.buttonTitleLabel.attributedText = NSAttributedString(string: text, font: Font.semibold(17.0), textColor: .white)
+                self.buttonTitleLabel.attributedText = NSAttributedString(string: text, font: Font.semibold(self.buttonTextFontSize), textColor: .white)
                 let titleSize = self.buttonTitleLabel.updateLayout(CGSize(width: size.width, height: 100.0))
                 self.buttonTitleLabel.frame = CGRect(origin: CGPoint(x: floor((self.bounds.width - titleSize.width) / 2.0), y: floor((self.bounds.height - titleSize.height) / 2.0)), size: titleSize)
             case .scheduled:

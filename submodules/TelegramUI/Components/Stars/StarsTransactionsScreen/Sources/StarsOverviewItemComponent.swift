@@ -16,19 +16,22 @@ final class StarsOverviewItemComponent: Component {
     let title: String
     let value: CurrencyAmount
     let rate: Double
+    let valueFontSize: CGFloat
     
     init(
         theme: PresentationTheme,
         dateTimeFormat: PresentationDateTimeFormat,
         title: String,
         value: CurrencyAmount,
-        rate: Double
+        rate: Double,
+        valueFontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.dateTimeFormat = dateTimeFormat
         self.title = title
         self.value = value
         self.rate = rate
+        self.valueFontSize = valueFontSize
     }
     
     static func ==(lhs: StarsOverviewItemComponent, rhs: StarsOverviewItemComponent) -> Bool {
@@ -45,6 +48,9 @@ final class StarsOverviewItemComponent: Component {
             return false
         }
         if lhs.rate != rhs.rate {
+            return false
+        }
+        if lhs.valueFontSize != rhs.valueFontSize {
             return false
         }
         return true
@@ -96,7 +102,7 @@ final class StarsOverviewItemComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: valueString, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+                        text: .plain(NSAttributedString(string: valueString, font: Font.semibold(component.valueFontSize), textColor: component.theme.list.itemPrimaryTextColor))
                     )
                 ),
                 environment: {},

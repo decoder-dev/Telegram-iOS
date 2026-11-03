@@ -34,7 +34,7 @@ public final class GameController: ViewController {
             
             for media in message.media {
                 if let game = media as? TelegramMediaGame {
-                    let titleView = GameControllerTitleView(theme: self.presentationData.theme)
+                    let titleView = GameControllerTitleView(theme: self.presentationData.theme, titleFontSize: self.presentationData.listsFontSize.baseDisplaySize)
                     
                     var botPeer: EnginePeer?
                     inner: for attribute in message.attributes {

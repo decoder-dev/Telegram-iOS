@@ -281,7 +281,7 @@ final class StickerPackEmojisItemNode: GridItemNode {
         if let title = item.title {
             let isInstalled = item.isInstalled ?? false
             
-            self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(17.0), textColor: item.theme.actionSheet.primaryTextColor, paragraphAlignment: .natural)
+            self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: item.theme.actionSheet.primaryTextColor, paragraphAlignment: .natural)
             self.subtitleNode.attributedText = NSAttributedString(string: item.strings.EmojiPack_Emoji(Int32(item.items.count)), font: Font.regular(15.0), textColor: item.theme.actionSheet.secondaryTextColor, paragraphAlignment: .natural)
             
             self.buttonNode.setAttributedTitle(NSAttributedString(string: isInstalled ? item.strings.EmojiPack_Added.uppercased() : item.strings.EmojiPack_Add.uppercased(), font: Font.semibold(15.0), textColor: isInstalled ? item.theme.list.itemCheckColors.fillColor : item.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center), for: .normal)

@@ -194,7 +194,7 @@ final class CompactDocumentPreviewController: QLPreviewController, QLPreviewCont
     }
 }
 
-func presentDocumentPreviewController(rootController: UIViewController, theme: PresentationTheme, strings: PresentationStrings, postbox: Postbox, file: TelegramMediaFile, canShare: Bool) {
+func presentDocumentPreviewController(rootController: UIViewController, theme: PresentationTheme, strings: PresentationStrings, postbox: Postbox, file: TelegramMediaFile, canShare: Bool, titleFontSize: CGFloat = 17.0) {
     let navigationBar = UINavigationBar.appearance(whenContainedInInstancesOf: [QLPreviewController.self])
     navigationBar.barTintColor = theme.rootController.navigationBar.opaqueBackgroundColor
     navigationBar.setBackgroundImage(generateImage(CGSize(width: 1.0, height: 1.0), rotatedContext: { size, context in
@@ -208,7 +208,7 @@ func presentDocumentPreviewController(rootController: UIViewController, theme: P
         context.setFillColor(theme.rootController.navigationBar.separatorColor.cgColor)
         context.fill(CGRect(origin: CGPoint(), size: CGSize(width: 1.0, height: UIScreenPixel)))
     })
-    navigationBar.titleTextAttributes = [NSAttributedString.Key.font: Font.semibold(17.0), NSAttributedString.Key.foregroundColor: theme.rootController.navigationBar.primaryTextColor]
+    navigationBar.titleTextAttributes = [NSAttributedString.Key.font: Font.semibold(titleFontSize), NSAttributedString.Key.foregroundColor: theme.rootController.navigationBar.primaryTextColor]
     
     rootController.present(CompactDocumentPreviewController(theme: theme, strings: strings, postbox: postbox, file: file, canShare: canShare), animated: true, completion: nil)
 }

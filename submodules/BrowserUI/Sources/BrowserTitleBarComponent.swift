@@ -18,17 +18,20 @@ final class TitleBarContentComponent: Component {
     let title: String
     let readingProgress: CGFloat
     let loadingProgress: Double?
+    let titleFontSize: CGFloat
     
     init(
         theme: PresentationTheme,
         title: String,
         readingProgress: CGFloat,
-        loadingProgress: Double?
+        loadingProgress: Double?,
+        titleFontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.title = title
         self.readingProgress = readingProgress
         self.loadingProgress = loadingProgress
+        self.titleFontSize = titleFontSize
     }
     
     static func ==(lhs: TitleBarContentComponent, rhs: TitleBarContentComponent) -> Bool {
@@ -42,6 +45,9 @@ final class TitleBarContentComponent: Component {
             return false
         }
         if lhs.loadingProgress != rhs.loadingProgress {
+            return false
+        }
+        if lhs.titleFontSize != rhs.titleFontSize {
             return false
         }
         return true
@@ -77,7 +83,7 @@ final class TitleBarContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.title, font: Font.semibold(17.0), textColor: component.theme.rootController.navigationBar.primaryTextColor)),
+                        text: .plain(NSAttributedString(string: component.title, font: Font.semibold(component.titleFontSize), textColor: component.theme.rootController.navigationBar.primaryTextColor)),
                         horizontalAlignment: .center,
                         truncationType: .end,
                         maximumNumberOfLines: 1

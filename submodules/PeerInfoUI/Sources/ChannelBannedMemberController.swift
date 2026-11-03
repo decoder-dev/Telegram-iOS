@@ -1128,7 +1128,7 @@ public func channelBannedMemberController(context: AccountContext, updatedPresen
             footerItem = nil
         } else {
             rightNavigationButton = nil
-            footerItem = ChannelParticipantFooterItem(theme: presentationData.theme, title: footerButtonTitle, displayProgress: state.updating, action: {
+            footerItem = ChannelParticipantFooterItem(theme: presentationData.theme, title: footerButtonTitle, displayProgress: state.updating, titleFontSize: presentationData.listsFontSize.baseDisplaySize, action: {
                 rightButtonActionImpl()
             })
         }

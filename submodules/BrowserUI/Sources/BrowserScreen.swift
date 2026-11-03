@@ -148,7 +148,8 @@ private final class BrowserScreenComponent: CombinedComponent {
                                 theme: environment.theme,
                                 title: title,
                                 readingProgress: context.component.contentState?.readingProgress ?? 0.0,
-                                loadingProgress: context.component.contentState?.estimatedProgress
+                                loadingProgress: context.component.contentState?.estimatedProgress,
+                                titleFontSize: context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                             )
                         )
                     )

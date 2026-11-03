@@ -67,7 +67,8 @@ public final class WebAppTitleView: UIView {
     private func update() {
         let primaryTextColor = self.primaryTextColor ?? self.theme.rootController.navigationBar.primaryTextColor
         let secondaryTextColor = self.secondaryTextColor ?? self.theme.rootController.navigationBar.secondaryTextColor
-        self.titleNode.attributedText = NSAttributedString(string: self.title.title, font: Font.semibold(17.0), textColor: primaryTextColor)
+        let titleFontSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        self.titleNode.attributedText = NSAttributedString(string: self.title.title, font: Font.semibold(titleFontSize), textColor: primaryTextColor)
         self.subtitleNode.attributedText = NSAttributedString(string: self.title.counter, font: Font.regular(13.0), textColor: secondaryTextColor)
         
         self.accessibilityLabel = self.title.title

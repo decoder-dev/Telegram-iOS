@@ -12,8 +12,9 @@ final class WalletSendButtonContentComponent: Component {
     let mode: WalletSendInputMode
     let dateTimeFormat: PresentationDateTimeFormat
     let timing: WalletSendAmountMotionTiming?
+    let titleFontSize: CGFloat
 
-    init(title: String, titlePrefix: String?, subtitle: String?, color: UIColor, isVisible: Bool, mode: WalletSendInputMode, dateTimeFormat: PresentationDateTimeFormat, timing: WalletSendAmountMotionTiming?) {
+    init(title: String, titlePrefix: String?, subtitle: String?, color: UIColor, isVisible: Bool, mode: WalletSendInputMode, dateTimeFormat: PresentationDateTimeFormat, timing: WalletSendAmountMotionTiming?, titleFontSize: CGFloat = 17.0) {
         self.title = title
         self.titlePrefix = titlePrefix
         self.subtitle = subtitle
@@ -22,6 +23,7 @@ final class WalletSendButtonContentComponent: Component {
         self.mode = mode
         self.dateTimeFormat = dateTimeFormat
         self.timing = timing
+        self.titleFontSize = titleFontSize
     }
 
     static func ==(lhs: WalletSendButtonContentComponent, rhs: WalletSendButtonContentComponent) -> Bool {
@@ -33,6 +35,7 @@ final class WalletSendButtonContentComponent: Component {
             && lhs.mode == rhs.mode
             && lhs.dateTimeFormat == rhs.dateTimeFormat
             && lhs.timing == rhs.timing
+            && lhs.titleFontSize == rhs.titleFontSize
     }
 
     final class View: UIView {
@@ -81,7 +84,7 @@ final class WalletSendButtonContentComponent: Component {
                 component: AnyComponent(WalletSendAnimatedTextComponent(
                     text: component.title,
                     numberPrefix: component.titlePrefix,
-                    font: Font.semibold(17.0),
+                    font: Font.semibold(component.titleFontSize),
                     color: component.color,
                     dateTimeFormat: component.dateTimeFormat,
                     isVisible: component.isVisible,

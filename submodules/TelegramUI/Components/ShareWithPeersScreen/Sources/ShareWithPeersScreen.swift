@@ -1410,6 +1410,7 @@ final class ShareWithPeersScreenComponent: Component {
                                 subtitle: item.actionTitle,
                                 selectionState: .editing(isSelected: self.selectedCategories.contains(item.id), isTinted: false),
                                 hasNext: i != component.categoryItems.count - 1,
+                                fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                                 action: { [weak self] in
                                     guard let self, let environment = self.environment, let controller = environment.controller() as? ShareWithPeersScreen else {
                                         return
@@ -2604,6 +2605,7 @@ final class ShareWithPeersScreenComponent: Component {
                     subtitle: nil,
                     selectionState: .editing(isSelected: false, isTinted: false),
                     hasNext: true,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                     action: {},
                     secondaryAction: {}
                 )),

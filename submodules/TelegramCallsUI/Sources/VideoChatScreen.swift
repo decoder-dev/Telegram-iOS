@@ -2476,6 +2476,7 @@ final class VideoChatScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(VideoChatTitleComponent(
                     title: self.callState?.title ?? self.peer?.debugDisplayTitle ?? environment.strings.VideoChat_GroupCallTitle,
+                    titleFontSize: component.initialCall.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                     status: idleTitleStatusText,
                     isRecording: self.callState?.recordingStartTimestamp != nil,
                     isLandscape: isLandscape,

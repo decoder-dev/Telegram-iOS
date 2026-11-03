@@ -8,12 +8,14 @@ import TelegramPresentationData
 
 final class GameControllerTitleView: UIView {
     private var theme: PresentationTheme
+    private let titleFontSize: CGFloat
     
     private let titleNode: ASTextNode
     private let infoNode: ASTextNode
     
-    init(theme: PresentationTheme) {
+    init(theme: PresentationTheme, titleFontSize: CGFloat = 17.0) {
         self.theme = theme
+        self.titleFontSize = titleFontSize
         
         self.titleNode = ASTextNode()
         self.titleNode.displaysAsynchronously = false
@@ -38,7 +40,7 @@ final class GameControllerTitleView: UIView {
     }
     
     func set(title: String, subtitle: String) {
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(17.0), textColor: self.theme.rootController.navigationBar.primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(self.titleFontSize), textColor: self.theme.rootController.navigationBar.primaryTextColor)
         self.infoNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(13.0), textColor: self.theme.rootController.navigationBar.secondaryTextColor)
     }
     

@@ -709,14 +709,16 @@ final class StarsTransactionsScreenComponent: Component {
                                 dateTimeFormat: environment.dateTimeFormat,
                                 title: environment.strings.Ton_AvailableBalance,
                                 value: self.revenueState?.balances.availableBalance ?? CurrencyAmount(amount: .zero, currency: .ton),
-                                rate: self.revenueState?.usdRate ?? 0.0
+                                rate: self.revenueState?.usdRate ?? 0.0,
+                                valueFontSize: fontSize
                             ))),
                             AnyComponentWithIdentity(id: 1, component: AnyComponent(StarsOverviewItemComponent(
                                 theme: environment.theme,
                                 dateTimeFormat: environment.dateTimeFormat,
                                 title: environment.strings.Ton_LifetimeProceeds,
                                 value: self.revenueState?.balances.overallRevenue ?? CurrencyAmount(amount: .zero, currency: .ton),
-                                rate: self.revenueState?.usdRate ?? 0.0
+                                rate: self.revenueState?.usdRate ?? 0.0,
+                                valueFontSize: fontSize
                             )))
                         ],
                         displaySeparators: false

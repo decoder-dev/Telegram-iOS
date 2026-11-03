@@ -12,16 +12,18 @@ public final class NewsStatusRowComponent: Component {
     public let text: String
     public let actionTitle: String?
     public let action: (() -> Void)?
+    public let actionTitleFontSize: CGFloat
 
-    public init(theme: PresentationTheme, text: String, actionTitle: String?, action: (() -> Void)?) {
+    public init(theme: PresentationTheme, text: String, actionTitle: String?, action: (() -> Void)?, actionTitleFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.text = text
         self.actionTitle = actionTitle
         self.action = action
+        self.actionTitleFontSize = actionTitleFontSize
     }
 
     public static func ==(lhs: NewsStatusRowComponent, rhs: NewsStatusRowComponent) -> Bool {
-        return lhs.theme === rhs.theme && lhs.text == rhs.text && lhs.actionTitle == rhs.actionTitle
+        return lhs.theme === rhs.theme && lhs.text == rhs.text && lhs.actionTitle == rhs.actionTitle && lhs.actionTitleFontSize == rhs.actionTitleFontSize
     }
 
     public final class View: UIView {
@@ -53,7 +55,7 @@ public final class NewsStatusRowComponent: Component {
                 let buttonSize = self.button.update(
                     transition: .immediate,
                     component: AnyComponent(PlainButtonComponent(
-                        content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: actionTitle, font: Font.semibold(17.0), textColor: theme.list.itemAccentColor)))),
+                        content: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: actionTitle, font: Font.semibold(component.actionTitleFontSize), textColor: theme.list.itemAccentColor)))),
                         effectAlignment: .center,
                         action: action
                     )),

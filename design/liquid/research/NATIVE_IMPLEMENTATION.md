@@ -299,3 +299,7 @@ SearchBar contentFontSize wired through Location/Contact/FeaturedStickers/PaneSe
 ## Semibold titles и NavigationBar titleFontSize
 
 Масштабированы ~100 поверхностей с Font.semibold(17); NavigationBarComponent получил titleFontSize (NavigationBarNode/ChatListHeader/Wallet передают listsFontSize). Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Специализированные title views
+
+WebApp/Game/Browser/VideoChat/Counter/RecentActions titles, ChatList empty info, StickerPack emojis header, ChannelParticipant footer, Wallet send button, Stars overview/category/news status и связанные call sites берут listsFontSize. Осталось только InstantPage parity и PeerInfoHeader animation. Branding Liquid: 7 pass. Simulator NOT RUN.

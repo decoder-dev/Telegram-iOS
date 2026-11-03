@@ -150,7 +150,7 @@ public final class PeerSelectionControllerImpl: ViewController, PeerSelectionCon
         }
         
         if let maxCount = params.multipleSelectionLimit {
-            self.titleView = CounterControllerTitleView(theme: self.presentationData.theme)
+            self.titleView = CounterControllerTitleView(theme: self.presentationData.theme, titleFontSize: self.presentationData.listsFontSize.baseDisplaySize)
             self.titleView?.title = CounterControllerTitle(title: self.customTitle ?? self.presentationData.strings.Conversation_ForwardTitle, counter: "0/\(maxCount)")
             self.navigationItem.titleView = self.titleView
         } else {

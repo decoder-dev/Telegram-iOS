@@ -512,6 +512,7 @@ final class LiveStreamSettingsScreenComponent: Component {
                             subtitle: item.actionTitle,
                             selectionState: .editing(isSelected:isSelected, isTinted: false),
                             hasNext: i != categoryItems.count - 1,
+                            fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                             action: { [weak self] in
                                 guard let self, let component = self.component, let environment = self.environment, let controller = environment.controller() as? LiveStreamSettingsScreen else {
                                     return

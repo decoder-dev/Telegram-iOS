@@ -38,6 +38,7 @@ public final class CounterControllerTitleView: UIView {
     private var primaryTextColor: UIColor?
     private var secondaryTextColor: UIColor?
     private let verticalOffset: CGFloat
+    private let titleFontSize: CGFloat
 
     private var nextLayoutTransition: ContainedViewLayoutTransition?
     
@@ -64,7 +65,7 @@ public final class CounterControllerTitleView: UIView {
     private func update(animated: Bool) {
         let primaryTextColor = self.primaryTextColor ?? self.theme.rootController.navigationBar.primaryTextColor
         let secondaryTextColor = self.secondaryTextColor ?? self.theme.rootController.navigationBar.secondaryTextColor
-        self.titleNode.attributedText = NSAttributedString(string: self.title.title, font: Font.semibold(17.0), textColor: primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: self.title.title, font: Font.semibold(self.titleFontSize), textColor: primaryTextColor)
 
         let subtitleText = NSAttributedString(string: self.title.counter ?? "", font: Font.with(size: 12.0, traits: .monospacedNumbers), textColor: secondaryTextColor)
         if let previousSubtitleText = self.subtitleNode.attributedText, previousSubtitleText.string.isEmpty != subtitleText.string.isEmpty && subtitleText.string.isEmpty {
@@ -95,9 +96,10 @@ public final class CounterControllerTitleView: UIView {
         self.setNeedsLayout()
     }
     
-    public init(theme: PresentationTheme, verticalOffset: CGFloat = 0.0) {
+    public init(theme: PresentationTheme, verticalOffset: CGFloat = 0.0, titleFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.verticalOffset = verticalOffset
+        self.titleFontSize = titleFontSize
         
         self.titleNode = ImmediateTextNode()
         self.titleNode.displaysAsynchronously = false

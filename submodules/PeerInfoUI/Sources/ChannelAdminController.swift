@@ -2122,7 +2122,7 @@ public func channelAdminController(context: AccountContext, updatedPresentationD
                 footerButtonTitle = presentationData.strings.Channel_Management_AddAdmin
             } else if case let .user(admin) = adminPeer, admin.botInfo != nil && invite {
                 title = presentationData.strings.Bot_AddToChat_Add_Title
-                footerItem = ChannelParticipantFooterItem(theme: presentationData.theme, title: state.adminRights ? presentationData.strings.Bot_AddToChat_Add_AddAsAdmin : presentationData.strings.Bot_AddToChat_Add_AddAsMember, displayProgress: state.updating, action: {
+                footerItem = ChannelParticipantFooterItem(theme: presentationData.theme, title: state.adminRights ? presentationData.strings.Bot_AddToChat_Add_AddAsAdmin : presentationData.strings.Bot_AddToChat_Add_AddAsMember, displayProgress: state.updating, titleFontSize: presentationData.listsFontSize.baseDisplaySize, action: {
                     if state.adminRights {
                         let text = isGroup ? presentationData.strings.Bot_AddToChat_Add_AdminAlertTextGroup(peerTitle).string : presentationData.strings.Bot_AddToChat_Add_AdminAlertTextChannel(peerTitle).string
 
@@ -2157,7 +2157,7 @@ public func channelAdminController(context: AccountContext, updatedPresentationD
         }
         
         if footerItem == nil {
-            footerItem = ChannelParticipantFooterItem(theme: presentationData.theme, title: footerButtonTitle, displayProgress: state.updating, action: {
+            footerItem = ChannelParticipantFooterItem(theme: presentationData.theme, title: footerButtonTitle, displayProgress: state.updating, titleFontSize: presentationData.listsFontSize.baseDisplaySize, action: {
                 rightButtonActionImpl()
             })
         }

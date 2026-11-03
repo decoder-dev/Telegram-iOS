@@ -346,7 +346,7 @@ public class WallpaperGalleryController: ViewController {
         self.centralItemAttributesDisposable.add(self.centralItemSubtitle.get().start(next: { [weak self] subtitle in
             if let strongSelf = self {
                 if let subtitle = subtitle {
-                    let titleView = CounterControllerTitleView(theme: strongSelf.presentationData.theme)
+                    let titleView = CounterControllerTitleView(theme: strongSelf.presentationData.theme, titleFontSize: strongSelf.presentationData.listsFontSize.baseDisplaySize)
                     titleView.title = CounterControllerTitle(title: strongSelf.presentationData.strings.WallpaperPreview_Title, counter: subtitle)
                     strongSelf.navigationItem.titleView = titleView
                     strongSelf.title = nil

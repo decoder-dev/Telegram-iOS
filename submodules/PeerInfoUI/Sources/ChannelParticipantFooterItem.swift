@@ -14,18 +14,20 @@ final class ChannelParticipantFooterItem: ItemListControllerFooterItem {
     let theme: PresentationTheme
     let title: String
     let displayProgress: Bool
+    let titleFontSize: CGFloat
     let action: () -> Void
     
-    init(theme: PresentationTheme, title: String, displayProgress: Bool = false, action: @escaping () -> Void) {
+    init(theme: PresentationTheme, title: String, displayProgress: Bool = false, titleFontSize: CGFloat = 17.0, action: @escaping () -> Void) {
         self.theme = theme
         self.title = title
         self.displayProgress = displayProgress
+        self.titleFontSize = titleFontSize
         self.action = action
     }
     
     func isEqual(to: ItemListControllerFooterItem) -> Bool {
         if let item = to as? ChannelParticipantFooterItem {
-            return self.theme === item.theme && self.title == item.title && self.displayProgress == item.displayProgress
+            return self.theme === item.theme && self.title == item.title && self.displayProgress == item.displayProgress && self.titleFontSize == item.titleFontSize
         } else {
             return false
         }
@@ -103,7 +105,7 @@ final class ChannelParticipantFooterItemNode: ItemListControllerFooterItemNode {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
-                        component: AnyComponent(Text(text: self.item.title, font: Font.semibold(17.0), color: self.item.theme.list.itemCheckColors.foregroundColor))
+                        component: AnyComponent(Text(text: self.item.title, font: Font.semibold(self.item.titleFontSize), color: self.item.theme.list.itemCheckColors.foregroundColor))
                     ),
                     displaysProgress: self.item.displayProgress,
                     action: { [weak self] in
