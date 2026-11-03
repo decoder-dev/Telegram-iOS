@@ -8,6 +8,7 @@ import SwiftSignalKit
 import TelegramCore
 import Markdown
 import TextFormat
+import ItemListUI
 import TelegramPresentationData
 import ViewControllerComponent
 import SheetComponent

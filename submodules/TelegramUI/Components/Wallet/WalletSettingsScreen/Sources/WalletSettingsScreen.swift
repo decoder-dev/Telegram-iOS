@@ -1661,8 +1661,8 @@ private final class WalletSettingsScreenComponent: Component {
             self.backgroundColor = theme.list.blocksBackgroundColor
 
             let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
-            let headerFont = Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize)
-            let footerFont = Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize)
+            let headerFont = Font.regular(13.0)
+            let footerFont = Font.regular(13.0)
             let actionFont = Font.regular(presentationData.listsFontSize.baseDisplaySize)
             let sideInset = 16.0 + max(environment.safeInsets.left, environment.safeInsets.right)
             let sectionSpacing: CGFloat = 24.0

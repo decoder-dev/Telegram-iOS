@@ -425,7 +425,7 @@ private final class FormulaEditorSheetContent: Component {
             contentSize.height += titleSize.height
             contentSize.height += 40.0
 
-            let headerFont = Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize)
+            let headerFont = Font.regular(13.0)
             let sectionWidth = availableSize.width - sideInset * 2.0
             let latexSectionSize = self.latexSection.update(
                 transition: transition,

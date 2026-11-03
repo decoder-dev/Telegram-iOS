@@ -176,7 +176,7 @@ private final class SheetContent: CombinedComponent {
                     AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: key.accountName,
-                            font: Font.semibold(presentationData.listsFontSize.itemListBaseFontSize),
+                            font: Font.semibold(17.0),
                             textColor: environment.theme.list.itemPrimaryTextColor
                         )),
                         maximumNumberOfLines: 1
@@ -186,7 +186,7 @@ private final class SheetContent: CombinedComponent {
                     AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: strings.WebApp_ImportData_CreatedOn(stringForMediumCompactDate(timestamp: key.timestamp, strings: strings, dateTimeFormat: environment.dateTimeFormat)).string,
-                            font: Font.regular(floor(presentationData.listsFontSize.itemListBaseFontSize * 15.0 / 17.0)),
+                            font: Font.regular(15.0),
                             textColor: environment.theme.list.itemSecondaryTextColor
                         )),
                         maximumNumberOfLines: 1
@@ -215,7 +215,7 @@ private final class SheetContent: CombinedComponent {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: strings.WebApp_ImportData_AccountHeader.uppercased(),
-                            font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0

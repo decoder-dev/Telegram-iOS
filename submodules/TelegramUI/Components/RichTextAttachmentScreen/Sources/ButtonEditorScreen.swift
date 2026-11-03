@@ -318,7 +318,7 @@ private final class ButtonEditorSheetContent: Component {
             // 82pt is what `TextProcessingScreen` reserves; the title is centred at y=38 in a ~76pt bar.
             contentSize.height += 82.0
 
-            let headerFont = Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize)
+            let headerFont = Font.regular(13.0)
             let sectionWidth = availableSize.width - sideInset * 2.0
 
             // Live preview — a real V2 pill.
@@ -413,7 +413,7 @@ private final class ButtonEditorSheetContent: Component {
                         theme: theme,
                         title: choice.title(strings),
                         isSelected: choice == current,
-                        fontSize: presentationData.listsFontSize.itemListBaseFontSize,
+                        fontSize: 17.0,
                         action: { [weak self] in
                             guard let self, let component = self.component else { return }
                             component.update(choice.apply(to: component.button))
@@ -451,7 +451,7 @@ private final class ButtonEditorSheetContent: Component {
                             title: strings.RichText_ButtonDelete,
                             isSelected: false,
                             isDestructive: true,
-                            fontSize: presentationData.listsFontSize.itemListBaseFontSize,
+                            fontSize: 17.0,
                             action: { [weak self] in self?.component?.complete(nil) }
                         )
                     ))],

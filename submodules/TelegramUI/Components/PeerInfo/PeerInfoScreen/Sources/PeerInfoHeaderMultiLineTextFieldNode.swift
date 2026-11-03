@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import AsyncDisplayKit
 import ContextUI
+import ItemListUI
 import TelegramPresentationData
 import Display
 import TelegramUIPreferences

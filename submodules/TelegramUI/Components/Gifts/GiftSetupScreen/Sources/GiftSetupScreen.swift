@@ -1779,7 +1779,7 @@ private final class GiftSetupScreenComponent: Component {
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: hideSectionFooterString,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0

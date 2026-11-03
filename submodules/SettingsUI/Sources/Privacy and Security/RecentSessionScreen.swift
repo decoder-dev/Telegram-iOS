@@ -571,7 +571,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                         title: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: applicationTitle,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                font: Font.regular(17.0),
                                 textColor: theme.list.itemPrimaryTextColor
                             )),
                             maximumNumberOfLines: 1
@@ -582,7 +582,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                                 component: AnyComponent(MultilineTextComponent(
                                     text: .plain(NSAttributedString(
                                         string: applicationString,
-                                        font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                        font: Font.regular(17.0),
                                         textColor: theme.list.itemSecondaryTextColor
                                     )),
                                     maximumNumberOfLines: 1
@@ -605,7 +605,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                             title: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: strings.AuthSessions_View_IP,
-                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                    font: Font.regular(17.0),
                                     textColor: theme.list.itemPrimaryTextColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -616,7 +616,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                                     component: AnyComponent(MultilineTextComponent(
                                         text: .plain(NSAttributedString(
                                             string: ipString,
-                                            font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                            font: Font.regular(17.0),
                                             textColor: theme.list.itemSecondaryTextColor
                                         )),
                                         maximumNumberOfLines: 1
@@ -639,7 +639,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                         title: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: strings.AuthSessions_View_Location,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                font: Font.regular(17.0),
                                 textColor: theme.list.itemPrimaryTextColor
                             )),
                             maximumNumberOfLines: 1
@@ -650,7 +650,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                                 component: AnyComponent(MultilineTextComponent(
                                     text: .plain(NSAttributedString(
                                         string: locationString,
-                                        font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                        font: Font.regular(17.0),
                                         textColor: theme.list.itemSecondaryTextColor
                                     )),
                                     maximumNumberOfLines: 1
@@ -673,7 +673,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                             title: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: strings.RecentSession_ConnectedBot_Date,
-                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                    font: Font.regular(17.0),
                                     textColor: theme.list.itemPrimaryTextColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -684,7 +684,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                                     component: AnyComponent(MultilineTextComponent(
                                         text: .plain(NSAttributedString(
                                             string: dateString,
-                                            font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                            font: Font.regular(17.0),
                                             textColor: theme.list.itemSecondaryTextColor
                                         )),
                                         maximumNumberOfLines: 1
@@ -707,7 +707,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                         AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: header,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -717,7 +717,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                         AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: footer,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -761,7 +761,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                         header: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: strings.ChatbotSetup_RecipientsSectionHeader,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -838,9 +838,9 @@ private final class RecentSessionSheetContent: CombinedComponent {
                             text: .markdown(
                                 text: hasAccessToAllChatsByDefault ? strings.ChatbotSetup_Recipients_ExcludedSectionFooter : strings.ChatbotSetup_Recipients_IncludedSectionFooter,
                                 attributes: MarkdownAttributes(
-                                    body: MarkdownAttributeSet(font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: theme.list.freeTextColor),
-                                    bold: MarkdownAttributeSet(font: Font.semibold(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: theme.list.freeTextColor),
-                                    link: MarkdownAttributeSet(font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: theme.list.itemAccentColor),
+                                    body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.freeTextColor),
+                                    bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: theme.list.freeTextColor),
+                                    link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.itemAccentColor),
                                     linkAttribute: { _ in
                                         return nil
                                     }
@@ -900,9 +900,9 @@ private final class RecentSessionSheetContent: CombinedComponent {
                                 text: .markdown(
                                     text: strings.ChatbotSetup_Recipients_ExcludedSectionFooter,
                                     attributes: MarkdownAttributes(
-                                        body: MarkdownAttributeSet(font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: theme.list.freeTextColor),
-                                        bold: MarkdownAttributeSet(font: Font.semibold(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: theme.list.freeTextColor),
-                                        link: MarkdownAttributeSet(font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: theme.list.itemAccentColor),
+                                        body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.freeTextColor),
+                                        bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: theme.list.freeTextColor),
+                                        link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.itemAccentColor),
                                         linkAttribute: { _ in
                                             return nil
                                         }
@@ -967,7 +967,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                             AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: strings.AuthSessions_View_AcceptSecretChats,
-                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                    font: Font.regular(17.0),
                                     textColor: theme.list.itemPrimaryTextColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -990,7 +990,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                             AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: strings.AuthSessions_View_AcceptIncomingCalls,
-                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                    font: Font.regular(17.0),
                                     textColor: theme.list.itemPrimaryTextColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -1012,7 +1012,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                         header: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.AuthSessions_View_AcceptTitle.uppercased(),
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0

@@ -854,7 +854,7 @@ final class BusinessIntroSetupScreenComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.Business_Intro_CustomizeSectionHeader,
-                            font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -862,7 +862,7 @@ final class BusinessIntroSetupScreenComponent: Component {
                     footer: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.Business_Intro_CustomizeSectionFooter,
-                            font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0

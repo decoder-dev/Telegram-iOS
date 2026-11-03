@@ -2303,7 +2303,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                         header: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: strings.Premium_WhatsIncluded.uppercased(),
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -2675,7 +2675,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                         header: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: strings.Business_MoreFeaturesTitle.uppercased(),
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -2683,7 +2683,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.Business_MoreFeaturesInfo,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -2760,7 +2760,7 @@ private final class PremiumIntroScreenContentComponent: CombinedComponent {
                         header: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: strings.Business_AdsTitle.uppercased(),
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0

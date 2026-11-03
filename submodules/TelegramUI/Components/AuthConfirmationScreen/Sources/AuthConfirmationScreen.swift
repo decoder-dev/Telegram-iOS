@@ -636,7 +636,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                                             AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                                 text: .plain(NSAttributedString(
                                                     string: clientData?.platform ?? "",
-                                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                                    font: Font.regular(17.0),
                                                     textColor: theme.list.itemPrimaryTextColor
                                                 )),
                                                 maximumNumberOfLines: 1
@@ -644,7 +644,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                                             AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
                                                 text: .plain(NSAttributedString(
                                                     string: clientData?.browser ?? "",
-                                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize / 17.0 * 15.0),
+                                                    font: Font.regular(15.0),
                                                     textColor: theme.list.itemSecondaryTextColor
                                                 )),
                                                 horizontalAlignment: .left,
@@ -684,7 +684,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                                             AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                                 text: .plain(NSAttributedString(
                                                     string: clientData?.ip ?? "",
-                                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                                    font: Font.regular(17.0),
                                                     textColor: theme.list.itemPrimaryTextColor
                                                 )),
                                                 maximumNumberOfLines: 1
@@ -692,7 +692,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                                             AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
                                                 text: .plain(NSAttributedString(
                                                     string: clientData?.region ?? "",
-                                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize / 17.0 * 15.0),
+                                                    font: Font.regular(15.0),
                                                     textColor: theme.list.itemSecondaryTextColor
                                                 )),
                                                 horizontalAlignment: .left,
@@ -718,7 +718,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: strings.AuthConfirmation_Info,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -746,7 +746,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                             AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: strings.AuthConfirmation_AllowMessages,
-                                    font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize),
+                                    font: Font.regular(17.0),
                                     textColor: theme.list.itemPrimaryTextColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -769,7 +769,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                             footer: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: strings.AuthConfirmation_AllowMessagesInfo(EnginePeer(bot).compactDisplayTitle).string,
-                                    font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                    font: Font.regular(13.0),
                                     textColor: environment.theme.list.freeTextColor
                                 )),
                                 maximumNumberOfLines: 0

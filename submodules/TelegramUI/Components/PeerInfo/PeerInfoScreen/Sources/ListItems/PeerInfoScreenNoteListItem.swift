@@ -95,7 +95,7 @@ final class PeerInfoScreenNoteListItemNode: PeerInfoScreenItemNode {
             characterLimit = Int(value)
         }
         
-        let itemListFontSize = presentationData.listsFontSize.itemListBaseFontSize
+        let itemListFontSize = 17.0
         let textFieldVerticalInset = max(9.0, floor((PresentationLayoutMetrics.minimumInteractiveSize - itemListFontSize) * 0.5))
         
         self.textField.parentState = self.state

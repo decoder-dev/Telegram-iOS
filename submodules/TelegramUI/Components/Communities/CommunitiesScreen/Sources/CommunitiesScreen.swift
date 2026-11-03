@@ -555,7 +555,7 @@ private final class CommunitiesScreenComponent: Component {
                         header: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.Community_List_AddToExistingHeader,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0

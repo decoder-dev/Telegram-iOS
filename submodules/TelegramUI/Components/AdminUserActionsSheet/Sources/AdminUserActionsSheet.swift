@@ -649,7 +649,7 @@ private final class AdminUserActionsContentComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: component.strings.Chat_AdminActionSheet_RestrictSectionHeader,
-                            font: Font.regular(component.presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: component.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -687,7 +687,7 @@ private final class AdminUserActionsContentComponent: Component {
                     content: AnyComponent(OptionsSectionFooterComponent(
                         theme: component.theme,
                         text: component.sheetState.isConfigurationExpanded ? fullyBanTitle : partiallyRestrictTitle,
-                        fontSize: component.presentationData.listsFontSize.itemListBaseHeaderFontSize,
+                        fontSize: 13.0,
                         isExpanded: component.sheetState.isConfigurationExpanded
                     )),
                     effectAlignment: .left,
@@ -910,7 +910,7 @@ private final class AdminUserActionsContentComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: component.peers.count == 1 ? component.strings.Chat_AdminActionSheet_PermissionsSectionHeader : component.strings.Chat_AdminActionSheet_PermissionsSectionHeaderMultiple,
-                            font: Font.regular(component.presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: component.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -986,9 +986,9 @@ private final class AdminUserActionsContentComponent: Component {
 
                 let linkAttributeKey = NSAttributedString.Key(rawValue: "URL")
                 let footerAttributes = MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: Font.regular(component.presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: component.theme.list.freeTextColor),
-                    bold: MarkdownAttributeSet(font: Font.semibold(component.presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: component.theme.list.freeTextColor),
-                    link: MarkdownAttributeSet(font: Font.regular(component.presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: component.theme.list.itemAccentColor),
+                    body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.list.freeTextColor),
+                    bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: component.theme.list.freeTextColor),
+                    link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.list.itemAccentColor),
                     linkAttribute: { link in
                         return ("URL", link)
                     }

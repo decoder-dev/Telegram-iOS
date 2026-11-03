@@ -716,7 +716,7 @@ private final class PasscodeOptionsScreenComponent: Component {
             }
             let presentationData = component.model.presentationData
             let actionFont = Font.regular(presentationData.listsFontSize.baseDisplaySize)
-            let footerFont = Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize)
+            let footerFont = Font.regular(13.0)
             // Each side keeps its own safe inset (beside iPhone Duo's side strip only one side has one).
             let sideInset = 16.0 + environment.safeInsets.left
             let sectionWidth = availableSize.width - sideInset - 16.0 - environment.safeInsets.right

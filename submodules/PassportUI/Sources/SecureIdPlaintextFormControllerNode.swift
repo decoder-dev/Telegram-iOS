@@ -573,7 +573,7 @@ public enum SecureIdPlaintextFormEntry: FormControllerEntry {
                 if let codeNumber = Int(countryCode), let codeId = AuthorizationSequenceCountrySelectionController.lookupCountryIdByCode(codeNumber) {
                     countryName = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(codeId, strings: strings) ?? ""
                 }
-                return SecureIdValueFormPhoneItem(countryCode: countryCode, number: number, countryName: countryName, textFontSize: params.listsFontSize.itemListBaseFontSize, openCountrySelection: {
+                return SecureIdValueFormPhoneItem(countryCode: countryCode, number: number, countryName: countryName, textFontSize: 17.0, openCountrySelection: {
                     params.openCountrySelection()
                 }, updateCountryCode: { value in
                     params.updateTextField(.countryCode, value)

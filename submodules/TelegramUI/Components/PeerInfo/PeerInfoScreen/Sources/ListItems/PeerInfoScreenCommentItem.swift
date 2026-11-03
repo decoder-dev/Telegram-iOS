@@ -103,7 +103,7 @@ private final class PeerInfoScreenCommentItemNode: PeerInfoScreenItemNode {
             attemptSynchronous: false
         )
         
-        let textFont = Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize)
+        let textFont = Font.regular(13.0)
         let textColor = presentationData.theme.list.freeTextColor
         
         var text = item.text
@@ -131,10 +131,10 @@ private final class PeerInfoScreenCommentItemNode: PeerInfoScreenItemNode {
                 linkColor: item.useAccentLinkColor ? presentationData.theme.list.itemAccentColor : textColor,
                 baseFont: textFont,
                 linkFont: textFont,
-                boldFont: Font.semibold(presentationData.listsFontSize.itemListBaseHeaderFontSize),
-                italicFont: Font.italic(presentationData.listsFontSize.itemListBaseHeaderFontSize),
-                boldItalicFont: Font.semiboldItalic(presentationData.listsFontSize.itemListBaseHeaderFontSize),
-                fixedFont: Font.monospace(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                boldFont: Font.semibold(13.0),
+                italicFont: Font.italic(13.0),
+                boldItalicFont: Font.semiboldItalic(13.0),
+                fixedFont: Font.monospace(13.0),
                 blockQuoteFont: textFont,
                 message: nil
             ))

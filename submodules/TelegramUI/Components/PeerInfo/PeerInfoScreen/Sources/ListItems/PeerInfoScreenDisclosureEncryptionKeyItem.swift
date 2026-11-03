@@ -107,7 +107,7 @@ private final class PeerInfoScreenDisclosureEncryptionKeyItemNode: PeerInfoScree
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
         
-        let titleFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
+        let titleFont = Font.regular(17.0)
         let usesLargeTextLayout = titleFont.pointSize >= PresentationLayoutMetrics.multilineTextThreshold
         self.textNode.maximumNumberOfLines = usesLargeTextLayout ? 0 : 1
         self.textNode.attributedText = NSAttributedString(string: item.text, font: titleFont, textColor: presentationData.theme.list.itemPrimaryTextColor)

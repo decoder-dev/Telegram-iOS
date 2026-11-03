@@ -1924,7 +1924,7 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
             return
         }
         if self.settingsNode == nil {
-            let settingsNode = InstantPageSettingsNode(strings: self.strings, settings: settings, currentThemeType: instantPageThemeTypeForSettingsAndTime(themeSettings: self.themeSettings, settings: settings, time: self.themeReferenceDate, forceDarkTheme: self.autoNightModeTriggered), listFontSize: self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.itemListBaseFontSize, applySettings: { [weak self] settings in
+            let settingsNode = InstantPageSettingsNode(strings: self.strings, settings: settings, currentThemeType: instantPageThemeTypeForSettingsAndTime(themeSettings: self.themeSettings, settings: settings, time: self.themeReferenceDate, forceDarkTheme: self.autoNightModeTriggered), listFontSize: self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize, applySettings: { [weak self] settings in
                 if let strongSelf = self {
                     strongSelf.update(settings: settings, themeSettings: strongSelf.themeSettings, strings: strongSelf.strings)
                     let _ = updateInstantPagePresentationSettingsInteractively(accountManager: strongSelf.context.sharedContext.accountManager, { _ in

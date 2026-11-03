@@ -57,7 +57,7 @@ private final class PeerInfoScreenHeaderItemNode: PeerInfoScreenItemNode {
         let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
         let sideInsetRight: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.right
         let verticalInset: CGFloat = 7.0
-        let headerFont = Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize)
+        let headerFont = Font.regular(13.0)
         
         self.textNode.maximumNumberOfLines = 0
         self.textNode.attributedText = NSAttributedString(string: item.text, font: headerFont, textColor: presentationData.theme.list.freeTextColor)

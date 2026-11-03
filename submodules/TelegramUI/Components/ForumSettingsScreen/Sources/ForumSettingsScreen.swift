@@ -480,7 +480,7 @@ final class ForumSettingsScreenComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.PeerInfo_Topics_DisplayAs,
-                            font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -489,9 +489,9 @@ final class ForumSettingsScreenComponent: Component {
                         text: .markdown(
                             text: environment.strings.PeerInfo_Topics_DisplayAsInfo,
                             attributes: MarkdownAttributes(
-                                body: MarkdownAttributeSet(font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: environment.theme.list.freeTextColor),
-                                bold: MarkdownAttributeSet(font: Font.semibold(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: environment.theme.list.freeTextColor),
-                                link: MarkdownAttributeSet(font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: environment.theme.list.itemAccentColor),
+                                body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor),
+                                bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.freeTextColor),
+                                link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
                                 linkAttribute: { _ in
                                     return nil
                                 }

@@ -123,7 +123,7 @@ private final class PeerInfoScreenActionItemNode: PeerInfoScreenItemNode {
         }
         let rightInset = sideInsetRight
         let separatorInset = item.icon == nil ? sideInset : leftInset - 1.0
-        let titleFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
+        let titleFont = Font.regular(17.0)
         
         self.bottomSeparatorNode.backgroundColor = presentationData.theme.list.itemBlocksSeparatorColor
         

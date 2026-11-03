@@ -23,7 +23,7 @@ final class ChatListInputActivitiesNode: ASDisplayNode {
         return { [weak self] boundingSize, presentationData, color, peerId, activities in
             let strings = presentationData.strings
             
-            let textFont = Font.regular(floor(presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
+            let textFont = Font.regular(15.0)
             
             var state = ChatTitleActivityNodeState.none
             

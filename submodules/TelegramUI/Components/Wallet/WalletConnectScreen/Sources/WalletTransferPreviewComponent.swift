@@ -571,7 +571,7 @@ final class WalletTransferPreviewComponent: Component {
                 component: AnyComponent(ListSectionComponent(
                     theme: theme,
                     style: .glass,
-                    header: self.text(component.request.messages.count == 1 ? environment.strings.Wallet_Transfer_Header : environment.strings.Wallet_Transfer_HeaderMultiple, font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), color: sectionTitleColor),
+                    header: self.text(component.request.messages.count == 1 ? environment.strings.Wallet_Transfer_Header : environment.strings.Wallet_Transfer_HeaderMultiple, font: Font.regular(13.0), color: sectionTitleColor),
                     footer: nil,
                     items: transfers
                 )),
@@ -620,10 +620,10 @@ final class WalletTransferPreviewComponent: Component {
                 component: AnyComponent(ListSectionComponent(
                     theme: theme,
                     style: .glass,
-                    header: self.text(component.request.method == .signMessage ? environment.strings.Wallet_Transfer_DetailsHeader : environment.strings.Wallet_Transfer_PreviewHeader, font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), color: sectionTitleColor),
+                    header: self.text(component.request.method == .signMessage ? environment.strings.Wallet_Transfer_DetailsHeader : environment.strings.Wallet_Transfer_PreviewHeader, font: Font.regular(13.0), color: sectionTitleColor),
                     footer: self.text(
                         feeText,
-                        font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                        font: Font.regular(13.0),
                         color: theme.list.itemSecondaryTextColor,
                         maximumNumberOfLines: 0
                     ),

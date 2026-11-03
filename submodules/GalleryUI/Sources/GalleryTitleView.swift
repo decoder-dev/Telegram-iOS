@@ -145,9 +145,9 @@ public final class GalleryTitleView: UIView, NavigationBarTitleView {
             dateText = nil
         }
 
-        let titleFont = Font.semibold(self.presentationData.listsFontSize.itemListBaseFontSize)
-        let dateFont = Font.regular(floor(self.presentationData.listsFontSize.itemListBaseFontSize * 12.0 / 17.0))
-        let usesLargeTextLayout = self.presentationData.listsFontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
+        let titleFont = Font.semibold(17.0)
+        let dateFont = Font.regular(12.0)
+        let usesLargeTextLayout = false
         self.authorNameNode.maximumNumberOfLines = usesLargeTextLayout ? 2 : 1
         self.dateNode.maximumNumberOfLines = usesLargeTextLayout ? 2 : 1
         
@@ -215,7 +215,7 @@ public final class GalleryTitleView: UIView, NavigationBarTitleView {
         ComponentTransition(transition).setFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(), size: backgroundFrame.size))
         self.backgroundView.update(size: backgroundSize, cornerRadius: backgroundSize.height * 0.5, isDark: true, tintColor: .init(kind: .panel), isInteractive: self.content?.action != nil, transition: ComponentTransition(transition))
         
-        let overlayTitleFontSize = floor(self.presentationData.listsFontSize.itemListBaseFontSize * 12.0 / 17.0)
+        let overlayTitleFontSize = 12.0
         let titleSize = self.title.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(

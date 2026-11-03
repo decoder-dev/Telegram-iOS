@@ -4,6 +4,7 @@ import UIKit
 import Display
 import ComponentFlow
 import ListSectionComponent
+import ItemListUI
 import TelegramPresentationData
 import PresentationDataUtils
 import AppBundle

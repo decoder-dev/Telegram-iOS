@@ -878,7 +878,7 @@ final class ChatbotSetupScreenComponent: Component {
                     footer: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.ChatbotSetup_BotSectionFooter,
-                            font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -906,7 +906,7 @@ final class ChatbotSetupScreenComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.ChatbotSetup_RecipientsSectionHeader,
-                            font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -1048,9 +1048,9 @@ final class ChatbotSetupScreenComponent: Component {
                         text: .markdown(
                             text: self.hasAccessToAllChatsByDefault ? environment.strings.ChatbotSetup_Recipients_ExcludedSectionFooter : environment.strings.ChatbotSetup_Recipients_IncludedSectionFooter,
                             attributes: MarkdownAttributes(
-                                body: MarkdownAttributeSet(font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: environment.theme.list.freeTextColor),
-                                bold: MarkdownAttributeSet(font: Font.semibold(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: environment.theme.list.freeTextColor),
-                                link: MarkdownAttributeSet(font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: environment.theme.list.itemAccentColor),
+                                body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor),
+                                bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.freeTextColor),
+                                link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
                                 linkAttribute: { _ in
                                     return nil
                                 }
@@ -1115,9 +1115,9 @@ final class ChatbotSetupScreenComponent: Component {
                         text: .markdown(
                             text: environment.strings.ChatbotSetup_Recipients_ExcludedSectionFooter,
                             attributes: MarkdownAttributes(
-                                body: MarkdownAttributeSet(font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: environment.theme.list.freeTextColor),
-                                bold: MarkdownAttributeSet(font: Font.semibold(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: environment.theme.list.freeTextColor),
-                                link: MarkdownAttributeSet(font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize), textColor: environment.theme.list.itemAccentColor),
+                                body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor),
+                                bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: environment.theme.list.freeTextColor),
+                                link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: environment.theme.list.itemAccentColor),
                                 linkAttribute: { _ in
                                     return nil
                                 }
@@ -1339,7 +1339,7 @@ final class ChatbotSetupScreenComponent: Component {
                         header: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.ChatbotSetup_PermissionsSectionHeader,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -1347,7 +1347,7 @@ final class ChatbotSetupScreenComponent: Component {
                         footer: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.ChatbotSetup_PermissionsSectionFooter,
-                                font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                                font: Font.regular(13.0),
                                 textColor: environment.theme.list.freeTextColor
                             )),
                             maximumNumberOfLines: 0

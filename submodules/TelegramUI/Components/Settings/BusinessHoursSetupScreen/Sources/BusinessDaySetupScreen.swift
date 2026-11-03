@@ -519,7 +519,7 @@ final class BusinessDaySetupScreenComponent: Component {
                     footer: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.BusinessHoursSetup_AddSectionFooter,
-                            font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0

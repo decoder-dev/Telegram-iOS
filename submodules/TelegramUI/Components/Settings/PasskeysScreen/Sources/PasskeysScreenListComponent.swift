@@ -124,7 +124,7 @@ final class PasskeysScreenListComponent: Component {
             let rightSideInset: CGFloat = 16.0 + component.insets.right
             let bandCenterX: CGFloat = component.insets.left + (availableSize.width - component.insets.left - component.insets.right) * 0.5
             let listsFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize
-            let listFontSize = listsFontSize.itemListBaseFontSize
+            let listFontSize = 17.0
             let fontSize = listsFontSize.baseDisplaySize
 
             var contentHeight: CGFloat = 0.0

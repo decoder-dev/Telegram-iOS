@@ -383,7 +383,7 @@ private final class RecentActionsSettingsContentComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.Channel_AdminLogFilter_FilterActionsTypeTitle,
-                            font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -463,7 +463,7 @@ private final class RecentActionsSettingsContentComponent: Component {
                     header: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.Channel_AdminLogFilter_FilterActionsAdminsTitle,
-                            font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                            font: Font.regular(13.0),
                             textColor: theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0

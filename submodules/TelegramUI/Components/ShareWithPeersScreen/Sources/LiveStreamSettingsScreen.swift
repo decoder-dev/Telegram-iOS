@@ -263,8 +263,8 @@ final class LiveStreamSettingsScreenComponent: Component {
                 self.backgroundColor = theme.list.blocksBackgroundColor
             }
             
-            let footerTextFont = Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize)
-            let footerBoldTextFont = Font.semibold(presentationData.listsFontSize.itemListBaseHeaderFontSize)
+            let footerTextFont = Font.regular(13.0)
+            let footerBoldTextFont = Font.semibold(13.0)
             let footerTextColor = theme.list.freeTextColor
             
             var contentHeight: CGFloat = 0.0
@@ -323,7 +323,7 @@ final class LiveStreamSettingsScreenComponent: Component {
                 let streamAsSectionHeader = AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: strings.LiveStreamSettings_StartLiveAs,
-                        font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                        font: Font.regular(13.0),
                         textColor: theme.list.freeTextColor
                     )),
                     maximumNumberOfLines: 0
@@ -593,7 +593,7 @@ final class LiveStreamSettingsScreenComponent: Component {
                 let privacySectionHeader = AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: strings.LiveStreamSettings_WhoCanView,
-                        font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                        font: Font.regular(13.0),
                         textColor: theme.list.freeTextColor
                     )),
                     maximumNumberOfLines: 0
@@ -808,7 +808,7 @@ final class LiveStreamSettingsScreenComponent: Component {
                 let paidMessageSectionHeader = AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: strings.LiveStreamSettings_PricePerComment,
-                        font: Font.regular(presentationData.listsFontSize.itemListBaseHeaderFontSize),
+                        font: Font.regular(13.0),
                         textColor: theme.list.freeTextColor
                     )),
                     maximumNumberOfLines: 0

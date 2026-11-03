@@ -767,7 +767,7 @@ public final class PeerListItemComponent: Component {
             var height: CGFloat
             let titleFont: UIFont
             let subtitleFont: UIFont
-            let baseFontSize = presentationData.listsFontSize.itemListBaseFontSize
+            let baseFontSize = 17.0
             switch component.style {
             case .share:
                 titleFont = Font.regular(baseFontSize)
