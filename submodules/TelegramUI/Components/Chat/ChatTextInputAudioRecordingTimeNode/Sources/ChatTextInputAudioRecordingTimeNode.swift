@@ -19,6 +19,10 @@ private final class ChatTextInputAudioRecordingTimeNodeParameters: NSObject {
         
         super.init()
     }
+    
+    var textFont: UIFont {
+        return Font.with(size: floor(self.fontSize * 15.0 / 17.0), design: .camera)
+    }
 }
 
 public final class ChatTextInputAudioRecordingTimeNode: ASDisplayNode {
@@ -153,8 +157,7 @@ public final class ChatTextInputAudioRecordingTimeNode: ASDisplayNode {
             } else {
                 text = String(format: "%d:%02d,%02d", currentAudioDurationSeconds / 60, currentAudioDurationSeconds % 60, currentAudioDurationMilliseconds)
             }
-            let textFont = Font.with(size: floor(parameters.fontSize * 15.0 / 17.0), design: .camera)
-            let string = NSAttributedString(string: text, font: textFont, textColor: parameters.theme.chat.inputPanel.primaryTextColor)
+            let string = NSAttributedString(string: text, font: parameters.textFont, textColor: parameters.theme.chat.inputPanel.primaryTextColor)
             string.draw(at: CGPoint())
         }
     }

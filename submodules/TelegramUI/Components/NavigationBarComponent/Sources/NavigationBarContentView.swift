@@ -296,10 +296,10 @@ final class NavigationBarContentView: UIView {
             }
             if let backFrame = columnLayout?.backFrame {
                 // In the column the badge sits on the circle's corner (NavigationBarComponent.View).
-                let backButtonSize = backButtonView.update(kind: content.back == .close ? .close : .back, badge: nil, contextAction: content.backContextAction, theme: theme, strings: strings, availableSize: backFrame.size, transition: backButtonTransition)
+                let backButtonSize = backButtonView.update(kind: content.back == .close ? .close : .back, badge: nil, contextAction: content.backContextAction, theme: theme, strings: strings, availableSize: backFrame.size, titleFontSize: titleFontSize, transition: backButtonTransition)
                 backButtonTransition.setFrame(view: backButtonView, frame: CGRect(origin: CGPoint(x: floor((backFrame.width - backButtonSize.width) / 2.0), y: floor((backFrame.height - backButtonSize.height) / 2.0)), size: backButtonSize))
             } else {
-                let backButtonSize = backButtonView.update(kind: content.back == .close ? .close : .back, badge: content.badge, contextAction: content.backContextAction, theme: theme, strings: strings, availableSize: CGSize(width: 100.0, height: size.height), transition: backButtonTransition)
+                let backButtonSize = backButtonView.update(kind: content.back == .close ? .close : .back, badge: content.badge, contextAction: content.backContextAction, theme: theme, strings: strings, availableSize: CGSize(width: 100.0, height: size.height), titleFontSize: titleFontSize, transition: backButtonTransition)
                 backButtonTransition.setFrame(view: backButtonView, frame: CGRect(origin: CGPoint(x: nextLeftButtonX, y: floor((size.height - backButtonSize.height) / 2.0)), size: backButtonSize))
                 nextLeftButtonX += backButtonSize.width
             }

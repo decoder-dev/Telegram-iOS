@@ -289,6 +289,7 @@ open class ListItemSwipeOptionContainer: UIView, UIGestureRecognizerDelegate {
         
         private var options: [Option] = []
         private var isLeft: Bool = false
+        private var fontSize: CGFloat = 17.0
         
         private var optionViews: [OptionView] = []
         private var revealOffset: CGFloat = 0.0
@@ -311,15 +312,16 @@ open class ListItemSwipeOptionContainer: UIView, UIGestureRecognizerDelegate {
             fatalError("init(coder:) has not been implemented")
         }
         
-        public func setOptions(_ options: [Option], isLeft: Bool) {
-            if self.options != options || self.isLeft != isLeft {
+        public func setOptions(_ options: [Option], isLeft: Bool, fontSize: CGFloat = 17.0) {
+            if self.options != options || self.isLeft != isLeft || abs(self.fontSize - fontSize) > .ulpOfOne {
                 self.options = options
                 self.isLeft = isLeft
+                self.fontSize = fontSize
                 for optionView in self.optionViews {
                     optionView.removeFromSuperview()
                 }
                 self.optionViews = options.map { option in
-                    return OptionView(title: option.title, icon: option.icon, color: option.color, textColor: option.textColor)
+                    return OptionView(title: option.title, icon: option.icon, color: option.color, textColor: option.textColor, fontSize: fontSize)
                 }
                 if isLeft {
                     for optionView in self.optionViews.reversed() {

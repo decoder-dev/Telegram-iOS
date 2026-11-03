@@ -2179,6 +2179,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 self.searchLayoutClearButtonIcon.tintColor = interfaceState.theme.chat.inputPanel.inputControlColor
                 
                 self.audioRecordingTimeNode?.updateTheme(theme: interfaceState.theme)
+                self.audioRecordingTimeNode?.updateFontSize(interfaceState.fontSize.baseDisplaySize)
                 self.audioRecordingCancelIndicator?.updateTheme(theme: interfaceState.theme)
                 
                 for (_, button) in self.accessoryItemButtons {

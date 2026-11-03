@@ -73,7 +73,7 @@ final class NavigationBarBackButtonView: ContextControllerSourceView {
         return true
     }
 
-    func update(kind: Kind, badge: String?, contextAction: ((UIView, ContextGesture) -> Void)?, theme: NavigationBarTheme, strings: NavigationBarStrings, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
+    func update(kind: Kind, badge: String?, contextAction: ((UIView, ContextGesture) -> Void)?, theme: NavigationBarTheme, strings: NavigationBarStrings, availableSize: CGSize, titleFontSize: CGFloat = 17.0, transition: ComponentTransition) -> CGSize {
         self.contextAction = contextAction
         self.isGestureEnabled = contextAction != nil
         self.accessibilityLabel = kind == .close ? strings.close : strings.back
@@ -110,11 +110,12 @@ final class NavigationBarBackButtonView: ContextControllerSourceView {
             if let current = self.badgeNode {
                 badgeNode = current
             } else {
-                badgeNode = NavigationBarBadgeNode(fillColor: theme.buttonColor, strokeColor: theme.buttonColor, textColor: theme.badgeTextColor)
+                badgeNode = NavigationBarBadgeNode(fillColor: theme.buttonColor, strokeColor: theme.buttonColor, textColor: theme.badgeTextColor, fontSize: titleFontSize)
                 badgeNode.isUserInteractionEnabled = false
                 self.badgeNode = badgeNode
                 self.button.addSubnode(badgeNode)
             }
+            badgeNode.updateFontSize(titleFontSize)
             badgeNode.updateTheme(fillColor: theme.buttonColor, strokeColor: theme.buttonColor, textColor: theme.badgeTextColor)
             badgeNode.text = badge
             // As the old glass bar placed it: overlapping the arrow's cell, widening the capsule.

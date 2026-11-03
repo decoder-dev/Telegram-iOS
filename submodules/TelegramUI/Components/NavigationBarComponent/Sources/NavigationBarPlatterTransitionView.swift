@@ -59,8 +59,9 @@ public final class NavigationBarPlatterTransitionView: UIView {
         public var hidesColumnButtons: Bool
         /// The title's glass pill (the chat header), its frame in this view: the bar's second right platter.
         public var titlePill: NavigationBarTransitionTitlePill?
+        public var titleFontSize: CGFloat
 
-        public init(content: NavigationBarComponent.Content, theme: NavigationBarTheme, strings: NavigationBarStrings, leftInset: CGFloat, rightInset: CGFloat, trailingButtonsInset: CGFloat, rowFrame: CGRect, leadingPressScale: CGFloat = 1.0, leadingPressGlow: CGFloat = 0.0, trailingPressScales: [CGFloat] = [], trailingPressGlows: [CGFloat] = [], columnFrame: CGRect? = nil, hidesColumnButtons: Bool = false, titlePill: NavigationBarTransitionTitlePill? = nil) {
+        public init(content: NavigationBarComponent.Content, theme: NavigationBarTheme, strings: NavigationBarStrings, leftInset: CGFloat, rightInset: CGFloat, trailingButtonsInset: CGFloat, rowFrame: CGRect, leadingPressScale: CGFloat = 1.0, leadingPressGlow: CGFloat = 0.0, trailingPressScales: [CGFloat] = [], trailingPressGlows: [CGFloat] = [], columnFrame: CGRect? = nil, hidesColumnButtons: Bool = false, titlePill: NavigationBarTransitionTitlePill? = nil, titleFontSize: CGFloat = 17.0) {
             self.titlePill = titlePill
             self.content = content
             self.theme = theme
@@ -75,6 +76,7 @@ public final class NavigationBarPlatterTransitionView: UIView {
             self.trailingPressGlows = trailingPressGlows
             self.columnFrame = columnFrame
             self.hidesColumnButtons = hidesColumnButtons
+            self.titleFontSize = titleFontSize
         }
     }
 
@@ -480,7 +482,7 @@ public final class NavigationBarPlatterTransitionView: UIView {
                 slot += 1
                 layout.frames[role] = frame.offsetBy(dx: columnFrame.minX, dy: columnFrame.minY)
                 container.frame = CGRect(origin: CGPoint(), size: frame.size)
-                layout.itemViews[role] = shape == .back ? self.columnBackItems(kind: kind, container: container, size: frame.size, badge: side.content.badge, theme: side.theme) : container
+                layout.itemViews[role] = shape == .back ? self.columnBackItems(kind: kind, container: container, size: frame.size, badge: side.content.badge, theme: side.theme, titleFontSize: side.titleFontSize) : container
                 layout.tints[role] = tint
                 layout.signatures[role] = navigationBarColumnShapeSignature(side.content, shape: shape, columnLength: columnFrame.height, hidesColumnButtons: side.hidesColumnButtons)
             }
@@ -490,7 +492,7 @@ public final class NavigationBarPlatterTransitionView: UIView {
 
     /// The column back circle's items: its container and, when the bar shows one, the unread badge on its corner (where
     /// `NavigationBarComponent` puts it).
-    private func columnBackItems(kind: SideKind, container: UIView, size: CGSize, badge: String?, theme: NavigationBarTheme) -> UIView {
+    private func columnBackItems(kind: SideKind, container: UIView, size: CGSize, badge: String?, theme: NavigationBarTheme, titleFontSize: CGFloat = 17.0) -> UIView {
         let wrapper: UIView
         if let current = self.columnBackWrappers[kind] {
             wrapper = current
@@ -509,11 +511,12 @@ public final class NavigationBarPlatterTransitionView: UIView {
             if let current = self.columnBadges[kind] {
                 badgeNode = current
             } else {
-                badgeNode = NavigationBarBadgeNode(fillColor: theme.buttonColor, strokeColor: theme.buttonColor, textColor: theme.badgeTextColor)
+                badgeNode = NavigationBarBadgeNode(fillColor: theme.buttonColor, strokeColor: theme.buttonColor, textColor: theme.badgeTextColor, fontSize: titleFontSize)
                 badgeNode.isUserInteractionEnabled = false
                 self.columnBadges[kind] = badgeNode
                 wrapper.addSubnode(badgeNode)
             }
+            badgeNode.updateFontSize(titleFontSize)
             badgeNode.updateTheme(fillColor: theme.buttonColor, strokeColor: theme.buttonColor, textColor: theme.badgeTextColor)
             badgeNode.text = badge
             let badgeSize = badgeNode.measure(CGSize(width: 200.0, height: 100.0))

@@ -371,7 +371,7 @@ final class VoiceChatTileItemNode: ASDisplayNode {
                 shimmerNode = current
                 shimmerTransition = transition
             } else {
-                shimmerNode = VoiceChatTileShimmeringNode(account: item.account, peer: item.peer, fontSize: item.accountContext.map { $0.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize } ?? self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
+                shimmerNode = VoiceChatTileShimmeringNode(account: item.account, peer: item.peer, fontSize: self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
                 self.contentNode.insertSubnode(shimmerNode, aboveSubnode: self.fadeNode)
                 self.shimmerNode = shimmerNode
                 
@@ -913,7 +913,7 @@ private class VoiceChatTileShimmeringNode: ASDisplayNode {
     private var currentShimmering: Bool?
     private var currentSize: CGSize?
     
-    public init(account: Account, peer: EnginePeer) {
+    public init(account: Account, peer: EnginePeer, fontSize: CGFloat = 17.0) {
         self.backgroundNode = ImageNode(enableHasImage: false, enableEmpty: false, enableAnimatedTransition: true)
         self.backgroundNode.displaysAsynchronously = false
         self.backgroundNode.contentMode = .scaleAspectFill
@@ -933,7 +933,7 @@ private class VoiceChatTileShimmeringNode: ASDisplayNode {
         self.addSubnode(self.borderNode)
         self.borderNode.addSubnode(self.borderEffectNode)
         
-        let avatarFontSize = floor(account.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 16.0 / 17.0)
+        let avatarFontSize = floor(fontSize * 16.0 / 17.0)
         self.backgroundNode.setSignal(peerAvatarCompleteImage(account: account, peer: peer, size: CGSize(width: 250.0, height: 250.0), round: false, font: Font.regular(avatarFontSize), drawLetters: false, fullSize: false, blurred: true))
     }
     
