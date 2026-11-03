@@ -69,6 +69,15 @@ func isAllowedBotMediaUrl(_ urlString: String) -> Bool {
         return false
     }
 
+    // `getaddrinfo` (URLSession) parses a numeric host with `inet_aton`, not
+    // `inet_pton`. A hex octet contains a letter, so the DNS-name check below
+    // accepts `127.0.0.0x1` and `169.254.169.0xfe` — loopback and the link-local
+    // metadata address. A public result still falls through, which is what keeps
+    // a short form such as `1.2.3` rejected.
+    if let resolverIPv4 = parseResolverIPv4(host), !isPublicIPv4(resolverIPv4) {
+        return false
+    }
+
     // Strict DNS-name validation. Anything that doesn't look like a real
     // FQDN is rejected — this catches non-canonical numeric IP forms
     // (decimal-32 like "2130706433", octal like "0177.0.0.1", hex like
@@ -93,6 +102,19 @@ func isAllowedBotMediaUrl(_ urlString: String) -> Bool {
         return false
     }
     return true
+}
+
+private func parseResolverIPv4(_ host: String) -> [UInt8]? {
+    var address = in_addr()
+    guard host.withCString({ inet_aton($0, &address) }) == 1 else {
+        return nil
+    }
+    // `s_addr` is in network byte order, so its memory is the four octets.
+    let bytes = withUnsafeBytes(of: &address.s_addr) { Array($0) }
+    guard bytes.count == 4 else {
+        return nil
+    }
+    return bytes
 }
 
 private func parseCanonicalIPv4(_ host: String) -> [UInt8]? {

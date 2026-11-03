@@ -140,6 +140,63 @@ print("Bot media address check: private IPv4, mapped IPv4 and NAT64")
             subprocess.run(["swiftc", "-warnings-as-errors", str(path), "-o", str(binary)], check=True, timeout=180)
             subprocess.run([str(binary)], check=True, timeout=30)
 
+    def test_bot_media_rejects_inet_aton_private_addresses(self):
+        source = read("submodules/WebUI/Sources/WebAppUtils.swift")
+        checker = source[source.index("func isAllowedBotMediaUrl("):]
+        fixture = "import Foundation\nimport Glibc\n" + checker + r'''
+func allow(_ url: String) -> Bool { isAllowedBotMediaUrl(url) }
+for url in [
+    "https://127.0.0.0x1/",
+    "https://0x7f.0x1/",
+    "https://10.0.0.0x1/file",
+    "https://172.16.0.0x1/",
+    "https://192.168.0.0x1/",
+    "https://100.64.0.0x1/",
+    "https://169.254.169.0xfe/",
+    "https://0251.0376.0251.0xfe/latest/meta-data",
+    "https://0177.0.0.0x1/",
+    "https://127.0.0.0X1/",
+    "https://0.0.0.0x1/",
+    "https://224.0.0.0x1/",
+    "https://255.255.255.0xfe/",
+    "https://127.0.0.1/",
+    "https://10.1.2.3/",
+    "https://0177.0.0.1/",
+    "https://0x7f.0.0.1/",
+    "https://127.1/",
+    "https://2130706433/",
+    "https://1.2.3/",
+    "http://1.1.1.1/",
+    "https://user@1.1.1.1/",
+    "https://localhost/",
+    "https://app.localhost/",
+    "https://printer.local/",
+] {
+    precondition(!allow(url), url)
+}
+for url in [
+    "https://1.1.1.1/",
+    "https://8.8.8.8/path",
+    "https://8.8.8.0x8/",
+    "https://172.32.0.0x1/",
+    "https://192.169.0.0x1/",
+    "https://100.128.0.0x1/",
+    "https://169.255.1.0x1/",
+    "https://11.0.0.0x1/",
+    "https://example.com/a",
+    "https://0x1.github.io/",
+] {
+    precondition(allow(url), url)
+}
+print("Bot media: inet_aton private addresses rejected, public addresses and names kept")
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "main.swift"
+            path.write_text(fixture, encoding="utf-8")
+            binary = pathlib.Path(directory) / "media"
+            subprocess.run(["swiftc", "-warnings-as-errors", str(path), "-o", str(binary)], check=True, timeout=180)
+            subprocess.run([str(binary)], check=True, timeout=30)
+
     def test_timecode_overflow_does_not_trap(self):
         source = read("submodules/UrlHandling/Sources/UrlHandling.swift")
         parser = source[source.index("private func hTmeParseDuration("):]
