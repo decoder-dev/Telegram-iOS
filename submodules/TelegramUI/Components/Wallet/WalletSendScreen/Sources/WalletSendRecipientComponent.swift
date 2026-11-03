@@ -46,13 +46,14 @@ private final class WalletSendRecipientIntroView: UIView {
     private var avatarImage: UIImage?
     private var coarseAvatar: UIImage?
     private var fineAvatar: UIImage?
-    private var font: CTFont = Font.monospace(14.0) as CTFont
+    private var font: CTFont
     private var secondary = UIColor.gray
     private var primary = UIColor.black
     private var time: Double = 0.0
     private var loadingAddress = false
 
     override init(frame: CGRect) {
+        self.font = Font.monospace(floor(17.0 * 14.0 / 17.0)) as CTFont
         super.init(frame: frame)
         self.isOpaque = false
         self.isUserInteractionEnabled = false
@@ -179,6 +180,10 @@ private final class WalletSendRecipientIntroView: UIView {
         self.title = zip(views, frames).flatMap { view, frame in
             self.pieces(view, frame: frame).flatMap { $0 }.filter { !$0.space }
         }
+    }
+
+    func updateFontSize(_ fontSize: CGFloat) {
+        self.font = Font.monospace(floor(fontSize * 14.0 / 17.0)) as CTFont
     }
 
     func updateAddress(_ view: TextView, frame: CGRect, loading: Bool) {
@@ -597,6 +602,7 @@ final class WalletSendRecipientComponent: Component {
                     self.contentView.addSubview(intro)
                 }
                 intro.frame = self.contentView.bounds
+                intro.updateFontSize(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
                 let titleViews = [self.name.view, component.peer?.addressName?.isEmpty == false ? self.username.view : nil].compactMap { $0 as? TextView }
                 intro.updateTitle(titleViews, frames: titleViews.map { $0.frame },
                     primary: component.theme.list.itemPrimaryTextColor, secondary: component.theme.list.itemSecondaryTextColor)

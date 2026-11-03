@@ -598,7 +598,7 @@ public class ChatMessageGiveawayBubbleContentNode: ChatMessageBubbleContentNode,
                     titleColor = item.presentationData.theme.theme.chat.message.outgoing.accentTextColor
                 }
                 
-                let (buttonWidth, continueLayout) = makeButtonLayout(constrainedSize.width, nil, nil, false, item.presentationData.strings.Chat_Giveaway_Message_LearnMore.uppercased(), titleColor, false, true)
+                let (buttonWidth, continueLayout) = makeButtonLayout(constrainedSize.width, nil, nil, false, item.presentationData.strings.Chat_Giveaway_Message_LearnMore.uppercased(), titleColor, false, true, item.presentationData.fontSize.baseDisplaySize)
                 
                 let animationFile: TelegramMediaFile?
                 let animationName: String?

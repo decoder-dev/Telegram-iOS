@@ -2656,6 +2656,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                     theme: interfaceState.theme,
                     count: count,
                     isFilled: isFilled,
+                    fontSize: interfaceState.presentationData?.listsFontSize.baseDisplaySize ?? self.presentationInterfaceState?.presentationData.listsFontSize.baseDisplaySize ?? 17.0,
                     action: action,
                     longPressAction: longPressAction
                 )),

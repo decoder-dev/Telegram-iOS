@@ -359,7 +359,7 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
                                 }
                             case let .textWithSubtitle(title, subtitle):
                                 strongSelf.title = ""
-                                strongSelf.navigationItem.titleView = ItemListTextWithSubtitleTitleView(theme: controllerState.presentationData.theme, title: title, subtitle: subtitle)
+                                strongSelf.navigationItem.titleView = ItemListTextWithSubtitleTitleView(theme: controllerState.presentationData.theme, title: title, subtitle: subtitle, fontSize: controllerState.presentationData.fontSize.baseDisplaySize)
                                 strongSelf.segmentedTitleView = nil
                                 if previousHadContentNode {
                                     strongSelf.navigationBar?.setContentNode(nil, animated: false)
@@ -392,7 +392,7 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
                                 if let tabsNavigationContentNode = strongSelf.tabsNavigationContentNode, tabsNavigationContentNode.segments == sections {
                                     tabsNavigationContentNode.index = index
                                 } else {
-                                    let tabsNavigationContentNode = ItemListControllerTabsContentNode(theme: controllerState.presentationData.theme, listsFontSizeBase: controllerState.presentationData.listsFontSize.baseDisplaySize, segments: sections, selectedIndex: index)
+                                    let tabsNavigationContentNode = ItemListControllerTabsContentNode(theme: controllerState.presentationData.theme, listsFontSizeBase: controllerState.presentationData.fontSize.baseDisplaySize, segments: sections, selectedIndex: index)
                                     strongSelf.tabsNavigationContentNode = tabsNavigationContentNode
                                     strongSelf.navigationBar?.setContentNode(tabsNavigationContentNode, animated: false)
                                     tabsNavigationContentNode.indexUpdated = { [weak self] index in
@@ -574,10 +574,10 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
                         strongSelf.segmentedTitleView?.theme = controllerState.presentationData.theme
                         strongSelf.segmentedTitleView?.listsFontSizeBase = controllerState.presentationData.fontSize.baseDisplaySize
                         strongSelf.tabsNavigationContentNode?.theme = controllerState.presentationData.theme
-                        strongSelf.tabsNavigationContentNode?.listsFontSizeBase = controllerState.presentationData.listsFontSize.baseDisplaySize
+                        strongSelf.tabsNavigationContentNode?.listsFontSizeBase = controllerState.presentationData.fontSize.baseDisplaySize
                         
                         if let titleView = strongSelf.navigationItem.titleView as? ItemListTextWithSubtitleTitleView {
-                            titleView.updateTheme(theme: controllerState.presentationData.theme)
+                            titleView.updateTheme(theme: controllerState.presentationData.theme, fontSize: controllerState.presentationData.fontSize.baseDisplaySize)
                         }
                         
                         var items = strongSelf.fullRightBarButtonItems
@@ -753,24 +753,27 @@ open class ItemListController: ViewController, KeyShortcutResponder, Presentable
 private final class ItemListTextWithSubtitleTitleView: UIView, NavigationBarTitleView {
     private let titleNode: ImmediateTextNode
     private let subtitleNode: ImmediateTextNode
+    private var fontSize: CGFloat
     
     private var validLayout: CGSize?
     var requestUpdate: ((ContainedViewLayoutTransition) -> Void)?
     
-    init(theme: PresentationTheme, title: String, subtitle: String) {
+    init(theme: PresentationTheme, title: String, subtitle: String, fontSize: CGFloat) {
+        self.fontSize = fontSize
+        
         self.titleNode = ImmediateTextNode()
         self.titleNode.displaysAsynchronously = false
         self.titleNode.maximumNumberOfLines = 1
         self.titleNode.isOpaque = false
         
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: theme.rootController.navigationBar.primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(fontSize), textColor: theme.rootController.navigationBar.primaryTextColor)
         
         self.subtitleNode = ImmediateTextNode()
         self.subtitleNode.displaysAsynchronously = false
         self.subtitleNode.maximumNumberOfLines = 1
         self.subtitleNode.isOpaque = false
         
-        self.subtitleNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(12.0), textColor: theme.rootController.navigationBar.secondaryTextColor)
+        self.subtitleNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(floor(fontSize * 12.0 / 17.0)), textColor: theme.rootController.navigationBar.secondaryTextColor)
         
         super.init(frame: CGRect())
         
@@ -782,9 +785,10 @@ private final class ItemListTextWithSubtitleTitleView: UIView, NavigationBarTitl
         fatalError("init(coder:) has not been implemented")
     }
     
-    func updateTheme(theme: PresentationTheme) {
-        self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: theme.rootController.navigationBar.primaryTextColor)
-        self.subtitleNode.attributedText = NSAttributedString(string: self.subtitleNode.attributedText?.string ?? "", font: Font.regular(12.0), textColor: theme.rootController.navigationBar.secondaryTextColor)
+    func updateTheme(theme: PresentationTheme, fontSize: CGFloat) {
+        self.fontSize = fontSize
+        self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.semibold(fontSize), textColor: theme.rootController.navigationBar.primaryTextColor)
+        self.subtitleNode.attributedText = NSAttributedString(string: self.subtitleNode.attributedText?.string ?? "", font: Font.regular(floor(fontSize * 12.0 / 17.0)), textColor: theme.rootController.navigationBar.secondaryTextColor)
         if let size = self.validLayout {
             let _ = self.updateLayout(availableSize: size, transition: .immediate)
         }

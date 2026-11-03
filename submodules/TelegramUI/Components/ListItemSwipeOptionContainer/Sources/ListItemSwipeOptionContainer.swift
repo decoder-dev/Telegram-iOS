@@ -6,7 +6,6 @@ import ComponentDisplayAdapters
 import AppBundle
 import MultilineTextComponent
 
-private let titleFontWithIcon = Font.medium(13.0)
 
 private final class SwipeOptionsGestureRecognizer: UIPanGestureRecognizer {
     public var validatedGesture = false
@@ -133,15 +132,17 @@ open class ListItemSwipeOptionContainer: UIView, UIGestureRecognizerDelegate {
         
         private let titleString: String
         private let textColor: UIColor
+        private let fontSize: CGFloat
         
         private var titleSize: CGSize?
         
         var alignment: OptionAlignment?
         var isExpanded: Bool = false
         
-        init(title: String, icon: Option.Icon, color: UIColor, textColor: UIColor) {
+        init(title: String, icon: Option.Icon, color: UIColor, textColor: UIColor, fontSize: CGFloat = 17.0) {
             self.titleString = title
             self.textColor = textColor
+            self.fontSize = fontSize
             
             self.backgroundView = UIView()
             
@@ -267,7 +268,7 @@ open class ListItemSwipeOptionContainer: UIView, UIGestureRecognizerDelegate {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: self.titleString, font: self.iconView == nil ? titleFontWithoutIcon : titleFontWithIcon, textColor: self.textColor))
+                    text: .plain(NSAttributedString(string: self.titleString, font: self.iconView == nil ? Font.regular(self.fontSize) : Font.medium(floor(self.fontSize * 13.0 / 17.0)), textColor: self.textColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 200.0, height: 100.0)

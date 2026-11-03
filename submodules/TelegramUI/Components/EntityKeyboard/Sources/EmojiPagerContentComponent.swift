@@ -3621,7 +3621,7 @@ public final class EmojiPagerContentComponent: Component {
                     }
                     
                     let baseItemFrame = itemLayout.frame(groupIndex: groupItems.groupIndex, itemIndex: collapsedItemIndex)
-                    let buttonSize = groupExpandActionButton.update(theme: keyboardChildEnvironment.theme, title: collapsedItemText, useOpaqueTheme: useOpaqueTheme)
+                    let buttonSize = groupExpandActionButton.update(theme: keyboardChildEnvironment.theme, title: collapsedItemText, useOpaqueTheme: useOpaqueTheme, fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
                     let buttonFrame = CGRect(origin: CGPoint(x: baseItemFrame.minX + floor((baseItemFrame.width - buttonSize.width) / 2.0), y: baseItemFrame.minY + floor((baseItemFrame.height - buttonSize.height) / 2.0)), size: buttonSize)
                     groupExpandActionButtonTransition.setFrame(view: groupExpandActionButton, frame: buttonFrame)
                 }

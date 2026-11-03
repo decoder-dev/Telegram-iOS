@@ -328,7 +328,7 @@ public class ChatMessageContactBubbleContentNode: ChatMessageBubbleContentNode {
                     avatarPlaceholderColor = item.presentationData.theme.theme.chat.message.outgoing.mediaPlaceholderColor
                 }
                 
-                let (messageButtonWidth, messageContinueLayout) = makeMessageButtonLayout(constrainedSize.width, 10.0, nil, false, item.presentationData.strings.Conversation_ContactMessage.uppercased(), mainColor, false, false)
+                let (messageButtonWidth, messageContinueLayout) = makeMessageButtonLayout(constrainedSize.width, 10.0, nil, false, item.presentationData.strings.Conversation_ContactMessage.uppercased(), mainColor, false, false, item.presentationData.fontSize.baseDisplaySize)
                 
                 let addTitle: String
                 if !canMessage && !canAdd  {
@@ -340,7 +340,7 @@ public class ChatMessageContactBubbleContentNode: ChatMessageBubbleContentNode {
                         addTitle = item.presentationData.strings.Conversation_ContactAddContactLong
                     }
                 }
-                let (addButtonWidth, addContinueLayout) = makeAddButtonLayout(constrainedSize.width, 10.0, nil, false, addTitle.uppercased(), mainColor, false, false)
+                let (addButtonWidth, addContinueLayout) = makeAddButtonLayout(constrainedSize.width, 10.0, nil, false, addTitle.uppercased(), mainColor, false, false, item.presentationData.fontSize.baseDisplaySize)
                 
                 
                 let showAddButton = !(!canAdd && canMessage)

@@ -10,15 +10,17 @@ public final class PremiumLockButtonSubtitleComponent: CombinedComponent {
     public let count: Int
     public let color: UIColor
     public let strings: PresentationStrings
+    public let fontSize: CGFloat
     
-    public init(count: Int, color: UIColor, strings: PresentationStrings) {
+    public init(count: Int, color: UIColor, strings: PresentationStrings, fontSize: CGFloat = 17.0) {
         self.count = count
         self.color = color
         self.strings = strings
+        self.fontSize = fontSize
     }
     
-    public convenience init(count: Int, theme: PresentationTheme, strings: PresentationStrings) {
-        self.init(count: count, color: theme.list.itemCheckColors.foregroundColor.withMultipliedAlpha(0.7), strings: strings)
+    public convenience init(count: Int, theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat = 17.0) {
+        self.init(count: count, color: theme.list.itemCheckColors.foregroundColor.withMultipliedAlpha(0.7), strings: strings, fontSize: fontSize)
     }
     
     public static func ==(lhs: PremiumLockButtonSubtitleComponent, rhs: PremiumLockButtonSubtitleComponent) -> Bool {
@@ -29,6 +31,9 @@ public final class PremiumLockButtonSubtitleComponent: CombinedComponent {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -67,7 +72,7 @@ public final class PremiumLockButtonSubtitleComponent: CombinedComponent {
             }
             
             let text = text.update(
-                component: AnimatedTextComponent(font: Font.medium(11.0), color: context.component.color, items: textItems),
+                component: AnimatedTextComponent(font: Font.medium(floor(context.component.fontSize * 11.0 / 17.0)), color: context.component.color, items: textItems),
                 availableSize: CGSize(width: context.availableSize.width - 20.0, height: 100.0),
                 transition: context.transition
             )

@@ -11,7 +11,10 @@ final class NavigationBarBadgeNode: ASDisplayNode {
     private let textNode: ImmediateTextNode
     private let backgroundNode: ASImageNode
     
-    private let font: UIFont = Font.regular(13.0)
+    private var fontSize: CGFloat
+    private var font: UIFont {
+        return Font.regular(floor(self.fontSize * 13.0 / 17.0))
+    }
     
     var text: String = "" {
         didSet {
@@ -20,10 +23,11 @@ final class NavigationBarBadgeNode: ASDisplayNode {
         }
     }
     
-    init(fillColor: UIColor, strokeColor: UIColor, textColor: UIColor) {
+    init(fillColor: UIColor, strokeColor: UIColor, textColor: UIColor, fontSize: CGFloat = 17.0) {
         self.fillColor = fillColor
         self.strokeColor = strokeColor
         self.textColor = textColor
+        self.fontSize = fontSize
         
         self.textNode = ImmediateTextNode()
         self.textNode.isUserInteractionEnabled = false
@@ -47,6 +51,16 @@ final class NavigationBarBadgeNode: ASDisplayNode {
         self.backgroundNode.image = generateStretchableFilledCircleImage(radius: 9.0, color: fillColor, backgroundColor: nil)
         self.textNode.attributedText = NSAttributedString(string: self.text, font: self.font, textColor: self.textColor)
         self.textNode.redrawIfPossible()
+    }
+    
+    func updateFontSize(_ fontSize: CGFloat) {
+        guard abs(self.fontSize - fontSize) > .ulpOfOne else {
+            return
+        }
+        self.fontSize = fontSize
+        self.textNode.attributedText = NSAttributedString(string: self.text, font: self.font, textColor: self.textColor)
+        self.textNode.redrawIfPossible()
+        self.invalidateCalculatedLayout()
     }
     
     override func calculateSizeThatFits(_ constrainedSize: CGSize) -> CGSize {

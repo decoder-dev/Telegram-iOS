@@ -79,7 +79,7 @@ final class GroupExpandActionButton: UIButton {
         super.touchesCancelled(touches, with: event)
     }
     
-    func update(theme: PresentationTheme, title: String, useOpaqueTheme: Bool) -> CGSize {
+    func update(theme: PresentationTheme, title: String, useOpaqueTheme: Bool, fontSize: CGFloat) -> CGSize {
         let textConstrainedWidth: CGFloat = 100.0
         let color = theme.list.itemCheckColors.foregroundColor
         
@@ -94,7 +94,7 @@ final class GroupExpandActionButton: UIButton {
         if let currentTextLayout = self.currentTextLayout, currentTextLayout.string == title, currentTextLayout.color == color, currentTextLayout.constrainedWidth == textConstrainedWidth {
             textSize = currentTextLayout.size
         } else {
-            let font: UIFont = Font.semibold(13.0)
+            let font: UIFont = Font.semibold(floor(fontSize * 13.0 / 17.0))
             let string = NSAttributedString(string: title.uppercased(), font: font, textColor: color)
             let stringBounds = string.boundingRect(with: CGSize(width: textConstrainedWidth, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
             textSize = CGSize(width: ceil(stringBounds.width), height: ceil(stringBounds.height))

@@ -26,34 +26,35 @@ public final class ChatMediaInputStickerGridSection: GridSection {
     public let accessory: ChatMediaInputStickerGridSectionAccessory
     public let interaction: ChatMediaInputNodeInteraction
     public let theme: PresentationTheme
+    public let fontSize: CGFloat
     public let height: CGFloat = 26.0
     
     public var hashValue: Int {
         return self.collectionId.hashValue
     }
     
-    public init(collectionId: EngineItemCollectionId, collectionInfo: StickerPackCollectionInfo?, accessory: ChatMediaInputStickerGridSectionAccessory, theme: PresentationTheme, interaction: ChatMediaInputNodeInteraction) {
+    public init(collectionId: EngineItemCollectionId, collectionInfo: StickerPackCollectionInfo?, accessory: ChatMediaInputStickerGridSectionAccessory, theme: PresentationTheme, interaction: ChatMediaInputNodeInteraction, fontSize: CGFloat = 17.0) {
         self.collectionId = collectionId
         self.collectionInfo = collectionInfo
         self.accessory = accessory
         self.theme = theme
         self.interaction = interaction
+        self.fontSize = fontSize
     }
     
     public func isEqual(to: GridSection) -> Bool {
         if let to = to as? ChatMediaInputStickerGridSection {
-            return self.collectionId == to.collectionId && self.theme === to.theme
+            return self.collectionId == to.collectionId && self.theme === to.theme && abs(self.fontSize - to.fontSize) <= .ulpOfOne
         } else {
             return false
         }
     }
     
     public func node() -> ASDisplayNode {
-        return ChatMediaInputStickerGridSectionNode(collectionInfo: self.collectionInfo, accessory: self.accessory, theme: self.theme, interaction: self.interaction)
+        return ChatMediaInputStickerGridSectionNode(collectionInfo: self.collectionInfo, accessory: self.accessory, theme: self.theme, interaction: self.interaction, fontSize: self.fontSize)
     }
 }
 
-private let sectionTitleFont = Font.medium(12.0)
 
 public final class ChatMediaInputStickerGridSectionNode: ASDisplayNode {
     public let titleNode: ASTextNode
@@ -61,7 +62,7 @@ public final class ChatMediaInputStickerGridSectionNode: ASDisplayNode {
     public let interaction: ChatMediaInputNodeInteraction
     public let accessory: ChatMediaInputStickerGridSectionAccessory
     
-    public init(collectionInfo: StickerPackCollectionInfo?, accessory: ChatMediaInputStickerGridSectionAccessory, theme: PresentationTheme, interaction: ChatMediaInputNodeInteraction) {
+    public init(collectionInfo: StickerPackCollectionInfo?, accessory: ChatMediaInputStickerGridSectionAccessory, theme: PresentationTheme, interaction: ChatMediaInputNodeInteraction, fontSize: CGFloat = 17.0) {
         self.interaction = interaction
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = false
@@ -83,7 +84,7 @@ public final class ChatMediaInputStickerGridSectionNode: ASDisplayNode {
         super.init()
         
         self.addSubnode(self.titleNode)
-        self.titleNode.attributedText = NSAttributedString(string: collectionInfo?.title.uppercased() ?? "", font: sectionTitleFont, textColor: theme.chat.inputMediaPanel.stickersSectionTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: collectionInfo?.title.uppercased() ?? "", font: Font.medium(floor(fontSize * 12.0 / 17.0)), textColor: theme.chat.inputMediaPanel.stickersSectionTextColor)
         self.titleNode.maximumNumberOfLines = 1
         self.titleNode.truncationMode = .byTruncatingTail
         
@@ -142,7 +143,7 @@ public final class ChatMediaInputStickerGridItem: GridItem {
         
         let accessory: ChatMediaInputStickerGridSectionAccessory
         accessory = .none
-        self.section = ChatMediaInputStickerGridSection(collectionId: collectionId, collectionInfo: stickerPackInfo, accessory: accessory, theme: theme, interaction: inputNodeInteraction)
+        self.section = ChatMediaInputStickerGridSection(collectionId: collectionId, collectionInfo: stickerPackInfo, accessory: accessory, theme: theme, interaction: inputNodeInteraction, fontSize: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
     }
     
     public func node(layout: GridNodeLayout, synchronousLoad: Bool) -> GridItemNode {

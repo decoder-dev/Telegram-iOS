@@ -185,8 +185,6 @@ private func actionForPeer(context: AccountContext, peer: EnginePeer, interfaceS
     }
 }
 
-private let badgeFont = Font.regular(14.0)
-
 private final class ChannelNewsContextReferenceContentSource: ContextReferenceContentSource {
     private let controller: ViewController
     private weak var island: NewsChannelIslandView?

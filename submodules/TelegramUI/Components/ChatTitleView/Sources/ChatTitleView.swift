@@ -24,7 +24,6 @@ import GlassBackgroundComponent
 import AnimatedTextComponent
 
 private let titleFont = Font.with(size: 17.0, design: .regular, weight: .semibold, traits: [.monospacedNumbers])
-private let subtitleFont = Font.regular(13.0)
 
 public enum ChatTitleContent: Equatable {
     public struct PeerData: Equatable {
@@ -188,6 +187,10 @@ public final class ChatTitleView: UIView, NavigationBarTitleView {
     }
     
     private let context: AccountContext
+    
+    private var subtitleFont: UIFont {
+        return Font.regular(floor(self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0))
+    }
     
     private var theme: PresentationTheme
     private var strings: PresentationStrings

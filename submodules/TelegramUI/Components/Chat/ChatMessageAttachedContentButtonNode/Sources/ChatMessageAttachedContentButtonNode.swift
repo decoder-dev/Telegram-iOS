@@ -6,7 +6,6 @@ import TelegramPresentationData
 import ChatPresentationInterfaceState
 import ShimmerEffect
 
-private let buttonFont = Font.semibold(14.0)
 private let sharedBackgroundImage = generateStretchableFilledCircleImage(radius: 6.0, color: UIColor.white)?.withRenderingMode(.alwaysTemplate)
 
 public final class ChatMessageAttachedContentButtonNode: HighlightTrackingButtonNode {
@@ -83,13 +82,13 @@ public final class ChatMessageAttachedContentButtonNode: HighlightTrackingButton
         })
     }
     
-    public typealias AsyncLayout = (_ width: CGFloat, _ sideInset: CGFloat?, _ iconImage: UIImage?, _ cornerIcon: Bool, _ title: String, _ titleColor: UIColor, _ inProgress: Bool, _ drawBackground: Bool) -> (CGFloat, (CGFloat, CGFloat) -> (CGSize, (ListViewItemUpdateAnimation) -> ChatMessageAttachedContentButtonNode))
+    public typealias AsyncLayout = (_ width: CGFloat, _ sideInset: CGFloat?, _ iconImage: UIImage?, _ cornerIcon: Bool, _ title: String, _ titleColor: UIColor, _ inProgress: Bool, _ drawBackground: Bool, _ fontSize: CGFloat) -> (CGFloat, (CGFloat, CGFloat) -> (CGSize, (ListViewItemUpdateAnimation) -> ChatMessageAttachedContentButtonNode))
     public static func asyncLayout(_ current: ChatMessageAttachedContentButtonNode?) -> AsyncLayout {
         let previousRegularIconImage = current?.regularIconImage
         
         let maybeMakeTextLayout = (current?.textNode).flatMap(TextNode.asyncLayout)
         
-        return { width, sideInset, iconImage, cornerIcon, title, titleColor, inProgress, drawBackground in
+        return { width, sideInset, iconImage, cornerIcon, title, titleColor, inProgress, drawBackground, fontSize in
             let targetNode: ChatMessageAttachedContentButtonNode
             if let current = current {
                 targetNode = current
@@ -115,6 +114,7 @@ public final class ChatMessageAttachedContentButtonNode: HighlightTrackingButton
             }
             
             let labelInset: CGFloat = sideInset ?? 8.0
+            let buttonFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
             
             let (textSize, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: title, font: buttonFont, textColor: titleColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(1.0, width - labelInset * 2.0 - iconWidth), height: CGFloat.greatestFiniteMagnitude), alignment: .left, cutout: nil, insets: UIEdgeInsets()))
             

@@ -11,15 +11,18 @@ final class StarReactionButtonBadgeComponent: Component {
     let theme: PresentationTheme
     let count: Int
     let isFilled: Bool
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
         count: Int,
-        isFilled: Bool
+        isFilled: Bool,
+        fontSize: CGFloat
     ) {
         self.theme = theme
         self.count = count
         self.isFilled = isFilled
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: StarReactionButtonBadgeComponent, rhs: StarReactionButtonBadgeComponent) -> Bool {
@@ -30,6 +33,9 @@ final class StarReactionButtonBadgeComponent: Component {
             return false
         }
         if lhs.isFilled != rhs.isFilled {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -64,7 +70,7 @@ final class StarReactionButtonBadgeComponent: Component {
             let textSize = self.text.update(
                 transition: transition,
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.semibold(10.0),
+                    font: Font.semibold(floor(component.fontSize * 10.0 / 17.0)),
                     color: component.theme.chat.inputPanel.panelControlColor,
                     items: [AnimatedTextComponent.Item(id: AnyHashable(0), content: .text(countString(Int64(component.count))))],
                     noDelay: true
@@ -113,6 +119,7 @@ final class StarReactionButtonComponent: Component {
     let theme: PresentationTheme
     let count: Int
     let isFilled: Bool
+    let fontSize: CGFloat
     let action: (UIView) -> Void
     let longPressAction: ((UIView) -> Void)?
     
@@ -120,12 +127,14 @@ final class StarReactionButtonComponent: Component {
         theme: PresentationTheme,
         count: Int,
         isFilled: Bool,
+        fontSize: CGFloat,
         action: @escaping (UIView) -> Void,
         longPressAction: ((UIView) -> Void)?
     ) {
         self.theme = theme
         self.count = count
         self.isFilled = isFilled
+        self.fontSize = fontSize
         self.action = action
         self.longPressAction = longPressAction
     }
@@ -138,6 +147,9 @@ final class StarReactionButtonComponent: Component {
             return false
         }
         if lhs.isFilled != rhs.isFilled {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if (lhs.longPressAction == nil) != (rhs.longPressAction == nil) {
@@ -267,7 +279,8 @@ final class StarReactionButtonComponent: Component {
                     component: AnyComponent(StarReactionButtonBadgeComponent(
                         theme: component.theme,
                         count: component.count,
-                        isFilled: component.isFilled
+                        isFilled: component.isFilled,
+                        fontSize: component.fontSize
                     )),
                     environment: {},
                     containerSize: CGSize(width: 100.0, height: 100.0)
@@ -306,9 +319,10 @@ final class StarReactionButtonComponent: Component {
                         let _ = badge.update(
                             transition: transition,
                             component: AnyComponent(StarReactionButtonBadgeComponent(
-                                theme: component.theme,
+                                theme: previousComponent.theme,
                                 count: previousComponent.count,
-                                isFilled: previousComponent.isFilled
+                                isFilled: previousComponent.isFilled,
+                                fontSize: previousComponent.fontSize
                             )),
                             environment: {},
                             containerSize: CGSize(width: 100.0, height: 100.0)

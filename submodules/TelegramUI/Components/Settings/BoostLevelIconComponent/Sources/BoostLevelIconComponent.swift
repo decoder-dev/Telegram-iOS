@@ -4,9 +4,9 @@ import Display
 import ComponentFlow
 import TelegramPresentationData
 
-public func generateDisclosureActionBoostLevelBadgeImage(text: String) -> UIImage {
+public func generateDisclosureActionBoostLevelBadgeImage(text: String, fontSize: CGFloat = 17.0) -> UIImage {
     let attributedText = NSAttributedString(string: text, attributes: [
-        .font: Font.medium(12.0),
+        .font: Font.medium(floor(fontSize * 12.0 / 17.0)),
         .foregroundColor: UIColor.white
     ])
     let bounds = attributedText.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)

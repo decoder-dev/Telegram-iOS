@@ -13,7 +13,9 @@ import ComponentFlow
 import ComponentDisplayAdapters
 import EmojiStatusComponent
 
-private let titleFont = Font.medium(16.0)
+private func actionButtonTitleFont(fontSize: CGFloat) -> UIFont {
+    return Font.medium(floor(fontSize * 16.0 / 17.0))
+}
 
 private extension UIBezierPath {
     convenience init(roundRect rect: CGRect, topLeftRadius: CGFloat = 0.0, topRightRadius: CGFloat = 0.0, bottomLeftRadius: CGFloat = 0.0, bottomRightRadius: CGFloat = 0.0) {
@@ -226,6 +228,7 @@ private final class ChatMessageActionButtonNode: ASDisplayNode {
         let titleLayout = TextNode.asyncLayout(maybeNode?.titleNode)
         
         return { context, theme, bubbleCorners, strings, backgroundNode, message, button, customInfo, constrainedWidth, position in
+            let titleFont = actionButtonTitleFont(fontSize: context.sharedContext.currentPresentationData.with { $0 }.fontSize.baseDisplaySize)
             let incoming = message.effectivelyIncoming(context.account.peerId)
             let graphics = PresentationResourcesChat.additionalGraphics(theme.theme, wallpaper: theme.wallpaper, bubbleCorners: bubbleCorners)
             

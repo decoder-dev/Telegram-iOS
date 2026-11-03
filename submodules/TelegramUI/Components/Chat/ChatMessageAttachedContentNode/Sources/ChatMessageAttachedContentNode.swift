@@ -664,7 +664,8 @@ public final class ChatMessageAttachedContentNode: ASDisplayNode {
                         actionTitle,
                         mainColor,
                         false,
-                        false
+                        false,
+                        presentationData.fontSize.baseDisplaySize
                     )
                     actionButtonMinWidthAndFinalizeLayout = (buttonWidth, continueLayout)
                     
