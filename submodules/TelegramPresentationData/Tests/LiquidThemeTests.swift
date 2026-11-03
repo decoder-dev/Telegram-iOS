@@ -8,16 +8,18 @@ import TelegramPresentationData
 import TelegramUIPreferences
 
 final class LiquidThemeTests: XCTestCase {
-    private func theme(_ reference: PresentationBuiltinThemeReference, accent: UIColor? = nil, bubbles: [UInt32] = [], wallpaper: TelegramWallpaper? = nil) -> PresentationTheme {
-        let accentColor = accent == .clear ? nil : accent
-        let base = makeDefaultPresentationTheme(reference: reference, serviceBackgroundColor: nil, preview: false)
-        let preserveDefaults = accentColor == nil && bubbles.isEmpty && (reference == .dayClassic || reference == .day || reference == .night)
-        return customizePresentationTheme(base, editing: !preserveDefaults, accentColor: accentColor, outgoingAccentColor: nil, backgroundColors: [], bubbleColors: bubbles, animateBubbleColors: nil, wallpaper: wallpaper)
+    private static let mediaBox = MediaBox(
+        basePath: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).path,
+        isMainProcess: false
+    )
+
+    private func theme(_ reference: PresentationBuiltinThemeReference, accent: UIColor? = nil, bubbles: [UInt32] = [], wallpaper: TelegramWallpaper? = nil) throws -> PresentationTheme {
+        return try XCTUnwrap(makePresentationTheme(mediaBox: Self.mediaBox, themeReference: .builtin(reference), accentColor: accent, bubbleColors: bubbles, wallpaper: wallpaper))
     }
 
     func testLiquidDefaultsKeepTheStockMessageColors() throws {
         for reference: PresentationBuiltinThemeReference in [.dayClassic, .day, .night] {
-            let theme = self.theme(reference)
+            let theme = try self.theme(reference)
             let dark = theme.overallDarkAppearance
             XCTAssertEqual(theme.chat.message.incoming.bubble.withoutWallpaper.fill.first?.rgb, dark ? 0x2C2C2E : 0xE9E9EB)
             XCTAssertEqual(theme.chat.message.outgoing.bubble.withoutWallpaper.fill.first?.rgb, dark ? 0x0865CA : 0x0069DF)
@@ -27,7 +29,7 @@ final class LiquidThemeTests: XCTestCase {
 
     func testReactionAndPollForegroundsRemainOpaqueAfterCustomization() throws {
         for reference: PresentationBuiltinThemeReference in [.dayClassic, .day, .night] {
-            let theme = self.theme(reference, wallpaper: .color(0x17384B))
+            let theme = try self.theme(reference, wallpaper: .color(0x17384B))
             let expected: UInt32 = theme.overallDarkAppearance ? 0x081523 : 0xFFFFFF
             for colors in [theme.chat.message.incoming, theme.chat.message.outgoing] {
                 XCTAssertEqual(colors.bubble.withWallpaper.reactionActiveForeground.rgb, expected)
@@ -39,20 +41,20 @@ final class LiquidThemeTests: XCTestCase {
     }
 
     func testExplicitAccentAndMessageColorsArePreserved() throws {
-        let theme = self.theme(.day, accent: UIColor(rgb: 0x137249), bubbles: [0xFCE9AF])
+        let theme = try self.theme(.day, accent: UIColor(rgb: 0x137249), bubbles: [0xFCE9AF])
         XCTAssertEqual(theme.list.itemAccentColor.rgb, 0x137249)
         XCTAssertEqual(theme.chat.message.outgoing.bubble.withoutWallpaper.fill.first?.rgb, 0xFCE9AF)
     }
 
     func testExplicitWallpaperIsPreservedWithDefaultColors() throws {
         let wallpaper = TelegramWallpaper.color(0x17384B)
-        let theme = self.theme(.dayClassic, wallpaper: wallpaper)
+        let theme = try self.theme(.dayClassic, wallpaper: wallpaper)
         XCTAssertEqual(theme.chat.defaultWallpaper, wallpaper)
         XCTAssertEqual(theme.chat.message.outgoing.bubble.withoutWallpaper.fill.first?.rgb, 0x0069DF)
     }
 
     func testStartupThemeUsesTheSamePaletteAsClassicWhite() throws {
-        let theme = self.theme(.dayClassic)
+        let theme = try self.theme(.dayClassic)
         XCTAssertEqual(defaultPresentationTheme.list.plainBackgroundColor, theme.list.plainBackgroundColor)
         XCTAssertEqual(defaultPresentationTheme.chat.message.incoming.primaryTextColor, theme.chat.message.incoming.primaryTextColor)
         XCTAssertEqual(defaultPresentationTheme.chat.message.outgoing.bubble.withoutWallpaper.fill, theme.chat.message.outgoing.bubble.withoutWallpaper.fill)
@@ -95,9 +97,9 @@ final class LiquidThemeTests: XCTestCase {
     }
 
     func testBrandedThemesKeepTheirPalettes() throws {
-        let cream = self.theme(.bananaGramCream)
-        let graphite = self.theme(.bananaGramGraphite)
-        let halloween = self.theme(.bananaGramHalloween)
+        let cream = try self.theme(.bananaGramCream)
+        let graphite = try self.theme(.bananaGramGraphite)
+        let halloween = try self.theme(.bananaGramHalloween)
         XCTAssertEqual(cream.list.itemPrimaryTextColor.rgb, 0x3A3430)
         XCTAssertEqual(graphite.list.itemPrimaryTextColor.rgb, 0xEFEBE0)
         XCTAssertEqual(halloween.list.itemPrimaryTextColor.rgb, 0xF8F0E8)
@@ -105,7 +107,7 @@ final class LiquidThemeTests: XCTestCase {
 
     func testNavigationPreservesSeparateControlTitleAndBadgeRoles() throws {
         for reference: PresentationBuiltinThemeReference in [.dayClassic, .day, .night, .bananaGramCream, .bananaGramGraphite, .bananaGramHalloween] {
-            let theme = self.theme(reference)
+            let theme = try self.theme(reference)
             let colors = theme.rootController.navigationBar
             let navigation = NavigationBarTheme(rootControllerTheme: theme)
             XCTAssertEqual(navigation.buttonColor.rgb, colors.buttonColor.rgb)
@@ -123,7 +125,7 @@ final class LiquidThemeTests: XCTestCase {
         let wallpapers: [TelegramWallpaper?] = [nil, .color(0x17384B)]
         for reference: PresentationBuiltinThemeReference in [.dayClassic, .day, .night] {
             for wallpaper in wallpapers {
-                let theme = self.theme(reference, wallpaper: wallpaper)
+                let theme = try self.theme(reference, wallpaper: wallpaper)
                 let list = theme.list
                 let media = theme.chat.inputMediaPanel
                 XCTAssertEqual(media.backgroundColor, list.itemBlocksBackgroundColor)
@@ -146,7 +148,7 @@ final class LiquidThemeTests: XCTestCase {
         let wallpapers: [TelegramWallpaper?] = [nil, .color(0x17384B)]
         for reference: PresentationBuiltinThemeReference in [.dayClassic, .day, .night] {
             for wallpaper in wallpapers {
-                let theme = self.theme(reference, wallpaper: wallpaper)
+                let theme = try self.theme(reference, wallpaper: wallpaper)
                 for colors in [theme.chat.message.incoming.polls, theme.chat.message.outgoing.polls] {
                     XCTAssertEqual(colors.barIconForeground.alpha, 1.0)
                     for fill in [colors.bar, colors.barPositive, colors.barNegative] {
