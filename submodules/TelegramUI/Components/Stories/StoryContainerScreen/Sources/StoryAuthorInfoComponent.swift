@@ -114,6 +114,7 @@ final class StoryAuthorInfoComponent: Component {
             let leftInset: CGFloat = 54.0
             
             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
+            let listFontSize = presentationData.listsFontSize.baseDisplaySize
 
             let title: String
             if component.peer?.id == component.context.account.peerId, !component.isEmbeddedInCamera {
@@ -189,7 +190,7 @@ final class StoryAuthorInfoComponent: Component {
                     context: component.context,
                     peer: component.peer,
                     text: .custom(title),
-                    font: Font.medium(14.0),
+                    font: Font.medium(floor(listFontSize * 14.0 / 17.0)),
                     textColor: .white,
                     iconBackgroundColor: component.theme.list.itemCheckColors.fillColor,
                     iconForegroundColor: component.theme.list.itemCheckColors.foregroundColor,

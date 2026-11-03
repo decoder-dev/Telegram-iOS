@@ -130,7 +130,7 @@ final class QrStudioGiftsTabView: UIView, UIScrollViewDelegate {
         return CGRect(x: QrStudioGiftsTabView.sideInset + CGFloat(column) * (itemSide + QrStudioGiftsTabView.spacing), y: QrStudioGiftsTabView.top + CGFloat(row) * (itemSide + QrStudioGiftsTabView.spacing), width: itemSide, height: itemSide)
     }
 
-    func update(size: CGSize, context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, gifts: [QrStudioGift], isLoaded: Bool, selectedId: Int64?, revealSelection: Bool, scrollsToSelection: Bool) {
+    func update(size: CGSize, context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, gifts: [QrStudioGift], isLoaded: Bool, selectedId: Int64?, revealSelection: Bool, scrollsToSelection: Bool, fontSize: CGFloat = 17.0) {
         self.params = Params(size: size, context: context, theme: theme, strings: strings, gifts: gifts, selectedId: selectedId)
         self.scrollView.frame = CGRect(origin: CGPoint(), size: size)
 
@@ -148,15 +148,16 @@ final class QrStudioGiftsTabView: UIView, UIScrollViewDelegate {
         if isEmpty {
             self.vibrantHeaders.update(size: size, headers: [], isEnabled: false)
             if isLoaded {
-                self.updateEmptyState(size: size, theme: theme, strings: strings)
+                self.updateEmptyState(size: size, theme: theme, strings: strings, fontSize: fontSize)
             }
             return
         }
 
         let itemSide = self.itemSide(width: size.width)
 
+        let headerFontSize = floor(fontSize * 13.0 / 17.0)
         self.titleLabel.attributedText = NSAttributedString(string: strings.QrStudio_Gifts_Title.uppercased(), attributes: [
-            .font: Font.semibold(13.0),
+            .font: Font.semibold(headerFontSize),
             .foregroundColor: theme.overallDarkAppearance ? theme.chat.inputMediaPanel.stickersSectionTextColor : theme.chat.inputMediaPanel.panelContentVibrantOverlayColor,
             .kern: -0.078
         ])
@@ -190,7 +191,10 @@ final class QrStudioGiftsTabView: UIView, UIScrollViewDelegate {
         self.updateVisibleItems()
     }
 
-    private func updateEmptyState(size: CGSize, theme: PresentationTheme, strings: PresentationStrings) {
+    private func updateEmptyState(size: CGSize, theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat = 17.0) {
+        let labelFontSize = floor(fontSize * 15.0 / 17.0)
+        self.emptyTextLabel.font = Font.regular(labelFontSize)
+        self.browseLabel.font = Font.semibold(labelFontSize)
         self.emptyView.frame = CGRect(origin: CGPoint(), size: size)
         let stickerSide: CGFloat = 100.0
         let _ = self.emptySticker.update(

@@ -198,7 +198,7 @@ final class QrStudioColorsTabView: UIView, UIScrollViewDelegate {
         }
     }
 
-    func update(size: CGSize, theme: PresentationTheme, strings: PresentationStrings, themes: [QrStudioTheme], palettes: [QrStudioPalette], selection: QrStudioColorsSelection?, revealSelection: Bool) {
+    func update(size: CGSize, theme: PresentationTheme, strings: PresentationStrings, themes: [QrStudioTheme], palettes: [QrStudioPalette], selection: QrStudioColorsSelection?, revealSelection: Bool, fontSize: CGFloat = 17.0) {
         let sizeChanged = self.size != size
         let themesChanged = themes.map { $0.id } != self.themeIds || palettes.compactMap({ $0.id }) != self.paletteIds
         self.size = size
@@ -267,9 +267,10 @@ final class QrStudioColorsTabView: UIView, UIScrollViewDelegate {
         }
 
         var headers: [(text: NSAttributedString, frame: CGRect)] = []
+        let headerFontSize = floor(fontSize * 13.0 / 17.0)
         for (index, label) in self.labels.enumerated() {
             label.attributedText = NSAttributedString(string: titles[index].uppercased(), attributes: [
-                .font: Font.semibold(13.0),
+                .font: Font.semibold(headerFontSize),
                 .foregroundColor: headerColor,
                 .kern: -0.078
             ])

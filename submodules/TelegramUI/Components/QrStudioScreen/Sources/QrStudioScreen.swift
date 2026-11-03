@@ -1563,6 +1563,8 @@ final class QrStudioScreenComponent: Component {
             guard sheetSize.width > 0.0, sheetSize.height > 0.0 else {
                 return
             }
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            self.toastView.fontSize = listFontSize
 
             let colorsTab: QrStudioColorsTabView
             if let current = self.colorsTab {
@@ -1616,7 +1618,7 @@ final class QrStudioScreenComponent: Component {
             } else {
                 colorsSelection = nil
             }
-            colorsTab.update(size: sheetSize, theme: self.sheetTheme(environment.theme), strings: environment.strings, themes: self.look.themes, palettes: self.look.backdrops, selection: colorsSelection, revealSelection: revealTab == .color)
+            colorsTab.update(size: sheetSize, theme: self.sheetTheme(environment.theme), strings: environment.strings, themes: self.look.themes, palettes: self.look.backdrops, selection: colorsSelection, revealSelection: revealTab == .color, fontSize: listFontSize)
 
             let emojiTab: QrStudioEmojiTabView
             if let current = self.emojiTab {
@@ -1687,7 +1689,7 @@ final class QrStudioScreenComponent: Component {
                 self.sheetView.setContent(giftsTab, for: .gift)
                 self.sheetView.attachScrollView(giftsTab.scrollView)
             }
-            giftsTab.update(size: sheetSize, context: component.context, theme: self.sheetTheme(environment.theme), strings: environment.strings, gifts: self.look.gifts, isLoaded: self.areGiftsLoaded, selectedId: self.look.kind == .gift || shownTab == .gift ? self.look.giftId : nil, revealSelection: revealTab == .gift, scrollsToSelection: self.pinnedGiftId == nil || self.look.giftId != self.pinnedGiftId)
+            giftsTab.update(size: sheetSize, context: component.context, theme: self.sheetTheme(environment.theme), strings: environment.strings, gifts: self.look.gifts, isLoaded: self.areGiftsLoaded, selectedId: self.look.kind == .gift || shownTab == .gift ? self.look.giftId : nil, revealSelection: revealTab == .gift, scrollsToSelection: self.pinnedGiftId == nil || self.look.giftId != self.pinnedGiftId, fontSize: listFontSize)
         }
 
         private func presentPremiumEmojiToast() {

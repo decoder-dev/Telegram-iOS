@@ -54,6 +54,7 @@ public final class StoryFooterPanelComponent: Component {
     public let forwardAction: () -> Void
     public let repostAction: () -> Void
     public let cancelUploadAction: () -> Void
+    public let fontSize: CGFloat
     
     public init(
         context: AccountContext,
@@ -74,7 +75,8 @@ public final class StoryFooterPanelComponent: Component {
         likeAction: @escaping () -> Void,
         forwardAction: @escaping () -> Void,
         repostAction: @escaping () -> Void,
-        cancelUploadAction: @escaping () -> Void
+        cancelUploadAction: @escaping () -> Void,
+        fontSize: CGFloat = 17.0
     ) {
         self.context = context
         self.theme = theme
@@ -95,6 +97,7 @@ public final class StoryFooterPanelComponent: Component {
         self.forwardAction = forwardAction
         self.repostAction = repostAction
         self.cancelUploadAction = cancelUploadAction
+        self.fontSize = fontSize
     }
     
     public static func ==(lhs: StoryFooterPanelComponent, rhs: StoryFooterPanelComponent) -> Bool {
@@ -129,6 +132,9 @@ public final class StoryFooterPanelComponent: Component {
             return false
         }
         if lhs.expandFraction != rhs.expandFraction {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -340,7 +346,7 @@ public final class StoryFooterPanelComponent: Component {
                 
                 let uploadingTextSize = uploadingText.update(
                     transition: .immediate,
-                    component: AnyComponent(Text(text: component.strings.Story_Footer_Uploading, font: Font.regular(15.0), color: .white)),
+                    component: AnyComponent(Text(text: component.strings.Story_Footer_Uploading, font: Font.regular(floor(component.fontSize * 15.0 / 17.0)), color: .white)),
                     environment: {},
                     containerSize: CGSize(width: 200.0, height: 100.0)
                 )
@@ -443,7 +449,7 @@ public final class StoryFooterPanelComponent: Component {
             
             let viewStatsLabelSize = self.viewStatsLabelText.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: viewPart, font: Font.regular(15.0), color: .white)),
+                component: AnyComponent(Text(text: viewPart, font: Font.regular(floor(component.fontSize * 15.0 / 17.0)), color: .white)),
                 environment: {},
                 containerSize: CGSize(width: 200.0, height: 100.0)
             )

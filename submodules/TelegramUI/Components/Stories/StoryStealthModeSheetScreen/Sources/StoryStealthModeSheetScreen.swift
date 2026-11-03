@@ -202,6 +202,7 @@ private final class StoryStealthModeSheetContentComponent: Component {
                     backwardDuration: component.backwardDuration,
                     forwardDuration: component.forwardDuration,
                     mode: component.mode,
+                    fontSize: baseDisplaySize,
                     dismiss: { [weak self] in
                         guard let self, let component = self.component else {
                             return

@@ -17,6 +17,7 @@ public final class StoryStealthModeInfoContentComponent: Component {
     public let forwardDuration: Int32
     public let mode: StoryStealthModeSheetScreen.Mode
     public let dismiss: () -> Void
+    public let fontSize: CGFloat
     
     public init(
         theme: PresentationTheme,
@@ -24,7 +25,8 @@ public final class StoryStealthModeInfoContentComponent: Component {
         backwardDuration: Int32,
         forwardDuration: Int32,
         mode: StoryStealthModeSheetScreen.Mode,
-        dismiss: @escaping () -> Void
+        dismiss: @escaping () -> Void,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.strings = strings
@@ -32,6 +34,7 @@ public final class StoryStealthModeInfoContentComponent: Component {
         self.forwardDuration = forwardDuration
         self.mode = mode
         self.dismiss = dismiss
+        self.fontSize = fontSize
     }
     
     public static func ==(lhs: StoryStealthModeInfoContentComponent, rhs: StoryStealthModeInfoContentComponent) -> Bool {
@@ -48,6 +51,9 @@ public final class StoryStealthModeInfoContentComponent: Component {
             return false
         }
         if lhs.mode != rhs.mode {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -169,18 +175,19 @@ public final class StoryStealthModeInfoContentComponent: Component {
             case .upgrade:
                 text = component.strings.Story_StealthMode_UpgradeText
             }
+            let body15 = floor(component.fontSize * 15.0 / 17.0)
             let mainText = NSMutableAttributedString()
             mainText.append(parseMarkdownIntoAttributedString(text, attributes: MarkdownAttributes(
                 body: MarkdownAttributeSet(
-                    font: Font.regular(15.0),
+                    font: Font.regular(body15),
                     textColor: component.theme.list.itemSecondaryTextColor
                 ),
                 bold: MarkdownAttributeSet(
-                    font: Font.semibold(15.0),
+                    font: Font.semibold(body15),
                     textColor: component.theme.list.itemSecondaryTextColor
                 ),
                 link: MarkdownAttributeSet(
-                    font: Font.regular(15.0),
+                    font: Font.regular(body15),
                     textColor: component.theme.list.itemAccentColor,
                     additionalAttributes: [:]
                 ),
@@ -253,15 +260,15 @@ public final class StoryStealthModeInfoContentComponent: Component {
                 let titleSize = item.title.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: itemDesc.title, font: Font.semibold(15.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: itemDesc.title, font: Font.semibold(body15), textColor: component.theme.list.itemPrimaryTextColor)),
                         maximumNumberOfLines: 0,
                         lineSpacing: 0.2
                     )),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width - sideInset * 2.0 - sideIconInset, height: 1000.0)
                 )
-                let body = MarkdownAttributeSet(font: Font.regular(15.0), textColor: component.theme.list.itemSecondaryTextColor)
-                let bold = MarkdownAttributeSet(font: Font.semibold(15.0), textColor: component.theme.list.itemSecondaryTextColor)
+                let body = MarkdownAttributeSet(font: Font.regular(body15), textColor: component.theme.list.itemSecondaryTextColor)
+                let bold = MarkdownAttributeSet(font: Font.semibold(body15), textColor: component.theme.list.itemSecondaryTextColor)
                 let textSize = item.text.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(

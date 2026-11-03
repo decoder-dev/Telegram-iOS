@@ -335,3 +335,7 @@ ChatPinnedMessage/Edit/Webpage/Reply/Forward accessory panels, Report/Invite/Ver
 ## Contact selection, tag search, overlay scrubber и suggest-post panel
 
 ContactSelectionCountPanelNode badge/Send footer, ChatSearchTitleAccessoryPanelNode tag chips, OverlayAudioPlayerControlsNode scrubber width probe, SuggestPostAccessoryPanelNode title/subtitle, GroupCallNavigationAccessoryPanel join/title и VoiceChatActionButton stage labels масштабируются от listsFontSize / interfaceState.fontSize (pattern `floor(base * N / 17)`). Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Stories, PeerSelection и QrStudio chrome
+
+Story footer/pinned/author/stealth sheets, PeerSelection empty/requirements и QrStudio gifts/colors/toast labels масштабируют от listsFontSize / component.fontSize. Branding Liquid: 7 pass. Simulator NOT RUN.

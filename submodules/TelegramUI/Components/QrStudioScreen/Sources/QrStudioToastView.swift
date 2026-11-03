@@ -143,6 +143,7 @@ final class QrStudioToastView: UIView {
     private var foregroundColor = UIColor.white
     private var displayLink: SharedDisplayLinkDriver.Link?
     var lottieSettings: LottieRenderingSettings = .noAccountFallback
+    var fontSize: CGFloat = 17.0
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -159,7 +160,7 @@ final class QrStudioToastView: UIView {
         self.label.numberOfLines = 2
         self.contentView.addSubview(self.label)
 
-        self.actionLabel.font = Font.semibold(15.0)
+        self.actionLabel.font = Font.semibold(floor(self.fontSize * 15.0 / 17.0))
         self.actionLabel.textColor = UIColor(red: 0.45, green: 0.73, blue: 1.0, alpha: 1.0)
         self.contentView.addSubview(self.actionLabel)
 
@@ -198,6 +199,7 @@ final class QrStudioToastView: UIView {
     func show(_ toast: QrStudioToast, isLight: Bool, glassTint: GlassBackgroundView.TintColor) {
         self.action = toast.action
         self.isUserInteractionEnabled = toast.action != nil
+        self.actionLabel.font = Font.semibold(floor(self.fontSize * 15.0 / 17.0))
         self.actionLabel.text = toast.action?.title
         self.actionLabel.isHidden = toast.action == nil
         self.isLight = isLight

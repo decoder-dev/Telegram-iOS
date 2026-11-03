@@ -171,13 +171,15 @@ private final class PinnedBarMessageComponent: Component {
             let avatarSpacing: CGFloat = 6.0
             let rightInset: CGFloat = 10.0
             
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(PeerNameTextComponent(
                     context: component.context,
                     peer: component.message.author,
                     text: .name,
-                    font: Font.semibold(15.0),
+                    font: Font.semibold(floor(listFontSize * 15.0 / 17.0)),
                     textColor: .white,
                     iconBackgroundColor: .white,
                     iconForegroundColor: baseColor,

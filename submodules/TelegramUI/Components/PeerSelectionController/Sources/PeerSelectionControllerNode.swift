@@ -1275,8 +1275,11 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                     emptyButtonText = ""
                 }
 
-                self.emptyTitleNode.attributedText = NSAttributedString(string: emptyTitle, font: Font.semibold(15.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
-                self.emptyTextNode.attributedText = NSAttributedString(string: emptyText, font: Font.regular(15.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
+                let listFontSize = self.presentationData.listsFontSize.baseDisplaySize
+                let emptyTitleFontSize = floor(listFontSize * 15.0 / 17.0)
+                let requirementsFontSize = floor(listFontSize * 13.0 / 17.0)
+                self.emptyTitleNode.attributedText = NSAttributedString(string: emptyTitle, font: Font.semibold(emptyTitleFontSize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
+                self.emptyTextNode.attributedText = NSAttributedString(string: emptyText, font: Font.regular(emptyTitleFontSize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
 
                 let padding: CGFloat = 44.0
                 // Centred in the band between the side insets (they differ beside iPhone Duo's side strip).
@@ -1319,8 +1322,9 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                 self.emptyTextNode.isHidden = false
                 self.emptyAnimationNode.visibility = true
             } else if let requirementsBackgroundNode = self.requirementsBackgroundNode, let requirementsSeparatorNode = self.requirementsSeparatorNode, let requirementsTextNode = self.requirementsTextNode, let requirementsText = stringForRequestPeerType(strings: self.presentationData.strings, peerType: requestPeerType, offset: true) {
-                let requirements = NSMutableAttributedString(string: self.presentationData.strings.RequestPeer_Requirements + "\n", font: Font.semibold(13.0), textColor: self.presentationData.theme.list.itemSecondaryTextColor)
-                requirements.append(NSAttributedString(string: requirementsText, font: Font.regular(13.0), textColor: self.presentationData.theme.list.itemSecondaryTextColor))
+                let requirementsFontSize = floor(self.presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)
+                let requirements = NSMutableAttributedString(string: self.presentationData.strings.RequestPeer_Requirements + "\n", font: Font.semibold(requirementsFontSize), textColor: self.presentationData.theme.list.itemSecondaryTextColor)
+                requirements.append(NSAttributedString(string: requirementsText, font: Font.regular(requirementsFontSize), textColor: self.presentationData.theme.list.itemSecondaryTextColor))
 
                 requirementsTextNode.attributedText = requirements
                 let sideInset: CGFloat = 16.0

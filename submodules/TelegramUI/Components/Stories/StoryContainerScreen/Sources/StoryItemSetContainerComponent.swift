@@ -1860,12 +1860,14 @@ public final class StoryItemSetContainerComponent: Component {
                             var footerExpandFraction = itemLayout.contentScaleFraction
                             footerExpandFraction = footerExpandFraction.interpolate(to: 1.0, amount: singleDistanceToCenter)
                             
+                            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                             let footerSize = footerPanel.update(
                                 transition: itemTransition,
                                 component: AnyComponent(StoryFooterPanelComponent(
                                     context: component.context,
                                     theme: component.theme,
                                     strings: component.strings,
+                                    fontSize: listFontSize,
                                     peer: component.slice.effectivePeer,
                                     storyItem: item.storyItem,
                                     myReaction: item.storyItem.myReaction.flatMap { value -> StoryFooterPanelComponent.MyReaction? in
