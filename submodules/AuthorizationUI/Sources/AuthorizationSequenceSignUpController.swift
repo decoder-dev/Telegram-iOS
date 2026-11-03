@@ -193,7 +193,7 @@ final class AuthorizationSequenceSignUpController: ViewController {
                 let alertTheme = AlertControllerTheme(presentationData: strongSelf.presentationData)
                 let termsBodyFont = Font.regular(floor(strongSelf.presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0))
                 let attributedText = stringWithAppliedEntities(termsOfService.text, entities: termsOfService.entities, baseColor: alertTheme.primaryColor, linkColor: alertTheme.accentColor, baseFont: termsBodyFont, linkFont: termsBodyFont, boldFont: Font.semibold(floor(strongSelf.presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)), italicFont: Font.italic(floor(strongSelf.presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)), boldItalicFont: Font.semiboldItalic(floor(strongSelf.presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)), fixedFont: termsBodyFont, blockQuoteFont: termsBodyFont, message: nil)
-                let contentNode = TextAlertContentNode(theme: alertTheme, title: NSAttributedString(string: strongSelf.presentationData.strings.Login_TermsOfServiceHeader, font: Font.medium(self.presentationData.listsFontSize.baseDisplaySize), textColor: alertTheme.primaryColor, paragraphAlignment: .center), text: attributedText, actions: [
+                let contentNode = TextAlertContentNode(theme: alertTheme, title: NSAttributedString(string: strongSelf.presentationData.strings.Login_TermsOfServiceHeader, font: Font.medium(17.0), textColor: alertTheme.primaryColor, paragraphAlignment: .center), text: attributedText, actions: [
                     TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {
                         dismissImpl?()
                     })

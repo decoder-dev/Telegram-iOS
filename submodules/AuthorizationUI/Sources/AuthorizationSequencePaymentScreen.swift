@@ -266,7 +266,7 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
                         isDark: environment.theme.overallDarkAppearance,
                         state: .glass,
                         component: AnyComponentWithIdentity(id: "label", component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: environment.strings.Login_PhoneNumberHelp, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: environment.theme.chat.inputPanel.panelControlColor))
+                            text: .plain(NSAttributedString(string: environment.strings.Login_PhoneNumberHelp, font: Font.regular(17.0), textColor: environment.theme.chat.inputPanel.panelControlColor))
                         ))),
                         action: { [weak self] _ in
                             guard let self else {
@@ -453,7 +453,7 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
             let buttonSideInsets = environment.bottomEdgeSideInsets()
             let buttonBandInset: CGFloat = environment.safeInsets.left != environment.safeInsets.right ? buttonSideInsets.left + buttonSideInsets.right : 0.0
             let buttonBandCenterX: CGFloat = buttonSideInsets.left + (availableSize.width - buttonSideInsets.left - buttonSideInsets.right) / 2.0
-            let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSMutableAttributedString(string: buttonString, font: Font.semibold(17.0), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             let buttonSize = self.button.update(
                 transition: transition,
                 component: AnyComponent(ButtonComponent(

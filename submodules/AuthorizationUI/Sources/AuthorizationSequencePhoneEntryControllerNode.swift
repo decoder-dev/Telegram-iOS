@@ -159,7 +159,7 @@ private final class PhoneAndCountryNode: ASDisplayNode {
                     if name == "FT" {
                         localizedName = strongSelf.strings.Login_AnonymousNumbers
                     }
-                    strongSelf.countryButton.setCountryTitle(countryId: name, name: localizedName, font: Font.regular(floor(self.listFontSize * 20.0 / 17.0)), color: theme.list.itemAccentColor)
+                    strongSelf.countryButton.setCountryTitle(countryId: name, name: localizedName, font: Font.regular(20.0), color: theme.list.itemAccentColor)
                     strongSelf.hasCountry = true
                     
                     if strongSelf.phoneInputNode.mask == nil {

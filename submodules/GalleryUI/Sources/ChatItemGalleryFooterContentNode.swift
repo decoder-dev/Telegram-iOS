@@ -1470,7 +1470,6 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
             transition: ComponentTransition(transition),
             component: AnyComponent(GlassControlPanelComponent(
                 theme: defaultDarkColorPresentationTheme,
-                fontSize: self.presentationData.listsFontSize.baseDisplaySize,
                 leftItem: leftControlItems.isEmpty ? nil : GlassControlPanelComponent.Item(
                     items: leftControlItems,
                     background: .panel
@@ -1483,7 +1482,8 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
                     items: rightControlItems,
                     background: .panel
                 ),
-                centerAlignmentIfPossible: true
+                centerAlignmentIfPossible: true,
+                fontSize: self.presentationData.listsFontSize.baseDisplaySize
             )),
             environment: {},
             containerSize: CGSize(width: size.width - buttonPanelInsets.left - buttonPanelInsets.right, height: 44.0)
