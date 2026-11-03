@@ -70,7 +70,7 @@ final class SearchNavigationContentNode: NavigationBarContentNode, ItemListContr
     }
     
     func updatePlaceholder() {
-        self.searchBar.placeholderString = NSAttributedString(string: self.strings.MemberRequests_SearchPlaceholder, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+        self.searchBar.placeholderString = NSAttributedString(string: self.strings.MemberRequests_SearchPlaceholder, font: Font.regular(17.0), textColor: self.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
     }
     
     override var nominalHeight: CGFloat {

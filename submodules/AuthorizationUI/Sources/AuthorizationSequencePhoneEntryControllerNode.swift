@@ -170,17 +170,17 @@ private final class PhoneAndCountryNode: ASDisplayNode {
                     if countryId == "FT" {
                         localizedName = strongSelf.strings.Login_AnonymousNumbers
                     }
-                    strongSelf.countryButton.setCountryTitle(countryId: countryId, name: localizedName, font: Font.regular(floor(self.listFontSize * 20.0 / 17.0)), color: theme.list.itemAccentColor)
+                    strongSelf.countryButton.setCountryTitle(countryId: countryId, name: localizedName, font: Font.regular(20.0), color: theme.list.itemAccentColor)
                     strongSelf.hasCountry = true
                     
                     if strongSelf.phoneInputNode.mask == nil {
-                        strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(floor(self.listFontSize * 20.0 / 17.0)), textColor: theme.list.itemPlaceholderTextColor)
+                        strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(20.0), textColor: theme.list.itemPlaceholderTextColor)
                     }
                 } else {
                     strongSelf.hasCountry = false
-                    strongSelf.countryButton.setTitle(strings.Login_SelectCountry, with: Font.regular(floor(self.listFontSize * 20.0 / 17.0)), with: theme.list.itemAccentColor, for: [])
+                    strongSelf.countryButton.setTitle(strings.Login_SelectCountry, with: Font.regular(20.0), with: theme.list.itemAccentColor, for: [])
                     strongSelf.phoneInputNode.mask = nil
-                    strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(floor(self.listFontSize * 20.0 / 17.0)), textColor: theme.list.itemPlaceholderTextColor)
+                    strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(20.0), textColor: theme.list.itemPlaceholderTextColor)
                 }
                 
                 strongSelf.countryButton.accessibilityLabel = strongSelf.countryButton.attributedTitle(for: .normal)?.string ?? ""
@@ -218,7 +218,7 @@ private final class PhoneAndCountryNode: ASDisplayNode {
             if country.id == "FT" {
                 localizedName = self.strings.Login_AnonymousNumbers
             }
-            self.countryButton.setCountryTitle(countryId: country.id, name: localizedName, font: Font.regular(floor(self.listFontSize * 20.0 / 17.0)), color: self.theme.list.itemAccentColor)
+            self.countryButton.setCountryTitle(countryId: country.id, name: localizedName, font: Font.regular(20.0), color: self.theme.list.itemAccentColor)
             self.hasCountry = true
             
             let maskFont = Font.with(size: floor(self.listFontSize * 20.0 / 17.0), design: .regular, traits: [.monospacedNumbers])
@@ -227,7 +227,7 @@ private final class PhoneAndCountryNode: ASDisplayNode {
                 self.phoneInputNode.mask = mask
             } else {
                 self.phoneInputNode.mask = nil
-                self.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(floor(self.listFontSize * 20.0 / 17.0)), textColor: self.theme.list.itemPlaceholderTextColor)
+                self.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(20.0), textColor: self.theme.list.itemPlaceholderTextColor)
             }
             return true
         } else {

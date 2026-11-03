@@ -494,7 +494,7 @@ public class ItemListFolderInviteLinkItemNode: ListViewItemNode, ItemListItemNod
                         transition: .immediate,
                         component: AnyComponent(ButtonComponent(
                             background: buttonBackground,
-                            content: AnyComponentWithIdentity(id: AnyHashable(item.buttonTitle), component: AnyComponent(Text(text: item.buttonTitle, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: buttonForegroundColor))),
+                            content: AnyComponentWithIdentity(id: AnyHashable(item.buttonTitle), component: AnyComponent(Text(text: item.buttonTitle, font: Font.semibold(17.0), color: buttonForegroundColor))),
                             isEnabled: item.enableButton,
                             tintWhenDisabled: false,
                             action: { [weak self] in
@@ -522,7 +522,7 @@ public class ItemListFolderInviteLinkItemNode: ListViewItemNode, ItemListItemNod
                             transition: .immediate,
                             component: AnyComponent(ButtonComponent(
                                 background: buttonBackground,
-                                content: AnyComponentWithIdentity(id: AnyHashable(secondaryButtonTitle), component: AnyComponent(Text(text: secondaryButtonTitle, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: buttonForegroundColor))),
+                                content: AnyComponentWithIdentity(id: AnyHashable(secondaryButtonTitle), component: AnyComponent(Text(text: secondaryButtonTitle, font: Font.semibold(17.0), color: buttonForegroundColor))),
                                 tintWhenDisabled: false,
                                 action: { [weak self] in
                                     self?.item?.secondaryAction?()

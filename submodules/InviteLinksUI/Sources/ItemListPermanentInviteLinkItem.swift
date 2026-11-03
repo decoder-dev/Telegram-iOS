@@ -571,7 +571,7 @@ public class ItemListPermanentInviteLinkItemNode: ListViewItemNode, ItemListItem
                         transition: .immediate,
                         component: AnyComponent(ButtonComponent(
                             background: buttonBackground,
-                            content: AnyComponentWithIdentity(id: AnyHashable(copyButtonTitle), component: AnyComponent(Text(text: copyButtonTitle, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: buttonForegroundColor))),
+                            content: AnyComponentWithIdentity(id: AnyHashable(copyButtonTitle), component: AnyComponent(Text(text: copyButtonTitle, font: Font.semibold(17.0), color: buttonForegroundColor))),
                             isEnabled: item.invite != nil,
                             tintWhenDisabled: false,
                             action: { [weak self] in
@@ -597,7 +597,7 @@ public class ItemListPermanentInviteLinkItemNode: ListViewItemNode, ItemListItem
                         transition: .immediate,
                         component: AnyComponent(ButtonComponent(
                             background: buttonBackground,
-                            content: AnyComponentWithIdentity(id: AnyHashable(shareButtonTitle), component: AnyComponent(Text(text: shareButtonTitle, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: buttonForegroundColor))),
+                            content: AnyComponentWithIdentity(id: AnyHashable(shareButtonTitle), component: AnyComponent(Text(text: shareButtonTitle, font: Font.semibold(17.0), color: buttonForegroundColor))),
                             isEnabled: item.invite != nil,
                             tintWhenDisabled: false,
                             action: { [weak self] in

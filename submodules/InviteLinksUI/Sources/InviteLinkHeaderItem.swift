@@ -132,7 +132,7 @@ class InviteLinkHeaderItemNode: ListViewItemNode {
             let topInset: CGFloat = iconSize.height - 4.0
             let spacing: CGFloat = 5.0
             
-            let attributedTitle = NSAttributedString(string: item.title ?? "", font: titleFont, textColor: item.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+            let attributedTitle = NSAttributedString(string: item.title ?? "", font: Font.semibold(17.0), textColor: item.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
             
             let attributedText = NSMutableAttributedString(string: item.text.string)
             attributedText.addAttribute(.font, value: Font.regular(14.0), range: NSRange(location: 0, length: attributedText.length))
