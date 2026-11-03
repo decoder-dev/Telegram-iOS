@@ -5,6 +5,7 @@ import AsyncDisplayKit
 import ComponentFlow
 import MultilineTextComponent
 import TelegramPresentationData
+import TelegramUIPreferences
 
 final class ActionListItemComponent: Component {
     let theme: PresentationTheme

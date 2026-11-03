@@ -95,8 +95,6 @@ private func chatFolderLinkPreviewResolvedData(
     }
 
     let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
-    let descriptionFont = Font.regular(floor(fontSize * 15.0 / 17.0))
-    let descriptionBoldFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
 
     var allChatsAdded = false
     var canAddChatCount = 0
@@ -1484,7 +1482,7 @@ private final class ChatFolderLinkPreviewScreenComponent: Component {
                         }
                     )),
                     titleItem: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: resolvedData.title, font: Font.semibold(listFontSize), textColor: theme.list.itemPrimaryTextColor))
+                        text: .plain(NSAttributedString(string: resolvedData.title, font: Font.semibold(17.0), textColor: theme.list.itemPrimaryTextColor))
                     )),
                     leftItem: AnyComponent(
                         GlassBarButtonComponent(

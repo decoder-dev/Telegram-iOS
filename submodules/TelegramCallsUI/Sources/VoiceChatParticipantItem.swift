@@ -167,7 +167,7 @@ class VoiceChatParticipantStatusNode: ASDisplayNode {
         let makeTextLayout = TextNode.asyncLayout(self.textNode)
         
         return { [weak self] size, text, expanded in
-            let statusFont = Font.regular(floor(self.listsFontBaseSize * 14.0 / 17.0))
+            let statusFont = Font.regular(14.0)
             
             var attributedString: NSAttributedString?
             var color: UIColor = .white
@@ -784,7 +784,7 @@ class VoiceChatParticipantItemNode: ItemListRevealOptionsItemNode {
                 updatedTheme = item.presentationData.theme
             }
                         
-            let titleFont = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
+            let titleFont = Font.regular(17.0)
             var titleAttributedString: NSAttributedString?
             let titleColor = item.presentationData.theme.list.itemPrimaryTextColor
             

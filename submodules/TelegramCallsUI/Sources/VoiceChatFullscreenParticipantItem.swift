@@ -437,7 +437,7 @@ class VoiceChatFullscreenParticipantItemNode: ItemListRevealOptionsItemNode {
         var hasVideo = self.videoNode != nil
         
         return { [weak self] item, params, first, last in
-            let titleFontSize = floor(item.presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)
+            let titleFontSize: CGFloat = 13.0
             let titleFont = Font.semibold(titleFontSize)
             var titleAttributedString: NSAttributedString?
             

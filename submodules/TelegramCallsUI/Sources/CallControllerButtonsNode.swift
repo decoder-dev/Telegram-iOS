@@ -558,7 +558,7 @@ final class CallControllerButtonsNode: ASDisplayNode {
                 }
             }
             buttonTransition.updateFrame(node: buttonNode, frame: button.frame, delay: buttonDelay)
-            buttonNode.update(size: button.frame.size, content: buttonContent, text: buttonText, transition: buttonTransition, labelFontSize: labelFontSize)
+            buttonNode.update(size: button.frame.size, content: buttonContent, text: buttonText, transition: buttonTransition, labelFontSize: 17.0)
             buttonNode.accessibilityLabel = buttonAccessibilityLabel
             buttonNode.accessibilityValue = buttonAccessibilityValue
             buttonNode.accessibilityTraits = buttonAccessibilityTraits

@@ -2462,7 +2462,7 @@ private class MessageContentNode: ASDisplayNode, ContentNode {
         } else {
             dateString = ""
         }
-        self.dateNode.attributedText = NSAttributedString(string: dateString, font: Font.regular(floor(self.presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: messageTheme.secondaryTextColor)
+        self.dateNode.attributedText = NSAttributedString(string: dateString, font: Font.regular(14.0), textColor: messageTheme.secondaryTextColor)
         let dateSize = self.dateNode.updateLayout(size)
         let dateFrame = CGRect(origin: CGPoint(x: 62.0, y: 35.0), size: dateSize)
         self.dateNode.frame = dateFrame
@@ -2546,7 +2546,7 @@ private class MessageContentNode: ASDisplayNode, ContentNode {
                 playerDuration = mediaDuration
             }
             let durationString = stringForDuration(playerDuration, position: playerPosition)
-            let fontSize = self.presentationData.listsFontSize.baseDisplaySize
+            let fontSize: CGFloat = 17.0
             let font = Font.with(size: floor(fontSize * 11.0 / 17.0), design: .regular, weight: .regular, traits: [.monospacedNumbers])
             self.badgeTextNode.attributedText = NSAttributedString(string: durationString, font: font, textColor: .white)
             

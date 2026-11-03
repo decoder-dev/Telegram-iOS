@@ -785,7 +785,6 @@ public class CallStatusBarNodeImpl: CallStatusBarNode {
         alphaTransition.updateAlpha(node: self.subtitleNode, alpha: displaySpeakerSubtitle || isDisplayingMessage ? 0.0 : 1.0)
         alphaTransition.updateAlpha(node: self.speakerNode, alpha: displaySpeakerSubtitle && !isDisplayingMessage ? 1.0 : 0.0)
         
-        let statusBarFontSize = floor((self.presentationData?.listsFontSize.baseDisplaySize ?? 17.0) * 13.0 / 17.0)
         self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(statusBarFontSize), textColor: .white)
         
         if displaySpeakerSubtitle {

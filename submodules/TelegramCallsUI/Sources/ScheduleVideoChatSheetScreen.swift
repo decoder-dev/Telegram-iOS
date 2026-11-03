@@ -150,7 +150,7 @@ private final class ScheduleVideoChatSheetContentComponent: Component {
             contentHeight += buttonsSize.height
             
             let titleString = NSMutableAttributedString()
-            titleString.append(NSAttributedString(string: environment.strings.VideoChat_ScheduleButtonTitle, font: Font.semibold(environment.presentationData.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemPrimaryTextColor))
+            titleString.append(NSAttributedString(string: environment.strings.VideoChat_ScheduleButtonTitle, font: Font.semibold(17.0), textColor: environment.theme.list.itemPrimaryTextColor))
             
             let titleSize = self.title.update(
                 transition: .immediate,
@@ -222,8 +222,8 @@ private final class ScheduleVideoChatSheetContentComponent: Component {
             let text: String = isGroup ? environment.strings.ScheduleVoiceChat_GroupText(intervalString).string : environment.strings.ScheduleLiveStream_ChannelText(intervalString).string
             
             let mainText = NSMutableAttributedString()
-            let scheduleFont = Font.regular(floor(environment.presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0))
-            let scheduleBoldFont = Font.semibold(floor(environment.presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0))
+            let scheduleFont = Font.regular(14.0)
+            let scheduleBoldFont = Font.semibold(14.0)
             mainText.append(parseMarkdownIntoAttributedString(text, attributes: MarkdownAttributes(
                 body: MarkdownAttributeSet(
                     font: scheduleFont,
@@ -265,7 +265,7 @@ private final class ScheduleVideoChatSheetContentComponent: Component {
             
             var buttonContents: [AnyComponentWithIdentity<Empty>] = []
             buttonContents.append(AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(
-                Text(text: buttonTitle, font: Font.semibold(environment.presentationData.listsFontSize.baseDisplaySize), color: environment.theme.list.itemCheckColors.foregroundColor)
+                Text(text: buttonTitle, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor)
             )))
             let buttonTransition = transition
             
