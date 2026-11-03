@@ -53,11 +53,13 @@ public final class MessageMediaPlaylistItem: SharedMediaPlaylistItem {
     public let id: SharedMediaPlaylistItemId
     public let message: EngineRawMessage
     public let isSavedMusic: Bool
+    public let fontSize: CGFloat
 
-    public init(message: EngineRawMessage, isSavedMusic: Bool) {
+    public init(message: EngineRawMessage, isSavedMusic: Bool, fontSize: CGFloat = 17.0) {
         self.id = PeerMessagesMediaPlaylistItemId(messageId: message.id, messageIndex: message.index)
         self.message = message
         self.isSavedMusic = isSavedMusic
+        self.fontSize = fontSize
 
         // Force both lazy properties here, while this object is still private to the constructing
         // thread. A Swift instance `lazy var` has no synchronisation, and these two are read from
@@ -126,7 +128,7 @@ public final class MessageMediaPlaylistItem: SharedMediaPlaylistItem {
                 entities = result
             }
               
-            let textFont = Font.regular(14.0)
+            let textFont = Font.regular(floor(self.fontSize * 14.0 / 17.0))
             let caption = stringWithAppliedEntities(text, entities: entities, baseColor: .white, linkColor: .white, baseFont: textFont, linkFont: textFont, boldFont: textFont, italicFont: textFont, boldItalicFont: textFont, fixedFont: textFont, blockQuoteFont: textFont, underlineLinks: false, message: self.message)
                         
             for attribute in file.attributes {
@@ -541,12 +543,12 @@ public final class PeerMessagesMediaPlaylist: SharedMediaPlaylist {
         var nextItem: MessageMediaPlaylistItem?
         var previousItem: MessageMediaPlaylistItem?
         if let (message, aroundMessages) = self.currentItem {
-            item = MessageMediaPlaylistItem(message: message, isSavedMusic: isSavedMusic)
+            item = MessageMediaPlaylistItem(message: message, isSavedMusic: isSavedMusic, fontSize: self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
             for around in aroundMessages {
                 if around.index < message.index {
-                    previousItem = MessageMediaPlaylistItem(message: around, isSavedMusic: isSavedMusic)
+                    previousItem = MessageMediaPlaylistItem(message: around, isSavedMusic: isSavedMusic, fontSize: self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
                 } else {
-                    nextItem = MessageMediaPlaylistItem(message: around, isSavedMusic: isSavedMusic)
+                    nextItem = MessageMediaPlaylistItem(message: around, isSavedMusic: isSavedMusic, fontSize: self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
                 }
             }
         }

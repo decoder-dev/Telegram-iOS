@@ -92,9 +92,11 @@ public final class ChatTextInputAudioRecordingTimeNode: ASDisplayNode {
     }
     
     private var theme: PresentationTheme
+    private var fontSize: CGFloat
     
-    public init(theme: PresentationTheme) {
+    public init(theme: PresentationTheme, fontSize: CGFloat = 17.0) {
         self.theme = theme
+        self.fontSize = fontSize
         
         self.textNode = TextNode()
         super.init()
@@ -112,9 +114,18 @@ public final class ChatTextInputAudioRecordingTimeNode: ASDisplayNode {
         self.setNeedsDisplay()
     }
     
+    public func updateFontSize(_ fontSize: CGFloat) {
+        guard abs(self.fontSize - fontSize) > .ulpOfOne else {
+            return
+        }
+        self.fontSize = fontSize
+        self.invalidateCalculatedLayout()
+        self.setNeedsDisplay()
+    }
+    
     override public func calculateSizeThatFits(_ constrainedSize: CGSize) -> CGSize {
         let makeLayout = TextNode.asyncLayout(self.textNode)
-        let (size, apply) = makeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: "0:00:00,00", font: Font.regular(15.0), textColor: theme.chat.inputPanel.primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: 200.0, height: 100.0), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+        let (size, apply) = makeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: "0:00:00,00", font: Font.regular(floor(self.fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: 200.0, height: 100.0), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
         let _ = apply()
         self.textNode.frame = CGRect(origin: CGPoint(x: 0.0, y: 1.0 + UIScreenPixel), size: size.size)
         return size.size

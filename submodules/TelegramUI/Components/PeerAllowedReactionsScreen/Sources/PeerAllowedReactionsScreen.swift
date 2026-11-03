@@ -1543,7 +1543,8 @@ final class PeerAllowedReactionsScreenComponent: Component {
                 buttonContents.append(AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(PremiumLockButtonSubtitleComponent(
                     count: customReactionCount,
                     theme: environment.theme,
-                    strings: environment.strings
+                    strings: environment.strings,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 ))))
             }
             

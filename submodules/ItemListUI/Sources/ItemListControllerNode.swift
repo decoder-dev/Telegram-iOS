@@ -130,6 +130,7 @@ open class ItemListToolbarItem {
 private struct ItemListNodeTransition {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let entries: ItemListNodeEntryTransition
     let updateStyle: ItemListStyle?
     let emptyStateItem: ItemListControllerEmptyStateItem?
@@ -283,6 +284,7 @@ open class ItemListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     private var validLayout: (ContainerViewLayout, CGFloat, UIEdgeInsets)?
     
     private var theme: PresentationTheme?
+    private var fontSize: CGFloat?
     private var listStyle: ItemListStyle?
     
     private var appliedFocusItemTag: ItemListItemTag?
@@ -463,7 +465,7 @@ open class ItemListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 scrollToItem = state.initialScrollToItem
             }
             
-            return ItemListNodeTransition(theme: presentationData.theme, strings: presentationData.strings, entries: transition, updateStyle: updatedStyle, emptyStateItem: state.emptyStateItem, searchItem: state.searchItem, toolbarItem: state.toolbarItem, headerItem: state.headerItem, footerItem: state.footerItem, focusItemTag: state.focusItemTag, ensureVisibleItemTag: state.ensureVisibleItemTag, scrollToItem: scrollToItem, firstTime: previous == nil, animated: previous != nil && state.animateChanges, animateAlpha: previous != nil && state.animateChanges, crossfade: state.crossfadeState, mergedEntries: state.entries, scrollEnabled: state.scrollEnabled)
+            return ItemListNodeTransition(theme: presentationData.theme, strings: presentationData.strings, fontSize: presentationData.fontSize.baseDisplaySize, entries: transition, updateStyle: updatedStyle, emptyStateItem: state.emptyStateItem, searchItem: state.searchItem, toolbarItem: state.toolbarItem, headerItem: state.headerItem, footerItem: state.footerItem, focusItemTag: state.focusItemTag, ensureVisibleItemTag: state.ensureVisibleItemTag, scrollToItem: scrollToItem, firstTime: previous == nil, animated: previous != nil && state.animateChanges, animateAlpha: previous != nil && state.animateChanges, crossfade: state.crossfadeState, mergedEntries: state.entries, scrollEnabled: state.scrollEnabled)
         })
         |> deliverOnMainQueue).start(next: { [weak self] transition in
             if let strongSelf = self {
@@ -719,7 +721,7 @@ open class ItemListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             self.listNodeContainer.insertSubnode(self.leftOverlayNode, aboveSubnode: self.listNode)
         }
 
-        if let toolbarData = self.toolbarItem, let theme = self.theme {
+        if let toolbarData = self.toolbarItem, let theme = self.theme, let fontSize = self.fontSize {
             var panelsBottomInset: CGFloat = layout.insets(options: []).bottom
             if layout.metrics.widthClass == .regular, let inputHeight = layout.inputHeight, inputHeight != 0.0 {
                 panelsBottomInset = inputHeight + 8.0
@@ -751,7 +753,7 @@ open class ItemListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 transition: toolbarTransition,
                 component: AnyComponent(GlassControlPanelComponent(
                     theme: theme,
-                    fontSize: self.presentationData.fontSize.baseDisplaySize,
+                    fontSize: fontSize,
                     leftItem: toolbarData.toolbar.leftAction.flatMap { value in
                         return GlassControlPanelComponent.Item(
                             items: [GlassControlGroupComponent.Item(
@@ -951,6 +953,8 @@ open class ItemListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
     private func dequeueTransitions() {
         while !self.enqueuedTransitions.isEmpty {
             let transition = self.enqueuedTransitions.removeFirst()
+            
+            self.fontSize = transition.fontSize
             
             if transition.theme !== self.theme {
                 self.theme = transition.theme

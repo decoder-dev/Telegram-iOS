@@ -5752,7 +5752,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                                     component: AnyComponent(PremiumLockButtonSubtitleComponent(
                                         count: requiredLevel,
                                         theme: theme,
-                                        strings: strings
+                                        strings: strings,
+                                        fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                                     ))
                                 )
                             ], spacing: 3.0)

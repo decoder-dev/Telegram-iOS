@@ -539,7 +539,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                         }
                     }
                     if itemAndButton == nil {
-                        let button = AccessoryItemIconButton(item: item, theme: currentState.theme, strings: currentState.strings)
+                        let button = AccessoryItemIconButton(item: item, theme: currentState.theme, strings: currentState.strings, fontSize: currentState.fontSize.baseDisplaySize)
                         button.addTarget(self, action: #selector(self.accessoryItemButtonPressed(_:)), for: .touchUpInside)
                         itemAndButton = (item, button)
                     }
@@ -2513,7 +2513,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                     }
                 }
                 if itemAndButton == nil {
-                    let button = AccessoryItemIconButton(item: item, theme: interfaceState.theme, strings: interfaceState.strings)
+                    let button = AccessoryItemIconButton(item: item, theme: interfaceState.theme, strings: interfaceState.strings, fontSize: interfaceState.fontSize.baseDisplaySize)
                     button.addTarget(self, action: #selector(self.accessoryItemButtonPressed(_:)), for: .touchUpInside)
                     itemAndButton = (item, button)
                 }
@@ -2656,7 +2656,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                     theme: interfaceState.theme,
                     count: count,
                     isFilled: isFilled,
-                    fontSize: interfaceState.presentationData?.listsFontSize.baseDisplaySize ?? self.presentationInterfaceState?.presentationData.listsFontSize.baseDisplaySize ?? 17.0,
+                    fontSize: interfaceState.fontSize.baseDisplaySize,
                     action: action,
                     longPressAction: longPressAction
                 )),
@@ -2868,7 +2868,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             if let currentAudioRecordingTimeNode = self.audioRecordingTimeNode {
                 audioRecordingTimeNode = currentAudioRecordingTimeNode
             } else {
-                audioRecordingTimeNode = ChatTextInputAudioRecordingTimeNode(theme: interfaceState.theme)
+                audioRecordingTimeNode = ChatTextInputAudioRecordingTimeNode(theme: interfaceState.theme, fontSize: interfaceState.fontSize.baseDisplaySize)
                 self.audioRecordingTimeNode = audioRecordingTimeNode
                 audioRecordingInfoContainerNode.addSubnode(audioRecordingTimeNode)
                 

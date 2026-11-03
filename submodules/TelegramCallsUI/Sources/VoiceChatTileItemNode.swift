@@ -933,7 +933,8 @@ private class VoiceChatTileShimmeringNode: ASDisplayNode {
         self.addSubnode(self.borderNode)
         self.borderNode.addSubnode(self.borderEffectNode)
         
-        self.backgroundNode.setSignal(peerAvatarCompleteImage(account: account, peer: peer, size: CGSize(width: 250.0, height: 250.0), round: false, font: Font.regular(16.0), drawLetters: false, fullSize: false, blurred: true))
+        let avatarFontSize = floor(account.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 16.0 / 17.0)
+        self.backgroundNode.setSignal(peerAvatarCompleteImage(account: account, peer: peer, size: CGSize(width: 250.0, height: 250.0), round: false, font: Font.regular(avatarFontSize), drawLetters: false, fullSize: false, blurred: true))
     }
     
     public override func didLoad() {

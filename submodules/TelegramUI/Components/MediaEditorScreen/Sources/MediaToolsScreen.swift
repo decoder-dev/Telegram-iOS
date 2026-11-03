@@ -725,6 +725,7 @@ private final class MediaToolsScreenComponent: Component {
                     transition: optionsTransition,
                     component: AnyComponent(AdjustmentsComponent(
                         tools: tools,
+                        fontSize: presentationData.listsFontSize.baseDisplaySize,
                         valueUpdated: { [weak state] key, value in
                             if let controller = environment.controller() as? MediaToolsScreen {
                                 controller.mediaEditor.setToolValue(key, value: value)

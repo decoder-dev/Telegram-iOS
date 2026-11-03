@@ -68,6 +68,7 @@ public final class EmojiStatusComponent: Component {
     public let action: (() -> Void)?
     public let emojiFileUpdated: ((TelegramMediaFile?) -> Void)?
     public let tag: AnyObject?
+    public let listsFontSizeBase: CGFloat
     
     public convenience init(
         context: AccountContext,
@@ -99,7 +100,8 @@ public final class EmojiStatusComponent: Component {
             useSharedAnimation: useSharedAnimation,
             action: action,
             emojiFileUpdated: emojiFileUpdated,
-            tag: tag
+            tag: tag,
+            listsFontSizeBase: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         )
     }
     
@@ -117,7 +119,8 @@ public final class EmojiStatusComponent: Component {
         useSharedAnimation: Bool = false,
         action: (() -> Void)?,
         emojiFileUpdated: ((TelegramMediaFile?) -> Void)? = nil,
-        tag: AnyObject? = nil
+        tag: AnyObject? = nil,
+        listsFontSizeBase: CGFloat = 17.0
     ) {
         self.postbox = postbox
         self.energyUsageSettings = energyUsageSettings
@@ -133,6 +136,7 @@ public final class EmojiStatusComponent: Component {
         self.action = action
         self.emojiFileUpdated = emojiFileUpdated
         self.tag = tag
+        self.listsFontSizeBase = listsFontSizeBase
     }
     
     public func withVisibleForAnimations(_ isVisibleForAnimations: Bool) -> EmojiStatusComponent {
@@ -150,7 +154,8 @@ public final class EmojiStatusComponent: Component {
             useSharedAnimation: self.useSharedAnimation,
             action: self.action,
             emojiFileUpdated: self.emojiFileUpdated,
-            tag: self.tag
+            tag: self.tag,
+            listsFontSizeBase: self.listsFontSizeBase
         )
     }
     
@@ -385,7 +390,7 @@ public final class EmojiStatusComponent: Component {
                         iconImage = nil
                     }
                 case let .text(color, string):
-                    let titleString = NSAttributedString(string: string, font: Font.bold(10.0), textColor: color, paragraphAlignment: .center)
+                    let titleString = NSAttributedString(string: string, font: Font.bold(floor(component.listsFontSizeBase * 10.0 / 17.0)), textColor: color, paragraphAlignment: .center)
                     let stringRect = titleString.boundingRect(with: CGSize(width: 100.0, height: 16.0), options: .usesLineFragmentOrigin, context: nil)
                     
                     iconImage = generateImage(CGSize(width: floor(stringRect.width) + 11.0, height: 16.0), contextGenerator: { size, context in

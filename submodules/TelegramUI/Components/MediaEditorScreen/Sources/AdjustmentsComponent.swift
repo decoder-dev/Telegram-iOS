@@ -16,6 +16,7 @@ private final class AdjustmentSliderRowComponent: Component {
     let isEnabled: Bool
     let trackColor: UIColor?
     let displayValue: Bool
+    let fontSize: CGFloat
     let valueUpdated: (Float) -> Void
     let isTrackingUpdated: ((Bool) -> Void)?
     
@@ -28,6 +29,7 @@ private final class AdjustmentSliderRowComponent: Component {
         isEnabled: Bool,
         trackColor: UIColor?,
         displayValue: Bool,
+        fontSize: CGFloat,
         valueUpdated: @escaping (Float) -> Void,
         isTrackingUpdated: ((Bool) -> Void)? = nil
     ) {
@@ -39,6 +41,7 @@ private final class AdjustmentSliderRowComponent: Component {
         self.isEnabled = isEnabled
         self.trackColor = trackColor
         self.displayValue = displayValue
+        self.fontSize = fontSize
         self.valueUpdated = valueUpdated
         self.isTrackingUpdated = isTrackingUpdated
     }
@@ -66,6 +69,9 @@ private final class AdjustmentSliderRowComponent: Component {
             return false
         }
         if lhs.displayValue != rhs.displayValue {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -131,7 +137,7 @@ private final class AdjustmentSliderRowComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(
-                    Text(text: component.title, font: Font.bold(13.0), color: hasValue ? UIColor(rgb: 0xffffff) : UIColor(rgb: 0x808080))
+                    Text(text: component.title, font: Font.bold(floor(component.fontSize * 13.0 / 17.0)), color: hasValue ? UIColor(rgb: 0xffffff) : UIColor(rgb: 0x808080))
                 ),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)
@@ -146,7 +152,7 @@ private final class AdjustmentSliderRowComponent: Component {
             let valueSize = self.value.update(
                 transition: .immediate,
                 component: AnyComponent(
-                    Text(text: valueText, font: Font.with(size: 13.0, weight: .medium, traits: .monospacedNumbers), color: UIColor(rgb: 0xffd300))
+                    Text(text: valueText, font: Font.with(size: floor(component.fontSize * 13.0 / 17.0), weight: .medium, traits: .monospacedNumbers), color: UIColor(rgb: 0xffd300))
                 ),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)
@@ -218,21 +224,27 @@ final class AdjustmentsComponent: Component {
     typealias EnvironmentType = Empty
     
     let tools: [AdjustmentTool]
+    let fontSize: CGFloat
     let valueUpdated: (EditorToolKey, Float) -> Void
     let isTrackingUpdated: (Bool) -> Void
     
     init(
         tools: [AdjustmentTool],
+        fontSize: CGFloat,
         valueUpdated: @escaping (EditorToolKey, Float) -> Void,
         isTrackingUpdated: @escaping (Bool) -> Void
     ) {
         self.tools = tools
+        self.fontSize = fontSize
         self.valueUpdated = valueUpdated
         self.isTrackingUpdated = isTrackingUpdated
     }
     
     static func ==(lhs: AdjustmentsComponent, rhs: AdjustmentsComponent) -> Bool {
         if lhs.tools != rhs.tools {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -315,6 +327,7 @@ final class AdjustmentsComponent: Component {
                             isEnabled: true,
                             trackColor: UIColor(rgb: 0xffd300),
                             displayValue: true,
+                            fontSize: component.fontSize,
                             valueUpdated: { value in
                                 var updatedValue = value
                                 if valueIsNegative {

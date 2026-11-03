@@ -10,13 +10,16 @@ import ComponentFlow
 import LottieAnimationComponent
 import LottieComponent
 
-private let accessoryButtonFont = Font.medium(14.0)
-
 final class AccessoryItemIconButton: HighlightTrackingButton, GlassBackgroundView.ContentView {
     private var item: ChatTextInputAccessoryItem
     private var theme: PresentationTheme
     private var strings: PresentationStrings
+    private var fontSize: CGFloat
     private var width: CGFloat
+    
+    private var accessoryButtonFont: UIFont {
+        return Font.medium(floor(self.fontSize * 14.0 / 17.0))
+    }
     private let iconImageView: GlassBackgroundView.ContentImageView
     private var textView: ImmediateTextView?
     private var tintMaskTextView: ImmediateTextView?
@@ -29,16 +32,17 @@ final class AccessoryItemIconButton: HighlightTrackingButton, GlassBackgroundVie
     
     let tintMask = UIView()
     
-    init(item: ChatTextInputAccessoryItem, theme: PresentationTheme, strings: PresentationStrings) {
+    init(item: ChatTextInputAccessoryItem, theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat = 17.0) {
         self.item = item
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         
         self.iconImageView = GlassBackgroundView.ContentImageView()
         
         let (image, text, accessibilityLabel, alpha, _) = AccessoryItemIconButton.imageAndInsets(item: item, theme: theme, strings: strings)
         
-        self.width = AccessoryItemIconButton.calculateWidth(item: item, image: image, text: text, strings: strings)
+        self.width = AccessoryItemIconButton.calculateWidth(item: item, image: image, text: text, strings: strings, fontSize: fontSize)
         
         super.init(frame: CGRect())
         
@@ -75,8 +79,8 @@ final class AccessoryItemIconButton: HighlightTrackingButton, GlassBackgroundVie
                 self.tintMask.addSubview(tintMaskTextView)
             }
             
-            self.textView?.attributedText = NSAttributedString(string: text, font: accessoryButtonFont, textColor: theme.chat.inputPanel.inputControlColor)
-            self.tintMaskTextView?.attributedText = NSAttributedString(string: text, font: accessoryButtonFont, textColor: .black)
+            self.textView?.attributedText = NSAttributedString(string: text, font: self.accessoryButtonFont, textColor: theme.chat.inputPanel.inputControlColor)
+            self.tintMaskTextView?.attributedText = NSAttributedString(string: text, font: self.accessoryButtonFont, textColor: .black)
         } else {
             if let textView = self.textView {
                 self.textView = nil
@@ -123,11 +127,11 @@ final class AccessoryItemIconButton: HighlightTrackingButton, GlassBackgroundVie
         
         let (image, text, accessibilityLabel, alpha, _) = AccessoryItemIconButton.imageAndInsets(item: item, theme: theme, strings: strings)
         
-        self.width = AccessoryItemIconButton.calculateWidth(item: item, image: image, text: text, strings: strings)
+        self.width = AccessoryItemIconButton.calculateWidth(item: item, image: image, text: text, strings: strings, fontSize: self.fontSize)
         
         if let text {
-            self.textView?.attributedText = NSAttributedString(string: text, font: accessoryButtonFont, textColor: theme.chat.inputPanel.inputControlColor)
-            self.tintMaskTextView?.attributedText = NSAttributedString(string: text, font: accessoryButtonFont, textColor: .black)
+            self.textView?.attributedText = NSAttributedString(string: text, font: self.accessoryButtonFont, textColor: theme.chat.inputPanel.inputControlColor)
+            self.tintMaskTextView?.attributedText = NSAttributedString(string: text, font: self.accessoryButtonFont, textColor: .black)
         }
         
         self.iconImageView.image = image
@@ -175,14 +179,15 @@ final class AccessoryItemIconButton: HighlightTrackingButton, GlassBackgroundVie
         }
     }
     
-    private static func calculateWidth(item: ChatTextInputAccessoryItem, image: UIImage?, text: String?, strings: PresentationStrings) -> CGFloat {
+    private static func calculateWidth(item: ChatTextInputAccessoryItem, image: UIImage?, text: String?, strings: PresentationStrings, fontSize: CGFloat = 17.0) -> CGFloat {
         switch item {
         case .input, .botInput, .silentPost, .commands, .scheduledMessages, .gift, .suggestPost:
             return 40.0
         case let .messageAutoremoveTimeout(timeout):
             var imageWidth = (image?.size.width ?? 0.0) + CGFloat(8.0)
             if let _ = timeout, let text = text {
-                imageWidth = ceil((text as NSString).size(withAttributes: [.font: accessoryButtonFont]).width) + 10.0
+                let font = Font.medium(floor(fontSize * 14.0 / 17.0))
+                imageWidth = ceil((text as NSString).size(withAttributes: [.font: font]).width) + 10.0
             }
             
             return max(imageWidth, 24.0)
@@ -208,7 +213,7 @@ final class AccessoryItemIconButton: HighlightTrackingButton, GlassBackgroundVie
             self.iconImageView.tintMask.frame = imageFrame
             
             if let animationView = self.animationView {
-                let width = AccessoryItemIconButton.calculateWidth(item: item, image: image, text: "", strings: self.strings)
+                let width = AccessoryItemIconButton.calculateWidth(item: item, image: image, text: "", strings: self.strings, fontSize: self.fontSize)
                 
                 let animationFrame = CGRect(origin: CGPoint(x: floor((size.width - width) / 2.0), y: floor((size.height - width) / 2.0) - bottomInset), size: CGSize(width: width, height: width))
                 
@@ -344,8 +349,8 @@ final class AccessoryItemIconButton: HighlightTrackingButton, GlassBackgroundVie
         }
         
         if let text {
-            self.textView?.attributedText = NSAttributedString(string: text, font: accessoryButtonFont, textColor: theme.chat.inputPanel.inputControlColor)
-            self.tintMaskTextView?.attributedText = NSAttributedString(string: text, font: accessoryButtonFont, textColor: .black)
+            self.textView?.attributedText = NSAttributedString(string: text, font: self.accessoryButtonFont, textColor: theme.chat.inputPanel.inputControlColor)
+            self.tintMaskTextView?.attributedText = NSAttributedString(string: text, font: self.accessoryButtonFont, textColor: .black)
         }
         
         if let textView = self.textView, let tintMaskTextView = self.tintMaskTextView {

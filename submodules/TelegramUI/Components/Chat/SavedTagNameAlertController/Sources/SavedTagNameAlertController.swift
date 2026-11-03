@@ -174,7 +174,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         if resultText.count > self.characterLimit {
             resultText = String(resultText[resultText.startIndex ..< resultText.index(resultText.startIndex, offsetBy: self.characterLimit)])
             
-            editableTextNode.attributedText = NSAttributedString(string: resultText, font: Font.regular(floor(self.fontSize * 13.0 / 17.0)), textColor: self.theme.actionSheet.inputTextColor)
+            editableTextNode.attributedText = NSAttributedString(string: resultText, font: Font.regular(floor(self.baseFontSize * 13.0 / 17.0)), textColor: self.theme.actionSheet.inputTextColor)
             return false
         }*/
         
