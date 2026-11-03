@@ -32,6 +32,7 @@ swift_library(
         "//submodules/PhoneNumberFormat:PhoneNumberFormat",
         "//submodules/QrCodeUI:QrCodeUI",
         "//submodules/InstantPageUI:InstantPageUI",
+        "//submodules/ItemListUI:ItemListUI",
         "//submodules/CheckNode:CheckNode",
         "//submodules/Markdown:Markdown",
         "//submodules/TextFormat:TextFormat",

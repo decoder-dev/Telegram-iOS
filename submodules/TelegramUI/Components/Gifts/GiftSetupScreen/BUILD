@@ -11,6 +11,7 @@ swift_library(
     ],
     deps = [
         "//submodules/AsyncDisplayKit",
+        "//submodules/ItemListUI",
         "//submodules/CheckNode",
         "//submodules/Display",
         "//submodules/TelegramCore",
