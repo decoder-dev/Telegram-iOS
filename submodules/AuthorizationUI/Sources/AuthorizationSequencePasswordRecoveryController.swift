@@ -12,6 +12,7 @@ final class AuthorizationSequencePasswordRecoveryController: ViewController {
     
     private let strings: PresentationStrings
     private let theme: PresentationTheme
+    private let listFontSize: CGFloat
     
     var recoverWithCode: ((String) -> Void)?
     var noAccess: (() -> Void)?
@@ -32,9 +33,10 @@ final class AuthorizationSequencePasswordRecoveryController: ViewController {
         }
     }
     
-    init(strings: PresentationStrings, theme: PresentationTheme, back: @escaping () -> Void) {
+    init(strings: PresentationStrings, theme: PresentationTheme, listFontSize: CGFloat = 17.0, back: @escaping () -> Void) {
         self.strings = strings
         self.theme = theme
+        self.listFontSize = listFontSize
         
         super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: AuthorizationSequenceController.navigationBarTheme(theme), strings: NavigationBarStrings(presentationStrings: strings)))
         
@@ -59,7 +61,7 @@ final class AuthorizationSequencePasswordRecoveryController: ViewController {
     }
     
     override public func loadDisplayNode() {
-        self.displayNode = AuthorizationSequencePasswordRecoveryControllerNode(strings: self.strings, theme: self.theme)
+        self.displayNode = AuthorizationSequencePasswordRecoveryControllerNode(strings: self.strings, theme: self.theme, listFontSize: self.listFontSize)
         self.displayNodeDidLoad()
         
         self.controllerNode.recoverWithCode = { [weak self] _ in

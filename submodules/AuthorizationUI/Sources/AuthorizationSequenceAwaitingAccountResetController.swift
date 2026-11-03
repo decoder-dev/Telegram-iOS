@@ -12,6 +12,7 @@ final class AuthorizationSequenceAwaitingAccountResetController: ViewController 
     
     private let strings: PresentationStrings
     private let theme: PresentationTheme
+    private let listFontSize: CGFloat
     
     var logout: (() -> Void)?
     var reset: (() -> Void)?
@@ -30,9 +31,10 @@ final class AuthorizationSequenceAwaitingAccountResetController: ViewController 
         }
     }
     
-    init(strings: PresentationStrings, theme: PresentationTheme, back: @escaping () -> Void) {
+    init(strings: PresentationStrings, theme: PresentationTheme, listFontSize: CGFloat = 17.0, back: @escaping () -> Void) {
         self.strings = strings
         self.theme = theme
+        self.listFontSize = listFontSize
         
         super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: AuthorizationSequenceController.navigationBarTheme(theme), strings: NavigationBarStrings(presentationStrings: strings)))
         
@@ -56,7 +58,7 @@ final class AuthorizationSequenceAwaitingAccountResetController: ViewController 
     }
     
     override public func loadDisplayNode() {
-        self.displayNode = AuthorizationSequenceAwaitingAccountResetControllerNode(strings: self.strings, theme: self.theme)
+        self.displayNode = AuthorizationSequenceAwaitingAccountResetControllerNode(strings: self.strings, theme: self.theme, listFontSize: self.listFontSize)
         self.displayNodeDidLoad()
         
         self.controllerNode.reset = { [weak self] in

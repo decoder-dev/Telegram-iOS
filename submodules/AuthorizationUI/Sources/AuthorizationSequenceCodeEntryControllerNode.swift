@@ -121,9 +121,12 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
     
     private let appearanceTimestamp = CACurrentMediaTime()
         
-    init(strings: PresentationStrings, theme: PresentationTheme) {
+    private let listFontSize: CGFloat
+    
+    init(strings: PresentationStrings, theme: PresentationTheme, listFontSize: CGFloat = 17.0) {
         self.strings = strings
         self.theme = theme
+        self.listFontSize = listFontSize
         
         self.animationNode = DefaultAnimatedStickerNodeImpl(lottieSettings: .noAccountFallback)
         
@@ -200,7 +203,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.textSeparatorNode.backgroundColor = self.theme.list.itemPlainSeparatorColor
         
         self.textField = TextFieldNode()
-        self.textField.textField.font = Font.regular(20.0)
+        self.textField.textField.font = Font.regular(floor(listFontSize * 20.0 / 17.0))
         self.textField.textField.textColor = self.theme.list.itemPrimaryTextColor
         self.textField.textField.textAlignment = .natural
         self.textField.textField.autocorrectionType = .yes
@@ -351,7 +354,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.signInWithAppleButton?.addTarget(self, action: #selector(self.signInWithApplePressed), for: .touchUpInside)
         self.resetNode.addTarget(self, action: #selector(self.resetPressed), forControlEvents: .touchUpInside)
         
-        self.pasteButton.setTitle(strings.Login_Paste, with: Font.medium(13.0), with: theme.list.itemAccentColor, for: .normal)
+        self.pasteButton.setTitle(strings.Login_Paste, with: Font.medium(floor(listFontSize * 13.0 / 17.0)), with: theme.list.itemAccentColor, for: .normal)
         self.pasteButton.setBackgroundImage(generateStretchableFilledCircleImage(radius: 12.0, color: theme.list.itemAccentColor.withAlphaComponent(0.1)), for: .normal)
         self.pasteButton.addTarget(self, action: #selector(self.pastePressed), forControlEvents: .touchUpInside)
         
@@ -905,7 +908,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                     actionTitle = self.strings.Login_BackToCode
                 }
                 
-                self.hintTextNode.attributedText = NSAttributedString(string: actionTitle, font: Font.regular(13.0), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center)
+                self.hintTextNode.attributedText = NSAttributedString(string: actionTitle, font: Font.regular(floor(self.listFontSize * 13.0 / 17.0)), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center)
                 
                 let originY: CGFloat
                 if !self.codeInputView.isHidden {
@@ -928,7 +931,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 }
                 self.hintButtonNode.isUserInteractionEnabled = false
                 
-                self.hintTextNode.attributedText = NSAttributedString(string: self.strings.Login_EnterPhraseHint, font: Font.regular(13.0), textColor: self.theme.list.itemSecondaryTextColor, paragraphAlignment: .center)
+                self.hintTextNode.attributedText = NSAttributedString(string: self.strings.Login_EnterPhraseHint, font: Font.regular(floor(self.listFontSize * 13.0 / 17.0)), textColor: self.theme.list.itemSecondaryTextColor, paragraphAlignment: .center)
                 
                 let hintTextSize = self.hintTextNode.updateLayout(CGSize(width: bandWidth - 48.0, height: .greatestFiniteMagnitude))
                 transition.updateFrame(node: self.hintButtonNode, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((bandWidth - hintTextSize.width) / 2.0), y: self.textField.frame.maxY + yOffset), size: hintTextSize))
@@ -1030,7 +1033,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             errorOriginOffset = 11.0
         }
         
-        self.errorTextNode.attributedText = NSAttributedString(string: text, font: Font.regular(13.0), textColor: self.theme.list.itemDestructiveColor, paragraphAlignment: .center)
+        self.errorTextNode.attributedText = NSAttributedString(string: text, font: Font.regular(floor(self.listFontSize * 13.0 / 17.0)), textColor: self.theme.list.itemDestructiveColor, paragraphAlignment: .center)
         
         if let (layout, _) = self.layoutArguments {
             // iPhone Duo: centered under the field in the band between the side insets, as containerLayoutUpdated lays it out.

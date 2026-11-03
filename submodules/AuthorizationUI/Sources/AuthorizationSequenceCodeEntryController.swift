@@ -48,10 +48,13 @@ public final class AuthorizationSequenceCodeEntryController: ViewController {
         return self.data?.6 ?? false
     }
     
+    private let listFontSize: CGFloat
+    
     public init(sharedContext: SharedAccountContext, presentationData: PresentationData, back: @escaping () -> Void) {
         self.sharedContext = sharedContext
         self.strings = presentationData.strings
         self.theme = presentationData.theme
+        self.listFontSize = presentationData.listsFontSize.baseDisplaySize
         
         super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: AuthorizationSequenceController.navigationBarTheme(theme), strings: NavigationBarStrings(presentationStrings: strings)))
         
@@ -94,7 +97,7 @@ public final class AuthorizationSequenceCodeEntryController: ViewController {
     }
     
     override public func loadDisplayNode() {
-        self.displayNode = AuthorizationSequenceCodeEntryControllerNode(strings: self.strings, theme: self.theme)
+        self.displayNode = AuthorizationSequenceCodeEntryControllerNode(strings: self.strings, theme: self.theme, listFontSize: self.listFontSize)
         self.displayNodeDidLoad()
         
         self.controllerNode.view.disableAutomaticKeyboardHandling = [.forward, .backward]

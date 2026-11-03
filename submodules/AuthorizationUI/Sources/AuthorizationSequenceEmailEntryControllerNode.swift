@@ -115,7 +115,7 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
         self.noticeNode.isUserInteractionEnabled = false
         self.noticeNode.displaysAsynchronously = false
         self.noticeNode.lineSpacing = 0.1
-        self.noticeNode.attributedText = NSAttributedString(string: self.strings.LoginEmail_Description, font: Font.regular(16.0), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.noticeNode.attributedText = NSAttributedString(string: self.strings.LoginEmail_Description, font: Font.regular(floor(listFontSize * 16.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
         
         if #available(iOS 13.0, *) {
             self.signInWithAppleButton = ASAuthorizationAppleIDButton(authorizationButtonType: .signIn, authorizationButtonStyle: theme.overallDarkAppearance ? .white : .black)
@@ -130,7 +130,7 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
         self.codeSeparatorNode.backgroundColor = self.theme.list.itemPlainSeparatorColor
         
         self.codeField = TextFieldNode()
-        self.codeField.textField.font = Font.regular(20.0)
+        self.codeField.textField.font = Font.regular(floor(listFontSize * 20.0 / 17.0))
         self.codeField.textField.textColor = self.theme.list.itemPrimaryTextColor
         self.codeField.textField.textAlignment = .natural
         self.codeField.textField.autocorrectionType = .no

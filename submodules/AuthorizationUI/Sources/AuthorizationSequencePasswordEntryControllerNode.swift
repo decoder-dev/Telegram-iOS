@@ -13,6 +13,7 @@ import SolidRoundedButtonNode
 final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let strings: PresentationStrings
     private let theme: PresentationTheme
+    private let listFontSize: CGFloat
     private let formNode = AuthorizationFormNode()
     private var passwordHint: String = ""
     private var previousReduceMotion: Bool?
@@ -67,6 +68,7 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
     init(strings: PresentationStrings, theme: PresentationTheme, listFontSize: CGFloat = 17.0) {
         self.strings = strings
         self.theme = theme
+        self.listFontSize = listFontSize
         
         self.animationNode = DefaultAnimatedStickerNodeImpl(lottieSettings: .noAccountFallback)
         self.animationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: "IntroPassword"), width: 256, height: 256, playbackMode: .still(.start), mode: .direct(cachePathPrefix: nil))
@@ -91,14 +93,16 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
         self.forgotNode = HighlightableButtonNode()
         self.forgotNode.displaysAsynchronously = false
         self.forgotNode.titleNode.maximumNumberOfLines = 0
-        self.forgotNode.setAttributedTitle(NSAttributedString(string: self.strings.TwoStepAuth_EnterPasswordForgot, font: Font.regular(16.0), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
+        let secondaryFont = Font.regular(floor(listFontSize * 16.0 / 17.0))
+        let fieldFont = Font.regular(floor(listFontSize * 20.0 / 17.0))
+        self.forgotNode.setAttributedTitle(NSAttributedString(string: self.strings.TwoStepAuth_EnterPasswordForgot, font: secondaryFont, textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
         self.forgotNode.accessibilityLabel = self.strings.TwoStepAuth_EnterPasswordForgot
         self.forgotNode.accessibilityTraits = [.button]
         
         self.resetNode = HighlightableButtonNode()
         self.resetNode.displaysAsynchronously = false
         self.resetNode.titleNode.maximumNumberOfLines = 0
-        self.resetNode.setAttributedTitle(NSAttributedString(string: self.strings.LoginPassword_ResetAccount, font: Font.regular(16.0), textColor: self.theme.list.itemDestructiveColor, paragraphAlignment: .center), for: [])
+        self.resetNode.setAttributedTitle(NSAttributedString(string: self.strings.LoginPassword_ResetAccount, font: secondaryFont, textColor: self.theme.list.itemDestructiveColor, paragraphAlignment: .center), for: [])
         self.resetNode.accessibilityLabel = self.strings.LoginPassword_ResetAccount
         self.resetNode.accessibilityTraits = [.button]
         
@@ -107,7 +111,7 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
         self.codeSeparatorNode.backgroundColor = self.theme.list.itemPlainSeparatorColor
         
         self.codeField = TextFieldNode()
-        self.codeField.textField.font = Font.regular(20.0)
+        self.codeField.textField.font = fieldFont
         self.codeField.textField.textColor = self.theme.list.itemPrimaryTextColor
         self.codeField.textField.textAlignment = .natural
         self.codeField.textField.isSecureTextEntry = true
@@ -176,7 +180,7 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
         self.didForgotWithNoRecovery = didForgotWithNoRecovery
         self.suggestReset = suggestReset
         self.passwordHint = hint
-        self.codeField.textField.attributedPlaceholder = NSAttributedString(string: hint, font: Font.regular(20.0), textColor: self.theme.list.itemPlaceholderTextColor)
+        self.codeField.textField.attributedPlaceholder = NSAttributedString(string: hint, font: Font.regular(floor(self.listFontSize * 20.0 / 17.0)), textColor: self.theme.list.itemPlaceholderTextColor)
         if let (layout, navigationHeight) = self.layoutArguments {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
         }

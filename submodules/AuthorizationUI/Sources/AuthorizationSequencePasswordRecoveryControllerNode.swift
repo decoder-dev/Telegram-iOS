@@ -57,11 +57,12 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
         self.codeSeparatorNode.isLayerBacked = true
         self.codeSeparatorNode.backgroundColor = self.theme.list.itemPlainSeparatorColor
         
+        let fieldFont = Font.regular(floor(listFontSize * 20.0 / 17.0))
         self.codeField = TextFieldNode()
-        self.codeField.textField.font = Font.regular(20.0)
+        self.codeField.textField.font = fieldFont
         self.codeField.textField.textColor = self.theme.list.itemPrimaryTextColor
         self.codeField.textField.textAlignment = .center
-        self.codeField.textField.attributedPlaceholder = NSAttributedString(string: self.strings.TwoStepAuth_RecoveryCode, font: Font.regular(20.0), textColor: self.theme.list.itemPlaceholderTextColor)
+        self.codeField.textField.attributedPlaceholder = NSAttributedString(string: self.strings.TwoStepAuth_RecoveryCode, font: fieldFont, textColor: self.theme.list.itemPlaceholderTextColor)
         self.codeField.textField.returnKeyType = .done
         self.codeField.textField.keyboardAppearance = self.theme.rootController.keyboardColor.keyboardAppearance
         self.codeField.textField.disableAutomaticKeyboardHandling = [.forward, .backward]

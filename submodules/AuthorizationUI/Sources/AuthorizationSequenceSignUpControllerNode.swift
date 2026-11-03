@@ -83,10 +83,14 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         }
     }
     
-    init(theme: PresentationTheme, strings: PresentationStrings, addPhoto: @escaping () -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0, addPhoto: @escaping () -> Void) {
         self.theme = theme
         self.strings = strings
         self.addPhoto = addPhoto
+        
+        let helpFont = Font.regular(floor(listFontSize * 16.0 / 17.0))
+        let termsFont = Font.regular(floor(listFontSize * 13.0 / 17.0))
+        let fieldFont = Font.regular(floor(listFontSize * 20.0 / 17.0))
         
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = false
@@ -97,14 +101,14 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         self.currentOptionNode = ASTextNode()
         self.currentOptionNode.isUserInteractionEnabled = false
         self.currentOptionNode.displaysAsynchronously = false
-        self.currentOptionNode.attributedText = NSAttributedString(string: self.strings.Login_InfoHelp, font: Font.regular(16.0), textColor: theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.currentOptionNode.attributedText = NSAttributedString(string: self.strings.Login_InfoHelp, font: helpFont, textColor: theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
         
         self.termsNode = ImmediateTextNode()
         self.termsNode.textAlignment = .center
         self.termsNode.maximumNumberOfLines = 0
         self.termsNode.displaysAsynchronously = false
-        let body = MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.itemSecondaryTextColor)
-        let link = MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.itemAccentColor, additionalAttributes: [TelegramTextAttributes.URL: ""])
+        let body = MarkdownAttributeSet(font: termsFont, textColor: theme.list.itemSecondaryTextColor)
+        let link = MarkdownAttributeSet(font: termsFont, textColor: theme.list.itemAccentColor, additionalAttributes: [TelegramTextAttributes.URL: ""])
         self.termsNode.attributedText = parseMarkdownIntoAttributedString(strings.Login_TermsOfServiceLabel.replacingOccurrences(of: "\n", with: " ").replacingOccurrences(of: "]", with: "]()"), attributes: MarkdownAttributes(body: body, bold: body, link: link, linkAttribute: { _ in nil }), textAlignment: .center)
         
         self.firstSeparatorNode = ASDisplayNode()
@@ -116,7 +120,7 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         self.lastSeparatorNode.backgroundColor = self.theme.list.itemPlainSeparatorColor
         
         self.firstNameField = TextFieldNode()
-        self.firstNameField.textField.font = Font.regular(20.0)
+        self.firstNameField.textField.font = fieldFont
         self.firstNameField.textField.textColor = self.theme.list.itemPrimaryTextColor
         self.firstNameField.textField.textAlignment = .natural
         self.firstNameField.textField.returnKeyType = .next
@@ -131,7 +135,7 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         self.firstNameField.textField.accessibilityIdentifier = "Auth.SetName.FirstNameField"
 
         self.lastNameField = TextFieldNode()
-        self.lastNameField.textField.font = Font.regular(20.0)
+        self.lastNameField.textField.font = fieldFont
         self.lastNameField.textField.textColor = self.theme.list.itemPrimaryTextColor
         self.lastNameField.textField.textAlignment = .natural
         self.lastNameField.textField.returnKeyType = .done

@@ -287,7 +287,7 @@ public final class VoiceChatJoinScreen: ViewController {
             self.wrappingScrollNode.view.delegate = self.wrappedScrollViewDelegate
             self.addSubnode(self.wrappingScrollNode)
             
-            self.cancelButtonNode.setTitle(self.presentationData.strings.Common_Cancel, with: Font.medium(20.0), with: self.presentationData.theme.actionSheet.standardActionTextColor, for: .normal)
+            self.cancelButtonNode.setTitle(self.presentationData.strings.Common_Cancel, with: Font.medium(floor(self.presentationData.listsFontSize.baseDisplaySize * 20.0 / 17.0)), with: self.presentationData.theme.actionSheet.standardActionTextColor, for: .normal)
             
             self.wrappingScrollNode.addSubnode(self.cancelButtonNode)
             self.cancelButtonNode.addTarget(self, action: #selector(self.cancelButtonPressed), forControlEvents: .touchUpInside)
@@ -628,9 +628,9 @@ public final class VoiceChatJoinScreen: ViewController {
             transition.updateAlpha(node: self.actionsBackgroundNode, alpha: 1.0)
             
             self.actionButtonNode.isEnabled = true
-            self.actionButtonNode.setTitle(self.asSpeaker ? self.presentationData.strings.Invitation_JoinVoiceChatAsSpeaker : self.presentationData.strings.Invitation_JoinVoiceChatAsListener, with: Font.medium(20.0), with: self.presentationData.theme.actionSheet.standardActionTextColor, for: .normal)
+            self.actionButtonNode.setTitle(self.asSpeaker ? self.presentationData.strings.Invitation_JoinVoiceChatAsSpeaker : self.presentationData.strings.Invitation_JoinVoiceChatAsListener, with: Font.medium(floor(self.presentationData.listsFontSize.baseDisplaySize * 20.0 / 17.0)), with: self.presentationData.theme.actionSheet.standardActionTextColor, for: .normal)
             
-            self.transitionToContentNode(VoiceChatPreviewContentNode(context: self.context, peer: peer, title: title, memberCount: memberCount, isStream: isStream, theme: self.presentationData.theme, strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder))
+            self.transitionToContentNode(VoiceChatPreviewContentNode(context: self.context, peer: peer, title: title, memberCount: memberCount, isStream: isStream, theme: self.presentationData.theme, strings: self.presentationData.strings, displayOrder: self.presentationData.nameDisplayOrder, listFontSize: self.presentationData.listsFontSize.baseDisplaySize))
         }
     }
 }
@@ -644,7 +644,10 @@ final class VoiceChatPreviewContentNode: ASDisplayNode, ShareContentContainerNod
     private let titleNode: ImmediateTextNode
     private let countNode: ImmediateTextNode
     
-    init(context: AccountContext, peer: EnginePeer, title: String?, memberCount: Int, isStream: Bool, theme: PresentationTheme, strings: PresentationStrings, displayOrder: PresentationPersonNameOrder) {
+    private let listFontSize: CGFloat
+    
+    init(context: AccountContext, peer: EnginePeer, title: String?, memberCount: Int, isStream: Bool, theme: PresentationTheme, strings: PresentationStrings, displayOrder: PresentationPersonNameOrder, listFontSize: CGFloat = 17.0) {
+        self.listFontSize = listFontSize
         self.avatarNode = AvatarNode(font: avatarFont)
         self.titleNode = ImmediateTextNode()
         self.titleNode.maximumNumberOfLines = 4
@@ -659,7 +662,9 @@ final class VoiceChatPreviewContentNode: ASDisplayNode, ShareContentContainerNod
         self.avatarNode.setPeer(context: context, theme: theme, peer: peer, emptyColor: theme.list.mediaPlaceholderColor)
         
         self.addSubnode(self.titleNode)
-        self.titleNode.attributedText = NSAttributedString(string: title ?? peer.displayTitle(strings: strings, displayOrder: displayOrder), font: Font.semibold(16.0), textColor: theme.actionSheet.primaryTextColor)
+        let titleFont = Font.semibold(floor(listFontSize * 16.0 / 17.0))
+        let countFont = Font.regular(floor(listFontSize * 16.0 / 17.0))
+        self.titleNode.attributedText = NSAttributedString(string: title ?? peer.displayTitle(strings: strings, displayOrder: displayOrder), font: titleFont, textColor: theme.actionSheet.primaryTextColor)
         
         self.addSubnode(self.countNode)
 
@@ -670,7 +675,7 @@ final class VoiceChatPreviewContentNode: ASDisplayNode, ShareContentContainerNod
         } else {
             text = memberCount == 0 ? "" : strings.VoiceChat_Panel_Members(Int32(memberCount))
         }
-        self.countNode.attributedText = NSAttributedString(string: text, font: Font.regular(16.0), textColor: theme.actionSheet.secondaryTextColor)
+        self.countNode.attributedText = NSAttributedString(string: text, font: countFont, textColor: theme.actionSheet.secondaryTextColor)
     }
     
     func activate() {
@@ -690,8 +695,8 @@ final class VoiceChatPreviewContentNode: ASDisplayNode, ShareContentContainerNod
     }
     
     func updateTheme(_ theme: PresentationTheme) {
-        self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.semibold(16.0), textColor: theme.actionSheet.primaryTextColor)
-        self.countNode.attributedText = NSAttributedString(string: self.countNode.attributedText?.string ?? "", font: Font.regular(16.0), textColor: theme.actionSheet.secondaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.semibold(floor(self.listFontSize * 16.0 / 17.0)), textColor: theme.actionSheet.primaryTextColor)
+        self.countNode.attributedText = NSAttributedString(string: self.countNode.attributedText?.string ?? "", font: Font.regular(floor(self.listFontSize * 16.0 / 17.0)), textColor: theme.actionSheet.secondaryTextColor)
     }
     
     func updateLayout(size: CGSize, isLandscape: Bool, bottomInset: CGFloat, transition: ContainedViewLayoutTransition) {

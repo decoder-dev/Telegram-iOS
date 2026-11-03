@@ -43,9 +43,12 @@ final class AuthorizationSequenceAwaitingAccountResetControllerNode: ASDisplayNo
     
     private var timer: SwiftSignalKit.Timer?
     
-    init(strings: PresentationStrings, theme: PresentationTheme) {
+    private let listFontSize: CGFloat
+    
+    init(strings: PresentationStrings, theme: PresentationTheme, listFontSize: CGFloat = 17.0) {
         self.strings = strings
         self.theme = theme
+        self.listFontSize = listFontSize
         
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = false
@@ -56,18 +59,20 @@ final class AuthorizationSequenceAwaitingAccountResetControllerNode: ASDisplayNo
         self.noticeNode.isUserInteractionEnabled = false
         self.noticeNode.displaysAsynchronously = false
         
+        let secondaryFont = Font.regular(floor(listFontSize * 16.0 / 17.0))
+        let actionFont = Font.regular(floor(listFontSize * 21.0 / 17.0))
         self.timerTitleNode = ASTextNode()
         self.timerTitleNode.isUserInteractionEnabled = false
         self.timerTitleNode.displaysAsynchronously = false
-        self.timerTitleNode.attributedText = NSAttributedString(string: strings.Login_ResetAccountProtected_TimerTitle, font: Font.regular(16.0), textColor: self.theme.list.itemPrimaryTextColor)
+        self.timerTitleNode.attributedText = NSAttributedString(string: strings.Login_ResetAccountProtected_TimerTitle, font: secondaryFont, textColor: self.theme.list.itemPrimaryTextColor)
         
         self.timerValueNode = ASTextNode()
         self.timerValueNode.isUserInteractionEnabled = false
         self.timerValueNode.displaysAsynchronously = false
         
         self.resetNode = HighlightableButtonNode()
-        self.resetNode.setAttributedTitle(NSAttributedString(string: strings.Login_ResetAccountProtected_Reset, font: Font.regular(21.0), textColor: self.theme.list.itemAccentColor), for: [])
-        self.resetNode.setAttributedTitle(NSAttributedString(string: strings.Login_ResetAccountProtected_Reset, font: Font.regular(21.0), textColor: self.theme.list.itemPlaceholderTextColor), for: [.disabled])
+        self.resetNode.setAttributedTitle(NSAttributedString(string: strings.Login_ResetAccountProtected_Reset, font: actionFont, textColor: self.theme.list.itemAccentColor), for: [])
+        self.resetNode.setAttributedTitle(NSAttributedString(string: strings.Login_ResetAccountProtected_Reset, font: actionFont, textColor: self.theme.list.itemPlaceholderTextColor), for: [.disabled])
         self.resetNode.displaysAsynchronously = false
         self.resetNode.titleNode.maximumNumberOfLines = 0
         self.resetNode.isEnabled = false
@@ -112,7 +117,7 @@ final class AuthorizationSequenceAwaitingAccountResetControllerNode: ASDisplayNo
         self.protectedUntil = protectedUntil
         self.updateTimerValue()
         
-        self.noticeNode.attributedText = NSAttributedString(string: strings.Login_ResetAccountProtected_Text(number).string, font: Font.regular(16.0), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.noticeNode.attributedText = NSAttributedString(string: strings.Login_ResetAccountProtected_Text(number).string, font: Font.regular(floor(self.listFontSize * 16.0 / 17.0)), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
         
         if let (layout, navigationHeight) = self.layoutArguments {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)

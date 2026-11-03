@@ -1072,7 +1072,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         if let currentController = currentController {
             controller = currentController
         } else {
-            controller = AuthorizationSequenceAwaitingAccountResetController(strings: self.presentationData.strings, theme: self.presentationData.theme, back: { [weak self] in
+            controller = AuthorizationSequenceAwaitingAccountResetController(strings: self.presentationData.strings, theme: self.presentationData.theme, listFontSize: self.presentationData.listsFontSize.baseDisplaySize, back: { [weak self] in
                 guard let strongSelf = self else {
                     return
                 }
