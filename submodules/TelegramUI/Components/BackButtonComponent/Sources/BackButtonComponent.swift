@@ -7,15 +7,18 @@ import MultilineTextComponent
 public final class BackButtonComponent: Component {
     public let title: String
     public let color: UIColor
+    public let fontSize: CGFloat
     public let action: () -> Void
     
     public init(
         title: String,
         color: UIColor,
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.color = color
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -24,6 +27,9 @@ public final class BackButtonComponent: Component {
             return false
         }
         if lhs.color != rhs.color {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -95,7 +101,7 @@ public final class BackButtonComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: component.color))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(component.fontSize), textColor: component.color))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - 4.0, height: availableSize.height)

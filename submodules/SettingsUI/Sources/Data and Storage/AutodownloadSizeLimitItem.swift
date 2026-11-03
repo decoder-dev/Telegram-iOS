@@ -50,6 +50,7 @@ private func sizeValue(for sliderValue: CGFloat) -> Int64 {
 
 final class AutodownloadSizeLimitItem: ListViewItem, ItemListItem {
     let theme: PresentationTheme
+    let listFontSize: CGFloat
     let strings: PresentationStrings
     let systemStyle: ItemListSystemStyle
     let decimalSeparator: String
@@ -60,8 +61,9 @@ final class AutodownloadSizeLimitItem: ListViewItem, ItemListItem {
     let updated: (Int64) -> Void
     let tag: ItemListItemTag?
     
-    init(theme: PresentationTheme, strings: PresentationStrings, systemStyle: ItemListSystemStyle = .legacy, decimalSeparator: String, text: String, value: Int64, range: Range<Int64>?, sectionId: ItemListSectionId, updated: @escaping (Int64) -> Void, tag: ItemListItemTag? = nil) {
+    init(theme: PresentationTheme, listFontSize: CGFloat = 17.0, strings: PresentationStrings, systemStyle: ItemListSystemStyle = .legacy, decimalSeparator: String, text: String, value: Int64, range: Range<Int64>?, sectionId: ItemListSectionId, updated: @escaping (Int64) -> Void, tag: ItemListItemTag? = nil) {
         self.theme = theme
+        self.listFontSize = listFontSize
         self.strings = strings
         self.systemStyle = systemStyle
         self.decimalSeparator = decimalSeparator
@@ -202,7 +204,7 @@ private final class AutodownloadSizeLimitItemNode: ListViewItemNode, ItemListIte
             let separatorHeight = UIScreenPixel
             let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
             
-            let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.text, font: Font.regular(17.0), textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
+            let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.text, font: Font.regular(item.listFontSize), textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .center, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
             
             let formatting = DataSizeStringFormatting(strings: item.strings, decimalSeparator: item.decimalSeparator)
             

@@ -1745,7 +1745,7 @@ private final class AdminUserActionsSheetComponent: Component {
                                 peers: component.peers,
                                 selectedDeleteAllPeers: self.optionDeleteAllSelectedPeers
                             ),
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize),
                             textColor: theme.list.itemPrimaryTextColor
                         )),
                         maximumNumberOfLines: 1

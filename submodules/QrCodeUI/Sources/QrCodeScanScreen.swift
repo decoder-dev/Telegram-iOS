@@ -485,7 +485,7 @@ private final class QrCodeScanScreenNode: ViewControllerTracingNode, ASScrollVie
         self.titleNode.maximumNumberOfLines = 0
         self.titleNode.textAlignment = .center
         
-        let textFont = Font.regular(17.0)
+        let textFont = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
         let boldFont = Font.bold(17.0)
         
         text = text.replacingOccurrences(of: " [", with: "   [").replacingOccurrences(of: ") ", with: ")   ")

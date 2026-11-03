@@ -133,7 +133,7 @@ public final class GroupStickerSearchContainerNode: SearchDisplayControllerConte
         
         self.emptyResultsTitleNode = ImmediateTextNode()
         self.emptyResultsTitleNode.displaysAsynchronously = false
-        self.emptyResultsTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.ChatList_Search_NoResults, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.freeTextColor)
+        self.emptyResultsTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.ChatList_Search_NoResults, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.freeTextColor)
         self.emptyResultsTitleNode.textAlignment = .center
         self.emptyResultsTitleNode.isHidden = true
         

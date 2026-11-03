@@ -4,7 +4,6 @@ import AsyncDisplayKit
 import Display
 import TelegramPresentationData
 
-private let titleFont = Font.regular(17.0)
 
 final class BotPaymentActionItemNode: BotPaymentItemNode {
     private let title: String
@@ -53,11 +52,11 @@ final class BotPaymentActionItemNode: BotPaymentItemNode {
         self.buttonNode.addTarget(self, action: #selector(buttonPressed), forControlEvents: .touchUpInside)
     }
     
-    override func measureInset(theme: PresentationTheme, width: CGFloat) -> CGFloat {
+    override func measureInset(theme: PresentationTheme, listFontSize: CGFloat, width: CGFloat) -> CGFloat {
         if self.theme !== theme {
             self.theme = theme
             self.highlightedBackgroundNode.backgroundColor = theme.list.itemHighlightedBackgroundColor
-            self.titleNode.attributedText = NSAttributedString(string: self.title, font: titleFont, textColor: theme.list.itemAccentColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.regular(listFontSize), textColor: theme.list.itemAccentColor)
         }
         
         return 0.0
@@ -67,7 +66,7 @@ final class BotPaymentActionItemNode: BotPaymentItemNode {
         if self.theme !== theme {
             self.theme = theme
             self.highlightedBackgroundNode.backgroundColor = theme.list.itemHighlightedBackgroundColor
-            self.titleNode.attributedText = NSAttributedString(string: self.title, font: titleFont, textColor: theme.list.itemAccentColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.regular(listFontSize), textColor: theme.list.itemAccentColor)
         }
         
         let height: CGFloat = 52.0

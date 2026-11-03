@@ -4,7 +4,6 @@ import AsyncDisplayKit
 import Display
 import TelegramPresentationData
 
-private let titleFont = Font.regular(17.0)
 
 final class BotPaymentSwitchItemNode: BotPaymentItemNode {
     private let toggled: (Bool) -> Void
@@ -63,7 +62,7 @@ final class BotPaymentSwitchItemNode: BotPaymentItemNode {
     override func layoutContents(theme: PresentationTheme, width: CGFloat, sideInset: CGFloat, rightSideInset: CGFloat, measuredInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
         if self.theme !== theme {
             self.theme = theme
-            self.titleNode.attributedText = NSAttributedString(string: self.title, font: titleFont, textColor: theme.list.itemPrimaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.regular(listFontSize), textColor: theme.list.itemPrimaryTextColor)
             
             self.switchNode.frameColor = theme.list.itemSwitchColors.frameColor
             self.switchNode.contentColor = theme.list.itemSwitchColors.contentColor

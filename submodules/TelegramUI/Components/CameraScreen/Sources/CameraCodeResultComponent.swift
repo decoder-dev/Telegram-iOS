@@ -177,7 +177,7 @@ final class CameraCodeResultComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), font: Font.regular(17.0), textColor: .white)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: .white)))
                 ),
                 environment: {},
                 containerSize: CGSize(width: 140.0, height: availableSize.height)

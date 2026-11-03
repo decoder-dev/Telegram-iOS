@@ -4,7 +4,6 @@ import AsyncDisplayKit
 import Display
 import TelegramPresentationData
 
-private let textFont = Font.regular(17.0)
 private let errorFont = Font.regular(13.0)
 
 enum FormControllerTextInputItemColor {

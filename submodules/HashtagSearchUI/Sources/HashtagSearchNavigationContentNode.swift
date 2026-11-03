@@ -10,13 +10,14 @@ import ComponentDisplayAdapters
 import HorizontalTabsComponent
 import GlassBackgroundComponent
 
-private let searchBarFont = Font.regular(17.0)
 
 final class HashtagSearchNavigationContentNode: NavigationBarContentNode {
     private var theme: PresentationTheme
     private let strings: PresentationStrings
     private let hasCurrentChat: Bool
     private let hasTabs: Bool
+    
+    private let contentFontSize: CGFloat
     
     private let cancel: () -> Void
     
@@ -64,11 +65,12 @@ final class HashtagSearchNavigationContentNode: NavigationBarContentNode {
         }
     }
         
-    init(theme: PresentationTheme, strings: PresentationStrings, initialQuery: String, hasCurrentChat: Bool, hasTabs: Bool, cancel: @escaping () -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, initialQuery: String, hasCurrentChat: Bool, hasTabs: Bool, contentFontSize: CGFloat = 17.0, cancel: @escaping () -> Void) {
         self.theme = theme
         self.strings = strings
         self.hasCurrentChat = hasCurrentChat
         self.hasTabs = hasTabs
+        self.contentFontSize = contentFontSize
         
         self.cancel = cancel
 
@@ -82,9 +84,9 @@ final class HashtagSearchNavigationContentNode: NavigationBarContentNode {
         var initialQuery = initialQuery
         initialQuery.removeFirst()
         
-        self.searchBar = SearchBarNode(theme: SearchBarNodeTheme(theme: theme, hasSeparator: false), presentationTheme: theme, strings: strings, fieldStyle: .glass, icon: icon, displayBackground: false)
+        self.searchBar = SearchBarNode(theme: SearchBarNodeTheme(theme: theme, hasSeparator: false), presentationTheme: theme, strings: strings, fieldStyle: .glass, icon: icon, displayBackground: false, contentFontSize: contentFontSize)
         self.searchBar.text = initialQuery
-        self.searchBar.placeholderString = NSAttributedString(string: strings.HashtagSearch_SearchPlaceholder, font: searchBarFont, textColor: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+        self.searchBar.placeholderString = NSAttributedString(string: strings.HashtagSearch_SearchPlaceholder, font: Font.regular(contentFontSize), textColor: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
         
         self.tabsBackgroundContainer = GlassBackgroundContainerView()
         self.tabsBackgroundView = GlassBackgroundView()

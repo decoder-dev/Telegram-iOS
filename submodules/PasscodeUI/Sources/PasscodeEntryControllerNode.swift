@@ -21,7 +21,6 @@ private extension CGRect {
 
 private let titleFont = Font.regular(20.0)
 private let subtitleFont = Font.regular(15.0)
-private let buttonFont = Font.regular(17.0)
 
 final class PasscodeEntryControllerNode: ASDisplayNode {
     private let accountManager: AccountManager<TelegramAccountManagerTypes>
@@ -137,10 +136,10 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
             }
         }
         
-        self.cancelButtonNode.setTitle(strings.Common_Cancel, with: buttonFont, with: .white, for: .normal)
+        self.cancelButtonNode.setTitle(strings.Common_Cancel, with: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), with: .white, for: .normal)
         self.cancelButtonNode.accessibilityLabel = strings.Common_Cancel
         self.cancelButtonNode.accessibilityTraits = [.button]
-        self.deleteButtonNode.setTitle(strings.Common_Delete, with: buttonFont, with: .white, for: .normal)
+        self.deleteButtonNode.setTitle(strings.Common_Delete, with: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), with: .white, for: .normal)
         self.deleteButtonNode.accessibilityLabel = strings.Common_Delete
         self.deleteButtonNode.accessibilityTraits = [.button]
         
@@ -234,7 +233,7 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
         self.strings = presentationData.strings
         self.wallpaper = presentationData.chatWallpaper
         
-        self.deleteButtonNode.setTitle(self.strings.Common_Delete, with: buttonFont, with: .white, for: .normal)
+        self.deleteButtonNode.setTitle(self.strings.Common_Delete, with: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), with: .white, for: .normal)
         if !self.arguments.displayAppLock {
             self.titleNode.setAttributedText(NSAttributedString(string: self.strings.EnterPasscode_EnterPasscode, font: titleFont, textColor: .white), animation: .none)
         }

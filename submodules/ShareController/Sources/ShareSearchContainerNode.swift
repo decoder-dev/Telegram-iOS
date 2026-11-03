@@ -9,7 +9,6 @@ import MergeLists
 import AccountContext
 import TelegramUIPreferences
 
-private let cancelFont = Font.regular(17.0)
 private let subtitleFont = Font.regular(12.0)
 
 private enum ShareSearchRecentEntryStableId: Hashable {
@@ -191,6 +190,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
     private var theme: PresentationTheme
     private let themePromise: Promise<PresentationTheme>
     private let strings: PresentationStrings
+    private let listFontSize: CGFloat
     private let controllerInteraction: ShareControllerInteraction
     
     private var entries: [ShareSearchPeerEntry] = []
@@ -235,6 +235,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
         self.themePromise = Promise<PresentationTheme>()
         self.themePromise.set(.single(theme))
         self.strings = strings
+        self.listFontSize = environment.presentationData.listsFontSize.baseDisplaySize
         self.controllerInteraction = controllerInteraction
         
         self.recentGridNode = GridNode()
@@ -245,7 +246,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
         self.searchNode = ShareSearchBarNode(theme: theme, strings: strings, placeholder: strings.Common_Search)
         
         self.cancelButtonNode = HighlightableButtonNode()
-        self.cancelButtonNode.setTitle(strings.Common_Cancel, with: cancelFont, with: theme.actionSheet.controlAccentColor, for: [])
+        self.cancelButtonNode.setTitle(strings.Common_Cancel, with: Font.regular(self.listFontSize), with: theme.actionSheet.controlAccentColor, for: [])
         self.cancelButtonNode.hitTestSlop = UIEdgeInsets(top: -8.0, left: -8.0, bottom: -8.0, right: -8.0)
         self.cancelButtonNode.accessibilityLabel = strings.Common_Cancel
         self.cancelButtonNode.accessibilityTraits = [.button]
@@ -562,7 +563,7 @@ final class ShareSearchContainerNode: ASDisplayNode, ShareContentContainerNode {
         self.themePromise.set(.single(theme))
         self.searchNode.updateTheme(theme)
         self.contentSeparatorNode.backgroundColor = theme.actionSheet.opaqueItemSeparatorColor
-        self.cancelButtonNode.setTitle(self.strings.Common_Cancel, with: cancelFont, with: self.theme.actionSheet.controlAccentColor, for: [])
+        self.cancelButtonNode.setTitle(self.strings.Common_Cancel, with: Font.regular(self.listFontSize), with: self.theme.actionSheet.controlAccentColor, for: [])
     }
     
     private func calculateMetrics(size: CGSize) -> (topInset: CGFloat, itemWidth: CGFloat) {

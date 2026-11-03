@@ -71,7 +71,6 @@ public extension DatePickerTheme {
 private let telegramReleaseDate = Date(timeIntervalSince1970: 1376438400.0)
 private let upperLimitDate = Date(timeIntervalSince1970: Double(Int32.max - 1))
 
-private let controlFont = Font.semibold(17.0)
 private let dayFont = Font.medium(13.0)
 private let dateFont = Font.with(size: 19.0, design: .regular, traits: .monospacedNumbers)
 private let selectedDateFont = Font.with(size: 19.0, design: .regular, weight: .bold, traits: .monospacedNumbers)

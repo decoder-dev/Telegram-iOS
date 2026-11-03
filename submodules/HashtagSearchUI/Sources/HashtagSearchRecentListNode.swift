@@ -233,7 +233,7 @@ final class HashtagSearchRecentQueryItemNode: ItemListRevealOptionsItemNode {
             let leftInset: CGFloat = 62.0 + params.leftInset
             let rightInset: CGFloat = params.rightInset
             
-            let attributedString = NSAttributedString(string: item.query, font: Font.regular(17.0), textColor: item.clear ? item.theme.list.itemAccentColor : item.theme.list.itemPrimaryTextColor)
+            let attributedString = NSAttributedString(string: item.query, font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), textColor: item.clear ? item.theme.list.itemAccentColor : item.theme.list.itemPrimaryTextColor)
             let textApply = textLayout(TextNodeLayoutArguments(attributedString: attributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - rightInset - 15.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: 44.0), insets: UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0))

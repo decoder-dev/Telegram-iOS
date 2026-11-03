@@ -275,7 +275,7 @@ private final class TimezoneListSearchContainerNode: SearchDisplayControllerCont
             let notFoundTextSize = notFoundText.update(
                 transition: .immediate,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: self.presentationData.strings.Conversation_SearchNoResults, font: Font.regular(17.0), textColor: self.presentationData.theme.list.freeTextColor, paragraphAlignment: .center)),
+                    text: .plain(NSAttributedString(string: self.presentationData.strings.Conversation_SearchNoResults, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.freeTextColor, paragraphAlignment: .center)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0
                 )),

@@ -82,7 +82,7 @@ private final class SortHeaderButton: HighlightableButtonNode {
     }
 
     func update(theme: PresentationTheme, strings: PresentationStrings) {
-        self.textNode.attributedText = NSAttributedString(string: strings.Contacts_Sort, font: Font.regular(17.0), textColor: theme.rootController.navigationBar.accentTextColor)
+        self.textNode.attributedText = NSAttributedString(string: strings.Contacts_Sort, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: theme.rootController.navigationBar.accentTextColor)
         let size = self.textNode.updateLayout(CGSize(width: 100.0, height: 44.0))
         self.textNode.frame = CGRect(origin: CGPoint(x: 0.0, y: floorToScreenPixels((44.0 - size.height) / 2.0)), size: size)
         

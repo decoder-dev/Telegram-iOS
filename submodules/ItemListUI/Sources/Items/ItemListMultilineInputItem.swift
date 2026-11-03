@@ -168,7 +168,7 @@ public class ItemListMultilineInputItemNode: ListViewItemNode, ASEditableTextNod
             self.textNode.tintColor = item.presentationData.theme.list.itemAccentColor
             self.textNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), NSAttributedString.Key.foregroundColor.rawValue: textColor]
         } else {
-            self.textNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(17.0), NSAttributedString.Key.foregroundColor.rawValue: textColor]
+            self.textNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), NSAttributedString.Key.foregroundColor.rawValue: textColor]
         }
         self.textNode.clipsToBounds = true
         self.textNode.delegate = self

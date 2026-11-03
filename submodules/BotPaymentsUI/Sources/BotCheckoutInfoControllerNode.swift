@@ -107,6 +107,7 @@ final class BotCheckoutInfoControllerNode: ViewControllerTracingNode, ASScrollVi
     
     private var theme: PresentationTheme
     private var strings: PresentationStrings
+    private let listFontSize: CGFloat
     
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
@@ -155,6 +156,7 @@ final class BotCheckoutInfoControllerNode: ViewControllerTracingNode, ASScrollVi
         
         self.theme = theme
         self.strings = strings
+        self.listFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         
         self.scrollNode = BotCheckoutInfoControllerScrollerNode()
         self.leftOverlayNode = ASDisplayNode()
@@ -449,7 +451,7 @@ final class BotCheckoutInfoControllerNode: ViewControllerTracingNode, ASScrollVi
         var commonInset: CGFloat = 0.0
         for items in self.itemNodes {
             for item in items {
-                commonInset = max(commonInset, item.measureInset(theme: self.theme, width: layout.size.width))
+                commonInset = max(commonInset, item.measureInset(theme: self.theme, listFontSize: self.listFontSize, width: layout.size.width))
             }
         }
         
@@ -473,7 +475,7 @@ final class BotCheckoutInfoControllerNode: ViewControllerTracingNode, ASScrollVi
             
             for i in 0 ..< items.count {
                 let item = items[i]
-                let itemHeight = item.updateLayout(theme: self.theme, width: layout.size.width, sideInset: sideInset, rightSideInset: rightSideInset, measuredInset: commonInset, previousItemNode: i == 0 ? nil : items[i - 1], nextItemNode: i == (items.count - 1) ? nil : items[i + 1], transition: transition)
+                let itemHeight = item.updateLayout(theme: self.theme, listFontSize: self.listFontSize, width: layout.size.width, sideInset: sideInset, rightSideInset: rightSideInset, measuredInset: commonInset, previousItemNode: i == 0 ? nil : items[i - 1], nextItemNode: i == (items.count - 1) ? nil : items[i + 1], transition: transition)
                 transition.updateFrame(node: item, frame: CGRect(origin: CGPoint(x: 0.0, y: contentHeight), size: CGSize(width: layout.size.width, height: itemHeight)))
                 contentHeight += itemHeight
             }

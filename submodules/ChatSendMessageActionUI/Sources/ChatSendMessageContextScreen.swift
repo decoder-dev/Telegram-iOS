@@ -424,7 +424,7 @@ final class ChatSendMessageContextScreenComponent: Component {
                     isMessageVisible = true
                 }
             } else {
-                textString = NSAttributedString(string: " ", font: Font.regular(17.0), textColor: .black)
+                textString = NSAttributedString(string: " ", font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: .black)
             }
             
             let sendButton: SendButton

@@ -10,6 +10,7 @@ import ShimmerEffect
 
 class BotCheckoutPriceItem: ListViewItem, ItemListItem {
     let theme: PresentationTheme
+    let listFontSize: CGFloat
     let title: String
     let label: String
     let isFinal: Bool
@@ -29,8 +30,9 @@ class BotCheckoutPriceItem: ListViewItem, ItemListItem {
         ))
     }
 
-    init(theme: PresentationTheme, title: String, label: String, isFinal: Bool, hasSeparator: Bool, shimmeringIndex: Int?, sectionId: ItemListSectionId) {
+    init(theme: PresentationTheme, listFontSize: CGFloat = 17.0, title: String, label: String, isFinal: Bool, hasSeparator: Bool, shimmeringIndex: Int?, sectionId: ItemListSectionId) {
         self.theme = theme
+        self.listFontSize = listFontSize
         self.title = title
         self.label = label
         self.isFinal = isFinal
@@ -75,8 +77,6 @@ class BotCheckoutPriceItem: ListViewItem, ItemListItem {
     let selectable: Bool = false
 }
 
-private let titleFont = Font.regular(17.0)
-private let finalFont = Font.semibold(17.0)
 
 private func priceItemInsets(_ neighbors: ItemListNeighbors) -> UIEdgeInsets {
     var insets = UIEdgeInsets()
@@ -172,6 +172,8 @@ class BotCheckoutPriceItemNode: ListViewItemNode {
             }
             let insets = priceItemInsets(neighbors)
             
+            let titleFont = Font.regular(item.listFontSize)
+            let finalFont = Font.semibold(item.listFontSize)
             let textFont: UIFont
             let textColor: UIColor
             if item.isFinal {

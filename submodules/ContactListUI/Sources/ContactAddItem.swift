@@ -9,9 +9,9 @@ import AppBundle
 import PhoneNumberFormat
 import AccountContext
 
-private let titleFont = Font.regular(17.0)
 
 public class ContactsAddItem: ListViewItem {
+    let listFontSize: CGFloat
     let context: AccountContext
     let theme: PresentationTheme
     let strings: PresentationStrings
@@ -24,10 +24,11 @@ public class ContactsAddItem: ListViewItem {
         return AnyEquatable(HeaderNeighborDescriptor(headerId: self.header?.id, headerFamily: .contactsAdd))
     }
     
-    public init(context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, phoneNumber: String, header: ListViewItemHeader?, action: @escaping () -> Void) {
+    public init(context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0, phoneNumber: String, header: ListViewItemHeader?, action: @escaping () -> Void) {
         self.context = context
         self.theme = theme
         self.strings = strings
+        self.listFontSize = listFontSize
         self.phoneNumber = phoneNumber
         self.action = action
         self.header = header
@@ -194,7 +195,7 @@ class ContactsAddItemNode: ListViewItemNode {
             let leftInset: CGFloat = 65.0 + params.leftInset
             let rightInset: CGFloat = 10.0 + params.rightInset
 
-            let titleAttributedString = NSAttributedString(string: item.strings.Contacts_AddPhoneNumber(formatPhoneNumber(context: item.context, number: item.phoneNumber)).string, font: titleFont, textColor: item.theme.list.itemAccentColor)
+            let titleAttributedString = NSAttributedString(string: item.strings.Contacts_AddPhoneNumber(formatPhoneNumber(context: item.context, number: item.phoneNumber)).string, font: Font.regular(item.listFontSize), textColor: item.theme.list.itemAccentColor)
             
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: max(0.0, params.width - leftInset - rightInset), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             

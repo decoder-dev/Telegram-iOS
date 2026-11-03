@@ -1394,7 +1394,7 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                         text: .plain(
                             NSAttributedString(
                                 string: self.presentationData.strings.Map_ChooseLocationTitle,
-                                font: Font.semibold(17.0),
+                                font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize),
                                 textColor: self.headerNode.mapNode.mapMode == .map ? self.presentationData.theme.rootController.navigationBar.primaryTextColor : .white
                             )
                         )
@@ -1605,7 +1605,7 @@ final class LocationPickerControllerNode: ViewControllerTracingNode, CLLocationM
                 var buttonContents: [AnyComponentWithIdentity<Empty>] = [
                     AnyComponentWithIdentity(
                         id: AnyHashable("label"),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: self.presentationData.strings.Location_SendLocation, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: self.presentationData.strings.Location_SendLocation, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                     )
                 ]
                 

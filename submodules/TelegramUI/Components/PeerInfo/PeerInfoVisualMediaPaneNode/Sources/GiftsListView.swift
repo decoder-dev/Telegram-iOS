@@ -1077,7 +1077,7 @@ final class GiftsListView: UIView {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: presentationData.strings.PeerInfo_Gifts_EmptyCollection_Title, font: Font.semibold(17.0), textColor: presentationData.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: presentationData.strings.PeerInfo_Gifts_EmptyCollection_Title, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemPrimaryTextColor)),
                         horizontalAlignment: .center
                     )
                 ),
@@ -1095,7 +1095,7 @@ final class GiftsListView: UIView {
                 environment: {},
                 containerSize: CGSize(width: params.size.width - sideInset * 2.0, height: params.size.height)
             )
-            let buttonAttributedString = NSAttributedString(string: presentationData.strings.PeerInfo_Gifts_EmptyCollection_Action, font: Font.semibold(17.0), textColor: presentationData.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSAttributedString(string: presentationData.strings.PeerInfo_Gifts_EmptyCollection_Action, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             let emptyResultsActionSize = self.emptyResultsAction.update(
                 transition: .immediate,
                 component: AnyComponent(
@@ -1184,7 +1184,7 @@ final class GiftsListView: UIView {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: presentationData.strings.PeerInfo_Gifts_NoResults, font: Font.semibold(17.0), textColor: presentationData.theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: presentationData.strings.PeerInfo_Gifts_NoResults, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemPrimaryTextColor)),
                         horizontalAlignment: .center
                     )
                 ),
@@ -1197,7 +1197,7 @@ final class GiftsListView: UIView {
                     PlainButtonComponent(
                         content: AnyComponent(
                             MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: presentationData.strings.PeerInfo_Gifts_NoResults_ViewAll, font: Font.regular(17.0), textColor: presentationData.theme.list.itemAccentColor)),
+                                text: .plain(NSAttributedString(string: presentationData.strings.PeerInfo_Gifts_NoResults_ViewAll, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemAccentColor)),
                                 horizontalAlignment: .center,
                                 maximumNumberOfLines: 0
                             )

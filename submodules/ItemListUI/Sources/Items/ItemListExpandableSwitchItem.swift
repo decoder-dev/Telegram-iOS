@@ -184,7 +184,7 @@ private final class SubItemNode: HighlightTrackingButtonNode {
         
         transition.updateFrame(node: self.separatorNode, frame: CGRect(origin: CGPoint(x: leftInset, y: size.height - UIScreenPixel), size: CGSize(width: size.width - leftInset - separatorRightInset, height: UIScreenPixel)))
         
-        self.textNode.attributedText = NSAttributedString(string: item.title, font: Font.regular(17.0), textColor: presentationData.theme.list.itemPrimaryTextColor)
+        self.textNode.attributedText = NSAttributedString(string: item.title, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemPrimaryTextColor)
         let titleSize = self.textNode.updateLayout(CGSize(width: size.width - leftInset, height: 100.0))
         self.textNode.frame = CGRect(origin: CGPoint(x: leftInset, y: floor((size.height - titleSize.height) / 2.0)), size: titleSize)
         

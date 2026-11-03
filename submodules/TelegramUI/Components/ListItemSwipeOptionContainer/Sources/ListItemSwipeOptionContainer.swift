@@ -7,7 +7,6 @@ import AppBundle
 import MultilineTextComponent
 
 private let titleFontWithIcon = Font.medium(13.0)
-private let titleFontWithoutIcon = Font.regular(17.0)
 
 private final class SwipeOptionsGestureRecognizer: UIPanGestureRecognizer {
     public var validatedGesture = false

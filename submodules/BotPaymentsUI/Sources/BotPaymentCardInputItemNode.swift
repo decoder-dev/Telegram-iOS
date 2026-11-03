@@ -31,7 +31,7 @@ final class BotPaymentCardInputItemNode: BotPaymentItemNode, STPPaymentCardTextF
         self.view.addSubview(self.cardField)
     }
     
-    override func measureInset(theme: PresentationTheme, width: CGFloat) -> CGFloat {
+    override func measureInset(theme: PresentationTheme, listFontSize: CGFloat, width: CGFloat) -> CGFloat {
         return 0.0
     }
     

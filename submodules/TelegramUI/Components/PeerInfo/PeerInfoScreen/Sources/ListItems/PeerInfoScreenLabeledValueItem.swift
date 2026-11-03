@@ -788,7 +788,7 @@ private final class PeerInfoScreenLabeledValueItemNode: PeerInfoScreenItemNode {
                         foreground: presentationData.theme.list.itemCheckColors.foregroundColor,
                         pressedColor: presentationData.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                     ),
-                    content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: button.title, font: Font.semibold(17.0), color: presentationData.theme.list.itemCheckColors.foregroundColor))),
+                    content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: button.title, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), color: presentationData.theme.list.itemCheckColors.foregroundColor))),
                     isEnabled: true,
                     allowActionWhenDisabled: false,
                     displaysProgress: false,

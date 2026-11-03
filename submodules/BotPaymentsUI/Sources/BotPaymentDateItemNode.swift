@@ -4,7 +4,6 @@ import AsyncDisplayKit
 import Display
 import TelegramPresentationData
 
-private let titleFont = Font.regular(17.0)
 
 private func formatDate(_ value: Int32) -> String {
     let formatter = DateFormatter()

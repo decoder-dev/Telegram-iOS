@@ -228,7 +228,7 @@ public class ItemListFilterTitleInputItemNode: ListViewItemNode, UITextFieldDele
                         context: item.context,
                         theme: item.presentationData.theme,
                         strings: item.presentationData.strings,
-                        placeholder: NSAttributedString(string: item.placeholder, font: Font.regular(17.0), textColor: item.presentationData.theme.list.itemPlaceholderTextColor),
+                        placeholder: NSAttributedString(string: item.placeholder, font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), textColor: item.presentationData.theme.list.itemPlaceholderTextColor),
                         resetText: self.textField.view == nil ? ListComposePollOptionComponent.ResetText(value: item.text) : nil,
                         characterLimit: item.maxLength,
                         enableInlineAnimations: item.enableAnimations,

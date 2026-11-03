@@ -97,7 +97,7 @@ class InviteLinkInviteManageItemNode: ListViewItemNode {
                     
                     strongSelf.backgroundNode.backgroundColor = item.standalone ? .clear : item.theme.list.blocksBackgroundColor
                     
-                    strongSelf.buttonNode.setTitle(item.text, with: Font.regular(17.0), with: item.theme.actionSheet.controlAccentColor, for: .normal)
+                    strongSelf.buttonNode.setTitle(item.text, with: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), with: item.theme.actionSheet.controlAccentColor, for: .normal)
                     
                     strongSelf.backgroundNode.frame = CGRect(origin: CGPoint(), size: CGSize(width: params.width, height: 1000.0))
 

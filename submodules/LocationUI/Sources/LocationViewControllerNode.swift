@@ -1198,7 +1198,7 @@ final class LocationViewControllerNode: ViewControllerTracingNode, CLLocationMan
                         text: .plain(
                             NSAttributedString(
                                 string: self.presentationData.strings.Map_LocationTitle,
-                                font: Font.semibold(17.0),
+                                font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize),
                                 textColor: self.headerNode.mapNode.mapMode == .map ? self.presentationData.theme.rootController.navigationBar.primaryTextColor : .white
                             )
                         )

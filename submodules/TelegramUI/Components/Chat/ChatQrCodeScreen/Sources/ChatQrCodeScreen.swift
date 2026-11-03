@@ -1571,7 +1571,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
                     pressedColor: primaryBackgroundColor.withMultipliedAlpha(0.8)
                 ),
                 content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(
-                    Text(text: self.doneButtonTitle, font: Font.semibold(17.0), color: primaryForegroundColor)
+                    Text(text: self.doneButtonTitle, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: primaryForegroundColor)
                 )),
                 isEnabled: true,
                 displaysProgress: false,
@@ -1589,7 +1589,7 @@ private class ChatQrCodeScreenNode: ViewControllerTracingNode, ASScrollViewDeleg
                 BundleIconComponent(name: "Settings/ScanQr", tintColor: secondaryForegroundColor)
             )),
             AnyComponentWithIdentity(id: "text", component: AnyComponent(
-                Text(text: self.scanButtonTitle, font: Font.semibold(17.0), color: secondaryForegroundColor)
+                Text(text: self.scanButtonTitle, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: secondaryForegroundColor)
             ))
         ]
         let scanButtonSize = self.scanButton.update(
@@ -2450,7 +2450,7 @@ private class MessageContentNode: ASDisplayNode, ContentNode {
             title = ""
         }
         
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(17.0), textColor: messageTheme.primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(self.presentationData.listsFontSize.baseDisplaySize), textColor: messageTheme.primaryTextColor)
         let titleSize = self.titleNode.updateLayout(size)
         let titleFrame = CGRect(origin: CGPoint(x: 62.0, y: 14.0), size: titleSize)
         self.titleNode.frame = titleFrame
@@ -2561,7 +2561,7 @@ private class MessageContentNode: ASDisplayNode, ContentNode {
         }
         
         if let message = messages.first {
-            let textFont = Font.regular(17.0)
+            let textFont = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
             let boldFont = Font.bold(17.0)
             let italicFont = Font.italic(17.0)
             let boldItalicFont = Font.semiboldItalic(17.0)
@@ -2612,7 +2612,7 @@ private class MessageContentNode: ASDisplayNode, ContentNode {
             link = ""
         }
         
-        self.linkTextNode.attributedText = NSAttributedString(string: link, font: Font.medium(17.0), textColor: .white)
+        self.linkTextNode.attributedText = NSAttributedString(string: link, font: Font.medium(self.presentationData.listsFontSize.baseDisplaySize), textColor: .white)
         let linkSize = self.linkTextNode.updateLayout(size)
         
         let linkBackgroundSize = CGSize(width: linkSize.width + 49.0, height: 33.0)

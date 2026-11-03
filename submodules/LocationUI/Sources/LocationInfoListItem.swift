@@ -298,11 +298,11 @@ public final class LocationInfoListItemNode: ListViewItemNode {
                                 drivingButtonContent = AnyComponent(
                                     HStack([
                                         AnyComponentWithIdentity(id: "icon", component: AnyComponent(BundleIconComponent(name: "Location/DirectionsDriving", tintColor: foregroundColor))),
-                                        AnyComponentWithIdentity(id: "title", component: AnyComponent(Text(text: drivingButtonTitle, font: Font.semibold(17.0), color: foregroundColor)))
+                                        AnyComponentWithIdentity(id: "title", component: AnyComponent(Text(text: drivingButtonTitle, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: foregroundColor)))
                                     ], spacing: 5.0)
                                 )
                             } else {
-                                drivingButtonContent = AnyComponent(Text(text: drivingButtonTitle, font: Font.semibold(17.0), color: foregroundColor))
+                                drivingButtonContent = AnyComponent(Text(text: drivingButtonTitle, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: foregroundColor))
                             }
                             
                             let drivingButtonSize = strongSelf.drivingButton.update(
@@ -335,7 +335,7 @@ public final class LocationInfoListItemNode: ListViewItemNode {
                                         component: AnyComponent(
                                             HStack([
                                                 AnyComponentWithIdentity(id: "icon", component: AnyComponent(BundleIconComponent(name: "Location/DirectionsWalking", tintColor: foregroundColor))),
-                                                AnyComponentWithIdentity(id: "title", component: AnyComponent(Text(text: walkingButtonTitle, font: Font.semibold(17.0), color: foregroundColor)))
+                                                AnyComponentWithIdentity(id: "title", component: AnyComponent(Text(text: walkingButtonTitle, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: foregroundColor)))
                                             ], spacing: 2.0)
                                         )
                                     ),

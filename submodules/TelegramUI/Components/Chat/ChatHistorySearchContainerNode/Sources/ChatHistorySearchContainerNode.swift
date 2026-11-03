@@ -173,7 +173,7 @@ public final class ChatHistorySearchContainerNode: SearchDisplayControllerConten
         }
         
         self.emptyResultsTitleNode = ImmediateTextNode()
-        self.emptyResultsTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.SharedMedia_SearchNoResults, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.freeTextColor)
+        self.emptyResultsTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.SharedMedia_SearchNoResults, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.freeTextColor)
         self.emptyResultsTitleNode.textAlignment = .center
         self.emptyResultsTitleNode.isHidden = true
         
@@ -249,7 +249,7 @@ public final class ChatHistorySearchContainerNode: SearchDisplayControllerConten
             if let strongSelf = self {
                 strongSelf.themeAndStringsPromise.set(.single((presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, presentationData.listsFontSize)))
                 
-                strongSelf.emptyResultsTitleNode.attributedText = NSAttributedString(string: presentationData.strings.SharedMedia_SearchNoResults, font: Font.semibold(17.0), textColor: presentationData.theme.list.freeTextColor, paragraphAlignment: .center)
+                strongSelf.emptyResultsTitleNode.attributedText = NSAttributedString(string: presentationData.strings.SharedMedia_SearchNoResults, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.freeTextColor, paragraphAlignment: .center)
                 
                 if let (layout, navigationBarHeight) = strongSelf.containerLayout {
                     strongSelf.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)

@@ -997,7 +997,7 @@ private final class StickerPackContainer: ASDisplayNode {
         
         if let currentContents = self.currentContents?.first {
             let buttonColor: UIColor
-            var buttonFont: UIFont = Font.semibold(17.0)
+            var buttonFont: UIFont = Font.semibold(self.presentationData.listsFontSize.baseDisplaySize)
             
             if self.isEditing {
                 buttonColor = self.presentationData.theme.list.itemCheckColors.foregroundColor
@@ -1016,7 +1016,7 @@ private final class StickerPackContainer: ASDisplayNode {
                         buttonColor = installed ? self.presentationData.theme.list.itemDestructiveColor : self.presentationData.theme.list.itemCheckColors.foregroundColor
                     }
                     if installed {
-                        buttonFont = Font.regular(17.0)
+                        buttonFont = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
                     }
                 }
             }
@@ -1028,7 +1028,7 @@ private final class StickerPackContainer: ASDisplayNode {
             self.updateEntries()
         }
         
-        let titleFont = Font.semibold(17.0)
+        let titleFont = Font.semibold(self.presentationData.listsFontSize.baseDisplaySize)
         let title = self.updatedTitle ?? (self.titleNode.attributedText?.string ?? "")
         let entities = generateTextEntities(title, enabledTypes: [.mention])
         self.titleNode.attributedText = stringWithAppliedEntities(title, entities: entities, baseColor: self.presentationData.theme.actionSheet.primaryTextColor, linkColor: self.presentationData.theme.actionSheet.controlAccentColor, baseFont: titleFont, linkFont: titleFont, boldFont: titleFont, italicFont: titleFont, boldItalicFont: titleFont, fixedFont: titleFont, blockQuoteFont: titleFont, message: nil)
@@ -1589,7 +1589,7 @@ private final class StickerPackContainer: ASDisplayNode {
         var updateLayout = false
         
         var scrollToItem: GridNodeScrollToItem?
-        let titleFont = Font.semibold(17.0)
+        let titleFont = Font.semibold(self.presentationData.listsFontSize.baseDisplaySize)
         
         var isEditable = false
         if contents.count > 1 {
@@ -1756,7 +1756,7 @@ private final class StickerPackContainer: ASDisplayNode {
                 }
                 
                 if let mainActionTitle = self.controller?.mainActionTitle {
-                    self.buttonNode.setTitle(mainActionTitle, with: Font.semibold(17.0), with: self.presentationData.theme.list.itemCheckColors.foregroundColor, for: .normal)
+                    self.buttonNode.setTitle(mainActionTitle, with: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), with: self.presentationData.theme.list.itemCheckColors.foregroundColor, for: .normal)
                     self.buttonNode.setBackgroundImage(generateStretchableFilledCircleImage(radius: 11, color: self.presentationData.theme.list.itemCheckColors.fillColor), for: [])
                 } else {
                     let count: Int32
@@ -2185,7 +2185,7 @@ private final class StickerPackContainer: ASDisplayNode {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
-                        component: AnyComponent(Text(text: buttonTitle, font: Font.semibold(17.0), color: buttonForegroundColor))
+                        component: AnyComponent(Text(text: buttonTitle, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: buttonForegroundColor))
                     ),
                     displaysProgress: buttonHasProgress,
                     action: { [weak self] in

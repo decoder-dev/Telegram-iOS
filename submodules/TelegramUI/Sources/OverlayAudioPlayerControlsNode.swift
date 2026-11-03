@@ -108,7 +108,6 @@ private func timestampLabelWidthForDuration(_ timestamp: Double) -> CGFloat {
     return size.width
 }
 
-private let titleFont = Font.semibold(17.0)
 private let descriptionFont = Font.regular(15.0)
 
 private func stringsForDisplayData(_ data: SharedMediaPlaybackDisplayData?, presentationData: PresentationData) -> (NSAttributedString?, NSAttributedString?, Bool, NSAttributedString?) {
@@ -131,7 +130,7 @@ private func stringsForDisplayData(_ data: SharedMediaPlaybackDisplayData?, pres
                 subtitleText = ""
         }
         
-        titleString = NSAttributedString(string: titleText, font: titleFont, textColor: presentationData.theme.list.itemPrimaryTextColor)
+        titleString = NSAttributedString(string: titleText, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemPrimaryTextColor)
         descriptionString = NSAttributedString(string: subtitleText, font: descriptionFont, textColor: presentationData.theme.list.itemSecondaryTextColor)
     }
     
@@ -913,7 +912,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
             var buttonBackgroundColor = self.presentationData.theme.list.itemCheckColors.fillColor
             if savedMusic {
                 profileAudioButtonContent =  AnyComponentWithIdentity(id: "removeFromProfile", component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: self.presentationData.strings.MediaPlayer_SavedMusic_RemoveFromProfileShort, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: self.presentationData.strings.MediaPlayer_SavedMusic_RemoveFromProfileShort, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)))
                 ))
                 buttonBackgroundColor = self.presentationData.theme.list.controlSecondaryColor.withMultipliedAlpha(0.5)
             } else {
@@ -923,7 +922,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
                             BundleIconComponent(name: "Peer Info/SaveMusic", tintColor: self.presentationData.theme.list.itemCheckColors.foregroundColor)
                         )),
                         AnyComponentWithIdentity(id: "label", component: AnyComponent(
-                            MultilineTextComponent(text: .plain(NSAttributedString(string: self.presentationData.strings.MediaPlayer_SavedMusic_AddToProfile, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.itemCheckColors.foregroundColor)))
+                            MultilineTextComponent(text: .plain(NSAttributedString(string: self.presentationData.strings.MediaPlayer_SavedMusic_AddToProfile, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.itemCheckColors.foregroundColor)))
                         ))
                     ], spacing: 8.0)
                 ))

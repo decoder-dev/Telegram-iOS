@@ -573,7 +573,7 @@ final class ContactSelectionCountPanelNode: ASDisplayNode {
         self.badgeBackground.image = generateStretchableFilledCircleImage(diameter: 22.0, color: theme.actionSheet.controlAccentColor)
         
         self.button = HighlightTrackingButtonNode()
-        self.button.setTitle(strings.ShareMenu_Send, with: Font.medium(17.0), with: theme.actionSheet.controlAccentColor, for: .normal)
+        self.button.setTitle(strings.ShareMenu_Send, with: Font.medium(self.presentationData.listsFontSize.baseDisplaySize), with: theme.actionSheet.controlAccentColor, for: .normal)
         
         super.init()
         

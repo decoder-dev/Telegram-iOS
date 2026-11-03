@@ -10,13 +10,15 @@ import AppBundle
 
 final class DeleteAccountFooterItem: ItemListControllerFooterItem {
     let theme: PresentationTheme
+    let listFontSize: CGFloat
     let title: String
     let secondaryTitle: String
     let action: () -> Void
     let secondaryAction: () -> Void
     
-    init(theme: PresentationTheme, title: String, secondaryTitle: String, action: @escaping () -> Void, secondaryAction: @escaping () -> Void) {
+    init(theme: PresentationTheme, listFontSize: CGFloat = 17.0, title: String, secondaryTitle: String, action: @escaping () -> Void, secondaryAction: @escaping () -> Void) {
         self.theme = theme
+        self.listFontSize = listFontSize
         self.title = title
         self.secondaryTitle = secondaryTitle
         self.action = action
@@ -103,7 +105,7 @@ final class DeleteAccountFooterItemNode: ItemListControllerFooterItemNode {
             self?.item.action()
         }
         
-        self.secondaryButtonNode.setTitle(self.item.secondaryTitle, with: Font.regular(17.0), with: self.item.theme.list.itemAccentColor, for: .normal)
+        self.secondaryButtonNode.setTitle(self.item.secondaryTitle, with: Font.regular(self.item.listFontSize), with: self.item.theme.list.itemAccentColor, for: .normal)
     }
     
     override func updateBackgroundAlpha(_ alpha: CGFloat, transition: ContainedViewLayoutTransition) {

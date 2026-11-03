@@ -7,7 +7,6 @@ import ComponentFlow
 import ComponentDisplayAdapters
 import TabSelectorComponent
 
-private let searchBarFont = Font.regular(17.0)
 
 final class ItemListControllerTabsContentNode: NavigationBarContentNode {
     private let tabSelector = ComponentView<Empty>()

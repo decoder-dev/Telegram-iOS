@@ -826,7 +826,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
         let caption = caption.mutableCopy() as! NSMutableAttributedString
         if isAd {
             if let titleText, !titleText.isEmpty {
-                caption.insert(NSAttributedString(string: titleText + "\n", font: Font.semibold(17.0), textColor: .white), at: 0)
+                caption.insert(NSAttributedString(string: titleText + "\n", font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: .white), at: 0)
             }
             titleText = nil
         }
@@ -1047,7 +1047,7 @@ final class ChatItemGalleryFooterContentNode: GalleryFooterContentNode, ASScroll
             
             messageText = galleryCaptionStringWithAppliedEntities(context: self.context, text: text, entities: entities, message: message, cachedMessageSyntaxHighlight: cachedMessageSyntaxHighlight).mutableCopy() as! NSMutableAttributedString
             if let _ = message.adAttribute {
-                messageText.insert(NSAttributedString(string: (authorNameText ?? "") + "\n", font: Font.semibold(17.0), textColor: .white), at: 0)
+                messageText.insert(NSAttributedString(string: (authorNameText ?? "") + "\n", font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: .white), at: 0)
             }
         }
         

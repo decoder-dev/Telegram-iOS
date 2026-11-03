@@ -5,7 +5,6 @@ import Display
 import TelegramPresentationData
 import GlassBackgroundComponent
 
-private let cancelFont = Font.regular(17.0)
 
 public final class ChatTextInputAudioRecordingCancelIndicator: UIView, GlassBackgroundView.ContentView {
     private let cancel: () -> Void

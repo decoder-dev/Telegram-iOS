@@ -151,7 +151,7 @@ private final class LanguageSuggestionItemNode: HighlightableButtonNode {
         
         self.iconNode.image = icon
         self.contentHorizontalAlignment = alignment
-        self.setTitle(item.title, with: Font.regular(17.0), with: color, for: [])
+        self.setTitle(item.title, with: Font.regular(presentationData.listsFontSize.baseDisplaySize), with: color, for: [])
         
         var titleVerticalOffset: CGFloat = 0.0
         if let subtitle = item.subtitle {

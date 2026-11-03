@@ -22,7 +22,6 @@ final class VoiceChatVolumeContextItem: ContextMenuCustomItem {
     }
 }
 
-private let textFont = Font.regular(17.0)
 
 private final class VoiceChatVolumeContextItemNode: ASDisplayNode, ContextMenuCustomNode {
     private var presentationData: PresentationData
@@ -107,8 +106,8 @@ private final class VoiceChatVolumeContextItemNode: ASDisplayNode, ContextMenuCu
         let value = self.value / 2.0
         transition.updateFrameAdditive(node: self.foregroundNode, frame: CGRect(origin: CGPoint(), size: CGSize(width: value * width, height: self.frame.height)))
         
-        self.backgroundTextNode.attributedText = NSAttributedString(string: "\(Int(self.value * 100.0))%", font: textFont, textColor: UIColor(rgb: 0xffffff))
-        self.foregroundTextNode.attributedText = NSAttributedString(string: "\(Int(self.value * 100.0))%", font: textFont, textColor: UIColor(rgb: 0x000000))
+        self.backgroundTextNode.attributedText = NSAttributedString(string: "\(Int(self.value * 100.0))%", font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: UIColor(rgb: 0xffffff))
+        self.foregroundTextNode.attributedText = NSAttributedString(string: "\(Int(self.value * 100.0))%", font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: UIColor(rgb: 0x000000))
         
         let iconValue: VoiceChatSpeakerNode.State.Value
         if value == 0.0 {

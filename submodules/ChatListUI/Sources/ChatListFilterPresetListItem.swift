@@ -122,7 +122,6 @@ final class ChatListFilterPresetListItem: ListViewItem, ItemListItem, ItemListRe
     }
 }
 
-private let titleFont = Font.regular(17.0)
 
 final class ChatListFilterPresetListItemNode: ItemListRevealOptionsItemNode {
     private let backgroundNode: ASDisplayNode
@@ -254,9 +253,9 @@ final class ChatListFilterPresetListItemNode: ItemListRevealOptionsItemNode {
             
             let titleAttributedString = NSMutableAttributedString()
             if item.isAllChats {
-                titleAttributedString.append(NSAttributedString(string: item.presentationData.strings.ChatList_FolderAllChats, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor))
+                titleAttributedString.append(NSAttributedString(string: item.presentationData.strings.ChatList_FolderAllChats, font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), textColor: item.presentationData.theme.list.itemPrimaryTextColor))
             } else {
-                titleAttributedString.append(item.title.attributedString(font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor))
+                titleAttributedString.append(item.title.attributedString(font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), textColor: item.presentationData.theme.list.itemPrimaryTextColor))
             }
             
             var editableControlSizeAndApply: (CGFloat, (CGFloat) -> ItemListEditableControlNode)?
@@ -284,7 +283,7 @@ final class ChatListFilterPresetListItemNode: ItemListRevealOptionsItemNode {
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: CGSize(width: params.width - leftInset - 12.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let labelConstrain: CGFloat = params.width - params.rightInset - leftInset - 40.0 - titleLayout.size.width - 10.0
-            let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.label, font: titleFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: labelConstrain, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.label, font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: labelConstrain, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let verticalInset: CGFloat
             switch item.systemStyle {

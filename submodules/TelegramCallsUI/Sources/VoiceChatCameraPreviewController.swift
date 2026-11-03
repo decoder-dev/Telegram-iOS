@@ -193,7 +193,7 @@ private class VoiceChatCameraPreviewControllerNode: ViewControllerTracingNode, A
         }
         
         self.cancelButton = HighlightableButtonNode()
-        self.cancelButton.setAttributedTitle(NSAttributedString(string: self.presentationData.strings.Common_Cancel, font: Font.regular(17.0), textColor: UIColor(rgb: 0xffffff)), for: [])
+        self.cancelButton.setAttributedTitle(NSAttributedString(string: self.presentationData.strings.Common_Cancel, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: UIColor(rgb: 0xffffff)), for: [])
         
         self.previewContainerNode = ASDisplayNode()
         self.previewContainerNode.clipsToBounds = true

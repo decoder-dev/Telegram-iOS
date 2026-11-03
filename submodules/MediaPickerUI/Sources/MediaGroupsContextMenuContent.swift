@@ -102,7 +102,7 @@ final class MediaGroupsContextMenuContent: ContextControllerItemsContent {
 
                 self.highlightBackgroundNode.frame = CGRect(origin: CGPoint(), size: size)
 
-                self.titleLabelNode.attributedText = NSAttributedString(string: item.collection.localizedTitle ?? "", font: Font.regular(17.0), textColor: presentationData.theme.contextMenu.primaryColor)
+                self.titleLabelNode.attributedText = NSAttributedString(string: item.collection.localizedTitle ?? "", font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.contextMenu.primaryColor)
                 
                 self.subtitleLabelNode.attributedText = NSAttributedString(string: "\(item.count)", font: Font.regular(15.0), textColor: presentationData.theme.contextMenu.secondaryColor)
                 let maxTextWidth: CGFloat = size.width - leftInset - rightInset

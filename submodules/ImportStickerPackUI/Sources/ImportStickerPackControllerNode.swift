@@ -533,10 +533,10 @@ final class ImportStickerPackControllerNode: ViewControllerTracingNode, ASScroll
         self.radialStatusText.attributedText = NSAttributedString(string: "\(Int(effectiveProgress * 100.0))%", font: Font.with(size: floor(36.0 * maxK), design: .round, weight: .semibold), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
         let radialStatusTextSize = self.radialStatusText.updateLayout(CGSize(width: 200.0, height: .greatestFiniteMagnitude))
         
-        self.progressText.attributedText = NSAttributedString(string:  self.presentationData.strings.ImportStickerPack_Of(String(count), String(total)).string, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
+        self.progressText.attributedText = NSAttributedString(string:  self.presentationData.strings.ImportStickerPack_Of(String(count), String(total)).string, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
         let progressTextSize = self.progressText.updateLayout(CGSize(width: contentContainerFrame.width - 16.0 * 2.0, height: .greatestFiniteMagnitude))
         
-        self.infoText.attributedText = NSAttributedString(string: self.presentationData.strings.ImportStickerPack_InProgress, font: Font.regular(17.0), textColor: self.presentationData.theme.list.itemSecondaryTextColor)
+        self.infoText.attributedText = NSAttributedString(string: self.presentationData.strings.ImportStickerPack_InProgress, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.itemSecondaryTextColor)
         let infoTextSize = self.infoText.updateLayout(CGSize(width: contentContainerFrame.width - 16.0 * 2.0, height: .greatestFiniteMagnitude))
         
         // Centred on the card, which keeps to the band beside a side strip (iPhone Duo).

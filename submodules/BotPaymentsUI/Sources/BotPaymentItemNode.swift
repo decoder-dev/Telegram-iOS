@@ -17,6 +17,7 @@ class BotPaymentItemNode: ASDisplayNode {
     private let maskNode: ASImageNode
     
     private var theme: PresentationTheme?
+    fileprivate var listFontSize: CGFloat = 17.0
     
     init(needsBackground: Bool) {
         self.needsBackground = needsBackground
@@ -37,12 +38,14 @@ class BotPaymentItemNode: ASDisplayNode {
         }
     }
     
-    func measureInset(theme: PresentationTheme, width: CGFloat) -> CGFloat {
+    func measureInset(theme: PresentationTheme, listFontSize: CGFloat, width: CGFloat) -> CGFloat {
+        self.listFontSize = listFontSize
         return 0.0
     }
     
     /// `sideInset` is the left margin, `rightSideInset` the right one (they differ beside iPhone Duo's side strip).
-    final func updateLayout(theme: PresentationTheme, width: CGFloat, sideInset: CGFloat, rightSideInset: CGFloat, measuredInset: CGFloat, previousItemNode: BotPaymentItemNode?, nextItemNode: BotPaymentItemNode?, transition: ContainedViewLayoutTransition) -> CGFloat {
+    final func updateLayout(theme: PresentationTheme, listFontSize: CGFloat, width: CGFloat, sideInset: CGFloat, rightSideInset: CGFloat, measuredInset: CGFloat, previousItemNode: BotPaymentItemNode?, nextItemNode: BotPaymentItemNode?, transition: ContainedViewLayoutTransition) -> CGFloat {
+        self.listFontSize = listFontSize
         if self.theme !== theme {
             self.theme = theme
             self.backgroundNode.backgroundColor = theme.list.itemBlocksBackgroundColor

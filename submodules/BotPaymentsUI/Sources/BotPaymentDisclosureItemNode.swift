@@ -4,7 +4,6 @@ import AsyncDisplayKit
 import Display
 import TelegramPresentationData
 
-private let titleFont = Font.regular(17.0)
 
 class BotPaymentDisclosureItemNode: BotPaymentItemNode {
     private let title: String
@@ -12,7 +11,7 @@ class BotPaymentDisclosureItemNode: BotPaymentItemNode {
     var text: String {
         didSet {
             if let theme = self.theme {
-                self.textNode.attributedText = NSAttributedString(string: self.text, font: titleFont, textColor: theme.list.itemPrimaryTextColor)
+                self.textNode.attributedText = NSAttributedString(string: self.text, font: Font.regular(listFontSize), textColor: theme.list.itemPrimaryTextColor)
             }
         }
     }
@@ -68,15 +67,15 @@ class BotPaymentDisclosureItemNode: BotPaymentItemNode {
         self.buttonNode.addTarget(self, action: #selector(buttonPressed), forControlEvents: .touchUpInside)
     }
     
-    override func measureInset(theme: PresentationTheme, width: CGFloat) -> CGFloat {
+    override func measureInset(theme: PresentationTheme, listFontSize: CGFloat, width: CGFloat) -> CGFloat {
         if self.theme !== theme {
             self.theme = theme
             self.highlightedBackgroundNode.backgroundColor = theme.list.itemHighlightedBackgroundColor
-            self.titleNode.attributedText = NSAttributedString(string: self.title, font: titleFont, textColor: theme.list.itemPrimaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.regular(listFontSize), textColor: theme.list.itemPrimaryTextColor)
             if self.text.isEmpty {
-                self.textNode.attributedText = NSAttributedString(string: self.placeholder, font: titleFont, textColor: theme.list.itemPlaceholderTextColor)
+                self.textNode.attributedText = NSAttributedString(string: self.placeholder, font: Font.regular(listFontSize), textColor: theme.list.itemPlaceholderTextColor)
             } else {
-                self.textNode.attributedText = NSAttributedString(string: self.text, font: titleFont, textColor: theme.list.itemPrimaryTextColor)
+                self.textNode.attributedText = NSAttributedString(string: self.text, font: Font.regular(listFontSize), textColor: theme.list.itemPrimaryTextColor)
             }
         }
         
@@ -94,11 +93,11 @@ class BotPaymentDisclosureItemNode: BotPaymentItemNode {
         if self.theme !== theme {
             self.theme = theme
             self.highlightedBackgroundNode.backgroundColor = theme.list.itemHighlightedBackgroundColor
-            self.titleNode.attributedText = NSAttributedString(string: self.title, font: titleFont, textColor: theme.list.itemPrimaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.regular(listFontSize), textColor: theme.list.itemPrimaryTextColor)
             if self.text.isEmpty {
-                self.textNode.attributedText = NSAttributedString(string: self.placeholder, font: titleFont, textColor: theme.list.itemPlaceholderTextColor)
+                self.textNode.attributedText = NSAttributedString(string: self.placeholder, font: Font.regular(listFontSize), textColor: theme.list.itemPlaceholderTextColor)
             } else {
-                self.textNode.attributedText = NSAttributedString(string: self.text, font: titleFont, textColor: theme.list.itemPrimaryTextColor)
+                self.textNode.attributedText = NSAttributedString(string: self.text, font: Font.regular(listFontSize), textColor: theme.list.itemPrimaryTextColor)
             }
         }
         

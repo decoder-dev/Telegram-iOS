@@ -225,11 +225,10 @@ public func internalDocumentItemSupportsMimeType(_ type: String, fileName: Strin
     return false
 }
 
-private let textFont = Font.regular(17.0)
 private let boldFont = Font.bold(17.0)
 private let italicFont = Font.italic(17.0)
 private let boldItalicFont = Font.semiboldItalic(17.0)
-private let fixedFont = UIFont(name: "Menlo-Regular", size: 17.0) ?? textFont
+private let fixedFont = UIFont(name: "Menlo-Regular", size: 17.0) ?? Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
 
 public func galleryCaptionStringWithAppliedEntities(context: AccountContext, text: String, entities: [MessageTextEntity], message: Message?, cachedMessageSyntaxHighlight: CachedMessageSyntaxHighlight? = nil) -> NSAttributedString {
     var baseQuoteSecondaryTintColor: UIColor?
@@ -261,7 +260,7 @@ public func galleryCaptionStringWithAppliedEntities(context: AccountContext, tex
         codeBlockTitleColor: .white,
         codeBlockAccentColor: .white,
         codeBlockBackgroundColor: UIColor(white: 1.0, alpha: 0.2),
-        baseFont: textFont, linkFont: textFont, boldFont: boldFont, italicFont: italicFont, boldItalicFont: boldItalicFont, fixedFont: fixedFont, blockQuoteFont: textFont, underlineLinks: false, message: message, adjustQuoteFontSize: true, cachedMessageSyntaxHighlight: cachedMessageSyntaxHighlight)
+        baseFont: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), linkFont: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), boldFont: boldFont, italicFont: italicFont, boldItalicFont: boldItalicFont, fixedFont: fixedFont, blockQuoteFont: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), underlineLinks: false, message: message, adjustQuoteFontSize: true, cachedMessageSyntaxHighlight: cachedMessageSyntaxHighlight)
 }
 
 func galleryMessageCaptionText(_ message: Message, mediaSubject: GalleryMediaSubject?) -> (String, [MessageTextEntity]) {

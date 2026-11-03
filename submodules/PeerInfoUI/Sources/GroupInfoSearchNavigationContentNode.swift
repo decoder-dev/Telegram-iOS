@@ -13,7 +13,6 @@ import ComponentDisplayAdapters
 import AppBundle
 import ActivityIndicator
 
-private let searchBarFont = Font.regular(17.0)
 
 final class GroupInfoSearchNavigationContentNode: NavigationBarContentNode, ItemListControllerSearchNavigationContentNode {
     private struct Params: Equatable {
@@ -31,6 +30,8 @@ final class GroupInfoSearchNavigationContentNode: NavigationBarContentNode, Item
     private var theme: PresentationTheme
     private let strings: PresentationStrings
     private let searchMode: ChannelMembersSearchMode
+    
+    private let contentFontSize: CGFloat
     
     private let cancel: () -> Void
     
@@ -54,10 +55,11 @@ final class GroupInfoSearchNavigationContentNode: NavigationBarContentNode, Item
         }
     }
     
-    init(theme: PresentationTheme, strings: PresentationStrings, mode: ChannelMembersSearchMode, cancel: @escaping () -> Void, updateActivity: @escaping(@escaping(Bool)->Void) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, mode: ChannelMembersSearchMode, contentFontSize: CGFloat = 17.0, cancel: @escaping () -> Void, updateActivity: @escaping(@escaping(Bool)->Void) -> Void) {
         self.theme = theme
         self.strings = strings
         self.searchMode = mode
+        self.contentFontSize = contentFontSize
         
         self.cancel = cancel
         
@@ -87,7 +89,8 @@ final class GroupInfoSearchNavigationContentNode: NavigationBarContentNode, Item
             fieldStyle: .inlineNavigation,
             forceSeparator: false,
             displayBackground: false,
-            cancelText: nil
+            cancelText: nil,
+            contentFontSize: contentFontSize
         )
         
         super.init()
@@ -140,7 +143,7 @@ final class GroupInfoSearchNavigationContentNode: NavigationBarContentNode, Item
             default:
                 placeholderText = self.strings.Conversation_SearchByName_Placeholder
         }
-        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: searchBarFont, textColor: self.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: Font.regular(self.contentFontSize), textColor: self.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
     }
     
     override var nominalHeight: CGFloat {

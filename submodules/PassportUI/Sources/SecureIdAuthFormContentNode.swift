@@ -10,7 +10,6 @@ import Markdown
 
 private let infoFont = Font.regular(14.0)
 private let passwordFont = Font.regular(16.0)
-private let buttonFont = Font.regular(17.0)
 
 final class SecureIdAuthFormContentNode: ASDisplayNode, SecureIdAuthContentNode, UITextFieldDelegate {
     private let primaryLanguageByCountry: [String: String]

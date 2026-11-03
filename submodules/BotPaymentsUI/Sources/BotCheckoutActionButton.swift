@@ -11,10 +11,11 @@ enum BotCheckoutActionButtonState: Equatable {
     case placeholder
 }
 
-private let titleFont = Font.semibold(17.0)
 
 final class BotCheckoutActionButton: HighlightTrackingButtonNode {
     static var height: CGFloat = 52.0
+
+    private var listFontSize: CGFloat = 17.0
 
     private var activeFillColor: UIColor
     private var inactiveFillColor: UIColor
@@ -81,7 +82,8 @@ final class BotCheckoutActionButton: HighlightTrackingButtonNode {
         self.sendActions(forControlEvents: .touchUpInside, with: nil)
     }
     
-    func updateLayout(absoluteRect: CGRect, containerSize: CGSize, transition: ContainedViewLayoutTransition) {
+    func updateLayout(absoluteRect: CGRect, containerSize: CGSize, listFontSize: CGFloat = 17.0, transition: ContainedViewLayoutTransition) {
+        self.listFontSize = listFontSize
         let size = absoluteRect.size
 
         self.validLayout = (absoluteRect, containerSize)
@@ -105,7 +107,7 @@ final class BotCheckoutActionButton: HighlightTrackingButtonNode {
                 self.activeBackgroundNode.backgroundColor = isEnabled ? self.activeFillColor : self.inactiveFillColor
                 
                 let makeLayout = TextNode.asyncLayout(self.labelNode)
-                let (labelLayout, labelApply) = makeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: title, font: titleFont, textColor: self.foregroundColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: size, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+                let (labelLayout, labelApply) = makeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: title, font: Font.semibold(self.listFontSize), textColor: self.foregroundColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: size, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 let _ = labelApply()
                 labelSize = labelLayout.size
             case let .applePay(isEnabled):

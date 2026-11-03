@@ -836,10 +836,10 @@ public enum SearchBarStyle {
     case inlineNavigation
     case glass
     
-    var font: UIFont {
+    func font(contentFontSize: CGFloat) -> UIFont {
         switch self {
         case .modern, .inlineNavigation, .glass:
-            return Font.regular(17.0)
+            return Font.regular(contentFontSize)
         case .legacy:
             return Font.regular(14.0)
         }

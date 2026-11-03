@@ -64,7 +64,6 @@ final class BoostLevelHeaderItem: ListViewItem, ItemListItem {
     }
 }
 
-private let titleFont = Font.semibold(17.0)
 private let textFont = Font.regular(15.0)
 private let boldTextFont = Font.semibold(15.0)
 

@@ -782,7 +782,7 @@ class VoiceChatParticipantItemNode: ItemListRevealOptionsItemNode {
                 updatedTheme = item.presentationData.theme
             }
                         
-            let titleFont = Font.regular(17.0)
+            let titleFont = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
             var titleAttributedString: NSAttributedString?
             let titleColor = item.presentationData.theme.list.itemPrimaryTextColor
             

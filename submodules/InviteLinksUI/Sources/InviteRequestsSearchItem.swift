@@ -16,7 +16,6 @@ import ItemListUI
 import SearchUI
 import ContextUI
 
-private let searchBarFont = Font.regular(17.0)
 
 final class SearchNavigationContentNode: NavigationBarContentNode, ItemListControllerSearchNavigationContentNode {
     private var theme: PresentationTheme
@@ -71,7 +70,7 @@ final class SearchNavigationContentNode: NavigationBarContentNode, ItemListContr
     }
     
     func updatePlaceholder() {
-        self.searchBar.placeholderString = NSAttributedString(string: self.strings.MemberRequests_SearchPlaceholder, font: searchBarFont, textColor: self.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+        self.searchBar.placeholderString = NSAttributedString(string: self.strings.MemberRequests_SearchPlaceholder, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
     }
     
     override var nominalHeight: CGFloat {
@@ -371,7 +370,7 @@ public final class InviteRequestsSearchContainerNode: SearchDisplayControllerCon
         
         self.emptyResultsTitleNode = ImmediateTextNode()
         self.emptyResultsTitleNode.displaysAsynchronously = false
-        self.emptyResultsTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.ChatList_Search_NoResults, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.freeTextColor)
+        self.emptyResultsTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.ChatList_Search_NoResults, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.freeTextColor)
         self.emptyResultsTitleNode.textAlignment = .center
         self.emptyResultsTitleNode.isHidden = true
         

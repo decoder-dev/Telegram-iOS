@@ -13,7 +13,6 @@ import ComponentFlow
 import GlassBackgroundComponent
 import ActivityIndicator
 
-private let searchBarFont = Font.regular(17.0)
 
 public final class ChatSearchNavigationContentNode: NavigationBarContentNode {
     private let context: AccountContext
@@ -31,6 +30,8 @@ public final class ChatSearchNavigationContentNode: NavigationBarContentNode {
     
     private let interaction: ChatPanelInterfaceInteraction
     
+    private let contentFontSize: CGFloat
+    
     private var hasActivity: Bool = false
     private var searchingActivityDisposable: Disposable?
     
@@ -43,6 +44,8 @@ public final class ChatSearchNavigationContentNode: NavigationBarContentNode {
         self.strings = strings
         self.chatLocation = chatLocation
         self.interaction = interaction
+        
+        self.contentFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         
         self.backgroundContainer = GlassBackgroundContainerView()
         self.backgroundView = GlassBackgroundView()
@@ -71,7 +74,8 @@ public final class ChatSearchNavigationContentNode: NavigationBarContentNode {
             fieldStyle: .inlineNavigation,
             forceSeparator: false,
             displayBackground: false,
-            cancelText: nil
+            cancelText: nil,
+            contentFontSize: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         )
         let placeholderText: String
         switch chatLocation {
@@ -86,7 +90,7 @@ public final class ChatSearchNavigationContentNode: NavigationBarContentNode {
                 placeholderText = strings.Conversation_SearchPlaceholder
             }
         }
-        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: searchBarFont, textColor: theme.chat.inputPanel.inputPlaceholderColor)
+        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: Font.regular(self.contentFontSize), textColor: theme.chat.inputPanel.inputPlaceholderColor)
         
         super.init()
         
@@ -275,10 +279,10 @@ public final class ChatSearchNavigationContentNode: NavigationBarContentNode {
                         placeholderText = self.strings.Conversation_SearchPlaceholder
                     }
                 }
-                self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: searchBarFont, textColor: presentationInterfaceState.theme.chat.inputPanel.inputPlaceholderColor)
+                self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: Font.regular(self.contentFontSize), textColor: presentationInterfaceState.theme.chat.inputPanel.inputPlaceholderColor)
             case .members:
                 self.searchBar.tokens = []
-                self.searchBar.prefixString = NSAttributedString(string: strings.Conversation_SearchByName_Prefix, font: searchBarFont, textColor: presentationInterfaceState.theme.chat.inputPanel.inputTextColor)
+                self.searchBar.prefixString = NSAttributedString(string: strings.Conversation_SearchByName_Prefix, font: Font.regular(self.contentFontSize), textColor: presentationInterfaceState.theme.chat.inputPanel.inputTextColor)
                 self.searchBar.placeholderString = nil
             case let .member(peer):
                 self.searchBar.tokens = [SearchBarToken(id: peer.id, icon: UIImage(bundleImageName: "Chat List/Search/User"), title: EnginePeer(peer).compactDisplayTitle, permanent: false)]

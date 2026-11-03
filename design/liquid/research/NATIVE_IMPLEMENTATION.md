@@ -287,3 +287,7 @@ Passport phone/scan forms, SearchBarNode contentFontSize, AvatarGallery footer, 
 ## Tab bar search, wallet screens и chat input panels
 
 SearchBar contentFontSize wired through Location/Contact/FeaturedStickers/PaneSearch/GroupSticker/AttachmentFile callers; TabBar integrated search takes listsFontSize; Wallet screens, chat unblock/delete/report panels, TextProcessing editors, TextField typingAttributes, Story capture-protected info и OptionListItem масштабируют 17 pt. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Широкий проход по оставшимся 17 pt labels
+
+Масштабированы Passport forms, BotPayment fields, Call/Invite/Hashtag/Search nav, ContactAdd, Passcode entry Cancel/Delete, Gallery/StickerPack/ImportSticker, VoiceChat items, chat search/quick share/bot info, MediaCover/Cutout, PeerInfo gifts panes, TimezoneSelection, AutodownloadSizeLimit labels и десятки смежных поверхностей. Branding Liquid: 7 pass. Simulator NOT RUN. Оставшиеся hardcode 17 pt — в основном phone stacks, PeerInfo header animation и узкие auth/drawing surfaces.

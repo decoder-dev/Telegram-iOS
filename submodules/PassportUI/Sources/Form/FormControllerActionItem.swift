@@ -4,7 +4,6 @@ import AsyncDisplayKit
 import Display
 import TelegramPresentationData
 
-private let textFont = Font.regular(17.0)
 
 enum FormControllerActionType {
     case accent

@@ -8,12 +8,13 @@ import SearchBarNode
 import ComponentFlow
 import GlassBackgroundComponent
 
-private let searchBarFont = Font.regular(17.0)
 
 final class ChatRecentActionsSearchNavigationContentNode: NavigationBarContentNode {
     private var theme: PresentationTheme
     private var preferClearGlass: Bool
     private var strings: PresentationStrings
+
+    private let contentFontSize: CGFloat
 
     private let cancel: () -> Void
 
@@ -26,10 +27,11 @@ final class ChatRecentActionsSearchNavigationContentNode: NavigationBarContentNo
     private var queryUpdated: ((String) -> Void)?
     private var params: (size: CGSize, leftInset: CGFloat, rightInset: CGFloat)?
 
-    init(theme: PresentationTheme, preferClearGlass: Bool, strings: PresentationStrings, cancel: @escaping () -> Void) {
+    init(theme: PresentationTheme, preferClearGlass: Bool, strings: PresentationStrings, contentFontSize: CGFloat = 17.0, cancel: @escaping () -> Void) {
         self.theme = theme
         self.preferClearGlass = preferClearGlass
         self.strings = strings
+        self.contentFontSize = contentFontSize
 
         self.cancel = cancel
 
@@ -42,9 +44,9 @@ final class ChatRecentActionsSearchNavigationContentNode: NavigationBarContentNo
         self.close = (GlassBackgroundView(), UIImageView())
         self.close.background.contentView.addSubview(self.close.icon)
 
-        self.searchBar = SearchBarNode(theme: ChatRecentActionsSearchNavigationContentNode.searchBarTheme(theme), presentationTheme: theme, preferClearGlass: preferClearGlass, strings: strings, fieldStyle: .inlineNavigation, forceSeparator: false, displayBackground: false, cancelText: nil)
+        self.searchBar = SearchBarNode(theme: ChatRecentActionsSearchNavigationContentNode.searchBarTheme(theme), presentationTheme: theme, preferClearGlass: preferClearGlass, strings: strings, fieldStyle: .inlineNavigation, forceSeparator: false, displayBackground: false, cancelText: nil, contentFontSize: contentFontSize)
         let placeholderText = strings.Common_Search
-        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: searchBarFont, textColor: theme.chat.inputPanel.inputPlaceholderColor)
+        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: Font.regular(contentFontSize), textColor: theme.chat.inputPanel.inputPlaceholderColor)
 
         super.init()
 
@@ -100,7 +102,7 @@ final class ChatRecentActionsSearchNavigationContentNode: NavigationBarContentNo
                 preferClearGlass: preferClearGlass,
                 strings: strings
             )
-            self.searchBar.placeholderString = NSAttributedString(string: strings.Common_Search, font: searchBarFont, textColor: theme.chat.inputPanel.inputPlaceholderColor)
+            self.searchBar.placeholderString = NSAttributedString(string: strings.Common_Search, font: Font.regular(self.contentFontSize), textColor: theme.chat.inputPanel.inputPlaceholderColor)
         }
 
         if let params = self.params {

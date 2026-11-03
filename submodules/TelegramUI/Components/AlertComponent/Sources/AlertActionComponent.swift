@@ -10,8 +10,6 @@ import MultilineTextComponent
 import GlassBackgroundComponent
 import ActivityIndicatorComponent
 
-private let titleFont = Font.medium(17.0)
-private let boldTitleFont = Font.semibold(17.0)
 
 final class AlertActionComponent: Component {
     typealias EnvironmentType = AlertComponentEnvironment

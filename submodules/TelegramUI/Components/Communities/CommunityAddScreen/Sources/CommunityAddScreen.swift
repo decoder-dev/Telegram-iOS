@@ -340,7 +340,7 @@ private final class CommunityAddContentComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Community_Add_Title,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(presentationData.listsFontSize.baseDisplaySize),
                         textColor: theme.list.itemPrimaryTextColor
                     )),
                     horizontalAlignment: .center,

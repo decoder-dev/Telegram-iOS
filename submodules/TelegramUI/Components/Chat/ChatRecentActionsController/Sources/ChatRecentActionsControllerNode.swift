@@ -170,7 +170,7 @@ private final class RecentActionsGlassTextButtonView: UIView {
 
         super.init(frame: frame)
 
-        self.titleLabel.font = Font.regular(17.0)
+        self.titleLabel.font = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
         self.titleLabel.textAlignment = .center
         self.backgroundView.contentView.addSubview(self.titleLabel)
         self.backgroundView.contentView.addSubview(self.button)

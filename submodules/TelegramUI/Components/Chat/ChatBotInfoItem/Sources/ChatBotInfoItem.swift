@@ -19,8 +19,6 @@ import ComponentFlow
 import PeerInfoCoverComponent
 import ComponentDisplayAdapters
 
-private let messageFont = Font.regular(17.0)
-private let messageBoldFont = Font.semibold(17.0)
 private let messageItalicFont = Font.italic(17.0)
 private let messageBoldItalicFont = Font.semiboldItalic(17.0)
 private let messageFixedFont = UIFont(name: "Menlo-Regular", size: 16.0) ?? UIFont.systemFont(ofSize: 17.0)
@@ -252,7 +250,7 @@ public final class ChatBotInfoItemNode: ListViewItemNode {
                 updatedTextAndEntities = (item.text, generateTextEntities(item.text, enabledTypes: .all))
             }
             
-            let attributedText = stringWithAppliedEntities(updatedTextAndEntities.0, entities: updatedTextAndEntities.1, baseColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor, linkColor: item.presentationData.theme.theme.chat.message.infoLinkTextColor, baseFont: messageFont, linkFont: messageFont, boldFont: messageBoldFont, italicFont: messageItalicFont, boldItalicFont: messageBoldItalicFont, fixedFont: messageFixedFont, blockQuoteFont: messageFont, message: nil, adjustQuoteFontSize: true)
+            let attributedText = stringWithAppliedEntities(updatedTextAndEntities.0, entities: updatedTextAndEntities.1, baseColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor, linkColor: item.presentationData.theme.theme.chat.message.infoLinkTextColor, baseFont: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), linkFont: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), boldFont: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), italicFont: messageItalicFont, boldItalicFont: messageBoldItalicFont, fixedFont: messageFixedFont, blockQuoteFont: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), message: nil, adjustQuoteFontSize: true)
             
             let horizontalEdgeInset: CGFloat = 10.0 + params.leftInset
             let horizontalContentInset: CGFloat = 12.0
@@ -264,25 +262,25 @@ public final class ChatBotInfoItemNode: ListViewItemNode {
             let textSpacing: CGFloat
             if let peer = item.peer, let managedByBot = item.managedByBot {
                 titleString = parseMarkdownIntoAttributedString(item.presentationData.strings.Chat_ManagedBot_CreatedTitle(peer.compactDisplayTitle).string, attributes: MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: messageFont, textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor),
-                    bold: MarkdownAttributeSet(font: messageBoldFont, textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor),
-                    link: MarkdownAttributeSet(font: messageFont, textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor),
+                    body: MarkdownAttributeSet(font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor),
+                    bold: MarkdownAttributeSet(font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor),
+                    link: MarkdownAttributeSet(font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor),
                     linkAttribute: { url in
                         return ("URL", url)
                     }
                 ))
                 let rawTextString = item.presentationData.strings.Chat_ManagedBot_CreatedText(managedByBot.compactDisplayTitle).string
                 textString = parseMarkdownIntoAttributedString(rawTextString, attributes: MarkdownAttributes(
-                    body: MarkdownAttributeSet(font: messageFont, textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor),
-                    bold: MarkdownAttributeSet(font: messageBoldFont, textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor),
-                    link: MarkdownAttributeSet(font: messageFont, textColor: item.presentationData.theme.theme.chat.message.incoming.accentTextColor),
+                    body: MarkdownAttributeSet(font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor),
+                    bold: MarkdownAttributeSet(font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor),
+                    link: MarkdownAttributeSet(font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: item.presentationData.theme.theme.chat.message.incoming.accentTextColor),
                     linkAttribute: { url in
                         return (TelegramTextAttributes.URL, url)
                     }
                 ))
                 textSpacing = 16.0
             } else {
-                titleString = NSAttributedString(string: item.title, font: messageBoldFont, textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor)
+                titleString = NSAttributedString(string: item.title, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: item.presentationData.theme.theme.chat.message.infoPrimaryTextColor)
                 textString = attributedText
                 textSpacing = 1.0
             }

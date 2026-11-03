@@ -798,7 +798,7 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
                 buttonTitle = params.presentationData.strings.PeerInfo_Gifts_SendGift
             }
             
-            let buttonAttributedString = NSAttributedString(string: buttonTitle, font: Font.semibold(17.0), textColor: presentationData.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSAttributedString(string: buttonTitle, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             var buttonTitleContent: AnyComponent<Empty> = AnyComponent(MultilineTextComponent(text: .plain(buttonAttributedString)))
             if let buttonIconName {
                 buttonTitleContent = AnyComponent(HStack([
@@ -886,7 +886,7 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
                                     selected: self.profileGifts.currentState?.notificationsEnabled ?? false
                                 ))),
                                 AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
-                                    text: .plain(NSAttributedString(string: presentationData.strings.PeerInfo_Gifts_ChannelNotify, font: Font.regular(17.0), textColor: presentationData.theme.list.itemPrimaryTextColor))
+                                    text: .plain(NSAttributedString(string: presentationData.strings.PeerInfo_Gifts_ChannelNotify, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemPrimaryTextColor))
                                 )))
                             ],
                             spacing: 16.0

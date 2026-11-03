@@ -194,7 +194,7 @@ final class PeerInfoHeaderNavigationButton: HighlightableButtonNode {
             self.accessibilityLabel = accessibilityText
             self.containerNode.isGestureEnabled = isGestureEnabled
             
-            let font: UIFont = isBold ? Font.semibold(17.0) : Font.regular(17.0)
+            let font: UIFont = isBold ? Font.semibold(presentationData.listsFontSize.baseDisplaySize) : Font.regular(presentationData.listsFontSize.baseDisplaySize)
             
             self.textNode.attributedText = NSAttributedString(string: text, font: font, textColor: .white)
             transition.updateTintColor(layer: self.textNode.layer, color: self.contentsColor)

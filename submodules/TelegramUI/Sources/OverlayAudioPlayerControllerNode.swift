@@ -1096,7 +1096,7 @@ final class OverlayAudioPlayerControllerNode: ViewControllerTracingNode, ASGestu
             let titleSize = self.title.update(
                 transition: ComponentTransition(transition),
                 component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: titleString, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: titleString, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)))
                 ),
                 environment: {},
                 containerSize: CGSize(width: titleAvailableWidth, height: headerHeight)

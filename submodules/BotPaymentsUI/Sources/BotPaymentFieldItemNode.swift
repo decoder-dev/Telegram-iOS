@@ -4,7 +4,6 @@ import AsyncDisplayKit
 import Display
 import TelegramPresentationData
 
-private let titleFont = Font.regular(17.0)
 
 enum BotPaymentFieldContentType {
     case generic
@@ -45,7 +44,7 @@ final class BotPaymentFieldItemNode: BotPaymentItemNode, UITextFieldDelegate {
         self.titleNode.maximumNumberOfLines = 1
         
         self.textField = TextFieldNode()
-        self.textField.textField.font = titleFont
+        self.textField.textField.font = Font.regular(listFontSize)
         self.textField.textField.returnKeyType = .next
         self.textField.textField.text = text
         switch contentType {
@@ -80,12 +79,12 @@ final class BotPaymentFieldItemNode: BotPaymentItemNode, UITextFieldDelegate {
         self.textField.textField.delegate = self
     }
     
-    override func measureInset(theme: PresentationTheme, width: CGFloat) -> CGFloat {
+    override func measureInset(theme: PresentationTheme, listFontSize: CGFloat, width: CGFloat) -> CGFloat {
         if self.theme !== theme {
             self.theme = theme
-            self.titleNode.attributedText = NSAttributedString(string: self.title, font: titleFont, textColor: theme.list.itemPrimaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.regular(listFontSize), textColor: theme.list.itemPrimaryTextColor)
             self.textField.textField.textColor = theme.list.itemPrimaryTextColor
-            self.textField.textField.attributedPlaceholder = NSAttributedString(string: placeholder, font: titleFont, textColor: theme.list.itemPlaceholderTextColor)
+            self.textField.textField.attributedPlaceholder = NSAttributedString(string: placeholder, font: Font.regular(listFontSize), textColor: theme.list.itemPlaceholderTextColor)
             self.textField.textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
             self.textField.textField.tintColor = theme.list.itemAccentColor
         }
@@ -103,7 +102,7 @@ final class BotPaymentFieldItemNode: BotPaymentItemNode, UITextFieldDelegate {
     override func layoutContents(theme: PresentationTheme, width: CGFloat, sideInset: CGFloat, rightSideInset: CGFloat, measuredInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
         if self.theme !== theme {
             self.theme = theme
-            self.titleNode.attributedText = NSAttributedString(string: self.title, font: titleFont, textColor: theme.list.itemPrimaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.regular(listFontSize), textColor: theme.list.itemPrimaryTextColor)
             self.textField.textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
             self.textField.textField.tintColor = theme.list.itemAccentColor
         }

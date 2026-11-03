@@ -7,7 +7,6 @@ import ActivityIndicator
 import AppBundle
 
 private let passwordFont = Font.regular(16.0)
-private let buttonFont = Font.regular(17.0)
 
 final class SecureIdAuthPasswordOptionContentNode: ASDisplayNode, SecureIdAuthContentNode, UITextFieldDelegate {
     private let checkPassword: (String) -> Void

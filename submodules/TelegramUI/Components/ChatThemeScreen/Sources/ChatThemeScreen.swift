@@ -1646,7 +1646,7 @@ private final class ChatThemeSheetContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(Text(
                     text: component.presentationData.strings.Conversation_Theme_Title,
-                    font: Font.semibold(17.0),
+                    font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize),
                     color: component.presentationData.theme.actionSheet.primaryTextColor
                 )),
                 environment: {},

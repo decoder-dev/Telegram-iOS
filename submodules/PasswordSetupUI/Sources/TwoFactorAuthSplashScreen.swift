@@ -325,7 +325,7 @@ private final class TwoFactorAuthSplashScreenNode: ViewControllerTracingNode {
                     id: AnyHashable("button"),
                     component: AnyComponent(Text(
                         text: self.buttonText,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize),
                         color: self.presentationData.theme.list.itemCheckColors.foregroundColor
                     ))
                 ),

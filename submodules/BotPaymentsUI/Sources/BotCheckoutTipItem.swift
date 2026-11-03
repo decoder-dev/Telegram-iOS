@@ -10,6 +10,7 @@ import TelegramStringFormatting
 
 class BotCheckoutTipItem: ListViewItem, ItemListItem {
     let theme: PresentationTheme
+    let listFontSize: CGFloat
     let strings: PresentationStrings
     let title: String
     let currency: String
@@ -24,8 +25,9 @@ class BotCheckoutTipItem: ListViewItem, ItemListItem {
     
     let requestsNoInset: Bool = true
     
-    init(theme: PresentationTheme, strings: PresentationStrings, title: String, currency: String, value: String, numericValue: Int64, maxValue: Int64, availableVariants: [(String, Int64)], sectionId: ItemListSectionId, updateValue: @escaping (Int64) -> Void, updatedFocus: @escaping (Bool) -> Void) {
+    init(theme: PresentationTheme, listFontSize: CGFloat = 17.0, strings: PresentationStrings, title: String, currency: String, value: String, numericValue: Int64, maxValue: Int64, availableVariants: [(String, Int64)], sectionId: ItemListSectionId, updateValue: @escaping (Int64) -> Void, updatedFocus: @escaping (Bool) -> Void) {
         self.theme = theme
+        self.listFontSize = listFontSize
         self.strings = strings
         self.title = title
         self.currency = currency
@@ -74,8 +76,6 @@ class BotCheckoutTipItem: ListViewItem, ItemListItem {
     let selectable: Bool = false
 }
 
-private let titleFont = Font.regular(17.0)
-private let finalFont = Font.semibold(17.0)
 
 private func priceItemInsets(_ neighbors: ItemListNeighbors) -> UIEdgeInsets {
     var insets = UIEdgeInsets()
@@ -540,6 +540,7 @@ class BotCheckoutTipItemNode: ListViewItemNode, UITextFieldDelegate {
 
             let insets = priceItemInsets(neighbors)
             
+            let titleFont = Font.regular(item.listFontSize)
             let textFont: UIFont
             let textColor: UIColor
 

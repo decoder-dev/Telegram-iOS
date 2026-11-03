@@ -125,7 +125,7 @@ final class VoiceChatPeerProfileNode: ASDisplayNode {
     func updateInfo(size: CGSize, sourceSize: CGSize, animate: Bool) {
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
         
-        let titleFont = Font.regular(17.0)
+        let titleFont = Font.regular(presentationData.listsFontSize.baseDisplaySize)
         let titleColor = UIColor.white
         var titleAttributedString: NSAttributedString?
         if case let .user(user) = self.peer {

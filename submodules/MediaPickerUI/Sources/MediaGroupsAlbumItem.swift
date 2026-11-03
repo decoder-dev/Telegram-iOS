@@ -203,7 +203,7 @@ class MediaGroupsAlbumItemNode: ListViewItemNode {
             }
             
             let titleFont = Font.regular(21.0)
-            let countFont = Font.regular(17.0)
+            let countFont = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
             
             let leftInset: CGFloat = 60.0 + params.leftInset
             

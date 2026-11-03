@@ -1813,7 +1813,7 @@ private final class CameraScreenComponent: CombinedComponent {
                                 backgroundColor: UIColor.black.withAlphaComponent(0.5),
                                 isDark: true,
                                 state: .glass,
-                                component: AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: environment.strings.Camera_LiveStream_End, font: Font.semibold(17.0), color: .white))),
+                                component: AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: environment.strings.Camera_LiveStream_End, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: .white))),
                                 action: { [weak state] _ in
                                     if let state {
                                         state.endLiveStream()

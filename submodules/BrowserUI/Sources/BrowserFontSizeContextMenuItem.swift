@@ -24,7 +24,6 @@ final class BrowserFontSizeContextMenuItem: ContextMenuCustomItem {
     }
 }
 
-private let textFont = Font.regular(17.0)
 
 private final class BrowserFontSizeContextMenuItemNode: ASDisplayNode, ContextMenuCustomNode {
     private var presentationData: PresentationData
@@ -198,7 +197,7 @@ private final class BrowserFontSizeContextMenuItemNode: ASDisplayNode, ContextMe
     }
     
     private func updateValue() {
-        self.centerTextNode.attributedText = NSAttributedString(string: "\(self.value)%", font: textFont, textColor: self.presentationData.theme.contextMenu.primaryColor)
+        self.centerTextNode.attributedText = NSAttributedString(string: "\(self.value)%", font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.contextMenu.primaryColor)
         let _ = self.centerTextNode.updateLayout(CGSize(width: 70.0, height: .greatestFiniteMagnitude))
         
         self.leftButtonNode.isEnabled = self.value > 50
