@@ -98,12 +98,13 @@ final class WebpagePreviewAccessoryPanelNode: AccessoryPanelNode {
                 self.iconView.tintColor = theme.chat.inputPanel.panelControlAccentColor
             }
             
+            let baseDisplaySize = self.validLayout?.interfaceState.fontSize.baseDisplaySize ?? 17.0
             if let text = self.titleString?.string {
-                self.titleString = NSAttributedString(string: text, font: Font.medium(15.0), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
+                self.titleString = NSAttributedString(string: text, font: Font.medium(floor(baseDisplaySize * 15.0 / 17.0)), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
             }
             
             if let text = self.textString?.string {
-                self.textString = NSAttributedString(string: text, font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.primaryTextColor)
+                self.textString = NSAttributedString(string: text, font: Font.regular(floor(baseDisplaySize * 15.0 / 17.0)), textColor: self.theme.chat.inputPanel.primaryTextColor)
             }
             
             self.updateWebpage()
@@ -162,8 +163,9 @@ final class WebpagePreviewAccessoryPanelNode: AccessoryPanelNode {
             
         }
         
-        self.titleString = NSAttributedString(string: authorName, font: Font.medium(15.0), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
-        self.textString = NSAttributedString(string: text, font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.primaryTextColor)
+        let baseDisplaySize = self.validLayout?.interfaceState.fontSize.baseDisplaySize ?? 17.0
+        self.titleString = NSAttributedString(string: authorName, font: Font.medium(floor(baseDisplaySize * 15.0 / 17.0)), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
+        self.textString = NSAttributedString(string: text, font: Font.regular(floor(baseDisplaySize * 15.0 / 17.0)), textColor: self.theme.chat.inputPanel.primaryTextColor)
         
         if let (size, inset, interfaceState) = self.validLayout {
             self.updateState(size: size, inset: inset, interfaceState: interfaceState)
@@ -176,6 +178,14 @@ final class WebpagePreviewAccessoryPanelNode: AccessoryPanelNode {
     
     override func updateState(size: CGSize, inset: CGFloat, interfaceState: ChatPresentationInterfaceState) {
         self.validLayout = (size, inset, interfaceState)
+        
+        let baseDisplaySize = interfaceState.fontSize.baseDisplaySize
+        if let titleText = self.titleString?.string {
+            self.titleString = NSAttributedString(string: titleText, font: Font.medium(floor(baseDisplaySize * 15.0 / 17.0)), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
+        }
+        if let bodyText = self.textString?.string {
+            self.textString = NSAttributedString(string: bodyText, font: Font.regular(floor(baseDisplaySize * 15.0 / 17.0)), textColor: self.theme.chat.inputPanel.primaryTextColor)
+        }
         
         let bounds = CGRect(origin: CGPoint(), size: CGSize(width: size.width, height: 45.0))
         let leftInset: CGFloat = 55.0

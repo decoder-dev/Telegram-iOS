@@ -95,7 +95,7 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = false
         self.titleNode.displaysAsynchronously = false
-        self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_InfoTitle, font: Font.semibold(28.0), textColor: theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_InfoTitle, font: Font.semibold(floor(listFontSize * 28.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)
         self.titleNode.accessibilityIdentifier = "Auth.SetName.Title"
 
         self.currentOptionNode = ASTextNode()

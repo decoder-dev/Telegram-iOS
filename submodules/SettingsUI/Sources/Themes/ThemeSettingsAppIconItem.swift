@@ -45,6 +45,7 @@ class ThemeSettingsAppIconItem: ListViewItem, ItemListItem {
     
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let listFontSize: CGFloat
     let systemStyle: ItemListSystemStyle
     let icons: [PresentationAppIcon]
     let isPremium: Bool
@@ -52,9 +53,10 @@ class ThemeSettingsAppIconItem: ListViewItem, ItemListItem {
     let updated: (PresentationAppIcon) -> Void
     let tag: ItemListItemTag?
     
-    init(theme: PresentationTheme, strings: PresentationStrings, systemStyle: ItemListSystemStyle, sectionId: ItemListSectionId, icons: [PresentationAppIcon], isPremium: Bool, currentIconName: String?, updated: @escaping (PresentationAppIcon) -> Void, tag: ItemListItemTag? = nil) {
+    init(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat, systemStyle: ItemListSystemStyle, sectionId: ItemListSectionId, icons: [PresentationAppIcon], isPremium: Bool, currentIconName: String?, updated: @escaping (PresentationAppIcon) -> Void, tag: ItemListItemTag? = nil) {
         self.theme = theme
         self.strings = strings
+        self.listFontSize = listFontSize
         self.systemStyle = systemStyle
         self.icons = icons
         self.isPremium = isPremium
@@ -201,9 +203,6 @@ private final class ThemeSettingsAppIconNode : ASDisplayNode {
     }
 }
 
-
-private let textFont = Font.regular(12.0)
-private let selectedTextFont = Font.medium(12.0)
 
 class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
     private let backgroundNode: ASDisplayNode
@@ -414,6 +413,8 @@ class ThemeSettingsAppIconItemNode: ListViewItemNode, ItemListItemNode {
                             }
 
                         
+                            let textFont = Font.regular(floor(item.listFontSize * 12.0 / 17.0))
+                            let selectedTextFont = Font.medium(floor(item.listFontSize * 12.0 / 17.0))
                             imageNode.setup(theme: item.theme, icon: image, title: NSAttributedString(string: name, font: selected ? selectedTextFont : textFont, textColor: selected  ? item.theme.list.itemAccentColor : item.theme.list.itemPrimaryTextColor, paragraphAlignment: .center), locked: !item.isPremium && icon.isPremium, color: item.theme.list.itemPrimaryTextColor, bordered: bordered, selected: selected, action: {
                                 item.updated(icon)
                             })

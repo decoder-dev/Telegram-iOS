@@ -426,17 +426,20 @@ final class VoiceChatTileItemNode: ASDisplayNode {
             
             self.videoNode?.updateIsBlurred(isBlurred: item.isPaused, light: true)
             
+            let tileTitleFontSize = floor(item.account.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)
+            let tilePlaceholderFont = Font.semibold(tileTitleFontSize)
+            
             var showPlaceholder = false
             if item.isVideoLimit {
-                self.placeholderTextNode.attributedText = NSAttributedString(string: item.strings.VoiceChat_VideoParticipantsLimitExceeded(String(item.videoLimit)).string, font: Font.semibold(13.0), textColor: .white)
+                self.placeholderTextNode.attributedText = NSAttributedString(string: item.strings.VoiceChat_VideoParticipantsLimitExceeded(String(item.videoLimit)).string, font: tilePlaceholderFont, textColor: .white)
                 self.placeholderIconNode.image = generateTintedImage(image: UIImage(bundleImageName: "Call/VideoUnavailable"), color: .white)
                 showPlaceholder = true
             } else if item.isOwnScreencast {
-                self.placeholderTextNode.attributedText = NSAttributedString(string: item.strings.VoiceChat_YouAreSharingScreen, font: Font.semibold(13.0), textColor: .white)
+                self.placeholderTextNode.attributedText = NSAttributedString(string: item.strings.VoiceChat_YouAreSharingScreen, font: tilePlaceholderFont, textColor: .white)
                 self.placeholderIconNode.image = generateTintedImage(image: UIImage(bundleImageName: item.isTablet ? "Call/ScreenShareTablet" : "Call/ScreenSharePhone"), color: .white)
                 showPlaceholder = true
             } else if item.isPaused {
-                self.placeholderTextNode.attributedText = NSAttributedString(string: item.strings.VoiceChat_VideoPaused, font: Font.semibold(13.0), textColor: .white)
+                self.placeholderTextNode.attributedText = NSAttributedString(string: item.strings.VoiceChat_VideoPaused, font: tilePlaceholderFont, textColor: .white)
                 self.placeholderIconNode.image = generateTintedImage(image: UIImage(bundleImageName: "Call/Pause"), color: .white)
                 showPlaceholder = true
             }
@@ -445,7 +448,7 @@ final class VoiceChatTileItemNode: ASDisplayNode {
             transition.updateAlpha(node: self.placeholderTextNode, alpha: showPlaceholder ? 1.0 : 0.0)
             transition.updateAlpha(node: self.placeholderIconNode, alpha: showPlaceholder ? 1.0 : 0.0)
             
-            let titleFont = Font.semibold(13.0)
+            let titleFont = Font.semibold(tileTitleFontSize)
             let titleColor = UIColor.white
             var titleAttributedString: NSAttributedString?
             if item.isVideoLimit {
@@ -548,6 +551,7 @@ final class VoiceChatTileItemNode: ASDisplayNode {
         transition.updateFrame(node: self.contentNode, frame: bounds)
         
         let extractedWidth = availableWidth
+        self.statusNode.listsFontBaseSize = item.account.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         let makeStatusLayout = self.statusNode.asyncLayout()
         let (statusLayout, _) = makeStatusLayout(CGSize(width: availableWidth - 30.0, height: CGFloat.greatestFiniteMagnitude), item.text, true)
                 

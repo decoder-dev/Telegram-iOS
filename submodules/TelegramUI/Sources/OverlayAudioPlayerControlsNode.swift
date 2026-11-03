@@ -262,10 +262,11 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
         self.shareNode.setImage(generateTintedImage(image: UIImage(bundleImageName: "GlobalMusicPlayer/Share"), color: presentationData.theme.list.itemPrimaryTextColor), for: [])
         
         self.scrubberNode = MediaPlayerScrubbingNode(content: .standard(lineHeight: 7.0, lineCap: .round, scrubberHandle: .none, backgroundColor: presentationData.theme.list.controlSecondaryColor.withMultipliedAlpha(0.5), foregroundColor: presentationData.theme.list.itemPrimaryTextColor, bufferingColor: presentationData.theme.list.itemPrimaryTextColor.withAlphaComponent(0.4), chapters: []))
-        self.leftDurationLabel = MediaPlayerTimeTextNode(textColor: presentationData.theme.list.itemSecondaryTextColor, textFont: Font.medium(12.0))
+        let durationFont = Font.medium(floor(presentationData.listsFontSize.baseDisplaySize * 12.0 / 17.0))
+        self.leftDurationLabel = MediaPlayerTimeTextNode(textColor: presentationData.theme.list.itemSecondaryTextColor, textFont: durationFont)
         self.leftDurationLabel.displaysAsynchronously = false
         self.leftDurationLabel.keepPreviousValueOnEmptyState = true
-        self.rightDurationLabel = MediaPlayerTimeTextNode(textColor: presentationData.theme.list.itemSecondaryTextColor, textFont: Font.medium(12.0))
+        self.rightDurationLabel = MediaPlayerTimeTextNode(textColor: presentationData.theme.list.itemSecondaryTextColor, textFont: durationFont)
         self.rightDurationLabel.displaysAsynchronously = false
         self.rightDurationLabel.mode = .reversed
         self.rightDurationLabel.alignment = .right
@@ -521,7 +522,7 @@ final class OverlayAudioPlayerControlsNode: ASDisplayNode {
                             strongSelf.infoNode.layer.animatePosition(from: nodeStartPosition, to: CGPoint(), duration: 0.2, additive: true)
                         }
                     }
-                    strongSelf.infoNode.attributedText = NSAttributedString(string: chapter.title, font: Font.regular(13.0), textColor: strongSelf.presentationData.theme.list.itemSecondaryTextColor)
+                    strongSelf.infoNode.attributedText = NSAttributedString(string: chapter.title, font: Font.regular(floor(strongSelf.presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: strongSelf.presentationData.theme.list.itemSecondaryTextColor)
                     strongSelf.requestLayout(transition: .immediate)
                 }
             }

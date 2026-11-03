@@ -292,7 +292,8 @@ final class VoiceChatTilesGridItemNode: ListViewItemNode {
         
         return { [weak self] item, params in
             let presentationData = item.context.sharedContext.currentPresentationData.with { $0 }
-            let (textLayout, textApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: presentationData.strings.VoiceChat_VideoParticipantsLimitExceededExtended(String(item.videoLimit)).string, font: Font.regular(13.0), textColor: UIColor(rgb: 0x8e8e93), paragraphAlignment: .center), maximumNumberOfLines: 3, truncationType: .end, constrainedSize: CGSize(width: params.width - 32.0, height: CGFloat.greatestFiniteMagnitude), lineSpacing: 0.25))
+            let limitLabelFontSize = floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)
+            let (textLayout, textApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: presentationData.strings.VoiceChat_VideoParticipantsLimitExceededExtended(String(item.videoLimit)).string, font: Font.regular(limitLabelFontSize), textColor: UIColor(rgb: 0x8e8e93), paragraphAlignment: .center), maximumNumberOfLines: 3, truncationType: .end, constrainedSize: CGSize(width: params.width - 32.0, height: CGFloat.greatestFiniteMagnitude), lineSpacing: 0.25))
 
             let rowCount = ceil(CGFloat(item.tiles.count) / 2.0)
             let gridSize = CGSize(width: params.width, height: rowCount * (tileHeight + tileSpacing))

@@ -17,8 +17,6 @@ import BundleIconComponent
 import AnimatedTextComponent
 import GlassBackgroundComponent
 
-private let labelFont = Font.regular(15.0)
-
 final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
     private struct Params: Equatable {
         var width: CGFloat
@@ -302,6 +300,8 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
 
         let size = CGSize(width: params.width - params.additionalSideInsets.left * 2.0 - params.leftInset * 2.0, height: height)
         
+        let panelLabelFont = Font.regular(floor(params.interfaceState.fontSize.baseDisplaySize * 15.0 / 17.0))
+        
         var listModeButtonFrameValue: CGRect?
         if canChangeListMode {
             var listModeButtonTransition = transition
@@ -318,7 +318,7 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
                 transition: listModeButtonTransition,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(AnimatedTextComponent(
-                        font: Font.regular(15.0),
+                        font: panelLabelFont,
                         color: params.interfaceState.theme.chat.inputPanel.panelControlColor,
                         items: modeButtonTitle
                     )),
@@ -494,7 +494,7 @@ final class ChatTagSearchInputPanelNode: ChatInputPanelNode {
                 transition: resultsTextTransition,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(AnimatedTextComponent(
-                        font: Font.regular(15.0),
+                        font: panelLabelFont,
                         color: params.interfaceState.theme.rootController.navigationBar.secondaryTextColor,
                         items: resultsTextString
                     )),

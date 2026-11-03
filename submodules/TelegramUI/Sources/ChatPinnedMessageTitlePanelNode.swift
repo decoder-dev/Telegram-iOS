@@ -450,10 +450,11 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
             self.actionButtonBackgroundNode.isHidden = false
             self.actionButtonTitleNode.isHidden = false
             
+            let actionTitleFontSize = floor(interfaceState.fontSize.baseDisplaySize * 15.0 / 17.0)
             let attributedTitle: NSAttributedString
             if isStarsPayment {
                 let updatedTitle = actionTitle.replacingOccurrences(of: "⭐️", with: " # ")
-                let buttonAttributedString = NSMutableAttributedString(string: updatedTitle, font: Font.with(size: 15.0, design: .round, weight: .semibold, traits: [.monospacedNumbers]), textColor:  interfaceState.theme.list.itemCheckColors.foregroundColor)
+                let buttonAttributedString = NSMutableAttributedString(string: updatedTitle, font: Font.with(size: actionTitleFontSize, design: .round, weight: .semibold, traits: [.monospacedNumbers]), textColor:  interfaceState.theme.list.itemCheckColors.foregroundColor)
                 if let range = buttonAttributedString.string.range(of: "#"), let starImage = UIImage(bundleImageName: "Item List/PremiumIcon") {
                     buttonAttributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: buttonAttributedString.string))
                     buttonAttributedString.addAttribute(.foregroundColor, value: interfaceState.theme.list.itemCheckColors.foregroundColor, range: NSRange(range, in: buttonAttributedString.string))
@@ -461,7 +462,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                 }
                 attributedTitle = buttonAttributedString
             } else {
-                attributedTitle = NSAttributedString(string: actionTitle, font: Font.with(size: 15.0, design: .round, weight: .semibold, traits: [.monospacedNumbers]), textColor:  interfaceState.theme.list.itemCheckColors.foregroundColor)
+                attributedTitle = NSAttributedString(string: actionTitle, font: Font.with(size: actionTitleFontSize, design: .round, weight: .semibold, traits: [.monospacedNumbers]), textColor:  interfaceState.theme.list.itemCheckColors.foregroundColor)
             }
             self.actionButtonTitleNode.attributedText = attributedTitle
             
@@ -537,9 +538,9 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
             
             if let currentMessage = self.currentMessage, let currentLayout = self.currentLayout {
                 self.dustNode?.update(revealed: false, animated: false)
-                self.enqueueTransition(width: currentLayout.0, panelHeight: panelHeight, leftInset: currentLayout.1, rightInset: currentLayout.2, transition: wasSkeleton ? .animated(duration: 0.2, curve: .easeInOut) : (messageUpdated ? .immediate : transition), animation: messageUpdatedAnimation, pinnedMessage: currentMessage, theme: interfaceState.theme, strings: interfaceState.strings, nameDisplayOrder: interfaceState.nameDisplayOrder, dateTimeFormat: interfaceState.dateTimeFormat, accountPeerId: self.context.account.peerId, firstTime: previousMessageWasNil, isReplyThread: isReplyThread, translateToLanguage: translateToLanguage?.toLang, fromSkeleton: wasSkeleton)
+                self.enqueueTransition(width: currentLayout.0, panelHeight: panelHeight, leftInset: currentLayout.1, rightInset: currentLayout.2, transition: wasSkeleton ? .animated(duration: 0.2, curve: .easeInOut) : (messageUpdated ? .immediate : transition), animation: messageUpdatedAnimation, pinnedMessage: currentMessage, theme: interfaceState.theme, strings: interfaceState.strings, nameDisplayOrder: interfaceState.nameDisplayOrder, dateTimeFormat: interfaceState.dateTimeFormat, accountPeerId: self.context.account.peerId, firstTime: previousMessageWasNil, isReplyThread: isReplyThread, translateToLanguage: translateToLanguage?.toLang, fromSkeleton: wasSkeleton, fontSize: interfaceState.fontSize.baseDisplaySize)
             } else if isSkeleton {
-                self.applySkeleton(width: width, panelHeight: panelHeight, leftInset: leftInset, rightInset: rightInset, theme: interfaceState.theme, strings: interfaceState.strings)
+                self.applySkeleton(width: width, panelHeight: panelHeight, leftInset: leftInset, rightInset: rightInset, theme: interfaceState.theme, strings: interfaceState.strings, fontSize: interfaceState.fontSize.baseDisplaySize)
             }
             // On every way out, so a reused panel never keeps a hidden text line.
             if wasSkeleton && !isSkeleton {
@@ -553,7 +554,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
             self.currentLayout = (width, leftInset, rightInset)
             
             if let currentMessage = self.currentMessage {
-                self.enqueueTransition(width: width, panelHeight: panelHeight, leftInset: leftInset, rightInset: rightInset, transition: .immediate, animation: .none, pinnedMessage: currentMessage, theme: interfaceState.theme, strings: interfaceState.strings, nameDisplayOrder: interfaceState.nameDisplayOrder, dateTimeFormat: interfaceState.dateTimeFormat, accountPeerId: interfaceState.accountPeerId, firstTime: true, isReplyThread: isReplyThread)
+                self.enqueueTransition(width: width, panelHeight: panelHeight, leftInset: leftInset, rightInset: rightInset, transition: .immediate, animation: .none, pinnedMessage: currentMessage, theme: interfaceState.theme, strings: interfaceState.strings, nameDisplayOrder: interfaceState.nameDisplayOrder, dateTimeFormat: interfaceState.dateTimeFormat, accountPeerId: interfaceState.accountPeerId, firstTime: true, isReplyThread: isReplyThread, translateToLanguage: nil, fromSkeleton: false, fontSize: interfaceState.fontSize.baseDisplaySize)
             }
         }*/
         
@@ -561,13 +562,14 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
     }
     
     /// The skeleton: the real stripe and title, and one shimmering bar where the message text goes.
-    private func applySkeleton(width: CGFloat, panelHeight: CGFloat, leftInset: CGFloat, rightInset: CGFloat, theme: PresentationTheme, strings: PresentationStrings) {
+    private func applySkeleton(width: CGFloat, panelHeight: CGFloat, leftInset: CGFloat, rightInset: CGFloat, theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat) {
         let contentLeftInset: CGFloat = leftInset + 18.0
         let textLineInset: CGFloat = 10.0
         let rightInset: CGFloat = 14.0 + rightInset
+        let titleFont = Font.medium(floor(fontSize * 15.0 / 17.0))
 
         let titleStrings: [AnimatedCountLabelNode.Segment] = [
-            .text(0, NSAttributedString(string: strings.Conversation_PinnedMessage, font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor))
+            .text(0, NSAttributedString(string: strings.Conversation_PinnedMessage, font: titleFont, textColor: theme.chat.inputPanel.panelControlColor))
         ]
         let (titleLayout, titleApply) = self.titleNode.asyncLayout()(CGSize(width: width - textLineInset - contentLeftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), .zero, titleStrings)
         let _ = titleApply(false)
@@ -655,7 +657,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
         }
     }
     
-    private func enqueueTransition(width: CGFloat, panelHeight: CGFloat, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition, animation: PinnedMessageAnimation?, pinnedMessage: ChatPinnedMessage, theme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, dateTimeFormat: PresentationDateTimeFormat, accountPeerId: EnginePeer.Id, firstTime: Bool, isReplyThread: Bool, translateToLanguage: String?, fromSkeleton: Bool) {
+    private func enqueueTransition(width: CGFloat, panelHeight: CGFloat, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition, animation: PinnedMessageAnimation?, pinnedMessage: ChatPinnedMessage, theme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, dateTimeFormat: PresentationDateTimeFormat, accountPeerId: EnginePeer.Id, firstTime: Bool, isReplyThread: Bool, translateToLanguage: String?, fromSkeleton: Bool, fontSize: CGFloat) {
         let message = pinnedMessage.message
         
         var animationTransition: ContainedViewLayoutTransition = .immediate
@@ -710,20 +712,20 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
         
         var titleStrings: [AnimatedCountLabelNode.Segment] = []
         if let _ = giveaway {
-            titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedGiveaway) ", font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor)))
+            titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedGiveaway) ", font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor)))
         } else {
             if pinnedMessage.totalCount == 2 {
                 if pinnedMessage.index == 0 {
-                    titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedPreviousMessage) ", font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor)))
+                    titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedPreviousMessage) ", font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor)))
                 } else {
-                    titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedMessage) ", font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor)))
+                    titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedMessage) ", font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor)))
                 }
             } else if pinnedMessage.totalCount > 1 && pinnedMessage.index != pinnedMessage.totalCount - 1 {
-                titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedMessage)", font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor)))
-                titleStrings.append(.text(1, NSAttributedString(string: " #", font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor)))
-                titleStrings.append(.number(pinnedMessage.index + 1, NSAttributedString(string: "\(pinnedMessage.index + 1)", font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor)))
+                titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedMessage)", font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor)))
+                titleStrings.append(.text(1, NSAttributedString(string: " #", font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor)))
+                titleStrings.append(.number(pinnedMessage.index + 1, NSAttributedString(string: "\(pinnedMessage.index + 1)", font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor)))
             } else {
-                titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedMessage) ", font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor)))
+                titleStrings.append(.text(0, NSAttributedString(string: "\(strings.Conversation_PinnedMessage) ", font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor)))
             }
         }
         
@@ -776,14 +778,14 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
             } else {
                 titleString = ""
             }
-            titleStrings = [.text(0, NSAttributedString(string: titleString, font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor))]
+            titleStrings = [.text(0, NSAttributedString(string: titleString, font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor))]
         } else {
             for media in message.media {
                 if let media = media as? TelegramMediaInvoice {
-                    titleStrings = [.text(0, NSAttributedString(string: media.title, font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor))]
+                    titleStrings = [.text(0, NSAttributedString(string: media.title, font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor))]
                     break
                 } else if let webpage = media as? TelegramMediaWebpage, case let .Loaded(content) = webpage.content, content.type == "telegram_call" {
-                    titleStrings = [.text(0, NSAttributedString(string: strings.Chat_PinnedGroupCallTitle, font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlColor))]
+                    titleStrings = [.text(0, NSAttributedString(string: strings.Chat_PinnedGroupCallTitle, font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: theme.chat.inputPanel.panelControlColor))]
                     break
                 }
             }
@@ -836,7 +838,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
         let (textString, _, isText) = descriptionStringForMessage(contentSettings: context.currentContentSettings.with { $0 }, message: EngineMessage(message), strings: strings, nameDisplayOrder: nameDisplayOrder, dateTimeFormat: dateTimeFormat, accountPeerId: accountPeerId)
         
         let messageText: NSAttributedString
-        let textFont = Font.regular(15.0)
+        let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
         if let giveaway {
             let dateString = stringForDateWithoutYear(date: Date(timeIntervalSince1970: TimeInterval(giveaway.untilDate)), timeZone: .current, strings: strings)
             let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)

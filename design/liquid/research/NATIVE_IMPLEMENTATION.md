@@ -323,3 +323,11 @@ PasscodeSetup titles/subtitles на listsFontSize; PasscodeEntry title/subtitle 
 ## Auth sequence и invite/join panels
 
 SignUp/Password/Recovery/Email/Code/Phone/AwaitingReset fields и secondary labels берут listFontSize; VoiceChat join sheet titles/actions и ChatInviteRequests panel — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Call status, schedule и action buttons
+
+CallStatusBar, VideoChat action buttons/toast, schedule sheet, recording setup и chat tooltips масштабируют labels. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Pinned/edit/report panels и voice-chat chrome
+
+ChatPinnedMessage/Edit/Webpage/Reply/Forward accessory panels, Report/Invite/Verified/Toast/Restricted/ManagingBot/RequestInProgress/Search tags title panels, action sheet contentFontSize, Horizontal context results, Secret handshake / Tag search input panels; Legacy/Call status name+detail fonts; VoiceChat main stage/tiles/participants/fullscreen/camera preview/more-menu encryption captions; MediaStream no-signal/title; Overlay audio chapter/duration; Contact multiselect footer option; Auth payment paragraphs и Settings session/theme/app-icon leftovers — Dynamic Type от listsFontSize / interfaceState.fontSize. Branding Liquid: 7 pass. Simulator NOT RUN.

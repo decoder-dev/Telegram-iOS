@@ -198,7 +198,8 @@ private final class ThemeGridThemeItemIconNode : ASDisplayNode {
             string = nil
         }
                 
-        let text = NSAttributedString(string: string ?? item.strings.Conversation_Theme_NoTheme, font: Font.bold(14.0), textColor: .white)
+        let listFontSize = item.context.sharedContext.currentPresentationData.with { $0.listsFontSize.baseDisplaySize }
+        let text = NSAttributedString(string: string ?? item.strings.Conversation_Theme_NoTheme, font: Font.bold(floor(listFontSize * 14.0 / 17.0)), textColor: .white)
         let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: text, backgroundColor: nil, maximumNumberOfLines: 2, truncationType: .end, constrainedSize: CGSize(width: 70.0, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
         
 

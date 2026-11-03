@@ -357,7 +357,7 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
             case let .iconHeader(_, text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
             case let .iconItem(theme, strings, icons, isPremium, value):
-                return ThemeSettingsAppIconItem(theme: theme, strings: strings, systemStyle: .glass, sectionId: self.section, icons: icons, isPremium: isPremium, currentIconName: value, updated: { icon in
+                return ThemeSettingsAppIconItem(theme: theme, strings: strings, listFontSize: presentationData.listsFontSize.baseDisplaySize, systemStyle: .glass, sectionId: self.section, icons: icons, isPremium: isPremium, currentIconName: value, updated: { icon in
                     arguments.selectAppIcon(icon)
                 }, tag: ThemeSettingsEntryTag.icon)
             case .powerSaving:

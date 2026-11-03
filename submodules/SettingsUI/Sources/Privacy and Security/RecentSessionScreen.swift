@@ -527,7 +527,7 @@ private final class RecentSessionSheetContent: CombinedComponent {
                 connectedBot = subjectConnectedBot
             }
             
-            let titleFont = Font.bold(24.0)
+            let titleFont = Font.bold(floor(presentationData.listsFontSize.baseDisplaySize * 24.0 / 17.0))
             let title = title.update(
                 component: BalancedTextComponent(
                     text: .markdown(text: titleString, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: titleFont, textColor: theme.actionSheet.primaryTextColor), bold: MarkdownAttributeSet(font: titleFont, textColor: theme.actionSheet.controlAccentColor), link: MarkdownAttributeSet(font: titleFont, textColor: theme.actionSheet.primaryTextColor), linkAttribute: { _ in return nil })),

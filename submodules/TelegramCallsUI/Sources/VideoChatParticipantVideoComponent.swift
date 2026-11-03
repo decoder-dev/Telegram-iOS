@@ -411,10 +411,11 @@ final class VideoChatParticipantVideoComponent: Component {
             }
             
             let titleInnerInsets = UIEdgeInsets(top: 8.0, left: 8.0, bottom: 8.0, right: 8.0)
+            let listsFontBaseSize = component.call.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.participant.peer?.debugDisplayTitle ?? "User \(component.participant.id)", font: Font.semibold(16.0), textColor: .white)),
+                    text: .plain(NSAttributedString(string: component.participant.peer?.debugDisplayTitle ?? "User \(component.participant.id)", font: Font.semibold(floor(listsFontBaseSize * 16.0 / 17.0)), textColor: .white)),
                     insets: titleInnerInsets,
                     textShadowColor: UIColor(white: 0.0, alpha: 0.7),
                     textShadowBlur: 8.0
@@ -659,7 +660,8 @@ final class VideoChatParticipantVideoComponent: Component {
                     component: AnyComponent(VideoChatParticipantVideoStatusComponent(
                         strings: component.strings,
                         kind: statusKind,
-                        isExpanded: component.isExpanded
+                        isExpanded: component.isExpanded,
+                        fontSize: component.call.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                     )),
                     environment: {},
                     containerSize: availableSize

@@ -119,7 +119,8 @@ final class ChatSearchTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode, Chat
             self.action()
         }
         
-        func update(theme: PresentationTheme, strings: PresentationStrings, height: CGFloat, isUnlock: Bool, transition: ComponentTransition) -> CGSize {
+        func update(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat, height: CGFloat, isUnlock: Bool, transition: ComponentTransition) -> CGSize {
+            let titleFontSize = floor(fontSize * 14.0 / 17.0)
             let titleIconSpacing: CGFloat = 0.0
             
             let titleIconSize = self.titleIcon.update(
@@ -136,7 +137,7 @@ final class ChatSearchTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode, Chat
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: isUnlock ? strings.Chat_TagsHeaderPanel_Unlock : strings.Chat_TagsHeaderPanel_AddTags, font: Font.medium(14.0), textColor: theme.rootController.navigationBar.accentTextColor))
+                    text: .plain(NSAttributedString(string: isUnlock ? strings.Chat_TagsHeaderPanel_Unlock : strings.Chat_TagsHeaderPanel_AddTags, font: Font.medium(titleFontSize), textColor: theme.rootController.navigationBar.accentTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 200.0, height: 100.0)
@@ -174,7 +175,7 @@ final class ChatSearchTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode, Chat
             let textSize = self.text.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: strings.Chat_TagsHeaderPanel_AddTagsSuffix, font: Font.regular(14.0), textColor: theme.rootController.navigationBar.secondaryTextColor))
+                    text: .plain(NSAttributedString(string: strings.Chat_TagsHeaderPanel_AddTagsSuffix, font: Font.regular(titleFontSize), textColor: theme.rootController.navigationBar.secondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 200.0, height: 100.0)
@@ -597,7 +598,7 @@ final class ChatSearchTitleAccessoryPanelNode: ChatTitleAccessoryPanelNode, Chat
                 self.scrollView.addSubview(promoView)
             }
             
-            let itemSize = promoView.update(theme: params.interfaceState.theme, strings: params.interfaceState.strings, height: panelHeight, isUnlock: !self.items.isEmpty, transition: .immediate)
+            let itemSize = promoView.update(theme: params.interfaceState.theme, strings: params.interfaceState.strings, fontSize: params.interfaceState.fontSize.baseDisplaySize, height: panelHeight, isUnlock: !self.items.isEmpty, transition: .immediate)
             let itemFrame = CGRect(origin: CGPoint(x: contentSize.width, y: 0.0), size: itemSize)
             
             itemTransition.updatePosition(layer: promoView.layer, position: itemFrame.center)

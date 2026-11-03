@@ -106,36 +106,49 @@ final class ChatRestrictedInputPanelNode: ChatInputPanelNode {
         if let context = self.context {
             accountFreezeConfiguration = AccountFreezeConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
         }
+        
+        let fontSize = interfaceState.fontSize.baseDisplaySize
+        let regular13 = Font.regular(floor(fontSize * 13.0 / 17.0))
+        let regular15 = Font.regular(floor(fontSize * 15.0 / 17.0))
+        let semibold15 = Font.semibold(floor(fontSize * 15.0 / 17.0))
+        var textFont = regular15
+        var subtitleFont = regular13
+        
         if let channel = interfaceState.renderedPeer?.chatMainPeer as? TelegramChannel, channel.isMonoForum {
-            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelForumModeReplyText, font: Font.regular(15.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelForumModeReplyText, font: regular15, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
         } else if let _ = accountFreezeConfiguration?.freezeUntilDate {
-            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelFrozenAccount_Title, font: Font.semibold(15.0), textColor: interfaceState.theme.list.itemDestructiveColor)
-            self.subtitleNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelFrozenAccount_Text, font: Font.regular(13.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+            textFont = semibold15
+            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelFrozenAccount_Title, font: semibold15, textColor: interfaceState.theme.list.itemDestructiveColor)
+            self.subtitleNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelFrozenAccount_Text, font: regular13, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
             isUserInteractionEnabled = true
         } else if case let .replyThread(message) = interfaceState.chatLocation, message.peerId == self.context?.account.peerId {
-            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelStatusAuthorHidden, font: Font.regular(13.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+            textFont = regular13
+            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelStatusAuthorHidden, font: regular13, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
         } else if let threadData = interfaceState.threadData, threadData.isClosed {
             iconImage = PresentationResourcesChat.chatPanelLockIcon(interfaceState.theme)
-            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelTopicClosedText, font: Font.regular(15.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelTopicClosedText, font: regular15, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
         } else if let channel = interfaceState.renderedPeer?.peer as? TelegramChannel, channel.isForumOrMonoForum, case .peer = interfaceState.chatLocation {
             if let replyMessage = interfaceState.replyMessage, let threadInfo = replyMessage.associatedThreadInfo {
-                self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_TopicIsClosedLabel(threadInfo.title).string, font: Font.regular(15.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+                self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_TopicIsClosedLabel(threadInfo.title).string, font: regular15, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
             } else {
-                self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelForumModeReplyText, font: Font.regular(15.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+                self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelForumModeReplyText, font: regular15, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
             }
         } else if let (untilDate, personal) = bannedPermission {
             if personal && untilDate != 0 && untilDate != Int32.max {
-                self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_RestrictedTextTimed(stringForFullDate(timestamp: untilDate, strings: interfaceState.strings, dateTimeFormat: interfaceState.dateTimeFormat)).string, font: Font.regular(13.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+                textFont = regular13
+                self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_RestrictedTextTimed(stringForFullDate(timestamp: untilDate, strings: interfaceState.strings, dateTimeFormat: interfaceState.dateTimeFormat)).string, font: regular13, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
             } else if personal {
-                self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_RestrictedText, font: Font.regular(13.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+                textFont = regular13
+                self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_RestrictedText, font: regular13, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
             } else {
                 if (self.presentationInterfaceState?.boostsToUnrestrict ?? 0) > 0 {
                     iconSpacing = 0.0
                     iconImage = PresentationResourcesChat.chatPanelBoostIcon(interfaceState.theme)
-                    self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_BoostToUnrestrictText, font: Font.regular(15.0), textColor: interfaceState.theme.chat.inputPanel.panelControlAccentColor)
+                    self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_BoostToUnrestrictText, font: regular15, textColor: interfaceState.theme.chat.inputPanel.panelControlAccentColor)
                     isUserInteractionEnabled = true
                 } else {
-                    self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_DefaultRestrictedText, font: Font.regular(13.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+                    textFont = regular13
+                    self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_DefaultRestrictedText, font: regular13, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
                 }
             }
         } else if case let .customChatContents(customChatContents) = interfaceState.subject {
@@ -156,12 +169,13 @@ final class ChatRestrictedInputPanelNode: ChatInputPanelNode {
             } else {
                 text = interfaceState.strings.Chat_QuickReplyMessageLimitReachedText(Int32(displayCount))
             }
-            self.textNode.attributedText = NSAttributedString(string: text, font: Font.regular(13.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+            textFont = regular13
+            self.textNode.attributedText = NSAttributedString(string: text, font: regular13, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
         }
         self.buttonNode.isUserInteractionEnabled = isUserInteractionEnabled
         
-        self.tintTextNode.attributedText = NSAttributedString(string: self.textNode.attributedText?.string ?? "", font: Font.regular(15.0), textColor: .black)
-        self.tintSubtitleNode.attributedText = NSAttributedString(string: self.subtitleNode.attributedText?.string ?? "", font: Font.regular(13.0), textColor: .black)
+        self.tintTextNode.attributedText = NSAttributedString(string: self.textNode.attributedText?.string ?? "", font: textFont, textColor: .black)
+        self.tintSubtitleNode.attributedText = NSAttributedString(string: self.subtitleNode.attributedText?.string ?? "", font: subtitleFont, textColor: .black)
         
         let panelHeight = defaultHeight(metrics: metrics)
         let textSize = self.textNode.updateLayout(CGSize(width: width - leftInset - rightInset - 16.0 * 2.0, height: panelHeight))

@@ -669,10 +669,11 @@ public final class MediaStreamVideoComponent: Component {
                     }
                     
                     let presentationData = component.call.accountContext.sharedContext.currentPresentationData.with { $0 }
+                    let noSignalFontSize = floor(presentationData.listsFontSize.baseDisplaySize * 16.0 / 17.0)
                     let noSignalSize = noSignalView.update(
                         transition: transition,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: component.isAdmin ? presentationData.strings.LiveStream_NoSignalAdminText :  presentationData.strings.LiveStream_NoSignalUserText(component.peerTitle).string, font: Font.regular(16.0), textColor: .white, paragraphAlignment: .center)),
+                            text: .plain(NSAttributedString(string: component.isAdmin ? presentationData.strings.LiveStream_NoSignalAdminText :  presentationData.strings.LiveStream_NoSignalUserText(component.peerTitle).string, font: Font.regular(noSignalFontSize), textColor: .white, paragraphAlignment: .center)),
                             horizontalAlignment: .center,
                             maximumNumberOfLines: 0
                         )),

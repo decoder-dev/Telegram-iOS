@@ -183,7 +183,7 @@ private final class ChatInfoTitlePanelInviteInfoNode: ASDisplayNode {
         return result
     }
     
-    func update(width: CGFloat, theme: PresentationTheme, strings: PresentationStrings, wallpaper: TelegramWallpaper, chatPeer: EnginePeer, invitedBy: EnginePeer, transition: ContainedViewLayoutTransition) -> CGFloat {
+    func update(width: CGFloat, theme: PresentationTheme, strings: PresentationStrings, wallpaper: TelegramWallpaper, chatPeer: EnginePeer, invitedBy: EnginePeer, baseDisplaySize: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
         let primaryTextColor = serviceMessageColorComponents(theme: theme, wallpaper: wallpaper).primaryText
 
         if self.theme !== theme {
@@ -203,9 +203,10 @@ private final class ChatInfoTitlePanelInviteInfoNode: ASDisplayNode {
             stringAndRanges = strings.Conversation_NoticeInvitedByInGroup(invitedBy.compactDisplayTitle)
         }
         
-        let attributedString = NSMutableAttributedString(string: stringAndRanges.string, font: Font.regular(13.0), textColor: primaryTextColor)
+        let scaledFontSize = floor(baseDisplaySize * 13.0 / 17.0)
+        let attributedString = NSMutableAttributedString(string: stringAndRanges.string, font: Font.regular(scaledFontSize), textColor: primaryTextColor)
         
-        let boldAttributes = [NSAttributedString.Key.font: Font.semibold(13.0), NSAttributedString.Key(rawValue: "_Link"): true as NSNumber]
+        let boldAttributes = [NSAttributedString.Key.font: Font.semibold(scaledFontSize), NSAttributedString.Key(rawValue: "_Link"): true as NSNumber]
         for range in stringAndRanges.ranges {
             attributedString.addAttributes(boldAttributes, range: range.range)
         }
@@ -471,8 +472,9 @@ final class ChatReportPeerTitlePanelNode: ChatTitleAccessoryPanelNode {
         
         if let requestChatTitle = interfaceState.contactStatus?.peerStatusSettings?.requestChatTitle, let requestChatIsChannel = interfaceState.contactStatus?.peerStatusSettings?.requestChatIsChannel, let renderedPeer = interfaceState.renderedPeer, let peer = renderedPeer.chatMainPeer {
             let text: NSAttributedString
-            let regular = MarkdownAttributeSet(font: Font.regular(15.0), textColor: interfaceState.theme.rootController.navigationBar.primaryTextColor)
-            let bold = MarkdownAttributeSet(font: Font.bold(15.0), textColor: interfaceState.theme.rootController.navigationBar.primaryTextColor)
+            let scaledFontSize = floor(interfaceState.fontSize.baseDisplaySize * 15.0 / 17.0)
+            let regular = MarkdownAttributeSet(font: Font.regular(scaledFontSize), textColor: interfaceState.theme.rootController.navigationBar.primaryTextColor)
+            let bold = MarkdownAttributeSet(font: Font.bold(scaledFontSize), textColor: interfaceState.theme.rootController.navigationBar.primaryTextColor)
             
             if requestChatIsChannel {
                 text = addAttributesToStringWithRanges(interfaceState.strings.Conversation_InviteRequestAdminChannel(EnginePeer(peer).compactDisplayTitle, requestChatTitle)._tuple, body: regular, argumentAttributes: [0: bold, 1: bold])
@@ -590,7 +592,8 @@ final class ChatReportPeerTitlePanelNode: ChatTitleAccessoryPanelNode {
             }
             
             let plainText = interfaceState.strings.Chat_PanelCustomStatusShortInfo("#").string
-            let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: Font.regular(12.0), textColor: interfaceState.theme.rootController.navigationBar.secondaryTextColor), bold: MarkdownAttributeSet(font: Font.semibold(12.0), textColor: interfaceState.theme.rootController.navigationBar.secondaryTextColor), link: MarkdownAttributeSet(font: Font.regular(12.0), textColor: interfaceState.theme.rootController.navigationBar.accentTextColor), linkAttribute: { contents in
+            let scaledFontSize = floor(interfaceState.fontSize.baseDisplaySize * 12.0 / 17.0)
+            let markdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: Font.regular(scaledFontSize), textColor: interfaceState.theme.rootController.navigationBar.secondaryTextColor), bold: MarkdownAttributeSet(font: Font.semibold(scaledFontSize), textColor: interfaceState.theme.rootController.navigationBar.secondaryTextColor), link: MarkdownAttributeSet(font: Font.regular(scaledFontSize), textColor: interfaceState.theme.rootController.navigationBar.accentTextColor), linkAttribute: { contents in
                 return (TelegramTextAttributes.URL, contents)
             })
             let attributedString = parseMarkdownIntoAttributedString(plainText, attributes: markdownAttributes, textAlignment: .center).mutableCopy() as! NSMutableAttributedString
@@ -655,7 +658,7 @@ final class ChatReportPeerTitlePanelNode: ChatTitleAccessoryPanelNode {
             }
             
             if let inviteInfoNode = self.inviteInfoNode {
-                let inviteHeight = inviteInfoNode.update(width: width, theme: interfaceState.theme, strings: interfaceState.strings, wallpaper: interfaceState.chatWallpaper, chatPeer: chatPeer, invitedBy: invitedBy, transition: inviteInfoTransition)
+                let inviteHeight = inviteInfoNode.update(width: width, theme: interfaceState.theme, strings: interfaceState.strings, wallpaper: interfaceState.chatWallpaper, chatPeer: chatPeer, invitedBy: invitedBy, baseDisplaySize: interfaceState.fontSize.baseDisplaySize, transition: inviteInfoTransition)
                 inviteInfoTransition.updateFrame(node: inviteInfoNode, frame: CGRect(origin: CGPoint(x: 0.0, y: panelHeight + panelInset), size: CGSize(width: width, height: inviteHeight)))
                 panelHeight += inviteHeight
                 hitTestSlop = -inviteHeight

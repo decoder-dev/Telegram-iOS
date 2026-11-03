@@ -158,8 +158,9 @@ func textInputAccessoryPanel(
                             string = strings.Conversation_ForwardOptions_Text(messages, peerDisplayTitle)
                         }
 
-                        let font = Font.regular(15.0)
-                        let boldFont = Font.semibold(15.0)
+                        let baseDisplaySize = chatPresentationInterfaceState.fontSize.baseDisplaySize
+                        let font = Font.regular(floor(baseDisplaySize * 15.0 / 17.0))
+                        let boldFont = Font.semibold(floor(baseDisplaySize * 15.0 / 17.0))
                         let body = MarkdownAttributeSet(font: font, textColor: theme.actionSheet.primaryTextColor)
                         let bold = MarkdownAttributeSet(font: boldFont, textColor: theme.actionSheet.primaryTextColor)
                         let text = addAttributesToStringWithRanges(string._tuple, body: body, argumentAttributes: [0: bold, 1: bold], textAlignment: .natural)
@@ -325,7 +326,7 @@ func accessoryPanelForChatPresentationIntefaceState(_ chatPresentationInterfaceS
             }
             
             if let chatPeerId {
-                let panelNode = ReplyAccessoryPanelNode(context: context, chatPeerId: chatPeerId, messageId: replyMessageSubject.messageId, quote: replyMessageSubject.quote, innerSubject: replyMessageSubject.innerSubject, theme: chatPresentationInterfaceState.theme, strings: chatPresentationInterfaceState.strings, nameDisplayOrder: chatPresentationInterfaceState.nameDisplayOrder, dateTimeFormat: chatPresentationInterfaceState.dateTimeFormat, animationCache: chatControllerInteraction?.presentationContext.animationCache, animationRenderer: chatControllerInteraction?.presentationContext.animationRenderer)
+                let panelNode = ReplyAccessoryPanelNode(context: context, chatPeerId: chatPeerId, messageId: replyMessageSubject.messageId, quote: replyMessageSubject.quote, innerSubject: replyMessageSubject.innerSubject, theme: chatPresentationInterfaceState.theme, strings: chatPresentationInterfaceState.strings, fontSize: chatPresentationInterfaceState.fontSize, nameDisplayOrder: chatPresentationInterfaceState.nameDisplayOrder, dateTimeFormat: chatPresentationInterfaceState.dateTimeFormat, animationCache: chatControllerInteraction?.presentationContext.animationCache, animationRenderer: chatControllerInteraction?.presentationContext.animationRenderer)
                 panelNode.interfaceInteraction = interfaceInteraction
                 return panelNode
             } else {

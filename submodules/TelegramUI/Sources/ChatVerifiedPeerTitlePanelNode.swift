@@ -129,7 +129,8 @@ final class ChatVerifiedPeerTitlePanelNode: ChatTitleAccessoryPanelNode {
             let emojiStatus = PeerEmojiStatus(content: .emoji(fileId: verification.iconFileId), expirationDate: nil)
             let emojiStatusTextNode = self.emojiStatusTextNode
 
-            let textFont = Font.regular(12.0)
+            let scaledFontSize = floor(interfaceState.fontSize.baseDisplaySize * 12.0 / 17.0)
+            let textFont = Font.regular(scaledFontSize)
             let iconPrefix = "  "
             let iconPrefixLength = (iconPrefix as NSString).length
             let descriptionEntities = peerVerificationDescriptionEntities(verification).map { entity in
@@ -145,10 +146,10 @@ final class ChatVerifiedPeerTitlePanelNode: ChatTitleAccessoryPanelNode {
                 linkColor: interfaceState.theme.rootController.navigationBar.accentTextColor,
                 baseFont: textFont,
                 linkFont: textFont,
-                boldFont: Font.semibold(12.0),
-                italicFont: Font.italic(12.0),
-                boldItalicFont: Font.semiboldItalic(12.0),
-                fixedFont: Font.monospace(12.0),
+                boldFont: Font.semibold(scaledFontSize),
+                italicFont: Font.italic(scaledFontSize),
+                boldItalicFont: Font.semiboldItalic(scaledFontSize),
+                fixedFont: Font.monospace(scaledFontSize),
                 blockQuoteFont: textFont,
                 underlineLinks: false,
                 message: nil,

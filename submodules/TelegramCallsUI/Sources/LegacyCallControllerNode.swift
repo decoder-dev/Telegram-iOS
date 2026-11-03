@@ -426,7 +426,7 @@ final class LegacyCallControllerNode: ASDisplayNode, CallControllerNodeProtocol 
             buttonsOffset = 83.0
         }
         
-        let statusHeight = self.statusNode.updateLayout(constrainedWidth: layout.size.width, transition: transition)
+        let statusHeight = self.statusNode.updateLayout(constrainedWidth: layout.size.width, transition: transition, fontSize: self.presentationData.listsFontSize.baseDisplaySize)
         transition.updateFrame(node: self.statusNode, frame: CGRect(origin: CGPoint(x: 0.0, y: statusOffset), size: CGSize(width: layout.size.width, height: statusHeight)))
         
         self.buttonsNode.updateLayout(constrainedWidth: layout.size.width, transition: transition)

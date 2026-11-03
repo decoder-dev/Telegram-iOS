@@ -21,6 +21,7 @@ private final class ChatManagingBotTitlePanelComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
     let insets: UIEdgeInsets
+    let fontSize: CGFloat
     let peer: EnginePeer
     let managesChat: Bool
     let isPaused: Bool
@@ -32,6 +33,7 @@ private final class ChatManagingBotTitlePanelComponent: Component {
         theme: PresentationTheme,
         strings: PresentationStrings,
         insets: UIEdgeInsets,
+        fontSize: CGFloat = 17.0,
         peer: EnginePeer,
         managesChat: Bool,
         isPaused: Bool,
@@ -42,6 +44,7 @@ private final class ChatManagingBotTitlePanelComponent: Component {
         self.theme = theme
         self.strings = strings
         self.insets = insets
+        self.fontSize = fontSize
         self.peer = peer
         self.managesChat = managesChat
         self.isPaused = isPaused
@@ -60,6 +63,9 @@ private final class ChatManagingBotTitlePanelComponent: Component {
             return false
         }
         if lhs.insets != rhs.insets {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.peer != rhs.peer {
@@ -103,11 +109,14 @@ private final class ChatManagingBotTitlePanelComponent: Component {
             let rightInset: CGFloat = component.insets.right + 10.0
             let actionAndSettingsButtonsSpacing: CGFloat = 8.0
             
+            let actionTitleFontSize = floor(component.fontSize * 15.0 / 17.0)
+            let statusFontSize = floor(component.fontSize * 14.0 / 17.0)
+            
             let actionButtonSize = self.actionButton.update(
                 transition: transition,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.isPaused ? component.strings.Chat_BusinessBotPanel_ActionStart : component.strings.Chat_BusinessBotPanel_ActionStop, font: Font.semibold(15.0), textColor: component.theme.list.itemCheckColors.foregroundColor))
+                        text: .plain(NSAttributedString(string: component.isPaused ? component.strings.Chat_BusinessBotPanel_ActionStart : component.strings.Chat_BusinessBotPanel_ActionStop, font: Font.semibold(actionTitleFontSize), textColor: component.theme.list.itemCheckColors.foregroundColor))
                     )),
                     background: AnyComponent(RoundedRectangle(
                         color: component.theme.list.itemCheckColors.fillColor,
@@ -164,7 +173,7 @@ private final class ChatManagingBotTitlePanelComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: component.strings, displayOrder: .firstLast), font: Font.semibold(16.0), textColor: component.theme.chat.inputPanel.panelControlColor))
+                    text: .plain(NSAttributedString(string: component.peer.displayTitle(strings: component.strings, displayOrder: .firstLast), font: Font.semibold(floor(component.fontSize * 16.0 / 17.0)), textColor: component.theme.chat.inputPanel.panelControlColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: maxTextWidth, height: 100.0)
@@ -178,7 +187,7 @@ private final class ChatManagingBotTitlePanelComponent: Component {
             let textSize = self.text.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: textValue, font: Font.regular(14.0), textColor: component.theme.rootController.navigationBar.secondaryTextColor))
+                    text: .plain(NSAttributedString(string: textValue, font: Font.regular(statusFontSize), textColor: component.theme.rootController.navigationBar.secondaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: maxTextWidth, height: 100.0)
@@ -404,6 +413,7 @@ final class ChatManagingBotTitlePanelNode: ChatTitleAccessoryPanelNode {
                     theme: interfaceState.theme,
                     strings: interfaceState.strings,
                     insets: UIEdgeInsets(top: 0.0, left: leftInset, bottom: 0.0, right: rightInset),
+                    fontSize: interfaceState.fontSize.baseDisplaySize,
                     peer: managingBot.bot,
                     managesChat: managingBot.canReply || managingBot.isPaused,
                     isPaused: managingBot.isPaused,

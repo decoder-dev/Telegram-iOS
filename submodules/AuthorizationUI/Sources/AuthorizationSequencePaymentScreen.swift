@@ -289,6 +289,7 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
                 transition.setFrame(view: helpButtonView, frame: helpButtonFrame)
             }
                         
+            let listFontSize = component.presentationData.listsFontSize.baseDisplaySize
             let animationSize = self.animation.update(
                 transition: transition,
                 component: AnyComponent(PremiumCoinComponent(
@@ -303,7 +304,7 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Login_Fee_Title, font: Font.bold(28.0), textColor: environment.theme.rootController.navigationBar.primaryTextColor)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: environment.strings.Login_Fee_Title, font: Font.bold(floor(listFontSize * 28.0 / 17.0)), textColor: environment.theme.rootController.navigationBar.primaryTextColor)))
                 ),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset - rightSideInset, height: 100.0)
@@ -328,7 +329,8 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
                         text: environment.strings.Login_Fee_SmsCost_Text(countryName).string,
                         textColor: secondaryTextColor,
                         iconName: "Premium/Authorization/Cost",
-                        iconColor: linkColor
+                        iconColor: linkColor,
+                        listFontSize: listFontSize
                     ))
                 )
             )
@@ -341,7 +343,8 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
                         text: environment.strings.Login_Fee_Verification_Text,
                         textColor: secondaryTextColor,
                         iconName: "Premium/Authorization/Verification",
-                        iconColor: linkColor
+                        iconColor: linkColor,
+                        listFontSize: listFontSize
                     ))
                 )
             )
@@ -366,6 +369,7 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
                         textColor: secondaryTextColor,
                         iconName: "Premium/Authorization/Support",
                         iconColor: linkColor,
+                        listFontSize: listFontSize,
                         action: { [weak self] in
                             guard let self, let controller = self.environment?.controller(), let product = self.products.first(where: { $0.id == component.storeProduct }) else {
                                 return
@@ -464,7 +468,7 @@ final class AuthorizationSequencePaymentScreenComponent: Component {
                         component: AnyComponent(
                             VStack([
                                 AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(text: .plain(buttonAttributedString)))),
-                                AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: buttonSubtitle, font: Font.medium(11.0), textColor: environment.theme.list.itemCheckColors.foregroundColor.withAlphaComponent(0.7), paragraphAlignment: .center)))))
+                                AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: buttonSubtitle, font: Font.medium(floor(listFontSize * 11.0 / 17.0)), textColor: environment.theme.list.itemCheckColors.foregroundColor.withAlphaComponent(0.7), paragraphAlignment: .center)))))
                             ], spacing: 1.0)
                         )
                     ),
@@ -567,6 +571,7 @@ private final class ParagraphComponent: CombinedComponent {
     let textColor: UIColor
     let iconName: String
     let iconColor: UIColor
+    let listFontSize: CGFloat
     let action: (() -> Void)?
     
     public init(
@@ -576,6 +581,7 @@ private final class ParagraphComponent: CombinedComponent {
         textColor: UIColor,
         iconName: String,
         iconColor: UIColor,
+        listFontSize: CGFloat,
         action: (() -> Void)? = nil
     ) {
         self.title = title
@@ -584,6 +590,7 @@ private final class ParagraphComponent: CombinedComponent {
         self.textColor = textColor
         self.iconName = iconName
         self.iconColor = iconColor
+        self.listFontSize = listFontSize
         self.action = action
     }
     
@@ -604,6 +611,9 @@ private final class ParagraphComponent: CombinedComponent {
             return false
         }
         if lhs.iconColor != rhs.iconColor {
+            return false
+        }
+        if lhs.listFontSize != rhs.listFontSize {
             return false
         }
         return true
@@ -633,8 +643,8 @@ private final class ParagraphComponent: CombinedComponent {
             
             let textTopInset: CGFloat = 9.0
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(component.listFontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(component.listFontSize * 15.0 / 17.0))
             let titleColor = component.titleColor
             let textColor = component.textColor
             let linkColor = component.iconColor

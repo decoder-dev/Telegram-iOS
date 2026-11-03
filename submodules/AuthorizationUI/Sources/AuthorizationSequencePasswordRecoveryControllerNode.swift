@@ -8,6 +8,7 @@ import AuthorizationUtils
 final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let strings: PresentationStrings
     private let theme: PresentationTheme
+    private let listFontSize: CGFloat
     private let formNode = AuthorizationFormNode()
     private var emailPattern: String = ""
     
@@ -37,6 +38,7 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
     init(strings: PresentationStrings, theme: PresentationTheme, listFontSize: CGFloat = 17.0) {
         self.strings = strings
         self.theme = theme
+        self.listFontSize = listFontSize
         
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = false
@@ -104,7 +106,7 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
     
     func updateData(emailPattern: String) {
         self.emailPattern = emailPattern
-        self.noAccessNode.setAttributedTitle(NSAttributedString(string: self.strings.TwoStepAuth_RecoveryEmailUnavailable(emailPattern).string, font: Font.regular(16.0), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
+        self.noAccessNode.setAttributedTitle(NSAttributedString(string: self.strings.TwoStepAuth_RecoveryEmailUnavailable(emailPattern).string, font: Font.regular(floor(self.listFontSize * 16.0 / 17.0)), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
         if let (layout, navigationHeight) = self.layoutArguments {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
         }

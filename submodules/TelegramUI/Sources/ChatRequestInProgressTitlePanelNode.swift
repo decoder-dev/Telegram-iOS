@@ -14,6 +14,7 @@ final class ChatRequestInProgressTitlePanelNode: ChatTitleAccessoryPanelNode {
     
     private var theme: PresentationTheme?
     private var strings: PresentationStrings?
+    private var appliedBaseDisplaySize: CGFloat?
     
     override init() {
         self.separatorNode = ASDisplayNode()
@@ -34,10 +35,12 @@ final class ChatRequestInProgressTitlePanelNode: ChatTitleAccessoryPanelNode {
     }
     
     override func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState) -> LayoutResult {
-        if interfaceState.strings !== self.strings {
+        let baseDisplaySize = interfaceState.fontSize.baseDisplaySize
+        if interfaceState.strings !== self.strings || self.appliedBaseDisplaySize != baseDisplaySize {
             self.strings = interfaceState.strings
+            self.appliedBaseDisplaySize = baseDisplaySize
             
-            self.titleNode.attributedText = NSAttributedString(string: interfaceState.strings.Channel_NotificationLoading, font: Font.regular(14.0), textColor: interfaceState.theme.rootController.navigationBar.primaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: interfaceState.strings.Channel_NotificationLoading, font: Font.regular(floor(baseDisplaySize * 14.0 / 17.0)), textColor: interfaceState.theme.rootController.navigationBar.primaryTextColor)
         }
         
         if interfaceState.theme !== self.theme {

@@ -147,6 +147,8 @@ class VoiceChatParticipantStatusNode: ASDisplayNode {
     private var iconNodes: [ASImageNode]
     private let textNode: TextNode
     
+    var listsFontBaseSize: CGFloat = 17.0
+    
     private var currentParams: (CGSize, VoiceChatParticipantItem.ParticipantText)?
     
     override init() {
@@ -165,7 +167,7 @@ class VoiceChatParticipantStatusNode: ASDisplayNode {
         let makeTextLayout = TextNode.asyncLayout(self.textNode)
         
         return { [weak self] size, text, expanded in
-            let statusFont = Font.regular(14.0)
+            let statusFont = Font.regular(floor(self.listsFontBaseSize * 14.0 / 17.0))
             
             var attributedString: NSAttributedString?
             var color: UIColor = .white
@@ -856,7 +858,7 @@ class VoiceChatParticipantItemNode: ItemListRevealOptionsItemNode {
                 titleIconsWidth += 4.0
                 switch credibilityIcon {
                 case let .text(_, string):
-                    let textString = NSAttributedString(string: string, font: Font.bold(10.0), textColor: .black, paragraphAlignment: .center)
+                    let textString = NSAttributedString(string: string, font: Font.bold(floor(item.presentationData.listsFontSize.baseDisplaySize * 10.0 / 17.0)), textColor: .black, paragraphAlignment: .center)
                     let stringRect = textString.boundingRect(with: CGSize(width: 100.0, height: 16.0), options: .usesLineFragmentOrigin, context: nil)
                     titleIconsWidth += floor(stringRect.width) + 11.0
                 default:
@@ -871,6 +873,10 @@ class VoiceChatParticipantItemNode: ItemListRevealOptionsItemNode {
                               
             let constrainedWidth = params.width - leftInset - 12.0 - rightInset - 30.0 - titleIconsWidth
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: constrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            
+            let listsFontBaseSize = item.presentationData.listsFontSize.baseDisplaySize
+            self?.statusNode.listsFontBaseSize = listsFontBaseSize
+            self?.expandedStatusNode.listsFontBaseSize = listsFontBaseSize
             
             let expandedWidth = min(params.width - leftInset - rightInset, params.availableHeight - 30.0)
             let (statusLayout, statusApply) = makeStatusLayout(CGSize(width: params.width - leftInset - 8.0 - rightInset - 30.0, height: CGFloat.greatestFiniteMagnitude), item.text, false)

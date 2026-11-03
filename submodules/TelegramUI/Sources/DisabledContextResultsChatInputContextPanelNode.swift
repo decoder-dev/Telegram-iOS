@@ -56,7 +56,8 @@ final class DisabledContextResultsChatInputContextPanelNode: ChatInputContextPan
             banDescription = interfaceState.strings.Conversation_DefaultRestrictedInline
         }
         
-        self.textNode.attributedText = NSAttributedString(string: banDescription, font: Font.regular(13.0), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
+        let scaledFontSize = floor(interfaceState.fontSize.baseDisplaySize * 13.0 / 17.0)
+        self.textNode.attributedText = NSAttributedString(string: banDescription, font: Font.regular(scaledFontSize), textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)
         
         let verticalInset: CGFloat = 8.0
         let textSize = self.textNode.updateLayout(CGSize(width: size.width - leftInset - rightInset - 8.0 * 2.0, height: CGFloat.greatestFiniteMagnitude))

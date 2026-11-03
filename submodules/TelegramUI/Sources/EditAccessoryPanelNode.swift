@@ -75,6 +75,13 @@ final class EditAccessoryPanelNode: AccessoryPanelNode {
     
     private var validLayout: (size: CGSize, inset: CGFloat, interfaceState: ChatPresentationInterfaceState)?
     
+    private var contentBaseDisplaySize: CGFloat {
+        if let interfaceState = self.validLayout?.interfaceState {
+            return interfaceState.fontSize.baseDisplaySize
+        }
+        return self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+    }
+    
     init(context: AccountContext, messageId: EngineMessage.Id, theme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, dateTimeFormat: PresentationDateTimeFormat, animationCache: AnimationCache?, animationRenderer: MultiAnimationRenderer?) {
         self.context = context
         self.messageId = messageId
@@ -291,9 +298,10 @@ final class EditAccessoryPanelNode: AccessoryPanelNode {
         } else {
             titleString = self.strings.Conversation_EditingMessagePanelTitle
         }
-        self.titleNode.attributedText = NSAttributedString(string: titleString, font: Font.medium(15.0), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
+        let baseDisplaySize = self.contentBaseDisplaySize
+        self.titleNode.attributedText = NSAttributedString(string: titleString, font: Font.medium(floor(baseDisplaySize * 15.0 / 17.0)), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
         
-        let textFont = Font.regular(14.0)
+        let textFont = Font.regular(floor(baseDisplaySize * 14.0 / 17.0))
         let messageText: NSAttributedString
         if isText, let message = message {
             let entities = (message.textEntitiesAttribute?.entities ?? []).filter { entity in
@@ -311,7 +319,7 @@ final class EditAccessoryPanelNode: AccessoryPanelNode {
                 messageText = NSAttributedString(string: text, font: textFont, textColor: isMedia ? self.theme.chat.inputPanel.secondaryTextColor : self.theme.chat.inputPanel.primaryTextColor)
             }
         } else {
-            messageText = NSAttributedString(string: text, font: Font.regular(15.0), textColor: isMedia ? self.theme.chat.inputPanel.secondaryTextColor : self.theme.chat.inputPanel.primaryTextColor)
+            messageText = NSAttributedString(string: text, font: Font.regular(floor(baseDisplaySize * 15.0 / 17.0)), textColor: isMedia ? self.theme.chat.inputPanel.secondaryTextColor : self.theme.chat.inputPanel.primaryTextColor)
         }
         
         self.textNode.attributedText = messageText
@@ -368,7 +376,8 @@ final class EditAccessoryPanelNode: AccessoryPanelNode {
             self.iconNode.image = PresentationResourcesChat.chatInputPanelEditIconImage(theme)
             
             if let text = self.titleNode.attributedText?.string {
-                self.titleNode.attributedText = NSAttributedString(string: text, font: Font.medium(15.0), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
+                let baseDisplaySize = self.contentBaseDisplaySize
+                self.titleNode.attributedText = NSAttributedString(string: text, font: Font.medium(floor(baseDisplaySize * 15.0 / 17.0)), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
             }
             
             if let text = self.textNode.attributedText {

@@ -11,10 +11,12 @@ final class ChatToastAlertPanelNode: ChatTitleAccessoryPanelNode {
     
     private let activateAreaNode: AccessibilityAreaNode
     
+    private var fontSize: CGFloat = 17.0
+    
     private var textColor: UIColor = .black {
         didSet {
             if !self.textColor.isEqual(oldValue) {
-                self.titleNode.attributedText = NSAttributedString(string: self.text, font: Font.regular(14.0), textColor: self.textColor)
+                self.updateTitleAttributedText()
             }
         }
     }
@@ -22,10 +24,15 @@ final class ChatToastAlertPanelNode: ChatTitleAccessoryPanelNode {
     var text: String = "" {
         didSet {
             if self.text != oldValue {
-                self.titleNode.attributedText = NSAttributedString(string: text, font: Font.regular(14.0), textColor: self.textColor)
+                self.updateTitleAttributedText()
                 self.setNeedsLayout()
             }
         }
+    }
+    
+    private func updateTitleAttributedText() {
+        let scaledFontSize = floor(self.fontSize * 14.0 / 17.0)
+        self.titleNode.attributedText = NSAttributedString(string: self.text, font: Font.regular(scaledFontSize), textColor: self.textColor)
     }
     
     override init() {
@@ -35,7 +42,7 @@ final class ChatToastAlertPanelNode: ChatTitleAccessoryPanelNode {
         self.titleNode = ImmediateTextNode()
         // Colour is applied in updateLayout from the active theme; .clear avoids a
         // brief flash of black text before the first layout pass in dark themes.
-        self.titleNode.attributedText = NSAttributedString(string: "", font: Font.regular(14.0), textColor: .clear)
+        self.titleNode.attributedText = NSAttributedString(string: "", font: Font.regular(floor(17.0 * 14.0 / 17.0)), textColor: .clear)
         self.titleNode.maximumNumberOfLines = 1
         self.titleNode.insets = UIEdgeInsets(top: 2.0, left: 2.0, bottom: 2.0, right: 2.0)
         
@@ -51,7 +58,9 @@ final class ChatToastAlertPanelNode: ChatTitleAccessoryPanelNode {
     override func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState) -> LayoutResult {
         let panelHeight: CGFloat = 40.0
 
+        self.fontSize = interfaceState.fontSize.baseDisplaySize
         self.textColor = interfaceState.theme.rootController.navigationBar.primaryTextColor
+        self.updateTitleAttributedText()
         self.separatorNode.backgroundColor = interfaceState.theme.chat.historyNavigation.strokeColor
         
         transition.updateFrame(node: self.separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: width, height: UIScreenPixel)))

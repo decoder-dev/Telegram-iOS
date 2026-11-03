@@ -437,7 +437,8 @@ class VoiceChatFullscreenParticipantItemNode: ItemListRevealOptionsItemNode {
         var hasVideo = self.videoNode != nil
         
         return { [weak self] item, params, first, last in
-            let titleFont = Font.semibold(13.0)
+            let titleFontSize = floor(item.presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)
+            let titleFont = Font.semibold(titleFontSize)
             var titleAttributedString: NSAttributedString?
             
             if !hasVideo && item.videoEndpointId != nil {
@@ -512,6 +513,7 @@ class VoiceChatFullscreenParticipantItemNode: ItemListRevealOptionsItemNode {
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: constrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                         
             let availableWidth = params.availableHeight
+            self?.statusNode.listsFontBaseSize = item.presentationData.listsFontSize.baseDisplaySize
             let (statusLayout, _) = makeStatusLayout(CGSize(width: availableWidth - 30.0, height: CGFloat.greatestFiniteMagnitude), item.text, true)
             
             let contentSize = tileSize

@@ -165,7 +165,9 @@ final class VideoChatTitleComponent: Component {
                     self.activityStatusNode = activityStatusNode
                 }
                 
-                let _ = activityStatusNode.transitionToState(.recordingVoice(NSAttributedString(string: value, font: Font.regular(13.0), textColor: UIColor(rgb: 0x34c759)), UIColor(rgb: 0x34c759)), animation: .none)
+                let listsFontSize = self.component?.titleFontSize ?? 17.0
+                let recordingFontSize = floor(listsFontSize * 13.0 / 17.0)
+                let _ = activityStatusNode.transitionToState(.recordingVoice(NSAttributedString(string: value, font: Font.regular(recordingFontSize), textColor: UIColor(rgb: 0x34c759)), UIColor(rgb: 0x34c759)), animation: .none)
                 let activityStatusSize = activityStatusNode.updateLayout(CGSize(width: currentSize.width, height: 100.0), alignment: .center)
                 let activityStatusFrame = CGRect(origin: CGPoint(x: floor((currentSize.width - activityStatusSize.width) * 0.5), y: statusView.center.y - activityStatusSize.height * 0.5 + 7.0), size: activityStatusSize)
                 
@@ -223,9 +225,10 @@ final class VideoChatTitleComponent: Component {
                 containerSize: CGSize(width: maxTitleWidth, height: 100.0)
             )
             
+            let statusFontSize = floor(component.titleFontSize * 12.0 / 17.0)
             let statusComponent: AnyComponent<Empty>
             statusComponent = AnyComponent(AnimatedTextComponent(
-                font: Font.regular(12.0),
+                font: Font.regular(statusFontSize),
                 color: UIColor(white: 1.0, alpha: 0.5),
                 items: component.status
             ))

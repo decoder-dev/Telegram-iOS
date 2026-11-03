@@ -13,12 +13,14 @@ final class ChatMessageActionSheetController: ViewController {
     private let actions: [ChatMessageContextMenuSheetAction]
     private let dismissed: () -> Void
     private weak var associatedController: ViewController?
+    private let contentFontSize: CGFloat
     
-    init(theme: PresentationTheme, actions: [ChatMessageContextMenuSheetAction], dismissed: @escaping () -> Void, associatedController: ViewController?) {
+    init(theme: PresentationTheme, actions: [ChatMessageContextMenuSheetAction], dismissed: @escaping () -> Void, associatedController: ViewController?, contentFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.actions = actions
         self.dismissed = dismissed
         self.associatedController = associatedController
+        self.contentFontSize = contentFontSize
         
         super.init(navigationBarPresentationData: nil)
     }
@@ -28,7 +30,7 @@ final class ChatMessageActionSheetController: ViewController {
     }
     
     override func loadDisplayNode() {
-        self.displayNode = ChatMessageActionSheetControllerNode(theme: self.theme, actions: self.actions, dismissed: self.dismissed, associatedController: self.associatedController)
+        self.displayNode = ChatMessageActionSheetControllerNode(theme: self.theme, actions: self.actions, dismissed: self.dismissed, associatedController: self.associatedController, contentFontSize: self.contentFontSize)
         self.displayNodeDidLoad()
     }
     

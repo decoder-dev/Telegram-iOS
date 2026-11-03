@@ -30,12 +30,14 @@ private final class EmojiKeyAlertComponet: CombinedComponent {
     let emojiKey: [String]
     let title: String
     let text: String
+    let fontSize: CGFloat
     
-    init(theme: PresentationTheme, emojiKey: [String], title: String, text: String) {
+    init(theme: PresentationTheme, emojiKey: [String], title: String, text: String, fontSize: CGFloat = 17.0) {
         self.theme = theme
         self.emojiKey = emojiKey
         self.title = title
         self.text = text
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: EmojiKeyAlertComponet, rhs: EmojiKeyAlertComponet) -> Bool {
@@ -51,6 +53,9 @@ private final class EmojiKeyAlertComponet: CombinedComponent {
         if lhs.text != rhs.text {
             return false
         }
+        if lhs.fontSize != rhs.fontSize {
+            return false
+        }
         return true
     }
     
@@ -61,6 +66,9 @@ private final class EmojiKeyAlertComponet: CombinedComponent {
         let text = Child(MultilineTextComponent.self)
         
         return { context in
+            let titleFontSize = floor(context.component.fontSize * 16.0 / 17.0)
+            let textFontSize = floor(context.component.fontSize * 13.0 / 17.0)
+            
             /*let emojiKeyItems = context.component.emojiKey.map { item in
                 return emojiKeyItems[item].update(
                     component: AnyComponent(MultilineTextComponent(
@@ -83,7 +91,7 @@ private final class EmojiKeyAlertComponet: CombinedComponent {
             )
             let title = title.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: context.component.title, font: Font.semibold(16.0), textColor: context.component.theme.actionSheet.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: context.component.title, font: Font.semibold(titleFontSize), textColor: context.component.theme.actionSheet.primaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.2
@@ -93,7 +101,7 @@ private final class EmojiKeyAlertComponet: CombinedComponent {
             )
             let text = text.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: context.component.text, font: Font.regular(13.0), textColor: context.component.theme.actionSheet.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: context.component.text, font: Font.regular(textFontSize), textColor: context.component.theme.actionSheet.primaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.2

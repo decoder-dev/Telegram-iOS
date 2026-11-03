@@ -645,8 +645,9 @@ final class VoiceChatMainStageNode: ASDisplayNode {
                 let presentationData = strongSelf.context.sharedContext.currentPresentationData.with { $0 }
                     strongSelf.speakingAvatarNode.setPeer(context: strongSelf.context, theme: presentationData.theme, peer: peer)
 
-                let bodyAttributes = MarkdownAttributeSet(font: Font.regular(15.0), textColor: .white, additionalAttributes: [:])
-                let boldAttributes = MarkdownAttributeSet(font: Font.semibold(15.0), textColor: .white, additionalAttributes: [:])
+                let speakingFontSize = floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)
+                let bodyAttributes = MarkdownAttributeSet(font: Font.regular(speakingFontSize), textColor: .white, additionalAttributes: [:])
+                let boldAttributes = MarkdownAttributeSet(font: Font.semibold(speakingFontSize), textColor: .white, additionalAttributes: [:])
                 let attributedText = addAttributesToStringWithRanges(presentationData.strings.VoiceChat_ParticipantIsSpeaking(peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder))._tuple, body: bodyAttributes, argumentAttributes: [0: boldAttributes])
                 strongSelf.speakingTitleNode.attributedText = attributedText
 
@@ -777,12 +778,13 @@ final class VoiceChatMainStageNode: ASDisplayNode {
         }
         
         var microphoneColor = UIColor.white
-        var titleAttributedString = NSAttributedString(string: peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), font: Font.semibold(15.0), textColor: .white)
+        let titleFontSize = floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)
+        var titleAttributedString = NSAttributedString(string: peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), font: Font.semibold(titleFontSize), textColor: .white)
         if mutedForYou {
             microphoneColor = destructiveColor
             
             let updatedString = NSMutableAttributedString(attributedString: titleAttributedString)
-            updatedString.append(NSAttributedString(string: " \(presentationData.strings.VoiceChat_StatusMutedForYou)", font: Font.regular(15.0), textColor: UIColor.white))
+            updatedString.append(NSAttributedString(string: " \(presentationData.strings.VoiceChat_StatusMutedForYou)", font: Font.regular(titleFontSize), textColor: UIColor.white))
             titleAttributedString = updatedString
         }
         self.titleNode.attributedText = titleAttributedString
@@ -855,11 +857,11 @@ final class VoiceChatMainStageNode: ASDisplayNode {
             
             var showPlaceholder = false
             if isMyPeer && isPresentation {
-                self.placeholderTextNode.attributedText = NSAttributedString(string: presentationData.strings.VoiceChat_YouAreSharingScreen, font: Font.semibold(15.0), textColor: .white)
+                self.placeholderTextNode.attributedText = NSAttributedString(string: presentationData.strings.VoiceChat_YouAreSharingScreen, font: Font.semibold(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: .white)
                 self.placeholderIconNode.image = generateTintedImage(image: UIImage(bundleImageName: isTablet ? "Call/ScreenShareTablet" : "Call/ScreenSharePhone"), color: .white)
                 showPlaceholder = true
             } else if isPaused {
-                self.placeholderTextNode.attributedText = NSAttributedString(string: presentationData.strings.VoiceChat_VideoPaused, font: Font.semibold(14.0), textColor: .white)
+                self.placeholderTextNode.attributedText = NSAttributedString(string: presentationData.strings.VoiceChat_VideoPaused, font: Font.semibold(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: .white)
                 self.placeholderIconNode.image = generateTintedImage(image: UIImage(bundleImageName: "Call/Pause"), color: .white)
                 showPlaceholder = true
             }

@@ -4,11 +4,14 @@ import Display
 import AsyncDisplayKit
 import SwiftSignalKit
 
-private let compactNameFont = Font.regular(28.0)
-private let regularNameFont = Font.regular(36.0)
+private func callControllerStatusNameFont(constrainedWidth: CGFloat, fontSize: CGFloat) -> UIFont {
+    let base: CGFloat = constrainedWidth < 330.0 ? 28.0 : 36.0
+    return Font.regular(floor(fontSize * base / 17.0))
+}
 
-private let compactStatusFont = Font.regular(18.0)
-private let regularStatusFont = Font.regular(18.0)
+private func callControllerStatusDetailFont(fontSize: CGFloat) -> UIFont {
+    return Font.regular(floor(fontSize * 18.0 / 17.0))
+}
 
 enum CallControllerStatusValue: Equatable {
     case text(string: String, displayLogo: Bool)
@@ -68,13 +71,13 @@ final class CallControllerStatusNode: ASDisplayNode {
                 if case .timer = self.status {
                     self.statusTimer = SwiftSignalKit.Timer(timeout: 0.5, repeat: true, completion: { [weak self] in
                         if let strongSelf = self, let validLayoutWidth = strongSelf.validLayoutWidth {
-                            let _ = strongSelf.updateLayout(constrainedWidth: validLayoutWidth, transition: .immediate)
+                            let _ = strongSelf.updateLayout(constrainedWidth: validLayoutWidth, transition: .immediate, fontSize: strongSelf.currentFontSize)
                         }
                     }, queue: Queue.mainQueue())
                     self.statusTimer?.start()
                 } else {
                     if let validLayoutWidth = self.validLayoutWidth {
-                        let _ = self.updateLayout(constrainedWidth: validLayoutWidth, transition: .immediate)
+                        let _ = self.updateLayout(constrainedWidth: validLayoutWidth, transition: .immediate, fontSize: self.currentFontSize)
                     }
                 }
             }
@@ -97,7 +100,7 @@ final class CallControllerStatusNode: ASDisplayNode {
                 
                 if (oldValue == nil) != (self.reception != nil) {
                     if let validLayoutWidth = self.validLayoutWidth {
-                        let _ = self.updateLayout(constrainedWidth: validLayoutWidth, transition: .immediate)
+                        let _ = self.updateLayout(constrainedWidth: validLayoutWidth, transition: .immediate, fontSize: self.currentFontSize)
                     }
                 }
             }
@@ -106,6 +109,7 @@ final class CallControllerStatusNode: ASDisplayNode {
     
     private var statusTimer: SwiftSignalKit.Timer?
     private var validLayoutWidth: CGFloat?
+    private var currentFontSize: CGFloat = 17.0
     
     override init() {
         self.titleNode = TextNode()
@@ -151,18 +155,12 @@ final class CallControllerStatusNode: ASDisplayNode {
         transition.updateAlpha(node: self.statusContainerNode, alpha: alpha)
     }
     
-    func updateLayout(constrainedWidth: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
+    func updateLayout(constrainedWidth: CGFloat, transition: ContainedViewLayoutTransition, fontSize: CGFloat = 17.0) -> CGFloat {
         self.validLayoutWidth = constrainedWidth
+        self.currentFontSize = fontSize
         
-        let nameFont: UIFont
-        let statusFont: UIFont
-        if constrainedWidth < 330.0 {
-            nameFont = compactNameFont
-            statusFont = compactStatusFont
-        } else {
-            nameFont = regularNameFont
-            statusFont = regularStatusFont
-        }
+        let nameFont = callControllerStatusNameFont(constrainedWidth: constrainedWidth, fontSize: fontSize)
+        let statusFont = callControllerStatusDetailFont(fontSize: fontSize)
         
         var statusOffset: CGFloat = 0.0
         let statusText: String

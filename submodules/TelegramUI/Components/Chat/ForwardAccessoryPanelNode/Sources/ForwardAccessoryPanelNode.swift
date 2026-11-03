@@ -217,7 +217,8 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
                                         text = strongSelf.strings.Conversation_ForwardOptions_TapForOptionsShort
                                     }
                                     
-                                    strongSelf.textNode.attributedText = NSAttributedString(string: text, font: Font.regular(15.0), textColor: strongSelf.theme.chat.inputPanel.secondaryTextColor)
+                                    let panelFontSize = floor(strongSelf.fontSize.baseDisplaySize * 15.0 / 17.0)
+                                    strongSelf.textNode.attributedText = NSAttributedString(string: text, font: Font.regular(panelFontSize), textColor: strongSelf.theme.chat.inputPanel.secondaryTextColor)
                                     
                                     strongSelf.view.addSubview(snapshotView)
                                     
@@ -281,7 +282,8 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
                 title = self.strings.Conversation_ForwardOptions_ForwardTitle(Int32(filteredMessages.count))
             }
             
-            self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(15.0), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
+            let panelFontSize = floor(self.fontSize.baseDisplaySize * 15.0 / 17.0)
+            self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(panelFontSize), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
             
             if let attributedText = self.textNode.attributedText {
                 let updatedText = NSMutableAttributedString(attributedString: attributedText)
@@ -302,6 +304,9 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
 
     override public func updateState(size: CGSize, inset: CGFloat, interfaceState: ChatPresentationInterfaceState) {
         self.validLayout = (size, inset, interfaceState)
+        self.fontSize = interfaceState.fontSize
+        
+        let panelFontSize = floor(self.fontSize.baseDisplaySize * 15.0 / 17.0)
 
         let bounds = CGRect(origin: CGPoint(), size: CGSize(width: size.width, height: 45.0))
         let leftInset: CGFloat = 55.0 + inset
@@ -349,9 +354,9 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
                 richAccessibilityText = "\(authors): \(instantPagePreviewPlainText(string))"
             }
             
-            text = NSMutableAttributedString(attributedString: NSAttributedString(string: "\(authors): ", font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.secondaryTextColor))
+            text = NSMutableAttributedString(attributedString: NSAttributedString(string: "\(authors): ", font: Font.regular(panelFontSize), textColor: self.theme.chat.inputPanel.secondaryTextColor))
             
-            let additionalText = NSMutableAttributedString(attributedString: styleInstantPagePreview(string, font: Font.regular(15.0), italicFont: Font.italic(15.0), textColor: self.theme.chat.inputPanel.secondaryTextColor))
+            let additionalText = NSMutableAttributedString(attributedString: styleInstantPagePreview(string, font: Font.regular(panelFontSize), italicFont: Font.italic(panelFontSize), textColor: self.theme.chat.inputPanel.secondaryTextColor))
             for entity in entities {
                 switch entity.type {
                 case let .CustomEmoji(_, fileId):
@@ -364,21 +369,21 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
                 }
             }
             
-            text.append(renderInstantPagePreviewIcons(additionalText, font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.secondaryTextColor))
+            text.append(renderInstantPagePreviewIcons(additionalText, font: Font.regular(panelFontSize), textColor: self.theme.chat.inputPanel.secondaryTextColor))
         } else {
             title = self.strings.Conversation_ForwardOptions_ForwardTitle(Int32(messages.count))
-            text = NSMutableAttributedString(attributedString: NSAttributedString(string: self.strings.Conversation_ForwardFrom(authors).string, font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.secondaryTextColor))
+            text = NSMutableAttributedString(attributedString: NSAttributedString(string: self.strings.Conversation_ForwardFrom(authors).string, font: Font.regular(panelFontSize), textColor: self.theme.chat.inputPanel.secondaryTextColor))
         }
         
         if interfaceState.interfaceState.forwardOptionsState?.hideNames == true {
             richAccessibilityText = nil
-            text = NSMutableAttributedString(attributedString: NSAttributedString(string: self.strings.Conversation_ForwardOptions_SenderNamesRemoved, font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.secondaryTextColor))
+            text = NSMutableAttributedString(attributedString: NSAttributedString(string: self.strings.Conversation_ForwardOptions_SenderNamesRemoved, font: Font.regular(panelFontSize), textColor: self.theme.chat.inputPanel.secondaryTextColor))
         }
 
         let accessibilityText = richAccessibilityText ?? text.string
-        text = NSMutableAttributedString(attributedString: renderInstantPagePreviewIcons(text, font: Font.regular(15.0), textColor: self.theme.chat.inputPanel.secondaryTextColor))
+        text = NSMutableAttributedString(attributedString: renderInstantPagePreviewIcons(text, font: Font.regular(panelFontSize), textColor: self.theme.chat.inputPanel.secondaryTextColor))
         
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(15.0), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(panelFontSize), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
         self.textNode.attributedText = text
         self.originalText = text
         self.textNode.visibility = true
@@ -416,8 +421,9 @@ public final class ForwardAccessoryPanelNode: AccessoryPanelNode {
             string = self.strings.Conversation_ForwardOptions_Text(messages, peerDisplayTitle)
         }
 
-        let font = Font.regular(15.0)
-        let boldFont = Font.semibold(15.0)
+        let panelFontSize = floor(self.fontSize.baseDisplaySize * 15.0 / 17.0)
+        let font = Font.regular(panelFontSize)
+        let boldFont = Font.semibold(panelFontSize)
         let body = MarkdownAttributeSet(font: font, textColor: self.theme.actionSheet.primaryTextColor)
         let bold = MarkdownAttributeSet(font: boldFont, textColor: self.theme.actionSheet.primaryTextColor)
         let text = addAttributesToStringWithRanges(string._tuple, body: body, argumentAttributes: [0: bold, 1: bold], textAlignment: .natural)

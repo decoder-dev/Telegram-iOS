@@ -45,8 +45,9 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
     private var textIsOptions: Bool = false
     
     private var validLayout: (size: CGSize, inset: CGFloat, interfaceState: ChatPresentationInterfaceState)?
+    private var fontSize: PresentationFontSize
     
-    public init(context: AccountContext, chatPeerId: EnginePeer.Id, messageId: EngineMessage.Id, quote: EngineMessageReplyQuote?, innerSubject: EngineMessageReplyInnerSubject?, theme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, dateTimeFormat: PresentationDateTimeFormat, animationCache: AnimationCache?, animationRenderer: MultiAnimationRenderer?) {
+    public init(context: AccountContext, chatPeerId: EnginePeer.Id, messageId: EngineMessage.Id, quote: EngineMessageReplyQuote?, innerSubject: EngineMessageReplyInnerSubject?, theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize, nameDisplayOrder: PresentationPersonNameOrder, dateTimeFormat: PresentationDateTimeFormat, animationCache: AnimationCache?, animationRenderer: MultiAnimationRenderer?) {
         self.chatPeerId = chatPeerId
         self.messageId = messageId
         self.quote = quote
@@ -55,6 +56,7 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
         self.context = context
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         
         self.closeButton = HighlightableButtonNode()
         self.closeButton.accessibilityLabel = strings.VoiceOver_DiscardPreparedContent
@@ -154,7 +156,8 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                     isMedia = false
                 }
 
-                let textFont = Font.regular(15.0)
+                let panelFontSize = floor(strongSelf.fontSize.baseDisplaySize * 15.0 / 17.0)
+                let textFont = Font.regular(panelFontSize)
                 let messageText: NSAttributedString
                 if isText, let message = message {
                     let entities = (message.textEntitiesAttribute?.entities ?? []).filter { entity in
@@ -259,31 +262,31 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                             
                             let rawNsString = rawString.string as NSString
                             if nameRange.range.lowerBound != 0 {
-                                titleText.append(.text(NSAttributedString(string: rawNsString.substring(with: NSRange(location: 0, length: nameRange.range.lowerBound)), font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor)))
+                                titleText.append(.text(NSAttributedString(string: rawNsString.substring(with: NSRange(location: 0, length: nameRange.range.lowerBound)), font: Font.medium(panelFontSize), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor)))
                             }
                             titleText.append(.icon(icon, .zero))
-                            titleText.append(.text(NSAttributedString(string: peer.debugDisplayTitle, font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor)))
+                            titleText.append(.text(NSAttributedString(string: peer.debugDisplayTitle, font: Font.medium(panelFontSize), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor)))
                             
                             if nameRange.range.upperBound != rawNsString.length {
-                                titleText.append(.text(NSAttributedString(string: rawNsString.substring(with: NSRange(location: nameRange.range.upperBound, length: rawNsString.length - nameRange.range.upperBound)), font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor)))
+                                titleText.append(.text(NSAttributedString(string: rawNsString.substring(with: NSRange(location: nameRange.range.upperBound, length: rawNsString.length - nameRange.range.upperBound)), font: Font.medium(panelFontSize), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor)))
                             }
                         } else {
-                            titleText.append(.text(NSAttributedString(string: rawString.string, font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor)))
+                            titleText.append(.text(NSAttributedString(string: rawString.string, font: Font.medium(panelFontSize), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor)))
                         }
                     }
                 } else {
                     if case .todoItem = strongSelf.innerSubject {
                         let string = strongSelf.strings.Chat_ReplyPanel_ReplyToTodoItem
-                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor))]
+                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(panelFontSize), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor))]
                     } else if case .pollOption = strongSelf.innerSubject {
                         let string = strongSelf.strings.Chat_ReplyPanel_ReplyToPollOption
-                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor))]
+                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(panelFontSize), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor))]
                     } else if let _ = strongSelf.quote {
                         let string = strongSelf.strings.Chat_ReplyPanel_ReplyToQuoteBy(authorName).string
-                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor))]
+                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(panelFontSize), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor))]
                     } else {
                         let string = strongSelf.strings.Conversation_ReplyMessagePanelTitle(authorName).string
-                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(15.0), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor))]
+                        titleText = [.text(NSAttributedString(string: string, font: Font.medium(panelFontSize), textColor: strongSelf.theme.chat.inputPanel.panelControlAccentColor))]
                     }
                     
                     if strongSelf.messageId.peerId != strongSelf.chatPeerId {
@@ -296,7 +299,7 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                             }
                             if let iconImage = generateTintedImage(image: icon, color: strongSelf.theme.chat.inputPanel.panelControlAccentColor) {
                                 titleText.append(.icon(iconImage, .zero))
-                                titleText.append(.text(NSAttributedString(string: peer.debugDisplayTitle, font: Font.medium(15.0), textColor: theme.chat.inputPanel.panelControlAccentColor)))
+                                titleText.append(.text(NSAttributedString(string: peer.debugDisplayTitle, font: Font.medium(panelFontSize), textColor: theme.chat.inputPanel.panelControlAccentColor)))
                             }
                         }
                     }
@@ -359,7 +362,8 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
                                 }
                                 strongSelf.textIsOptions = true
                                 
-                                strongSelf.textNode.attributedText = NSAttributedString(string: text, font: Font.regular(15.0), textColor: strongSelf.theme.chat.inputPanel.secondaryTextColor)
+                                let hintFontSize = floor(strongSelf.fontSize.baseDisplaySize * 15.0 / 17.0)
+                                strongSelf.textNode.attributedText = NSAttributedString(string: text, font: Font.regular(hintFontSize), textColor: strongSelf.theme.chat.inputPanel.secondaryTextColor)
                                 
                                 strongSelf.view.addSubview(snapshotView)
                                 
@@ -447,6 +451,7 @@ public final class ReplyAccessoryPanelNode: AccessoryPanelNode {
     
     override public func updateState(size: CGSize, inset: CGFloat, interfaceState: ChatPresentationInterfaceState) {
         self.validLayout = (size, inset, interfaceState)
+        self.fontSize = interfaceState.fontSize
         
         let bounds = CGRect(origin: CGPoint(), size: CGSize(width: size.width, height: 45.0))
         let leftInset: CGFloat = 55.0 + inset

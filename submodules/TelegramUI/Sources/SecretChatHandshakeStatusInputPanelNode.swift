@@ -71,10 +71,11 @@ final class SecretChatHandshakeStatusInputPanelNode: ChatInputPanelNode {
             }
         }
         
+        let scaledFontSize = floor(interfaceState.fontSize.baseDisplaySize * 15.0 / 17.0)
         let titleSize = self.title.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: text ?? " ", font: Font.regular(15.0), textColor: interfaceState.theme.chat.inputPanel.primaryTextColor, paragraphAlignment: .center))
+                text: .plain(NSAttributedString(string: text ?? " ", font: Font.regular(scaledFontSize), textColor: interfaceState.theme.chat.inputPanel.primaryTextColor, paragraphAlignment: .center))
             )),
             environment: {},
             containerSize: CGSize(width: width - 16.0 * 2.0, height: 100.0)

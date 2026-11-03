@@ -123,18 +123,18 @@ final class ContactMultiselectionControllerNode: ASDisplayNode {
             shortPlaceholder = self.presentationData.strings.Common_Search
             self.footerPanelNode = FooterPanelNode(theme: self.presentationData.theme, strings: self.presentationData.strings, action: {
                 proceedImpl?()
-            }, checkOptionTitle: nil)
+            }, checkOptionTitle: nil, contentFontSize: self.presentationData.listsFontSize.baseDisplaySize)
         case .requestedUsersSelection:
             placeholder = self.presentationData.strings.RequestPeer_SelectUsers_SearchPlaceholder
             self.footerPanelNode = FooterPanelNode(theme: self.presentationData.theme, strings: self.presentationData.strings, action: {
                 proceedImpl?()
-            }, checkOptionTitle: nil)
+            }, checkOptionTitle: nil, contentFontSize: self.presentationData.listsFontSize.baseDisplaySize)
         case let .groupCreation(isCall):
             if isCall {
                 placeholder = self.presentationData.strings.NewCall_SearchPlaceholder
                 self.footerPanelNode = FooterPanelNode(theme: self.presentationData.theme, strings: self.presentationData.strings, action: {
                     proceedImpl?()
-                }, checkOptionTitle: self.presentationData.strings.NewCall_VideoOption)
+                }, checkOptionTitle: self.presentationData.strings.NewCall_VideoOption, contentFontSize: self.presentationData.listsFontSize.baseDisplaySize)
             } else {
                 placeholder = self.presentationData.strings.Compose_TokenListPlaceholder    
                 self.footerPanelNode = nil
@@ -574,6 +574,7 @@ private final class FooterPanelNode: ASDisplayNode {
     private let strings: PresentationStrings
 
     private let checkOptionTitle: String?
+    private let contentFontSize: CGFloat
     private var checkOptionButton: HighlightTrackingButton?
     private var checkOptionText: ComponentView<Empty>?
     private var checkOptionControl: ComponentView<Empty>?
@@ -598,10 +599,11 @@ private final class FooterPanelNode: ASDisplayNode {
         }
     }
     
-    init(theme: PresentationTheme, strings: PresentationStrings, action: @escaping () -> Void, checkOptionTitle: String?) {
+    init(theme: PresentationTheme, strings: PresentationStrings, action: @escaping () -> Void, checkOptionTitle: String?, contentFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
         self.checkOptionTitle = checkOptionTitle
+        self.contentFontSize = contentFontSize
 
         self.separatorNode = ASDisplayNode()
         self.separatorNode.backgroundColor = theme.rootController.navigationBar.separatorColor
@@ -681,7 +683,7 @@ private final class FooterPanelNode: ASDisplayNode {
             let checkOptionTextSize = checkOptionText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: checkOptionTitle, font: Font.regular(13.0), textColor: theme.rootController.navigationBar.primaryTextColor))
+                    text: .plain(NSAttributedString(string: checkOptionTitle, font: Font.regular(floor(self.contentFontSize * 13.0 / 17.0)), textColor: theme.rootController.navigationBar.primaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: width - leftInset - rightInset - checkSpacing - 20.0, height: 100.0)

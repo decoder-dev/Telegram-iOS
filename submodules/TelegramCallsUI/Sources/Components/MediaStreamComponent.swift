@@ -787,6 +787,7 @@ public final class MediaStreamComponent: CombinedComponent {
             )
             
             let presentationData = call.accountContext.sharedContext.currentPresentationData.with { $0 }
+            let roundButtonFontSize = presentationData.listsFontSize.baseDisplaySize
             
             let imageRenderScale = UIScreen.main.scale
             // The bottom rows span iPhone Duo's side strip; they keep clear only of a corner block at the bottom. In
@@ -800,7 +801,8 @@ public final class MediaStreamComponent: CombinedComponent {
                     content: AnyComponent(RoundGradientButtonComponent(
                         gradientColors: [UIColor(red: 0.165, green: 0.173, blue: 0.357, alpha: 1).cgColor],
                         image: generateTintedImage(image: UIImage(bundleImageName: "Call/CallShareButton"), color: .white),
-                        title: presentationData.strings.VoiceChat_ShareShort)),
+                        title: presentationData.strings.VoiceChat_ShareShort,
+                        fontSize: roundButtonFontSize)),
                     action: {
                         guard let controller = controller() as? MediaStreamComponentController else {
                             return
@@ -835,7 +837,8 @@ public final class MediaStreamComponent: CombinedComponent {
                             context.addLine(to: CGPoint(x: lineWidth / 2 + UIScreenPixel, y: size.height - lineWidth / 2 - UIScreenPixel))
                             context.strokePath()
                         }),
-                        title: presentationData.strings.VoiceChat_Leave
+                        title: presentationData.strings.VoiceChat_Leave,
+                        fontSize: roundButtonFontSize
                     )),
                     action: { [weak call] in
                         let _ = call?.leave(terminateIfPossible: false)
@@ -872,7 +875,8 @@ public final class MediaStreamComponent: CombinedComponent {
                             context.addLine(to: CGPoint(x: size.width / 2 - centerOffset, y: size.height / 2 + centerOffset))
                             context.strokePath()
                         }),
-                        title: presentationData.strings.LiveStream_Expand
+                        title: presentationData.strings.LiveStream_Expand,
+                        fontSize: roundButtonFontSize
                     )),
                     action: { [weak state] in
                         guard let state = state else { return }
@@ -2000,11 +2004,12 @@ private final class ButtonsRowComponent: CombinedComponent {
 }
 
 final class RoundGradientButtonComponent: Component {
-    init(gradientColors: [CGColor], icon: String? = nil, image: UIImage? = nil, title: String) {
+    init(gradientColors: [CGColor], icon: String? = nil, image: UIImage? = nil, title: String, fontSize: CGFloat = 17.0) {
         self.gradientColors = gradientColors
         self.icon = icon
         self.image = image
         self.title = title
+        self.fontSize = fontSize
     }
     
     static func == (lhs: RoundGradientButtonComponent, rhs: RoundGradientButtonComponent) -> Bool {
@@ -2014,6 +2019,12 @@ final class RoundGradientButtonComponent: Component {
         if lhs.gradientColors != rhs.gradientColors {
             return false
         }
+        if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
+            return false
+        }
         return true
     }
     
@@ -2021,6 +2032,7 @@ final class RoundGradientButtonComponent: Component {
     let icon: String?
     let image: UIImage?
     let title: String
+    let fontSize: CGFloat
     
     final class View: UIView {
         let gradientLayer = CAGradientLayer()
@@ -2053,9 +2065,10 @@ final class RoundGradientButtonComponent: Component {
             }
             self.gradientLayer.colors = gradientColors
             
+            let titleFontSize = floor(component.fontSize * 13.0 / 17.0)
             let titleSize = self.titleLabel.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: component.title, font: Font.regular(13.0), color: .white)),
+                component: AnyComponent(Text(text: component.title, font: Font.regular(titleFontSize), color: .white)),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)
             )

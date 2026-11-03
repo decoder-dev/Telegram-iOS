@@ -640,10 +640,12 @@ final class VideoChatEncryptionKeyComponent: Component {
                 )
             }
             
+            let keyCaptionFont = Font.semibold(floor(component.fontSize * 12.0 / 17.0))
+            let keyBodyFont = Font.regular(floor(component.fontSize * 12.0 / 17.0))
             let collapsedTextSize = self.collapsedText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.isShort ? component.strings.VideoChat_EncryptionKeyLabelShort : component.strings.VideoChat_EncryptionKeyLabel, font: Font.semibold(12.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.isShort ? component.strings.VideoChat_EncryptionKeyLabelShort : component.strings.VideoChat_EncryptionKeyLabel, font: keyCaptionFont, textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 1000.0, height: 1000.0)
@@ -652,7 +654,7 @@ final class VideoChatEncryptionKeyComponent: Component {
             let expandedTextSize = self.expandedText.update(
                 transition: .immediate,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.VideoChat_EncryptionKeyText, font: Font.regular(12.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.strings.VideoChat_EncryptionKeyText, font: keyBodyFont, textColor: component.theme.list.itemPrimaryTextColor)),
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.3
                 )),

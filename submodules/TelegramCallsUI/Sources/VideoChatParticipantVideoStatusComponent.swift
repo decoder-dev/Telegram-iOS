@@ -15,15 +15,18 @@ final class VideoChatParticipantVideoStatusComponent: Component {
     let strings: PresentationStrings
     let kind: Kind
     let isExpanded: Bool
+    let fontSize: CGFloat
 
     init(
         strings: PresentationStrings,
         kind: Kind,
-        isExpanded: Bool
+        isExpanded: Bool,
+        fontSize: CGFloat = 17.0
     ) {
         self.strings = strings
         self.kind = kind
         self.isExpanded = isExpanded
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: VideoChatParticipantVideoStatusComponent, rhs: VideoChatParticipantVideoStatusComponent) -> Bool {
@@ -34,6 +37,9 @@ final class VideoChatParticipantVideoStatusComponent: Component {
             return false
         }
         if lhs.isExpanded != rhs.isExpanded {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -97,7 +103,7 @@ final class VideoChatParticipantVideoStatusComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleValue, font: Font.semibold(14.0), textColor: .white))
+                    text: .plain(NSAttributedString(string: titleValue, font: Font.semibold(floor(component.fontSize * 14.0 / 17.0)), textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - 8.0 * 2.0, height: 100.0)

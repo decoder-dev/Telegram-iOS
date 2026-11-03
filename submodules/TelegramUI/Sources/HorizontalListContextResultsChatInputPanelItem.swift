@@ -87,9 +87,17 @@ final class HorizontalListContextResultsChatInputPanelItem: ListViewItem {
     }
 }
 
-private let titleFont = Font.medium(16.0)
-private let textFont = Font.regular(15.0)
-private let iconFont = Font.medium(25.0)
+private func horizontalListContextResultsTitleFont(baseDisplaySize: CGFloat) -> UIFont {
+    Font.medium(floor(baseDisplaySize * 16.0 / 17.0))
+}
+
+private func horizontalListContextResultsTextFont(baseDisplaySize: CGFloat) -> UIFont {
+    Font.regular(floor(baseDisplaySize * 15.0 / 17.0))
+}
+
+private func horizontalListContextResultsIconFont(baseDisplaySize: CGFloat) -> UIFont {
+    Font.medium(floor(baseDisplaySize * 25.0 / 17.0))
+}
 private let iconTextBackgroundImage = generateStretchableFilledCircleImage(radius: 2.0, color: UIColor(rgb: 0xdfdfdf))
 
 final class HorizontalListContextResultsChatInputPanelItemNode: ListViewItemNode {

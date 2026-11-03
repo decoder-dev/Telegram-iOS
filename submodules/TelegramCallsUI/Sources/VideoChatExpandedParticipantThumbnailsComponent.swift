@@ -240,10 +240,11 @@ final class VideoChatParticipantThumbnailComponent: Component {
                 transition.setScale(view: muteStatusView, scale: 0.65)
             }
             
+            let thumbnailTitleFontSize = floor(component.call.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.participant.peer?.compactDisplayTitle ?? "User \(component.participant.id)", font: Font.semibold(13.0), textColor: .white))
+                    text: .plain(NSAttributedString(string: component.participant.peer?.compactDisplayTitle ?? "User \(component.participant.id)", font: Font.semibold(thumbnailTitleFontSize), textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - 6.0 * 2.0 - 12.0, height: 100.0)

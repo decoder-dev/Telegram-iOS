@@ -463,7 +463,7 @@ final class HorizontalListContextResultsChatInputContextPanelNode: ChatInputCont
             let titleInsetRight = max(0.0, rightInset - sideInset) + 8.0
             let titleAreaWidth = max(0.0, buttonFrame.width - titleInsetLeft - titleInsetRight)
             
-            self.buttonTitleNode.attributedText = NSAttributedString(string: button.title, font: Font.regular(15.0), textColor: interfaceState.theme.chat.inputPanel.panelControlColor)
+            self.buttonTitleNode.attributedText = NSAttributedString(string: button.title, font: Font.regular(floor(interfaceState.fontSize.baseDisplaySize * 15.0 / 17.0)), textColor: interfaceState.theme.chat.inputPanel.panelControlColor)
             let titleSize = self.buttonTitleNode.updateLayout(CGSize(width: titleAreaWidth, height: buttonFrame.height))
             buttonTransition.updateFrame(node: self.buttonTitleNode, frame: CGRect(origin: CGPoint(x: titleInsetLeft + floor((titleAreaWidth - titleSize.width) / 2.0), y: floor((buttonFrame.height - titleSize.height) / 2.0)), size: titleSize))
             
