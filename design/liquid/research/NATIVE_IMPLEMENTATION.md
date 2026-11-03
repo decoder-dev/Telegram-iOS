@@ -259,3 +259,7 @@ Recent Sessions/Website rows, ContactsPeerItem, ItemListPeerActionItem, Settings
 ## Invite links, stats, contacts actions и PeerInfo edit
 
 ItemListAddress, InviteLinks rows, Statistics stars/message/balance, ContactList action/limited permission, BotCheckout tip/price, DatePicker, ChatNewThreadInfo, CommandMenu, ListMessage extracted rects — на PresentationLayoutMetrics. PeerInfo header editing/notes/multiline fields, Group sticker search, Attachment file search, SearchInputPanel и ListMultilineTextField — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Auth, calls, navigation bar floors
+
+Authorization sequence fields/actions, CallList rows/empty state, ChatList hole search CTA, Permission privacy target, NavigationBar/NavigationButton hit floors, StorageUsage nav buttons и Wallet header hit targets используют `PresentationLayoutMetrics.minimumInteractiveSize`. Branding Liquid: 7 pass. Simulator NOT RUN.

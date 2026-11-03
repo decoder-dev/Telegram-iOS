@@ -195,7 +195,7 @@ public final class PermissionContentNode: ASDisplayNode {
         let textSize = self.textNode.updateLayout(constraint)
         let footerSize = self.footerNode.updateLayout(constraint)
         let privacyLabelSize = self.privacyPolicyButton.measure(constraint)
-        let privacySize = self.openPrivacyPolicy == nil ? CGSize.zero : CGSize(width: max(44.0, privacyLabelSize.width), height: max(44.0, privacyLabelSize.height + 16.0))
+        let privacySize = self.openPrivacyPolicy == nil ? CGSize.zero : CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, privacyLabelSize.width), height: max(PresentationLayoutMetrics.minimumInteractiveSize, privacyLabelSize.height + 16.0))
         self.privacyPolicyButton.isHidden = self.openPrivacyPolicy == nil
         let buttonSize = self.actionButton.update(
             transition: ComponentTransition(transition),

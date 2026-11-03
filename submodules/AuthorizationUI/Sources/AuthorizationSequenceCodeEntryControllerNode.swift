@@ -647,7 +647,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         let currentOptionInfoSize = self.currentOptionInfoNode.measure(CGSize(width: maximumWidth - 48.0, height: CGFloat.greatestFiniteMagnitude))
         let nextOptionTextSize = self.nextOptionTitleNode.updateLayout(CGSize(width: max(1.0, maximumWidth - 68.0), height: CGFloat.greatestFiniteMagnitude))
         let nextArrowWidth = self.nextOptionArrowNode.isHidden ? 0.0 : (self.nextOptionArrowNode.image?.size.width ?? 0.0) + 7.0
-        let nextOptionSize = CGSize(width: max(44.0, nextOptionTextSize.width + nextArrowWidth), height: max(44.0, nextOptionTextSize.height + 16.0))
+        let nextOptionSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, nextOptionTextSize.width + nextArrowWidth), height: max(PresentationLayoutMetrics.minimumInteractiveSize, nextOptionTextSize.height + 16.0))
     
         let proceedHeight = self.proceedNode.updateLayout(width: bottomMaximumWidth - inset * 2.0, fontSize: UIFont.preferredFont(forTextStyle: .body).pointSize, transition: transition)
         let proceedSize = CGSize(width: bottomMaximumWidth - inset * 2.0, height: proceedHeight)
@@ -754,7 +754,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                     self.codeInputView.isHidden = true
                     self.textField.isHidden = false
                     self.textSeparatorNode.isHidden = false
-                    items.append(AuthorizationLayoutItem(node: self.textField, size: CGSize(width: max(1.0, maximumWidth - 88.0), height: max(44.0, ceil(UIFont.preferredFont(forTextStyle: .title3).lineHeight) + 16.0)), spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+                    items.append(AuthorizationLayoutItem(node: self.textField, size: CGSize(width: max(1.0, maximumWidth - 88.0), height: max(PresentationLayoutMetrics.minimumInteractiveSize, ceil(UIFont.preferredFont(forTextStyle: .title3).lineHeight) + 16.0)), spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
                     items.append(AuthorizationLayoutItem(node: self.textSeparatorNode, size: CGSize(width: maximumWidth - 48.0, height: UIScreenPixel), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
                 default:
                     self.codeInputView.isHidden = false
@@ -766,7 +766,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 if canReset {
                     self.resetNode.setAttributedTitle(NSAttributedString(string: self.strings.Login_Email_CantAccess, font: UIFont.preferredFont(forTextStyle: .body), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
                     var resetSize = self.resetNode.measure(CGSize(width: max(1.0, maximumWidth - 48.0), height: CGFloat.greatestFiniteMagnitude))
-                    resetSize.height = max(44.0, resetSize.height + 16.0)
+                    resetSize.height = max(PresentationLayoutMetrics.minimumInteractiveSize, resetSize.height + 16.0)
                     
                     self.resetTextNode.isHidden = true
                     self.resetNode.isHidden = false
@@ -774,7 +774,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 } else if let pendingDate {
                     self.resetNode.setAttributedTitle(NSAttributedString(string: self.strings.Login_Email_ResetNowViaSMS, font: UIFont.preferredFont(forTextStyle: .body), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
                     var resetSize = self.resetNode.measure(CGSize(width: max(1.0, maximumWidth - 48.0), height: CGFloat.greatestFiniteMagnitude))
-                    resetSize.height = max(44.0, resetSize.height + 16.0)
+                    resetSize.height = max(PresentationLayoutMetrics.minimumInteractiveSize, resetSize.height + 16.0)
                     
                     let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
                     let resetText: String
@@ -935,7 +935,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 self.hintTextNode.frame = CGRect(origin: .zero, size: hintTextSize)
                 
                 let pasteSize = self.pasteButton.measure(layout.size)
-                let pasteButtonSize = CGSize(width: max(44.0, pasteSize.width + 16.0), height: 24.0)
+                let pasteButtonSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, pasteSize.width + 16.0), height: 24.0)
                 let pasteOriginX: CGFloat
                 if case .compact = layout.metrics.widthClass {
                     // iPhone Duo: clear of the side strip, like the field it sits on.
@@ -951,7 +951,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 self.hintArrowNode.isHidden = true
                 
                 let pasteSize = self.pasteButton.measure(layout.size)
-                let pasteButtonSize = CGSize(width: max(44.0, pasteSize.width + 16.0), height: 24.0)
+                let pasteButtonSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, pasteSize.width + 16.0), height: 24.0)
                 // iPhone Duo: clear of the side strip, like the field it sits on.
                 transition.updateFrame(node: self.pasteButton, frame: CGRect(origin: CGPoint(x: bandWidth - 40.0 - pasteButtonSize.width, y: self.textField.frame.midY - pasteButtonSize.height / 2.0), size: pasteButtonSize))
             } else {

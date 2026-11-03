@@ -348,13 +348,13 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             let joinFont = Font.semibold(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
             let joinTextWidth = max(1.0, min(200.0, (params.width - leftInset - rightInset) * 0.4 - 20.0))
             let (joinTitleLayout, joinTitleApply) = makeJoinTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.VoiceChat_PanelJoin.uppercased(), font: joinFont, textColor: item.presentationData.theme.list.itemCheckColors.foregroundColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: joinTextWidth, height: CGFloat.infinity), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
-            let joinButtonSize = CGSize(width: max(44.0, joinTitleLayout.size.width + 20.0), height: max(28.0, joinTitleLayout.size.height + 12.0))
+            let joinButtonSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, joinTitleLayout.size.width + 20.0), height: max(28.0, joinTitleLayout.size.height + 12.0))
             
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: usesLargeText ? 2 : 1, truncationType: .end, constrainedSize: CGSize(width: max(1.0, params.width - leftInset - rightInset - joinButtonSize.width - 8.0), height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let verticalInset: CGFloat = 11.0
             
-            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, max(titleLayout.size.height, joinButtonSize.height) + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
+            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, avatarDiameter + 16.0, max(titleLayout.size.height, joinButtonSize.height) + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
             let contentSize = nodeLayout.contentSize
             

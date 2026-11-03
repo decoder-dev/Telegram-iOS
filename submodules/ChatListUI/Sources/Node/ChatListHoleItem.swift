@@ -258,7 +258,7 @@ class ChatListSearchEmptyFooterItemNode: ListViewItemNode {
             
             let buttonSpacing: CGFloat = 14.0
             let buttonInset: CGFloat = 11.0
-            let buttonHeight = max(44.0, searchAllMessagesTitleLayout.0.size.height + buttonInset * 2.0)
+            let buttonHeight = max(PresentationLayoutMetrics.minimumInteractiveSize, searchAllMessagesTitleLayout.0.size.height + buttonInset * 2.0)
             
             let iconSize = CGSize(width: 128.0, height: 128.0)
             

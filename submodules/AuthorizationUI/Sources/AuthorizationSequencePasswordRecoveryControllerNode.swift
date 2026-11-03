@@ -135,13 +135,13 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
         
         let noticeSize = self.noticeNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
         var noAccessSize = self.noAccessNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
-        noAccessSize.height = max(44.0, noAccessSize.height + 16.0)
+        noAccessSize.height = max(PresentationLayoutMetrics.minimumInteractiveSize, noAccessSize.height + 16.0)
         
         var items: [AuthorizationLayoutItem] = []
         items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.noticeNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
-        items.append(AuthorizationLayoutItem(node: self.codeField, size: CGSize(width: contentWidth, height: max(44.0, ceil(fieldFont.lineHeight) + 16.0)), spacingBefore: AuthorizationLayoutItemSpacing(weight: 32.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        items.append(AuthorizationLayoutItem(node: self.codeField, size: CGSize(width: contentWidth, height: max(PresentationLayoutMetrics.minimumInteractiveSize, ceil(fieldFont.lineHeight) + 16.0)), spacingBefore: AuthorizationLayoutItemSpacing(weight: 32.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.codeSeparatorNode, size: CGSize(width: contentWidth, height: UIScreenPixel), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
         items.append(AuthorizationLayoutItem(node: self.noAccessNode, size: noAccessSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 48.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))

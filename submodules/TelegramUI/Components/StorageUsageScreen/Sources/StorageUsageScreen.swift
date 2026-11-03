@@ -1177,9 +1177,9 @@ final class StorageUsageScreenComponent: Component {
                             self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                         }
                     }
-                ).minSize(CGSize(width: 44.0, height: 44.0))),
+                ).minSize(CGSize(width: 44.0, height: PresentationLayoutMetrics.minimumInteractiveSize))),
                 environment: {},
-                containerSize: CGSize(width: 150.0, height: 44.0)
+                containerSize: CGSize(width: 150.0, height: PresentationLayoutMetrics.minimumInteractiveSize)
             )
             if let navigationEditButtonView = self.navigationEditButton.view {
                 if navigationEditButtonView.superview == nil {
@@ -1201,9 +1201,9 @@ final class StorageUsageScreenComponent: Component {
                         aggregatedData.clearPeerSelection()
                         self.state?.updated(transition: ComponentTransition(animation: .curve(duration: 0.4, curve: .spring)))
                     }
-                ).minSize(CGSize(width: 44.0, height: 44.0))),
+                ).minSize(CGSize(width: 44.0, height: PresentationLayoutMetrics.minimumInteractiveSize))),
                 environment: {},
-                containerSize: CGSize(width: 150.0, height: 44.0)
+                containerSize: CGSize(width: 150.0, height: PresentationLayoutMetrics.minimumInteractiveSize)
             )
             if let navigationDoneButtonView = self.navigationDoneButton.view {
                 if navigationDoneButtonView.superview == nil {
@@ -1229,7 +1229,7 @@ final class StorageUsageScreenComponent: Component {
                 transition.setAlpha(view: navigationDoneButtonView, alpha: isSelectingPeers ? 1.0 : 0.0)
             }
             
-            let navigationRightButtonsBackgroundSize = CGSize(width: max(44.0, rightButtonsWidth), height: 44.0)
+            let navigationRightButtonsBackgroundSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, rightButtonsWidth), height: PresentationLayoutMetrics.minimumInteractiveSize)
             self.navigationRightButtonsBackground.update(size: navigationRightButtonsBackgroundSize, cornerRadius: 44.0 * 0.5, isDark: environment.theme.overallDarkAppearance, tintColor: .init(kind: .panel), isInteractive: true, transition: transition)
             let navigationRightButtonsBackgroundFrame = CGRect(origin: CGPoint(x: availableSize.width - environment.safeInsets.right - environment.navigationBarTrailingButtonsInset - 16.0 - navigationRightButtonsBackgroundSize.width, y: environment.statusBarHeight + 2.0 + floor((environment.navigationHeight - environment.statusBarHeight - 44.0) * 0.5)), size: navigationRightButtonsBackgroundSize)
             transition.setFrame(view: self.navigationRightButtonsBackground, frame: navigationRightButtonsBackgroundFrame)

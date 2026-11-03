@@ -1,4 +1,5 @@
 import Foundation
+import TelegramPresentationData
 
 struct CallListEmptyStateLayout {
     let contentSize: CGSize
@@ -11,7 +12,7 @@ struct CallListEmptyStateLayout {
         let padding: CGFloat = 24.0
         let textSpacing: CGFloat = 23.0
         let illustrationSpacing: CGFloat = 13.0
-        let buttonSize = CGSize(width: max(44.0, buttonContentSize.width), height: max(44.0, buttonContentSize.height + 16.0))
+        let buttonSize = CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, buttonContentSize.width), height: max(PresentationLayoutMetrics.minimumInteractiveSize, buttonContentSize.height + 16.0))
         let textAndButtonHeight = textSize.height + textSpacing + buttonSize.height
         self.showsIllustration = illustrationSize.height + illustrationSpacing + textAndButtonHeight + padding * 2.0 <= viewport.height
         let illustrationHeight = self.showsIllustration ? illustrationSize.height + illustrationSpacing : 0.0

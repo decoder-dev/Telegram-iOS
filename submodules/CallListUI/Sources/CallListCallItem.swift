@@ -555,7 +555,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             }
             
             let textHeight = titleLayout.size.height + titleSpacing + statusLayout.size.height + (stacksDate ? dateLayout.size.height + 4.0 : 0.0)
-            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 16.0, textHeight + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
+            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, avatarDiameter + 16.0, textHeight + verticalInset * 2.0)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
             let infoIcon = PresentationResourcesCallList.infoButton(item.presentationData.theme)
 

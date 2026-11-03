@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import Display
+import TelegramPresentationData
 import ComponentFlow
 import GlassBackgroundComponent
 import SideColumnLayout
@@ -770,14 +771,14 @@ public final class NavigationBarComponent: Component {
 
                 leftButtonsEffectiveWidth = primaryContentView.leftButtonsWidth * (1.0 - component.secondaryTransition) + secondaryContentView.leftButtonsWidth * component.secondaryTransition
 
-                primaryContentTransition.setFrame(view: primaryContentView.leftButtonsContainer, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: max(44.0, primaryContentView.leftButtonsWidth), height: 44.0)))
-                secondaryContentTransition.setFrame(view: secondaryContentView.leftButtonsContainer, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: max(44.0, secondaryContentView.leftButtonsWidth), height: 44.0)))
+                primaryContentTransition.setFrame(view: primaryContentView.leftButtonsContainer, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, primaryContentView.leftButtonsWidth), height: PresentationLayoutMetrics.minimumInteractiveSize)))
+                secondaryContentTransition.setFrame(view: secondaryContentView.leftButtonsContainer, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, secondaryContentView.leftButtonsWidth), height: PresentationLayoutMetrics.minimumInteractiveSize)))
 
             } else if let primaryContentView = self.primaryContentView {
                 leftButtonsEffectiveWidth = primaryContentView.leftButtonsWidth
 
                 let primaryItemsTransition = primaryContentTransition.animation.isImmediate ? primaryContentTransition : itemsTransition
-                primaryItemsTransition.setFrame(view: primaryContentView.leftButtonsContainer, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: max(44.0, primaryContentView.leftButtonsWidth), height: 44.0)))
+                primaryItemsTransition.setFrame(view: primaryContentView.leftButtonsContainer, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, primaryContentView.leftButtonsWidth), height: PresentationLayoutMetrics.minimumInteractiveSize)))
             }
 
             var visibleContentViews: [NavigationBarContentView] = []
@@ -805,10 +806,10 @@ public final class NavigationBarComponent: Component {
                     self.addSubview(leftButtonsBackgroundContainer)
                     leftButtonsBackgroundContainer.contentView.addSubview(self.leftButtonsContainer)
                     if inPlaceLeft {
-                        leftButtonsBackgroundContainer.update(size: CGSize(width: max(44.0, leftButtonsEffectiveWidth), height: 44.0), cornerRadius: 22.0, isDark: component.theme.overallDarkAppearance, tintColor: leftCapsuleTintColor, isInteractive: true, isVisible: false, transition: .immediate)
+                        leftButtonsBackgroundContainer.update(size: CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, leftButtonsEffectiveWidth), height: PresentationLayoutMetrics.minimumInteractiveSize), cornerRadius: PresentationLayoutMetrics.minimumInteractiveSize * 0.5, isDark: component.theme.overallDarkAppearance, tintColor: leftCapsuleTintColor, isInteractive: true, isVisible: false, transition: .immediate)
                     }
                 }
-                let leftButtonsContainerFrame = CGRect(origin: CGPoint(x: component.leftInset, y: 0.0), size: CGSize(width: max(44.0, leftButtonsEffectiveWidth), height: 44.0))
+                let leftButtonsContainerFrame = CGRect(origin: CGPoint(x: component.leftInset, y: 0.0), size: CGSize(width: max(PresentationLayoutMetrics.minimumInteractiveSize, leftButtonsEffectiveWidth), height: PresentationLayoutMetrics.minimumInteractiveSize))
                 if inPlaceLeft {
                     self.startInPlaceChange(container: leftButtonsBackgroundContainer, slot: .left, isNew: isNewCapsule, frame: leftButtonsContainerFrame, tintColor: leftCapsuleTintColor, isDark: component.theme.overallDarkAppearance, leaving: leavingLeft)
                 } else if let inPlace = self.inPlaceCapsule(for: leftButtonsBackgroundContainer) {
@@ -852,7 +853,7 @@ public final class NavigationBarComponent: Component {
             var rightPillTargets: [(slot: Int, frame: CGRect, tint: NavigationBarComponent.Button.Tint)] = []
             for (slot, metrics) in rightPillMetrics.enumerated() {
                 let pill = self.rightPill(at: slot)
-                let frame = CGRect(x: rightEdge - outerExtent - metrics.width, y: 0.0, width: metrics.width, height: 44.0)
+                let frame = CGRect(x: rightEdge - outerExtent - metrics.width, y: 0.0, width: metrics.width, height: PresentationLayoutMetrics.minimumInteractiveSize)
                 outerExtent += metrics.extent
                 let owners = rightPillSlots[slot]
 
@@ -868,7 +869,7 @@ public final class NavigationBarComponent: Component {
                         pill.itemsContainer.addSubview(container)
                     }
                     let width = contentView.rightPillWidths[index]
-                    let itemsFrame = CGRect(x: metrics.width - width, y: 0.0, width: width, height: 44.0)
+                    let itemsFrame = CGRect(x: metrics.width - width, y: 0.0, width: width, height: PresentationLayoutMetrics.minimumInteractiveSize)
                     if secondaryPills == nil {
                         (primaryContentTransition.animation.isImmediate ? primaryContentTransition : itemsTransition).setFrame(view: container, frame: itemsFrame)
                     } else {
@@ -883,13 +884,13 @@ public final class NavigationBarComponent: Component {
                 if let index = owners.secondary, let contentView = self.secondaryContentView {
                     let container = contentView.rightPillContainer(at: index)
                     let width = contentView.rightPillWidths[index]
-                    let itemsFrame = CGRect(x: metrics.width - width, y: 0.0, width: width, height: 44.0)
+                    let itemsFrame = CGRect(x: metrics.width - width, y: 0.0, width: width, height: PresentationLayoutMetrics.minimumInteractiveSize)
                     if container.superview !== pill.itemsContainer {
                         pill.itemsContainer.addSubview(container)
                         container.frame = itemsFrame
                     }
                     if secondaryContentIsAnimatingIn {
-                        container.frame = CGRect(x: pill.itemsContainer.bounds.width - width, y: 0.0, width: width, height: 44.0)
+                        container.frame = CGRect(x: pill.itemsContainer.bounds.width - width, y: 0.0, width: width, height: PresentationLayoutMetrics.minimumInteractiveSize)
                     }
                     transition.setFrame(view: container, frame: itemsFrame)
                     if component.secondaryTransition > 0.0 {
@@ -984,7 +985,7 @@ public final class NavigationBarComponent: Component {
                 for (index, container) in removedSecondaryContentView.rightPillContainers.enumerated() where index < removedSecondaryContentView.rightPillWidths.count {
                     if let slot = self.rightPills.firstIndex(where: { $0.itemsContainer === container.superview }), slot < rightPillMetrics.count {
                         let width = removedSecondaryContentView.rightPillWidths[index]
-                        transition.setFrame(view: container, frame: CGRect(x: rightPillMetrics[slot].width - width, y: 0.0, width: width, height: 44.0))
+                        transition.setFrame(view: container, frame: CGRect(x: rightPillMetrics[slot].width - width, y: 0.0, width: width, height: PresentationLayoutMetrics.minimumInteractiveSize))
                     }
                 }
             }

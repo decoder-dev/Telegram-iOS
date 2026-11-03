@@ -234,9 +234,9 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
 
         let noticeSize = self.noticeNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
         var forgotSize = self.forgotNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
-        forgotSize.height = max(44.0, forgotSize.height + 16.0)
+        forgotSize.height = max(PresentationLayoutMetrics.minimumInteractiveSize, forgotSize.height + 16.0)
         var resetSize = self.resetNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
-        resetSize.height = max(44.0, resetSize.height + 16.0)
+        resetSize.height = max(PresentationLayoutMetrics.minimumInteractiveSize, resetSize.height + 16.0)
         let proceedHeight = self.proceedNode.updateLayout(width: bottomMaximumWidth - inset * 2.0, fontSize: bodyFont.pointSize, transition: transition)
         let proceedSize = CGSize(width: bottomMaximumWidth - inset * 2.0, height: proceedHeight)
         
@@ -244,7 +244,7 @@ final class AuthorizationSequencePasswordEntryControllerNode: ASDisplayNode, UIT
         items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: titleInset, maxValue: titleInset), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.noticeNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
-        items.append(AuthorizationLayoutItem(node: self.codeField, size: CGSize(width: max(1.0, maximumWidth - 80.0), height: max(44.0, ceil(fieldFont.lineHeight) + 16.0)), spacingBefore: AuthorizationLayoutItemSpacing(weight: 32.0, maxValue: 60.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        items.append(AuthorizationLayoutItem(node: self.codeField, size: CGSize(width: max(1.0, maximumWidth - 80.0), height: max(PresentationLayoutMetrics.minimumInteractiveSize, ceil(fieldFont.lineHeight) + 16.0)), spacingBefore: AuthorizationLayoutItemSpacing(weight: 32.0, maxValue: 60.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         items.append(AuthorizationLayoutItem(node: self.codeSeparatorNode, size: CGSize(width: maximumWidth - 48.0, height: UIScreenPixel), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
         items.append(AuthorizationLayoutItem(node: self.forgotNode, size: forgotSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 48.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))

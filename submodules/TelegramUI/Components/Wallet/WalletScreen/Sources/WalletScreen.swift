@@ -3087,8 +3087,8 @@ private final class WalletScreenComponent: Component {
                     availableSize.width - environment.safeInsets.left - environment.safeInsets.right - 200.0
                 )
                 let hitSize = CGSize(
-                    width: max(44.0, min(maximumHitWidth, navigationBalanceSize.width + 16.0)),
-                    height: max(44.0, headerSize.height)
+                    width: max(PresentationLayoutMetrics.minimumInteractiveSize, min(maximumHitWidth, navigationBalanceSize.width + 16.0)),
+                    height: max(PresentationLayoutMetrics.minimumInteractiveSize, headerSize.height)
                 )
                 transition.setFrame(
                     view: self.navigationBalanceButton,

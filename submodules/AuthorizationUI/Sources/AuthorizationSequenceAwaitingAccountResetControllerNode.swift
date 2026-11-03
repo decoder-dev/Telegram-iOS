@@ -185,7 +185,7 @@ final class AuthorizationSequenceAwaitingAccountResetControllerNode: ASDisplayNo
         let timerTitleSize = self.timerTitleNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
         let timerValueSize = self.timerValueNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
         var resetSize = self.resetNode.measure(CGSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude))
-        resetSize.height = max(44.0, resetSize.height + 16.0)
+        resetSize.height = max(PresentationLayoutMetrics.minimumInteractiveSize, resetSize.height + 16.0)
         
         var items: [AuthorizationLayoutItem] = []
         items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))

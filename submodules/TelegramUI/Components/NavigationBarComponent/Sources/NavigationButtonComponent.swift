@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
+import TelegramPresentationData
 import ComponentFlow
 import AppBundle
 import MoreHeaderButton
@@ -255,7 +256,7 @@ final class NavigationButtonComponent: Component {
                 textView.attributedText = textString
                 let textSize = textView.updateLayout(availableSize)
                 let textInset: CGFloat = 12.0
-                size.width = max(44.0, textSize.width + textInset * 2.0)
+                size.width = max(PresentationLayoutMetrics.minimumInteractiveSize, textSize.width + textInset * 2.0)
 
                 textView.frame = CGRect(origin: CGPoint(x: floor((size.width - textSize.width) / 2.0), y: floor((availableSize.height - textSize.height) / 2.0)), size: textSize)
             } else if let textView = self.textView {
@@ -286,7 +287,7 @@ final class NavigationButtonComponent: Component {
                 }
 
                 if let iconSize = iconView.image?.size {
-                    size.width = max(44.0, iconSize.width)
+                    size.width = max(PresentationLayoutMetrics.minimumInteractiveSize, iconSize.width)
 
                     iconView.frame = CGRect(origin: CGPoint(x: floor((size.width - iconSize.width) / 2.0), y: floor((availableSize.height - iconSize.height) / 2.0)), size: iconSize)
                 }
@@ -299,7 +300,7 @@ final class NavigationButtonComponent: Component {
             if let node {
                 let isLent = NavigationBarNodeLoan.isLent(node)
                 let nodeSize = node.measure(availableSize)
-                size.width = max(44.0, nodeSize.width)
+                size.width = max(PresentationLayoutMetrics.minimumInteractiveSize, nodeSize.width)
                 self.hostedNodeFrame = CGRect(origin: CGPoint(x: floor((size.width - nodeSize.width) / 2.0), y: floor((availableSize.height - nodeSize.height) / 2.0)), size: nodeSize)
                 if self.hostedNode !== node {
                     if let hostedNode = self.hostedNode, hostedNode.view.superview === self {
@@ -391,7 +392,7 @@ final class NavigationButtonComponent: Component {
                     self.addSubnode(moreButton)
                 }
 
-                let buttonSize = CGSize(width: 44.0, height: 44.0)
+                let buttonSize = CGSize(width: 44.0, height: PresentationLayoutMetrics.minimumInteractiveSize)
                 size.width = 44.0
 
                 moreButton.setContent(.more(MoreHeaderButton.optionsCircleImage(color: color)))

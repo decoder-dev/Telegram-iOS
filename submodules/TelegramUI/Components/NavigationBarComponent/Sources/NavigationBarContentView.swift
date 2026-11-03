@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import Display
+import TelegramPresentationData
 import ComponentFlow
 import SideColumnLayout
 
@@ -331,7 +332,7 @@ final class NavigationBarContentView: UIView {
                 })
                 nextX += buttonSize.width
             }
-            rightPillWidths.append(max(44.0, nextX))
+            rightPillWidths.append(max(PresentationLayoutMetrics.minimumInteractiveSize, nextX))
         }
         self.rightPillWidths = rightPillWidths
         self.rightPillTints = placement.rowRightSections.map(navigationBarCapsuleTint)

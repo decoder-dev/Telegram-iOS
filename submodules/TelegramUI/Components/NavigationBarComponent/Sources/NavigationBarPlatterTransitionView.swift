@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import Display
+import TelegramPresentationData
 import ComponentFlow
 import GlassBackgroundComponent
 
@@ -432,9 +433,9 @@ public final class NavigationBarPlatterTransitionView: UIView {
         var layout = SideLayout()
         layout.isDark = side.theme.overallDarkAppearance
         if contentView.leftButtonsWidth > 0.0 {
-            let width = max(44.0, contentView.leftButtonsWidth)
-            layout.frames[.leading] = CGRect(x: side.rowFrame.minX + side.leftInset, y: side.rowFrame.minY, width: width, height: 44.0)
-            contentView.leftButtonsContainer.frame = CGRect(origin: CGPoint(), size: CGSize(width: width, height: 44.0))
+            let width = max(PresentationLayoutMetrics.minimumInteractiveSize, contentView.leftButtonsWidth)
+            layout.frames[.leading] = CGRect(x: side.rowFrame.minX + side.leftInset, y: side.rowFrame.minY, width: width, height: PresentationLayoutMetrics.minimumInteractiveSize)
+            contentView.leftButtonsContainer.frame = CGRect(origin: CGPoint(), size: CGSize(width: width, height: PresentationLayoutMetrics.minimumInteractiveSize))
             layout.itemViews[.leading] = contentView.leftButtonsContainer
             layout.tints[.leading] = navigationBarGlassTintColor(contentView.leftCapsuleTint, theme: side.theme)
             layout.signatures[.leading] = navigationBarCapsuleSignature(side.content, role: .leading, columnLength: side.columnFrame?.height, hidesColumnButtons: side.hidesColumnButtons)
@@ -447,9 +448,9 @@ public final class NavigationBarPlatterTransitionView: UIView {
             let maxX = rowMaxX - outerExtent
             outerExtent += pill.extent
             let role: Role = .trailing(index)
-            layout.frames[role] = CGRect(x: maxX - pill.width, y: side.rowFrame.minY, width: pill.width, height: 44.0)
+            layout.frames[role] = CGRect(x: maxX - pill.width, y: side.rowFrame.minY, width: pill.width, height: PresentationLayoutMetrics.minimumInteractiveSize)
             let container = contentView.rightPillContainer(at: index)
-            container.frame = CGRect(origin: CGPoint(), size: CGSize(width: pill.width, height: 44.0))
+            container.frame = CGRect(origin: CGPoint(), size: CGSize(width: pill.width, height: PresentationLayoutMetrics.minimumInteractiveSize))
             layout.itemViews[role] = container
             layout.tints[role] = navigationBarGlassTintColor(contentView.rightPillTints[index], theme: side.theme)
             layout.signatures[role] = navigationBarCapsuleSignature(side.content, role: role, columnLength: side.columnFrame?.height, hidesColumnButtons: side.hidesColumnButtons)

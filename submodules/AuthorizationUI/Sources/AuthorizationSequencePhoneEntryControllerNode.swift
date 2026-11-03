@@ -300,7 +300,7 @@ private final class ContactSyncNode: ASDisplayNode {
         
         let inset: CGFloat = 24.0
         let titleSize = self.titleNode.updateLayout(CGSize(width: max(1.0, width - switchSize.width - inset * 2.0 - 12.0), height: .greatestFiniteMagnitude))
-        let height: CGFloat = max(44.0, titleSize.height + 16.0)
+        let height: CGFloat = max(PresentationLayoutMetrics.minimumInteractiveSize, titleSize.height + 16.0)
         self.titleNode.frame = CGRect(origin: CGPoint(x: inset, y: floor((height - titleSize.height) / 2.0)), size: titleSize)
         self.switchNode.frame = CGRect(origin: CGPoint(x: width - inset - switchSize.width, y: floor((height - switchSize.height) / 2.0)), size: switchSize)
         return CGSize(width: width, height: height)
