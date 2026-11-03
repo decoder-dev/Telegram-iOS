@@ -7,6 +7,7 @@ import TelegramCore
 import AppBundle
 import BundleIconComponent
 import TelegramPresentationData
+import TelegramUIPreferences
 import MultilineTextComponent
 import PlainButtonComponent
 import GlassBackgroundComponent
