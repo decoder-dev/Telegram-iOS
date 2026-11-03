@@ -10,16 +10,16 @@ import ChatPresentationInterfaceState
 private final class ChatTextInputAudioRecordingTimeNodeParameters: NSObject {
     let timestamp: Double
     let theme: PresentationTheme
+    let fontSize: CGFloat
     
-    init(timestamp: Double, theme: PresentationTheme) {
+    init(timestamp: Double, theme: PresentationTheme, fontSize: CGFloat) {
         self.timestamp = timestamp
         self.theme = theme
+        self.fontSize = fontSize
         
         super.init()
     }
 }
-
-private let textFont = Font.with(size: 15.0, design: .camera)
 
 public final class ChatTextInputAudioRecordingTimeNode: ASDisplayNode {
     private let textNode: TextNode
@@ -132,7 +132,7 @@ public final class ChatTextInputAudioRecordingTimeNode: ASDisplayNode {
     }
     
     override public func drawParameters(forAsyncLayer layer: _ASDisplayLayer) -> NSObjectProtocol? {
-        return ChatTextInputAudioRecordingTimeNodeParameters(timestamp: self.timestamp, theme: self.theme)
+        return ChatTextInputAudioRecordingTimeNodeParameters(timestamp: self.timestamp, theme: self.theme, fontSize: self.fontSize)
     }
     
     @objc override public class func draw(_ bounds: CGRect, withParameters parameters: Any?, isCancelled: () -> Bool, isRasterizing: Bool) {
@@ -153,6 +153,7 @@ public final class ChatTextInputAudioRecordingTimeNode: ASDisplayNode {
             } else {
                 text = String(format: "%d:%02d,%02d", currentAudioDurationSeconds / 60, currentAudioDurationSeconds % 60, currentAudioDurationMilliseconds)
             }
+            let textFont = Font.with(size: floor(parameters.fontSize * 15.0 / 17.0), design: .camera)
             let string = NSAttributedString(string: text, font: textFont, textColor: parameters.theme.chat.inputPanel.primaryTextColor)
             string.draw(at: CGPoint())
         }
