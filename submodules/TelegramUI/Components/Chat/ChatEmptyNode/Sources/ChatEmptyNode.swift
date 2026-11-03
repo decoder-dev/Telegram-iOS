@@ -30,14 +30,20 @@ private protocol ChatEmptyNodeContent {
     func updateLayout(interfaceState: ChatPresentationInterfaceState, subject: ChatEmptyNode.Subject, size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGSize
 }
 
-private let titleFont = Font.semibold(15.0)
-private let messageFont = Font.regular(13.0)
+private func chatEmptyTitleFont(_ fontSize: PresentationFontSize) -> UIFont {
+    Font.semibold(fontSize.baseDisplaySize * 15.0 / 17.0)
+}
+
+private func chatEmptyMessageFont(_ fontSize: PresentationFontSize) -> UIFont {
+    Font.regular(fontSize.baseDisplaySize * 13.0 / 17.0)
+}
 
 private final class ChatEmptyNodeRegularChatContent: ASDisplayNode, ChatEmptyNodeContent {
     private let textNode: ImmediateTextNode
     
     private var currentTheme: PresentationTheme?
     private var currentStrings: PresentationStrings?
+    private var currentFontSize: PresentationFontSize?
     
     override init() {
         self.textNode = ImmediateTextNode()
@@ -48,9 +54,10 @@ private final class ChatEmptyNodeRegularChatContent: ASDisplayNode, ChatEmptyNod
     }
     
     func updateLayout(interfaceState: ChatPresentationInterfaceState, subject: ChatEmptyNode.Subject, size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGSize {
-        if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings {
+        if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings || self.currentFontSize != interfaceState.fontSize {
             self.currentTheme = interfaceState.theme
             self.currentStrings = interfaceState.strings
+            self.currentFontSize = interfaceState.fontSize
             
             let serviceColor = serviceMessageColorComponents(theme: interfaceState.theme, wallpaper: interfaceState.chatWallpaper)
             
@@ -68,7 +75,7 @@ private final class ChatEmptyNodeRegularChatContent: ASDisplayNode, ChatEmptyNod
                 }
             }
             
-            self.textNode.attributedText = NSAttributedString(string: text, font: messageFont, textColor: serviceColor.primaryText)
+            self.textNode.attributedText = NSAttributedString(string: text, font: chatEmptyMessageFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
         }
         
         let insets = UIEdgeInsets(top: 6.0, left: 10.0, bottom: 6.0, right: 10.0)
@@ -170,15 +177,15 @@ public final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNod
         let serviceColor = serviceMessageColorComponents(theme: interfaceState.theme, wallpaper: interfaceState.chatWallpaper)
         if case let .emptyChat(emptyChat) = subject, case let .customGreeting(stickerFile, title, text) = emptyChat {
             customStickerFile = stickerFile
-            self.titleNode.attributedText = NSAttributedString(string: title, font: titleFont, textColor: serviceColor.primaryText)
-            self.textNode.attributedText = NSAttributedString(string: text, font: messageFont, textColor: serviceColor.primaryText)
+            self.titleNode.attributedText = NSAttributedString(string: title, font: chatEmptyTitleFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
+            self.textNode.attributedText = NSAttributedString(string: text, font: chatEmptyMessageFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
         } else if let businessIntro = interfaceState.businessIntro {
-            self.titleNode.attributedText = NSAttributedString(string: !businessIntro.title.isEmpty ? businessIntro.title : interfaceState.strings.Conversation_EmptyPlaceholder, font: titleFont, textColor: serviceColor.primaryText)
-            self.textNode.attributedText = NSAttributedString(string: !businessIntro.text.isEmpty ? businessIntro.text : interfaceState.strings.Conversation_GreetingText, font: messageFont, textColor: serviceColor.primaryText)
+            self.titleNode.attributedText = NSAttributedString(string: !businessIntro.title.isEmpty ? businessIntro.title : interfaceState.strings.Conversation_EmptyPlaceholder, font: chatEmptyTitleFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
+            self.textNode.attributedText = NSAttributedString(string: !businessIntro.text.isEmpty ? businessIntro.text : interfaceState.strings.Conversation_GreetingText, font: chatEmptyMessageFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
             customStickerFile = businessIntro.stickerFile
         } else {
-            self.titleNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_EmptyPlaceholder, font: titleFont, textColor: serviceColor.primaryText)
-            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_GreetingText, font: messageFont, textColor: serviceColor.primaryText)
+            self.titleNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_EmptyPlaceholder, font: chatEmptyTitleFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
+            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_GreetingText, font: chatEmptyMessageFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
         }
         
         let previousCustomStickerFile = self.currentCustomStickerFile
@@ -315,6 +322,7 @@ private final class ChatEmptyNodeSecretChatContent: ASDisplayNode, ChatEmptyNode
     
     private var currentTheme: PresentationTheme?
     private var currentStrings: PresentationStrings?
+    private var currentFontSize: PresentationFontSize?
     
     override init() {
         self.titleNode = ImmediateTextNode()
@@ -337,9 +345,10 @@ private final class ChatEmptyNodeSecretChatContent: ASDisplayNode, ChatEmptyNode
     }
     
     func updateLayout(interfaceState: ChatPresentationInterfaceState, subject: ChatEmptyNode.Subject, size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGSize {
-        if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings {
+        if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings || self.currentFontSize != interfaceState.fontSize {
             self.currentTheme = interfaceState.theme
             self.currentStrings = interfaceState.strings
+            self.currentFontSize = interfaceState.fontSize
             
             var title = " "
             var incoming = false
@@ -363,9 +372,9 @@ private final class ChatEmptyNodeSecretChatContent: ASDisplayNode, ChatEmptyNode
             
             let serviceColor = serviceMessageColorComponents(theme: interfaceState.theme, wallpaper: interfaceState.chatWallpaper)
             
-            self.titleNode.attributedText = NSAttributedString(string: titleString, font: titleFont, textColor: serviceColor.primaryText)
+            self.titleNode.attributedText = NSAttributedString(string: titleString, font: chatEmptyTitleFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
             
-            self.subtitleNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_EncryptedDescriptionTitle, font: messageFont, textColor: serviceColor.primaryText)
+            self.subtitleNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_EncryptedDescriptionTitle, font: chatEmptyMessageFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
             
             let strings: [String] = [
                 interfaceState.strings.Conversation_EncryptedDescription1,
@@ -374,7 +383,7 @@ private final class ChatEmptyNodeSecretChatContent: ASDisplayNode, ChatEmptyNode
                 interfaceState.strings.Conversation_EncryptedDescription4
             ]
             
-            let lines: [NSAttributedString] = strings.map { NSAttributedString(string: $0, font: messageFont, textColor: serviceColor.primaryText) }
+            let lines: [NSAttributedString] = strings.map { NSAttributedString(string: $0, font: chatEmptyMessageFont(interfaceState.fontSize), textColor: serviceColor.primaryText) }
             
             let graphics = PresentationResourcesChat.additionalGraphics(interfaceState.theme, wallpaper: interfaceState.chatWallpaper, bubbleCorners: interfaceState.bubbleCorners)
             let lockIcon = graphics.chatEmptyItemLockIcon
@@ -449,6 +458,7 @@ private final class ChatEmptyNodeGroupChatContent: ASDisplayNode, ChatEmptyNodeC
     
     private var currentTheme: PresentationTheme?
     private var currentStrings: PresentationStrings?
+    private var currentFontSize: PresentationFontSize?
     
     override init() {
         self.titleNode = ImmediateTextNode()
@@ -471,17 +481,18 @@ private final class ChatEmptyNodeGroupChatContent: ASDisplayNode, ChatEmptyNodeC
     }
     
     func updateLayout(interfaceState: ChatPresentationInterfaceState, subject: ChatEmptyNode.Subject, size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGSize {
-        if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings {
+        if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings || self.currentFontSize != interfaceState.fontSize {
             self.currentTheme = interfaceState.theme
             self.currentStrings = interfaceState.strings
+            self.currentFontSize = interfaceState.fontSize
             
             let titleString: String = interfaceState.strings.EmptyGroupInfo_Title
             
             let serviceColor = serviceMessageColorComponents(theme: interfaceState.theme, wallpaper: interfaceState.chatWallpaper)
             
-            self.titleNode.attributedText = NSAttributedString(string: titleString, font: titleFont, textColor: serviceColor.primaryText)
+            self.titleNode.attributedText = NSAttributedString(string: titleString, font: chatEmptyTitleFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
             
-            self.subtitleNode.attributedText = NSAttributedString(string: interfaceState.strings.EmptyGroupInfo_Subtitle, font: messageFont, textColor: serviceColor.primaryText)
+            self.subtitleNode.attributedText = NSAttributedString(string: interfaceState.strings.EmptyGroupInfo_Subtitle, font: chatEmptyMessageFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
             
             let strings: [String] = [
                 interfaceState.strings.EmptyGroupInfo_Line1("\(interfaceState.limitsConfiguration.maxSupergroupMemberCount)").string,
@@ -490,7 +501,7 @@ private final class ChatEmptyNodeGroupChatContent: ASDisplayNode, ChatEmptyNodeC
                 interfaceState.strings.EmptyGroupInfo_Line4
             ]
             
-            let lines: [NSAttributedString] = strings.map { NSAttributedString(string: $0, font: messageFont, textColor: serviceColor.primaryText) }
+            let lines: [NSAttributedString] = strings.map { NSAttributedString(string: $0, font: chatEmptyMessageFont(interfaceState.fontSize), textColor: serviceColor.primaryText) }
             
             let graphics = PresentationResourcesChat.additionalGraphics(interfaceState.theme, wallpaper: interfaceState.chatWallpaper, bubbleCorners: interfaceState.bubbleCorners)
             let lockIcon = graphics.emptyChatListCheckIcon
@@ -569,6 +580,7 @@ private final class ChatEmptyNodeCloudChatContent: ASDisplayNode, ChatEmptyNodeC
     
     private var currentTheme: PresentationTheme?
     private var currentStrings: PresentationStrings?
+    private var currentFontSize: PresentationFontSize?
     
     private var businessLink: TelegramBusinessChatLinks.Link?
     var shareBusinessLink: ((String) -> Void)?
@@ -626,9 +638,10 @@ private final class ChatEmptyNodeCloudChatContent: ASDisplayNode, ChatEmptyNodeC
             }
         }
         
-        if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings {
+        if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings || self.currentFontSize != interfaceState.fontSize {
             self.currentTheme = interfaceState.theme
             self.currentStrings = interfaceState.strings
+            self.currentFontSize = interfaceState.fontSize
             
             let serviceColor = serviceMessageColorComponents(theme: interfaceState.theme, wallpaper: interfaceState.chatWallpaper)
             
@@ -636,7 +649,8 @@ private final class ChatEmptyNodeCloudChatContent: ASDisplayNode, ChatEmptyNodeC
             
             let titleString: String
             let strings: [String]
-            var textFontSize: CGFloat = 14.0
+            let baseDisplaySize = interfaceState.fontSize.baseDisplaySize
+            var textFontSize: CGFloat = baseDisplaySize * 14.0 / 17.0
             
             var businessLink: String?
             
@@ -671,7 +685,7 @@ private final class ChatEmptyNodeCloudChatContent: ASDisplayNode, ChatEmptyNodeC
                     iconName = "Chat/Empty Chat/BusinessLink"
                     centerText = true
                     titleString = interfaceState.strings.Business_Links_PreviewTitle
-                    textFontSize = 13.0
+                    textFontSize = baseDisplaySize * 13.0 / 17.0
                     strings = [
                         interfaceState.strings.Business_Links_PreviewText
                     ]
@@ -705,7 +719,7 @@ private final class ChatEmptyNodeCloudChatContent: ASDisplayNode, ChatEmptyNodeC
             
             self.iconNode.image = generateTintedImage(image: UIImage(bundleImageName: iconName), color: serviceColor.primaryText)
             
-            self.titleNode.attributedText = NSAttributedString(string: titleString, font: titleFont, textColor: serviceColor.primaryText)
+            self.titleNode.attributedText = NSAttributedString(string: titleString, font: chatEmptyTitleFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
             
             let lines: [NSAttributedString] = strings.map {
                 return parseMarkdownIntoAttributedString($0, attributes: MarkdownAttributes(
@@ -944,6 +958,7 @@ public final class ChatEmptyNodeTopicChatContent: ASDisplayNode, ChatEmptyNodeCo
         
     private var currentTheme: PresentationTheme?
     private var currentStrings: PresentationStrings?
+    private var currentFontSize: PresentationFontSize?
     
     private let iconView: ComponentView<Empty>
             
@@ -974,12 +989,13 @@ public final class ChatEmptyNodeTopicChatContent: ASDisplayNode, ChatEmptyNodeCo
     
     public func updateLayout(interfaceState: ChatPresentationInterfaceState, subject: ChatEmptyNode.Subject, size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGSize {
         let serviceColor = serviceMessageColorComponents(theme: interfaceState.theme, wallpaper: interfaceState.chatWallpaper)
-        if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings {
+        if self.currentTheme !== interfaceState.theme || self.currentStrings !== interfaceState.strings || self.currentFontSize != interfaceState.fontSize {
             self.currentTheme = interfaceState.theme
             self.currentStrings = interfaceState.strings
+            self.currentFontSize = interfaceState.fontSize
             
-            self.titleNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_EmptyTopicPlaceholder_Title, font: titleFont, textColor: serviceColor.primaryText)
-            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_EmptyTopicPlaceholder_Text, font: messageFont, textColor: serviceColor.primaryText)
+            self.titleNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_EmptyTopicPlaceholder_Title, font: chatEmptyTitleFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
+            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_EmptyTopicPlaceholder_Text, font: chatEmptyMessageFont(interfaceState.fontSize), textColor: serviceColor.primaryText)
         }
         
         let inset: CGFloat
@@ -1121,10 +1137,11 @@ public final class ChatEmptyNodePremiumRequiredChatContent: ASDisplayNode, ChatE
         let maxWidth = min(270.0, size.width)
         
         let sideInset: CGFloat = 22.0
-        let topInset: CGFloat = 16.0
-        let bottomInset: CGFloat = 16.0
+        let listInset = PresentationLayoutMetrics.listHorizontalInset
+        let topInset: CGFloat = listInset
+        let bottomInset: CGFloat = listInset
         let iconBackgroundSize: CGFloat = 120.0
-        let iconTextSpacing: CGFloat = 16.0
+        let iconTextSpacing: CGFloat = listInset
         let textButtonSpacing: CGFloat = 12.0
         
         let peerTitle: String
@@ -1136,10 +1153,11 @@ public final class ChatEmptyNodePremiumRequiredChatContent: ASDisplayNode, ChatE
         
         let text: NSAttributedString
         var actionText: String?
+        let scaledBodyFontSize = interfaceState.fontSize.baseDisplaySize * 15.0 / 17.0
         let attributes = MarkdownAttributes(
-            body: MarkdownAttributeSet(font: Font.regular(15.0), textColor: serviceColor.primaryText),
-            bold: MarkdownAttributeSet(font: Font.semibold(15.0), textColor: serviceColor.primaryText),
-            link: MarkdownAttributeSet(font: Font.regular(15.0), textColor: serviceColor.primaryText),
+            body: MarkdownAttributeSet(font: Font.regular(scaledBodyFontSize), textColor: serviceColor.primaryText),
+            bold: MarkdownAttributeSet(font: Font.semibold(scaledBodyFontSize), textColor: serviceColor.primaryText),
+            link: MarkdownAttributeSet(font: Font.regular(scaledBodyFontSize), textColor: serviceColor.primaryText),
             linkAttribute: { url in
                 return ("URL", url)
             }
@@ -1194,7 +1212,7 @@ public final class ChatEmptyNodePremiumRequiredChatContent: ASDisplayNode, ChatE
             buttonTitleSize = self.buttonTitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: actionText, font: Font.semibold(15.0), textColor: serviceColor.primaryText))
+                    text: .plain(NSAttributedString(string: actionText, font: Font.semibold(scaledBodyFontSize), textColor: serviceColor.primaryText))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 250.0, height: 100.0)
@@ -1321,13 +1339,15 @@ private final class EmptyAttachedDescriptionNode: HighlightTrackingButtonNode {
     private struct Params: Equatable {
         var theme: PresentationTheme
         var strings: PresentationStrings
+        var fontSize: PresentationFontSize
         var chatWallpaper: TelegramWallpaper
         var peer: EnginePeer
         var constrainedSize: CGSize
         
-        init(theme: PresentationTheme, strings: PresentationStrings, chatWallpaper: TelegramWallpaper, peer: EnginePeer, constrainedSize: CGSize) {
+        init(theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize, chatWallpaper: TelegramWallpaper, peer: EnginePeer, constrainedSize: CGSize) {
             self.theme = theme
             self.strings = strings
+            self.fontSize = fontSize
             self.chatWallpaper = chatWallpaper
             self.peer = peer
             self.constrainedSize = constrainedSize
@@ -1338,6 +1358,9 @@ private final class EmptyAttachedDescriptionNode: HighlightTrackingButtonNode {
                 return false
             }
             if lhs.strings !== rhs.strings {
+                return false
+            }
+            if lhs.fontSize != rhs.fontSize {
                 return false
             }
             if lhs.chatWallpaper != rhs.chatWallpaper {
@@ -1432,6 +1455,7 @@ private final class EmptyAttachedDescriptionNode: HighlightTrackingButtonNode {
     func update(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: PresentationFontSize,
         chatWallpaper: TelegramWallpaper,
         peer: EnginePeer,
         wallpaperBackgroundNode: WallpaperBackgroundNode?,
@@ -1440,6 +1464,7 @@ private final class EmptyAttachedDescriptionNode: HighlightTrackingButtonNode {
         let params = Params(
             theme: theme,
             strings: strings,
+            fontSize: fontSize,
             chatWallpaper: chatWallpaper,
             peer: peer,
             constrainedSize: constrainedSize
@@ -1456,9 +1481,12 @@ private final class EmptyAttachedDescriptionNode: HighlightTrackingButtonNode {
     private func updateInternal(params: Params, wallpaperBackgroundNode: WallpaperBackgroundNode?) -> CGSize {
         let serviceColor = serviceMessageColorComponents(theme: params.theme, wallpaper: params.chatWallpaper)
         
+        let footerBodyFontSize = params.fontSize.baseDisplaySize * 13.0 / 17.0
+        let footerBadgeFontSize = params.fontSize.baseDisplaySize * 11.0 / 17.0
+        
         let textString = NSMutableAttributedString()
-        textString.append(NSAttributedString(string: params.strings.Chat_EmptyStateIntroFooter(params.peer.compactDisplayTitle).string, font: Font.regular(13.0), textColor: serviceColor.primaryText))
-        textString.append(NSAttributedString(string: "  .\(params.strings.Chat_EmptyStateIntroFooterAction)", font: Font.regular(11.0), textColor: .clear))
+        textString.append(NSAttributedString(string: params.strings.Chat_EmptyStateIntroFooter(params.peer.compactDisplayTitle).string, font: Font.regular(footerBodyFontSize), textColor: serviceColor.primaryText))
+        textString.append(NSAttributedString(string: "  .\(params.strings.Chat_EmptyStateIntroFooterAction)", font: Font.regular(footerBadgeFontSize), textColor: .clear))
         self.textNode.attributedText = textString
         
         let maxTextSize = CGSize(width: min(300.0, params.constrainedSize.width - 8.0 * 2.0), height: params.constrainedSize.height - 8.0 * 2.0)
@@ -1534,7 +1562,7 @@ private final class EmptyAttachedDescriptionNode: HighlightTrackingButtonNode {
         let textFrame = CGRect(origin: CGPoint(x: 4.0, y: 4.0), size: textLayout.size)
         self.textNode.frame = textFrame
         
-        self.badgeTextNode.attributedText = NSAttributedString(string: params.strings.Chat_EmptyStateIntroFooterAction, font: Font.regular(11.0), textColor: serviceColor.primaryText)
+        self.badgeTextNode.attributedText = NSAttributedString(string: params.strings.Chat_EmptyStateIntroFooterAction, font: Font.regular(footerBadgeFontSize), textColor: serviceColor.primaryText)
         let badgeTextSize = self.badgeTextNode.updateLayout(CGSize(width: 200.0, height: 100.0))
         if let lastLineFrame = labelRects.last {
             let badgeTextFrame = CGRect(origin: CGPoint(x: lastLineFrame.maxX - badgeTextSize.width - 3.0, y: textFrame.maxY - badgeTextSize.height - 3.0 - UIScreenPixel), size: badgeTextSize)
@@ -1901,6 +1929,7 @@ public final class ChatEmptyNode: ASDisplayNode {
             let attachedDescriptionSize = attachedDescriptionNode.update(
                 theme: interfaceState.theme,
                 strings: interfaceState.strings,
+                fontSize: interfaceState.fontSize,
                 chatWallpaper: interfaceState.chatWallpaper,
                 peer: EnginePeer(peer),
                 wallpaperBackgroundNode: backgroundNode,
