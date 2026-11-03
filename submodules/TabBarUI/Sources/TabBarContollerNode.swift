@@ -407,7 +407,6 @@ final class TabBarControllerNode: ASDisplayNode {
                 transition: toolbarTransition,
                 component: AnyComponent(GlassControlPanelComponent(
                     theme: self.theme,
-                    fontSize: self.contentFontSize,
                     leftItem: toolbarData.leftAction.flatMap { value in
                         return GlassControlPanelComponent.Item(
                             items: [GlassControlGroupComponent.Item(
@@ -453,7 +452,8 @@ final class TabBarControllerNode: ASDisplayNode {
                             background: .panel
                         )
                     },
-                    centerAlignmentIfPossible: true
+                    centerAlignmentIfPossible: true,
+                    fontSize: self.contentFontSize
                 )),
                 environment: {},
                 containerSize: toolbarFrame.size

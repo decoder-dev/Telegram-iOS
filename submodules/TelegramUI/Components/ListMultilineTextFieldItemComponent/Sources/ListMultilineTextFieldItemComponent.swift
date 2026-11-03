@@ -359,7 +359,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
             }
             
             let listsFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize
-            let itemListFontSize = listsFontSize.itemListBaseFontSize
+            let itemListFontSize = listsFontSize.baseDisplaySize
             
             let horizontalInset = PresentationLayoutMetrics.listHorizontalInset
             let leftInset: CGFloat = horizontalInset
@@ -696,7 +696,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
                 let placeholderSize = customPlaceholder.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: value.isEmpty ? " " : value, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.itemListBaseFontSize), textColor: component.theme.list.itemPlaceholderTextColor))
+                        text: .plain(NSAttributedString(string: value.isEmpty ? " " : value, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemPlaceholderTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: size.width - sideInset * 2.0, height: 100.0)

@@ -693,7 +693,7 @@ private final class MonthComponent: CombinedComponent {
             let title = title.update(
                 component: Text(
                     text: monthName,
-                    font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize),
+                    font: Font.semibold(17.0),
                     color: context.component.foregroundColor
                 ),
                 availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: 100.0),

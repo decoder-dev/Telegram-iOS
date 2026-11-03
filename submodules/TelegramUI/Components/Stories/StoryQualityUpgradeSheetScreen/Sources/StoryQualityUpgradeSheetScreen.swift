@@ -51,7 +51,7 @@ public final class ButtonSubtitleComponent: CombinedComponent {
             )
             
             let text = text.update(
-                component: Text(text: context.component.title, font: Font.medium(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 11.0 / 17.0)), color: context.component.color),
+                component: Text(text: context.component.title, font: Font.medium(floor(context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 11.0 / 17.0)), color: context.component.color),
                 availableSize: CGSize(width: context.availableSize.width - 20.0, height: 100.0),
                 transition: context.transition
             )

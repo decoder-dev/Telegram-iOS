@@ -753,7 +753,6 @@ open class ItemListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 transition: toolbarTransition,
                 component: AnyComponent(GlassControlPanelComponent(
                     theme: theme,
-                    fontSize: fontSize,
                     leftItem: toolbarData.toolbar.leftAction.flatMap { value in
                         return GlassControlPanelComponent.Item(
                             items: [GlassControlGroupComponent.Item(
@@ -807,7 +806,8 @@ open class ItemListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                             background: .panel
                         )
                     },
-                    centerAlignmentIfPossible: true
+                    centerAlignmentIfPossible: true,
+                    fontSize: fontSize
                 )),
                 environment: {},
                 containerSize: toolbarFrame.size

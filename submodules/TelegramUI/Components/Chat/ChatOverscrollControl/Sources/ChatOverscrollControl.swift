@@ -369,7 +369,7 @@ final class BadgeComponent: CombinedComponent {
             let text = text.update(
                 component: Text(
                     text: "\(context.component.count)",
-                    font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)),
+                    font: Font.regular(13.0),
                     color: context.component.foregroundColor
                 ),
                 availableSize: CGSize(width: 100.0, height: 100.0),
