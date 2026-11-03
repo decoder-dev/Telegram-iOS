@@ -705,7 +705,7 @@ private final class StarsTransactionSheetContent: CombinedComponent {
                 formattedAmount = formatTonAmountText(absCount.value, dateTimeFormat: dateTimeFormat, maxDecimalPositions: nil)
             }
             let countColor: UIColor
-            var countFont: UIFont = isSubscription || isSubscriber ? Font.regular(17.0) : Font.semibold(17.0)
+            var countFont: UIFont = isSubscription || isSubscriber ? Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize) : Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
             var countBackgroundColor: UIColor?
             if let boostsText {
                 amountText = boostsText
@@ -1651,7 +1651,7 @@ private final class StarsTransactionSheetContent: CombinedComponent {
                         ),
                         content: AnyComponentWithIdentity(
                             id: AnyHashable(0),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: cancelButtonText, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.fillColor, paragraphAlignment: .center))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: cancelButtonText, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.fillColor, paragraphAlignment: .center))))
                         ),
                         isEnabled: true,
                         displaysProgress: state.inProgress,
@@ -1684,7 +1684,7 @@ private final class StarsTransactionSheetContent: CombinedComponent {
                         ),
                         content: AnyComponentWithIdentity(
                             id: AnyHashable(0),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: buttonText, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: buttonText, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                         ),
                         isEnabled: true,
                         displaysProgress: state.inProgress,

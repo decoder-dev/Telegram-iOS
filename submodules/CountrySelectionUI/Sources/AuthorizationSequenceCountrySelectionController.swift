@@ -136,7 +136,7 @@ private final class AuthorizationSequenceCountrySelectionNavigationContentNode: 
     
     private var queryUpdated: ((String) -> Void)?
     
-    init(theme: PresentationTheme, strings: PresentationStrings, cancel: @escaping () -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0, cancel: @escaping () -> Void) {
         self.theme = theme
         self.strings = strings
         
@@ -144,7 +144,7 @@ private final class AuthorizationSequenceCountrySelectionNavigationContentNode: 
         
         self.searchBar = SearchBarNode(theme: SearchBarNodeTheme(theme: theme), presentationTheme: theme, strings: strings, fieldStyle: .modern)
         let placeholderText = strings.Common_Search
-        let searchBarFont = Font.regular(17.0)
+        let searchBarFont = Font.regular(listFontSize)
         
         self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: searchBarFont, textColor: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
         
@@ -315,6 +315,7 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
     private let strings: PresentationStrings
     private let displayCodes: Bool
     private let glass: Bool
+    private let listFontSize: CGFloat
     
     
     private var closeButtonNode: BarComponentHostNode?
@@ -328,11 +329,12 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
     public var completeWithCountryCode: ((Int, String) -> Void)?
     public var dismissed: (() -> Void)?
     
-    public init(strings: PresentationStrings, theme: PresentationTheme, displayCodes: Bool = true, glass: Bool = false) {
+    public init(strings: PresentationStrings, theme: PresentationTheme, displayCodes: Bool = true, glass: Bool = false, listFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
         self.displayCodes = displayCodes
         self.glass = glass
+        self.listFontSize = listFontSize
         
         super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: theme), strings: NavigationBarStrings(presentationStrings: strings)))
         
@@ -345,7 +347,7 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
         if glass {
             self.title = strings.Login_SelectCountry
         } else {
-            let navigationContentNode = AuthorizationSequenceCountrySelectionNavigationContentNode(theme: theme, strings: strings, cancel: { [weak self] in
+            let navigationContentNode = AuthorizationSequenceCountrySelectionNavigationContentNode(theme: theme, strings: strings, listFontSize: listFontSize, cancel: { [weak self] in
                 self?.dismissed?()
                 self?.dismiss()
             })
@@ -365,7 +367,7 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
     }
     
     override public func loadDisplayNode() {
-        self.displayNode = AuthorizationSequenceCountrySelectionControllerNode(theme: self.theme, strings: self.strings, displayCodes: self.displayCodes, glass: self.glass, itemSelected: { [weak self] args in
+        self.displayNode = AuthorizationSequenceCountrySelectionControllerNode(theme: self.theme, strings: self.strings, displayCodes: self.displayCodes, glass: self.glass, listFontSize: self.listFontSize, itemSelected: { [weak self] args in
             let (_, countryId, code) = args
             self?.completeWithCountryCode?(code, countryId)
             self?.dismiss()

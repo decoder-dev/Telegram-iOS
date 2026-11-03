@@ -190,6 +190,8 @@ private final class AvatarUploadToastScreenComponent: Component {
             self.environment = environment
             self.state = state
             
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             var isDone = false
             let effectiveProgress: CGFloat
             switch self.status {
@@ -250,7 +252,7 @@ private final class AvatarUploadToastScreenComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.AvatarUpload_ViewAction, font: Font.regular(17.0), textColor: environment.theme.list.itemAccentColor.withMultiplied(hue: 0.933, saturation: 0.61, brightness: 1.0)))
+                        text: .plain(NSAttributedString(string: environment.strings.AvatarUpload_ViewAction, font: Font.regular(listFontSize), textColor: environment.theme.list.itemAccentColor.withMultiplied(hue: 0.933, saturation: 0.61, brightness: 1.0)))
                     )),
                     effectAlignment: .center,
                     contentInsets: UIEdgeInsets(top: -8.0, left: -8.0, bottom: -8.0, right: -8.0),

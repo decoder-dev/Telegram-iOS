@@ -25,7 +25,7 @@ final class InstantPageSettingsButtonItemNode: InstantPageSettingsItemNode {
     override func updateTheme(_ theme: InstantPageSettingsItemTheme) {
         super.updateTheme(theme)
         
-        self.labelNode.attributedText = NSAttributedString(string: self.title, font: Font.regular(17.0), textColor: theme.accentColor)
+        self.labelNode.attributedText = NSAttributedString(string: self.title, font: Font.regular(self.listFontSize), textColor: theme.accentColor)
     }
     
     override func updateInternalLayout(width: CGFloat, insets: UIEdgeInsets, previousItem: (InstantPageSettingsItemNodeStatus, InstantPageSettingsItemNode?), nextItem: (InstantPageSettingsItemNodeStatus, InstantPageSettingsItemNode?)) -> (height: CGFloat, separatorInset: CGFloat?) {

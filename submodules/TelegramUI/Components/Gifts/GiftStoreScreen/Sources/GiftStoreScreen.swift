@@ -1513,7 +1513,7 @@ final class GiftStoreScreenComponent: Component {
                 let starsFilterSize = self.starsFilter.update(
                     transition: transition,
                     component: AnyComponent(
-                        StarsFilterComponent(theme: theme, text: environment.strings.Gift_Store_ShowStarsListings, isSelected: component.resaleGiftsContext.currentState?.starsOnly ?? false, selectionUpdated: { [weak self] starsOnly in
+                        StarsFilterComponent(theme: theme, text: environment.strings.Gift_Store_ShowStarsListings, isSelected: component.resaleGiftsContext.currentState?.starsOnly ?? false, fontSize: fontSize, selectionUpdated: { [weak self] starsOnly in
                             guard let self else {
                                 return
                             }

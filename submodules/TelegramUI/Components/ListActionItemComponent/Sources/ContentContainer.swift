@@ -8,17 +8,20 @@ private final class ContextOptionComponent: Component {
     let title: String
     let color: UIColor
     let isLast: Bool
+    let fontSize: CGFloat
     let action: () -> Void
     
     init(
         title: String,
         color: UIColor,
         isLast: Bool,
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.color = color
         self.isLast = isLast
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -30,6 +33,9 @@ private final class ContextOptionComponent: Component {
             return false
         }
         if lhs.isLast != rhs.isLast {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -68,7 +74,7 @@ private final class ContextOptionComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: .white))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(component.fontSize), textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)

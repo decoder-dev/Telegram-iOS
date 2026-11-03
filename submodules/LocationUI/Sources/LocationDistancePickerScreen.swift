@@ -260,6 +260,7 @@ private final class LocationDistancePickerScreenComponent: Component {
                                 compactDisplayTitle: component.compactDisplayTitle,
                                 distances: component.distances,
                                 updated: component.updated,
+                                listFontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                                 completion: { [weak self] distance in
                                     guard let self, let component = self.component else {
                                         return
@@ -317,6 +318,7 @@ private final class LocationDistancePickerContentComponent: Component {
     let updated: (Int32) -> Void
     let completion: (Int32) -> Void
     let dismiss: () -> Void
+    let listFontSize: CGFloat
     
     init(
         style: LocationDistancePickerScreenStyle,
@@ -324,7 +326,8 @@ private final class LocationDistancePickerContentComponent: Component {
         distances: Signal<[Double], NoError>,
         updated: @escaping (Int32) -> Void,
         completion: @escaping (Int32) -> Void,
-        dismiss: @escaping () -> Void
+        dismiss: @escaping () -> Void,
+        listFontSize: CGFloat = 17.0
     ) {
         self.style = style
         self.compactDisplayTitle = compactDisplayTitle
@@ -332,6 +335,7 @@ private final class LocationDistancePickerContentComponent: Component {
         self.updated = updated
         self.completion = completion
         self.dismiss = dismiss
+        self.listFontSize = listFontSize
     }
     
     static func ==(lhs: LocationDistancePickerContentComponent, rhs: LocationDistancePickerContentComponent) -> Bool {
@@ -339,6 +343,9 @@ private final class LocationDistancePickerContentComponent: Component {
             return false
         }
         if lhs.compactDisplayTitle != rhs.compactDisplayTitle {
+            return false
+        }
+        if lhs.listFontSize != rhs.listFontSize {
             return false
         }
         return true
@@ -622,7 +629,7 @@ private final class LocationDistancePickerContentComponent: Component {
             var buttonTitle = environment.strings.Location_ProximityNotification_Notify(distanceText).string
             if let displayTitle = component.compactDisplayTitle {
                 let longTitle = environment.strings.Location_ProximityNotification_NotifyLong(displayTitle, distanceText).string
-                let titleSize = NSAttributedString(string: longTitle, font: Font.semibold(17.0), textColor: .black).boundingRect(with: CGSize(width: availableSize.width * 2.0, height: 50.0), options: .usesLineFragmentOrigin, context: nil).size
+                let titleSize = NSAttributedString(string: longTitle, font: Font.semibold(component.listFontSize), textColor: .black).boundingRect(with: CGSize(width: availableSize.width * 2.0, height: 50.0), options: .usesLineFragmentOrigin, context: nil).size
                 if titleSize.width < availableSize.width - 70.0 {
                     buttonTitle = longTitle
                 }
@@ -643,7 +650,7 @@ private final class LocationDistancePickerContentComponent: Component {
                     ),
                     content: AnyComponentWithIdentity(id: AnyHashable("title"), component: AnyComponent(
                         AnimatedTextComponent(
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.listFontSize),
                             color: buttonForegroundColor,
                             items: [
                                 AnimatedTextComponent.Item(id: AnyHashable("title"), content: .text(buttonTitle))
@@ -714,7 +721,7 @@ private final class LocationDistancePickerContentComponent: Component {
                 return nil
             }
             
-            let font = Font.regular(17.0)
+            let font = Font.regular(component.listFontSize)
             let string: String
             if component == 0 {
                 let value = unitValues[row]

@@ -81,8 +81,9 @@ private final class SheetContent: CombinedComponent {
             
             let textSideInset: CGFloat = 32.0 + environment.safeInsets.left
             
-            let titleFont = Font.semibold(17.0)
-            let textFont = Font.regular(17.0)
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let titleFont = Font.semibold(listFontSize)
+            let textFont = Font.regular(listFontSize)
             
             var titleColor = theme.actionSheet.primaryTextColor
             let secondaryTextColor = theme.actionSheet.secondaryTextColor

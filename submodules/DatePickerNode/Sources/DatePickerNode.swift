@@ -418,7 +418,7 @@ public final class DatePickerNode: ASDisplayNode {
         }
     }
     
-    public init(theme: DatePickerTheme, strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, title: String = "", hasValueRow: Bool = true) {
+    public init(theme: DatePickerTheme, strings: PresentationStrings, dateTimeFormat: PresentationDateTimeFormat, title: String = "", hasValueRow: Bool = true, listFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
         self.dateTimeFormat = dateTimeFormat
@@ -435,7 +435,7 @@ public final class DatePickerNode: ASDisplayNode {
         }
         
         self.timeTitleNode = ImmediateTextNode()
-        self.timeTitleNode.attributedText = NSAttributedString(string: title, font: Font.regular(17.0), textColor: theme.textColor)
+        self.timeTitleNode.attributedText = NSAttributedString(string: title, font: Font.regular(listFontSize), textColor: theme.textColor)
         
         var timeChangedImpl: ((Date) -> Void)?
         self.timePickerNode = TimePickerNode(theme: theme, date: self.state.date ?? initialDate, valueChanged: { date in

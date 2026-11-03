@@ -25,6 +25,7 @@ private final class LimitComponent: CombinedComponent {
     let activeTextColor: UIColor
     let activeTitle: String
     let activeValue: String
+    let fontSize: CGFloat
     
     public init(
         title: String,
@@ -39,7 +40,8 @@ private final class LimitComponent: CombinedComponent {
         activeColor: UIColor,
         activeTextColor: UIColor,
         activeTitle: String,
-        activeValue: String
+        activeValue: String,
+        fontSize: CGFloat = 17.0
     ) {
         self.title = title
         self.titleColor = titleColor
@@ -54,6 +56,7 @@ private final class LimitComponent: CombinedComponent {
         self.activeTextColor = activeTextColor
         self.activeTitle = activeTitle
         self.activeValue = activeValue
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: LimitComponent, rhs: LimitComponent) -> Bool {
@@ -96,6 +99,9 @@ private final class LimitComponent: CombinedComponent {
         if lhs.activeValue != rhs.activeValue {
             return false
         }
+        if lhs.fontSize != rhs.fontSize {
+            return false
+        }
         return true
     }
     
@@ -117,7 +123,7 @@ private final class LimitComponent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.title,
-                        font: Font.regular(17.0),
+                        font: Font.regular(component.fontSize),
                         textColor: component.titleColor,
                         paragraphAlignment: .natural
                     )),
@@ -364,6 +370,7 @@ private final class LimitsListComponent: CombinedComponent {
             let state = context.state
             let theme = context.component.context.sharedContext.currentPresentationData.with { $0 }.theme
             let strings = context.component.context.sharedContext.currentPresentationData.with { $0 }.strings
+            let listFontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let colors = [
                 UIColor(rgb: 0xdf7138),
@@ -396,7 +403,8 @@ private final class LimitsListComponent: CombinedComponent {
                             activeColor: colors[index],
                             activeTextColor: .white,
                             activeTitle: strings.Premium_Premium,
-                            activeValue: value.limit(state.premiumLimits, isPremium: true)
+                            activeValue: value.limit(state.premiumLimits, isPremium: true),
+                            fontSize: listFontSize
                         )
                     )
                 )
@@ -542,6 +550,7 @@ final class LimitsPageComponent: CombinedComponent {
             
             let theme = context.component.theme
             let strings = context.component.context.sharedContext.currentPresentationData.with { $0 }.strings
+            let listFontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let topInset: CGFloat = 56.0
             
@@ -601,7 +610,7 @@ final class LimitsPageComponent: CombinedComponent {
             
             let title = title.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: strings.Premium_DoubledLimits, font: Font.semibold(17.0), textColor: theme.rootController.navigationBar.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: strings.Premium_DoubledLimits, font: Font.semibold(listFontSize), textColor: theme.rootController.navigationBar.primaryTextColor)),
                     horizontalAlignment: .center,
                     truncationType: .end,
                     maximumNumberOfLines: 1

@@ -48,6 +48,7 @@ final class ShareScreenItemsView: UIView, UIScrollViewDelegate {
         let model = component.model
         let theme = environment.theme
         let strings = environment.strings
+        let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         self.component = component
         self.environment = environment
         self.visibleBounds = visibleBounds
@@ -129,7 +130,7 @@ final class ShareScreenItemsView: UIView, UIScrollViewDelegate {
                     self.recommendations.contentSize = recommendationsContentSize
                 }
                 y += 104.0
-                shareScreenUpdateText(self.sectionTitle, parent: self, string: strings.ShareScreen_RecentChats, font: Font.semibold(17.0), color: theme.list.itemSecondaryTextColor, frame: CGRect(x: 16.0, y: y, width: width - 32.0, height: 30.0))
+                shareScreenUpdateText(self.sectionTitle, parent: self, string: strings.ShareScreen_RecentChats, font: Font.semibold(listFontSize), color: theme.list.itemSecondaryTextColor, frame: CGRect(x: 16.0, y: y, width: width - 32.0, height: 30.0))
                 y += 30.0
             }
             let visibleRange = shareScreenVisibleItems(min: visible.minY, max: visible.maxY, origin: y, stride: 60.0, count: peers.count)
@@ -188,7 +189,7 @@ final class ShareScreenItemsView: UIView, UIScrollViewDelegate {
         self.activity.center = CGPoint(x: width * 0.5, y: shareScreenActivityCenterY(contentBottom: y, visibleBounds: visibleBounds, bottomInset: component.bottomInset))
         self.activity.color = theme.list.itemSecondaryTextColor
         if isLoading && peers.isEmpty && model.isSearching { self.activity.startAnimating() } else { self.activity.stopAnimating() }
-        shareScreenUpdateText(self.emptyLabel, parent: self, string: strings.ChatList_Search_NoResults, font: Font.regular(17.0), color: theme.list.itemSecondaryTextColor, alignment: .center, maximumNumberOfLines: 0, frame: CGRect(x: 24.0, y: y + 24.0, width: width - 48.0, height: 60.0), isHidden: !peers.isEmpty || isLoading)
+        shareScreenUpdateText(self.emptyLabel, parent: self, string: strings.ChatList_Search_NoResults, font: Font.regular(listFontSize), color: theme.list.itemSecondaryTextColor, alignment: .center, maximumNumberOfLines: 0, frame: CGRect(x: 24.0, y: y + 24.0, width: width - 48.0, height: 60.0), isHidden: !peers.isEmpty || isLoading)
         self.contentHeight = y + 16.0 + component.bottomInset
         self.bounds.size = CGSize(width: width, height: max(y + 100.0, self.contentHeight))
 

@@ -256,7 +256,7 @@ private final class PremiumGiftCodeSheetContent: CombinedComponent {
                 component: MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: titleText,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                         textColor: theme.actionSheet.primaryTextColor,
                         paragraphAlignment: .center
                     )),
@@ -477,7 +477,7 @@ private final class PremiumGiftCodeSheetContent: CombinedComponent {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: buttonText, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: buttonText, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                     ),
                     action: { [weak state] in
                         if gloss {
@@ -823,7 +823,7 @@ final class GiftLinkButtonContentComponent: CombinedComponent {
                     component: MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: (component.text ?? "").replacingOccurrences(of: "https://", with: ""),
-                            font: Font.regular(17.0),
+                            font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             textColor: component.theme.list.itemPrimaryTextColor,
                             paragraphAlignment: .natural
                         )),

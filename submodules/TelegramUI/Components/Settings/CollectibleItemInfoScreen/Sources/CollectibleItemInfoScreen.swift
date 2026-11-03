@@ -433,7 +433,7 @@ private final class CollectibleItemInfoScreenContentComponent: Component {
                         pressedColor: environment.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                     ),
                     content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(
-                        Text(text: environment.strings.CollectibleItemInfo_ButtonOpenInfo, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor)
+                        Text(text: environment.strings.CollectibleItemInfo_ButtonOpenInfo, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: environment.theme.list.itemCheckColors.foregroundColor)
                     )),
                     isEnabled: true,
                     displaysProgress: false,
@@ -477,7 +477,7 @@ private final class CollectibleItemInfoScreenContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: copyButtonTitle, font: Font.regular(17.0), textColor: environment.theme.list.itemAccentColor))
+                        text: .plain(NSAttributedString(string: copyButtonTitle, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemAccentColor))
                     )),
                     background: nil,
                     effectAlignment: .center,

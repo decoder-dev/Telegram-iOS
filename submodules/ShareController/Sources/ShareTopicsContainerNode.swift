@@ -89,10 +89,12 @@ private class CancelButtonNode: ASDisplayNode {
         }
     }
     private let strings: PresentationStrings
+    private var listFontSize: CGFloat
     
-    init(theme: PresentationTheme, strings: PresentationStrings) {
+    init(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
+        self.listFontSize = listFontSize
         
         self.buttonNode = HighlightTrackingButtonNode()
         self.buttonNode.accessibilityLabel = strings.Common_Back
@@ -132,7 +134,7 @@ private class CancelButtonNode: ASDisplayNode {
     }
     
     func updateThemeAndStrings() {
-        self.labelNode.attributedText = NSAttributedString(string: self.strings.Common_Back, font: Font.regular(17.0), textColor: self.theme.rootController.navigationBar.accentTextColor)
+        self.labelNode.attributedText = NSAttributedString(string: self.strings.Common_Back, font: Font.regular(self.listFontSize), textColor: self.theme.rootController.navigationBar.accentTextColor)
         
         let labelSize = self.labelNode.updateLayout(CGSize(width: 120.0, height: 56.0))
         
@@ -190,7 +192,7 @@ final class ShareTopicsContainerNode: ASDisplayNode, ShareContentContainerNode {
     
     var backPressed: () -> Void = {}
     
-    init(environment: ShareControllerEnvironment, context: ShareControllerAccountContext, theme: PresentationTheme, strings: PresentationStrings, peer: EnginePeer, topics: Signal<EngineChatList, NoError>, controllerInteraction: ShareControllerInteraction) {
+    init(environment: ShareControllerEnvironment, context: ShareControllerAccountContext, theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0, peer: EnginePeer, topics: Signal<EngineChatList, NoError>, controllerInteraction: ShareControllerInteraction) {
         self.environment = environment
         self.context = context
         self.theme = theme
@@ -236,7 +238,7 @@ final class ShareTopicsContainerNode: ASDisplayNode, ShareContentContainerNode {
         self.contentSubtitleNode.truncationMode = .byTruncatingTail
         self.contentSubtitleNode.attributedText = NSAttributedString(string: strings.ShareMenu_SelectTopic, font: subtitleFont, textColor: self.theme.actionSheet.secondaryTextColor)
                            
-        self.backNode = CancelButtonNode(theme: theme, strings: strings)
+        self.backNode = CancelButtonNode(theme: theme, strings: strings, listFontSize: listFontSize)
         
         super.init()
 

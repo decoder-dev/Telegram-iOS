@@ -60,6 +60,7 @@ final class ShareScreenCommunityComponent: Component {
             self.environment = environment
             if self.visibleBounds.isEmpty { self.visibleBounds = CGRect(origin: .zero, size: availableSize) }
             let model = component.model
+            let listFontSize = model.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let synchronousLoad = transition.userData(PeerListItemComponent.TransitionHint.self)?.synchronousLoad ?? false
             var validIds = Set<EnginePeer.Id>()
             let visibleBounds = self.visibleBounds.insetBy(dx: 0.0, dy: -120.0)
@@ -118,7 +119,7 @@ final class ShareScreenCommunityComponent: Component {
             self.activity.center = CGPoint(x: availableSize.width / 2.0, y: shareScreenActivityCenterY(contentBottom: 84.0, visibleBounds: self.visibleBounds, bottomInset: component.bottomInset))
             self.activity.color = environment.theme.list.itemSecondaryTextColor
             if model.communityLoading { self.activity.startAnimating() } else { self.activity.stopAnimating() }
-            shareScreenUpdateText(self.emptyLabel, parent: self, string: environment.strings.ChatList_Search_NoResults, font: Font.regular(17.0), color: environment.theme.list.itemSecondaryTextColor, alignment: .center, frame: CGRect(x: 16.0, y: 104.0, width: availableSize.width - 32.0, height: 44.0), isHidden: model.communityLoading || !model.communityPeers.isEmpty)
+            shareScreenUpdateText(self.emptyLabel, parent: self, string: environment.strings.ChatList_Search_NoResults, font: Font.regular(listFontSize), color: environment.theme.list.itemSecondaryTextColor, alignment: .center, frame: CGRect(x: 16.0, y: 104.0, width: availableSize.width - 32.0, height: 44.0), isHidden: model.communityLoading || !model.communityPeers.isEmpty)
             return CGSize(width: availableSize.width, height: max(availableSize.height, 84.0 + CGFloat((model.communityPeers.count + columns - 1) / columns) * rowHeight + component.bottomInset))
         }
     }

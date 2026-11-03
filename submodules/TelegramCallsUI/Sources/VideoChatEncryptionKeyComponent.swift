@@ -467,6 +467,7 @@ final class VideoChatEncryptionKeyComponent: Component {
     let emoji: [String]
     let isShort: Bool
     let isExpanded: Bool
+    let fontSize: CGFloat
     let tapAction: () -> Void
 
     init(
@@ -475,6 +476,7 @@ final class VideoChatEncryptionKeyComponent: Component {
         emoji: [String],
         isShort: Bool,
         isExpanded: Bool,
+        fontSize: CGFloat = 17.0,
         tapAction: @escaping () -> Void
     ) {
         self.theme = theme
@@ -482,6 +484,7 @@ final class VideoChatEncryptionKeyComponent: Component {
         self.emoji = emoji
         self.isShort = isShort
         self.isExpanded = isExpanded
+        self.fontSize = fontSize
         self.tapAction = tapAction
     }
 
@@ -499,6 +502,9 @@ final class VideoChatEncryptionKeyComponent: Component {
             return false
         }
         if lhs.isExpanded != rhs.isExpanded {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -657,7 +663,7 @@ final class VideoChatEncryptionKeyComponent: Component {
             let expandedButtonTextSize = self.expandedButtonText.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.VideoChat_EncryptionKeyDone, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.strings.VideoChat_EncryptionKeyDone, font: Font.regular(component.fontSize), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - expandedSideInset * 2.0, height: 1000.0)

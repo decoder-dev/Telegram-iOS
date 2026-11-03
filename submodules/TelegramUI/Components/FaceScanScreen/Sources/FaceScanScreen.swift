@@ -422,6 +422,7 @@ final class FaceScanScreenComponent: Component {
             
             let theme = environment.theme
             let strings = environment.strings
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             self.overlayView.frame = CGRect(origin: .zero, size: availableSize)
             self.cutoutLayer.frame = CGRect(origin: .zero, size: availableSize)
@@ -507,7 +508,7 @@ final class FaceScanScreenComponent: Component {
                     PlainButtonComponent(
                         content: AnyComponent(
                             MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: strings.Common_Cancel, font: Font.regular(17.0), textColor: theme.list.itemAccentColor))
+                                text: .plain(NSAttributedString(string: strings.Common_Cancel, font: Font.regular(listFontSize), textColor: theme.list.itemAccentColor))
                             )
                         ),
                         action: { [weak self] in

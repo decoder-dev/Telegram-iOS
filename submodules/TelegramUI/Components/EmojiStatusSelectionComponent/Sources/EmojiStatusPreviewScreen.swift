@@ -27,15 +27,20 @@ private final class ContextMenuActionItem: Component, ContextMenuItemWithAction 
     typealias EnvironmentType = ContextMenuActionItemEnvironment
     
     let title: String
+    let fontSize: CGFloat
     let action: () -> ContextMenuPerformActionResult
     
-    init(title: String, action: @escaping () -> ContextMenuPerformActionResult) {
+    init(title: String, fontSize: CGFloat = 17.0, action: @escaping () -> ContextMenuPerformActionResult) {
         self.title = title
+        self.fontSize = fontSize
         self.action = action
     }
     
     static func ==(lhs: ContextMenuActionItem, rhs: ContextMenuActionItem) -> Bool {
         if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -67,7 +72,7 @@ private final class ContextMenuActionItem: Component, ContextMenuItemWithAction 
             let titleSize = self.titleView.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: contextEnvironment.theme.contextMenu.primaryColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(component.fontSize), textColor: contextEnvironment.theme.contextMenu.primaryColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)

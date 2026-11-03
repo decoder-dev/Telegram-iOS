@@ -475,13 +475,16 @@ final class ToolsComponent: Component {
 final class ZoomOutButtonContent: CombinedComponent {
     let title: String
     let image: UIImage
+    let fontSize: CGFloat
   
     init(
         title: String,
-        image: UIImage
+        image: UIImage,
+        fontSize: CGFloat = 17.0
     ) {
         self.title = title
         self.image = image
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: ZoomOutButtonContent, rhs: ZoomOutButtonContent) -> Bool {
@@ -489,6 +492,9 @@ final class ZoomOutButtonContent: CombinedComponent {
             return false
         }
         if lhs.image !== rhs.image {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -504,7 +510,7 @@ final class ZoomOutButtonContent: CombinedComponent {
             let title = title.update(
                 component: Text(
                     text: component.title,
-                    font: Font.regular(17.0),
+                    font: Font.regular(component.fontSize),
                     color: .white
                 ),
                 availableSize: context.availableSize,

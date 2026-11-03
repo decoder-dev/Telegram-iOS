@@ -74,6 +74,7 @@ final class ShareScreenTopicsComponent: Component {
             if self.visibleBounds.isEmpty { self.visibleBounds = CGRect(origin: .zero, size: availableSize) }
             let environment = environment[EnvironmentType.self].value
             let model = component.model
+            let listFontSize = model.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let columns = max(3, Int(floor(availableSize.width / 72.0)))
             let width = (availableSize.width - 20.0) / CGFloat(columns)
             var validIds = Set<Int64>()
@@ -142,7 +143,7 @@ final class ShareScreenTopicsComponent: Component {
             let height = 84.0 + CGFloat((model.forumTopics.count + columns - 1) / columns) * 100.0
             self.activity.center = CGPoint(x: availableSize.width / 2.0, y: shareScreenActivityCenterY(contentBottom: height, visibleBounds: self.visibleBounds, bottomInset: component.bottomInset))
             if model.topicsLoading { self.activity.startAnimating() } else { self.activity.stopAnimating() }
-            shareScreenUpdateText(self.emptyLabel, parent: self, string: environment.strings.ChatList_Search_NoResults, font: Font.regular(17.0), color: environment.theme.list.itemSecondaryTextColor, alignment: .center, frame: CGRect(x: 16.0, y: 114.0, width: availableSize.width - 32.0, height: 44.0), isHidden: model.topicsLoading || !model.forumTopics.isEmpty)
+            shareScreenUpdateText(self.emptyLabel, parent: self, string: environment.strings.ChatList_Search_NoResults, font: Font.regular(listFontSize), color: environment.theme.list.itemSecondaryTextColor, alignment: .center, frame: CGRect(x: 16.0, y: 114.0, width: availableSize.width - 32.0, height: 44.0), isHidden: model.topicsLoading || !model.forumTopics.isEmpty)
             return CGSize(width: availableSize.width, height: max(540.0, height + (model.forumTopics.isEmpty ? 100.0 : 0.0) + component.bottomInset))
         }
     }

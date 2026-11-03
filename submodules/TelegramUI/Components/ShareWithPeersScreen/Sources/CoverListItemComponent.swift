@@ -11,6 +11,7 @@ final class CoverListItemComponent: Component {
     let title: String
     let image: UIImage?
     let hasNext: Bool
+    let fontSize: CGFloat
     let action: () -> Void
     
     init(
@@ -18,12 +19,14 @@ final class CoverListItemComponent: Component {
         title: String,
         image: UIImage?,
         hasNext: Bool,
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void
     ) {
         self.theme = theme
         self.title = title
         self.image = image
         self.hasNext = hasNext
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -38,6 +41,9 @@ final class CoverListItemComponent: Component {
             return false
         }
         if lhs.hasNext != rhs.hasNext {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -98,7 +104,7 @@ final class CoverListItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(component.fontSize), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftInset - rightInset, height: 100.0)

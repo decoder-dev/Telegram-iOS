@@ -338,7 +338,7 @@ final class BrowserAddressListComponent: Component {
                                     theme: component.theme,
                                     title: AnyComponent(Text(
                                         text: component.strings.WebBrowser_AddressBar_ShowMore,
-                                        font: Font.regular(17.0),
+                                        font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                                         color: component.theme.list.itemAccentColor
                                     )),
                                     leftIcon: .custom(

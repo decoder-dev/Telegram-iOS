@@ -531,6 +531,7 @@ final class PostSuggestionsSettingsScreenComponent: Component {
                     theme: environment.theme,
                     strings: environment.strings,
                     link: link,
+                    fontSize: presentationData.listsFontSize.baseDisplaySize,
                     copyAction: { [weak self] in
                         self?.copyLink(fullLink)
                     },
@@ -693,13 +694,16 @@ public final class PostSuggestionsSettingsScreen: ViewControllerComponentContain
 private final class LinkContentComponent: Component {
     let theme: PresentationTheme
     let link: String
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
-        link: String
+        link: String,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.link = link
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: LinkContentComponent, rhs: LinkContentComponent) -> Bool {
@@ -707,6 +711,9 @@ private final class LinkContentComponent: Component {
             return false
         }
         if lhs.link != rhs.link {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -751,7 +758,7 @@ private final class LinkContentComponent: Component {
                 transition.setFrame(view: backgroundView, frame: backgroundFrame)
             }
                         
-            let linkFont = Font.regular(17.0)
+            let linkFont = Font.regular(component.fontSize)
             let linkSize = self.link.update(
                 transition: transition,
                 component: AnyComponent(
@@ -789,6 +796,7 @@ private final class LinkComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
     let link: String
+    let fontSize: CGFloat
     let copyAction: () -> Void
     let shareAction: () -> Void
     
@@ -796,12 +804,14 @@ private final class LinkComponent: Component {
         theme: PresentationTheme,
         strings: PresentationStrings,
         link: String,
+        fontSize: CGFloat = 17.0,
         copyAction: @escaping () -> Void,
         shareAction: @escaping () -> Void
     ) {
         self.theme = theme
         self.strings = strings
         self.link = link
+        self.fontSize = fontSize
         self.copyAction = copyAction
         self.shareAction = shareAction
     }
@@ -814,6 +824,9 @@ private final class LinkComponent: Component {
             return false
         }
         if lhs.link != rhs.link {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -849,7 +862,7 @@ private final class LinkComponent: Component {
                 transition: transition,
                 component: AnyComponent(
                     PlainButtonComponent(
-                        content: AnyComponent(LinkContentComponent(theme: component.theme, link: component.link)),
+                        content: AnyComponent(LinkContentComponent(theme: component.theme, link: component.link, fontSize: component.fontSize)),
                         action: { [weak self] in
                             guard let self, let component = self.component else {
                                 return
@@ -919,7 +932,7 @@ private final class LinkComponent: Component {
                         foreground: component.theme.list.itemCheckColors.foregroundColor,
                         pressedColor: component.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                     ),
-                    content: AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: component.strings.FolderLinkScreen_LinkActionCopy, font: Font.semibold(17.0), color: component.theme.list.itemCheckColors.foregroundColor))),
+                    content: AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: component.strings.FolderLinkScreen_LinkActionCopy, font: Font.semibold(component.fontSize), color: component.theme.list.itemCheckColors.foregroundColor))),
                     action: { [weak self] in
                         guard let self, let component = self.component else {
                             return
@@ -947,7 +960,7 @@ private final class LinkComponent: Component {
                         foreground: component.theme.list.itemCheckColors.foregroundColor,
                         pressedColor: component.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                     ),
-                    content: AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: component.strings.FolderLinkScreen_LinkActionShare, font: Font.semibold(17.0), color: component.theme.list.itemCheckColors.foregroundColor))),
+                    content: AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: component.strings.FolderLinkScreen_LinkActionShare, font: Font.semibold(component.fontSize), color: component.theme.list.itemCheckColors.foregroundColor))),
                     action: { [weak self] in
                         guard let self, let component = self.component else {
                             return

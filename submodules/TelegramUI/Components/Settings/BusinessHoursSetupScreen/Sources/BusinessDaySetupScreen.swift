@@ -287,7 +287,7 @@ final class BusinessDaySetupScreenComponent: Component {
             let navigationTitleSize = self.navigationTitle.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: title, font: Font.semibold(17.0), textColor: environment.theme.rootController.navigationBar.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: title, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: environment.theme.rootController.navigationBar.primaryTextColor)),
                     horizontalAlignment: .center
                 )),
                 environment: {},
@@ -398,7 +398,7 @@ final class BusinessDaySetupScreenComponent: Component {
                         ], alignment: .left, spacing: 2.0)),
                         icon: ListActionItemComponent.Icon(component: AnyComponentWithIdentity(id: 0, component: AnyComponent(PlainButtonComponent(
                             content: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: isOpenTime ? startText : endText, font: Font.regular(17.0), textColor: self.intersectingRanges.contains(range.id) ? environment.theme.list.itemDestructiveColor : environment.theme.list.itemPrimaryTextColor))
+                                text: .plain(NSAttributedString(string: isOpenTime ? startText : endText, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: self.intersectingRanges.contains(range.id) ? environment.theme.list.itemDestructiveColor : environment.theme.list.itemPrimaryTextColor))
                             )),
                             background: AnyComponent(RoundedRectangle(color: environment.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.1), cornerRadius: 6.0)),
                             effectAlignment: .center,

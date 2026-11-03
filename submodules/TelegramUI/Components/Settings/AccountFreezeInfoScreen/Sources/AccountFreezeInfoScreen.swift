@@ -191,7 +191,7 @@ private final class SheetContent: CombinedComponent {
             contentSize.height += spacing + 2.0
             
             let buttonInsets = ContainerViewLayout.concentricInsets(bottomInset: environment.safeInsets.bottom, innerDiameter: 52.0, sideInset: 30.0)
-            let buttonAttributedString = NSMutableAttributedString(string: strings.FrozenAccount_SubmitAppeal, font: Font.semibold(17.0), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+            let buttonAttributedString = NSMutableAttributedString(string: strings.FrozenAccount_SubmitAppeal, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
             let actionButton = actionButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(
@@ -221,7 +221,7 @@ private final class SheetContent: CombinedComponent {
             contentSize.height += actionButton.size.height
             contentSize.height += 8.0
             
-            let closeAttributedString = NSMutableAttributedString(string: strings.FrozenAccount_Understood, font: Font.regular(17.0), textColor: environment.theme.list.itemCheckColors.fillColor, paragraphAlignment: .center)
+            let closeAttributedString = NSMutableAttributedString(string: strings.FrozenAccount_Understood, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: environment.theme.list.itemCheckColors.fillColor, paragraphAlignment: .center)
             let closeButton = closeButton.update(
                 component: ButtonComponent(
                     background: ButtonComponent.Background(

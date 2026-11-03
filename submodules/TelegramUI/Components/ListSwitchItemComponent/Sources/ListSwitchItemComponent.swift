@@ -10,17 +10,20 @@ public final class ListSwitchItemComponent: Component {
     let theme: PresentationTheme
     let title: String
     let value: Bool
+    let fontSize: CGFloat
     let valueUpdated: (Bool) -> Void
     
     public init(
         theme: PresentationTheme,
         title: String,
         value: Bool,
+        fontSize: CGFloat = 17.0,
         valueUpdated: @escaping (Bool) -> Void
     ) {
         self.theme = theme
         self.title = title
         self.value = value
+        self.fontSize = fontSize
         self.valueUpdated = valueUpdated
     }
     
@@ -32,6 +35,9 @@ public final class ListSwitchItemComponent: Component {
             return false
         }
         if lhs.value != rhs.value {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -88,7 +94,7 @@ public final class ListSwitchItemComponent: Component {
             
             let titleSize = self.title.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: component.title, font: Font.regular(17.0), color: component.theme.list.itemPrimaryTextColor)),
+                component: AnyComponent(Text(text: component.title, font: Font.regular(component.fontSize), color: component.theme.list.itemPrimaryTextColor)),
                 environment: {},
                 containerSize: CGSize(width: max(1.0, switchFrame.minX - spacing - leftInset), height: .greatestFiniteMagnitude)
             )

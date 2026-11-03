@@ -291,3 +291,7 @@ SearchBar contentFontSize wired through Location/Contact/FeaturedStickers/PaneSe
 ## Широкий проход по оставшимся 17 pt labels
 
 Масштабированы Passport forms, BotPayment fields, Call/Invite/Hashtag/Search nav, ContactAdd, Passcode entry Cancel/Delete, Gallery/StickerPack/ImportSticker, VoiceChat items, chat search/quick share/bot info, MediaCover/Cutout, PeerInfo gifts panes, TimezoneSelection, AutodownloadSizeLimit labels и десятки смежных поверхностей. Branding Liquid: 7 pass. Simulator NOT RUN. Оставшиеся hardcode 17 pt — в основном phone stacks, PeerInfo header animation и узкие auth/drawing surfaces.
+
+## Финальный проход по оставшимся 17 pt
+
+Масштабированы Share/Stars/Gifts/Settings sheets, InstantPage settings rows, Call/VideoChat labels, Collectible/Birthday/BusinessHours/AccountFreeze, FaceScan, RichText ButtonEditor, News interests, MessageFee panel, ListSwitch/ContentContainer и смежные одиночные hits. Исключены phone stacks, PeerInfoHeader animation chrome и InstantPage audio parity fonts. Branding Liquid: 7 pass. Simulator NOT RUN.

@@ -413,6 +413,7 @@ private final class ButtonEditorSheetContent: Component {
                         theme: theme,
                         title: choice.title(strings),
                         isSelected: choice == current,
+                        fontSize: presentationData.listsFontSize.itemListBaseFontSize,
                         action: { [weak self] in
                             guard let self, let component = self.component else { return }
                             component.update(choice.apply(to: component.button))
@@ -450,6 +451,7 @@ private final class ButtonEditorSheetContent: Component {
                             title: strings.RichText_ButtonDelete,
                             isSelected: false,
                             isDestructive: true,
+                            fontSize: presentationData.listsFontSize.itemListBaseFontSize,
                             action: { [weak self] in self?.component?.complete(nil) }
                         )
                     ))],
@@ -490,20 +492,24 @@ private final class ButtonStyleRowComponent: Component {
     let title: String
     let isSelected: Bool
     let isDestructive: Bool
+    let fontSize: CGFloat
     let action: () -> Void
 
     init(theme: PresentationTheme, title: String, isSelected: Bool, isDestructive: Bool = false,
+         fontSize: CGFloat = 17.0,
          action: @escaping () -> Void) {
         self.theme = theme
         self.title = title
         self.isSelected = isSelected
         self.isDestructive = isDestructive
+        self.fontSize = fontSize
         self.action = action
     }
 
     static func ==(lhs: ButtonStyleRowComponent, rhs: ButtonStyleRowComponent) -> Bool {
         lhs.theme === rhs.theme && lhs.title == rhs.title
             && lhs.isSelected == rhs.isSelected && lhs.isDestructive == rhs.isDestructive
+            && lhs.fontSize == rhs.fontSize
     }
 
     final class View: UIView, ListSectionComponent.ChildView {
@@ -532,12 +538,12 @@ private final class ButtonStyleRowComponent: Component {
                     environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
             self.titleLabel.text = component.title
-            self.titleLabel.font = Font.regular(17.0)
+            self.titleLabel.font = Font.regular(component.fontSize)
             self.titleLabel.textColor = component.isDestructive
                 ? component.theme.list.itemDestructiveColor
                 : component.theme.list.itemPrimaryTextColor
             self.checkLabel.text = component.isSelected ? "✓" : ""
-            self.checkLabel.font = Font.semibold(17.0)
+            self.checkLabel.font = Font.semibold(component.fontSize)
             self.checkLabel.textColor = component.theme.list.itemAccentColor
 
             let height: CGFloat = 44.0
@@ -642,7 +648,7 @@ private final class ButtonEditorSheetComponent: Component {
                     titleItem: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.RichText_ButtonEditorTitle,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             textColor: theme.list.itemPrimaryTextColor
                         )),
                         maximumNumberOfLines: 1

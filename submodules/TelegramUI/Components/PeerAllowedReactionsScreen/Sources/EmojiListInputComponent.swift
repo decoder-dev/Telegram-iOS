@@ -195,7 +195,7 @@ final class EmojiListInputComponent: Component {
             
             let trailingPlaceholderSize = self.trailingPlaceholder.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: component.placeholder, font: Font.regular(17.0), color: component.theme.list.itemPlaceholderTextColor)),
+                component: AnyComponent(Text(text: component.placeholder, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: component.theme.list.itemPlaceholderTextColor)),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - sideInset * 2.0, height: 100.0)
             )

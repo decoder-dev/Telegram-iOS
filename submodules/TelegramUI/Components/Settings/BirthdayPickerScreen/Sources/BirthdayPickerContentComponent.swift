@@ -153,7 +153,7 @@ public final class BirthdayPickerContentComponent: Component {
                 titleRawString = component.strings.Birthday_Title
             }
             
-            titleString.append(NSAttributedString(string: titleRawString, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+            titleString.append(NSAttributedString(string: titleRawString, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemPrimaryTextColor))
         
             let titleSize = self.title.update(
                 transition: .immediate,
@@ -276,7 +276,7 @@ public final class BirthdayPickerContentComponent: Component {
                     contentHeight += 21.0
                     let hideYearSize = self.hideYear.update(
                         transition: .immediate,
-                        component: AnyComponent(PlainButtonComponent(content: AnyComponent(Text(text: component.strings.SuggestBirthdate_Accept_HideYear, font: Font.regular(17.0), color: component.theme.list.itemAccentColor)), action: { [weak self] in
+                        component: AnyComponent(PlainButtonComponent(content: AnyComponent(Text(text: component.strings.SuggestBirthdate_Accept_HideYear, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: component.theme.list.itemAccentColor)), action: { [weak self] in
                             guard let self, let component = self.component else {
                                 return
                             }

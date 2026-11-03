@@ -89,7 +89,8 @@ final class ChatFeePanelNode: ASDisplayNode {
         
         if self.theme !== theme {
             self.theme = theme
-            self.removeTextNode.attributedText = NSAttributedString(string: strings.Chat_PaidMessageFee_RemoveFee, font: Font.regular(17.0), textColor: theme.chat.inputPanel.panelControlColor)
+            let listFontSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            self.removeTextNode.attributedText = NSAttributedString(string: strings.Chat_PaidMessageFee_RemoveFee, font: Font.regular(listFontSize), textColor: theme.chat.inputPanel.panelControlColor)
         }
         
         let attributedText = NSMutableAttributedString(string: strings.Chat_PaidMessageFee_Text(info.peer.compactDisplayTitle, "⭐️\(info.value)").string, font: Font.regular(12.0), textColor: theme.rootController.navigationBar.secondaryTextColor)

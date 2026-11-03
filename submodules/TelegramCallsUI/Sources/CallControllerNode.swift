@@ -55,7 +55,7 @@ final class CallVideoNode: ASDisplayNode, PreviewVideoNode {
     
     private var previousVideoHeight: CGFloat?
     
-    init(videoView: PresentationCallVideoView, displayPlaceholderUntilReady: Bool = false, disabledText: String?, assumeReadyAfterTimeout: Bool, isReadyUpdated: @escaping () -> Void, orientationUpdated: @escaping () -> Void, isFlippedUpdated: @escaping (CallVideoNode) -> Void) {
+    init(videoView: PresentationCallVideoView, displayPlaceholderUntilReady: Bool = false, disabledText: String?, disabledTextFontSize: CGFloat = 17.0, assumeReadyAfterTimeout: Bool, isReadyUpdated: @escaping () -> Void, orientationUpdated: @escaping () -> Void, isFlippedUpdated: @escaping (CallVideoNode) -> Void) {
         self.isReadyUpdated = isReadyUpdated
         self.isFlippedUpdated = isFlippedUpdated
         
@@ -91,7 +91,7 @@ final class CallVideoNode: ASDisplayNode, PreviewVideoNode {
         }
         
         if let disabledText = disabledText {
-            self.videoPausedNode.attributedText = NSAttributedString(string: disabledText, font: Font.regular(17.0), textColor: .white)
+            self.videoPausedNode.attributedText = NSAttributedString(string: disabledText, font: Font.regular(disabledTextFontSize), textColor: .white)
             self.addSubnode(self.videoPausedNode)
         }
         

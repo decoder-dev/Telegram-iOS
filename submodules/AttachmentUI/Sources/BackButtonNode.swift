@@ -29,6 +29,7 @@ public class WebAppCancelButtonNode: ASDisplayNode {
         }
     }
     private let strings: PresentationStrings
+    private var listFontSize: CGFloat
     
     private weak var colorSnapshotView: UIView?
     
@@ -52,9 +53,10 @@ public class WebAppCancelButtonNode: ASDisplayNode {
         self.setState(self.state, animated: false, animateScale: false, force: true)
     }
     
-    public init(theme: PresentationTheme, strings: PresentationStrings) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0) {
         self._theme = theme
         self.strings = strings
+        self.listFontSize = listFontSize
         
         self.buttonNode = HighlightTrackingButtonNode()
         
@@ -134,7 +136,7 @@ public class WebAppCancelButtonNode: ASDisplayNode {
         let color = self.color ?? self.theme.rootController.navigationBar.accentTextColor
         
         self.arrowNode.isHidden = state == .cancel
-        self.labelNode.attributedText = NSAttributedString(string: state == .cancel ? self.strings.Common_Close : self.strings.Common_Back, font: Font.regular(17.0), textColor: color)
+        self.labelNode.attributedText = NSAttributedString(string: state == .cancel ? self.strings.Common_Close : self.strings.Common_Back, font: Font.regular(self.listFontSize), textColor: color)
         
         let labelSize = self.labelNode.updateLayout(CGSize(width: 120.0, height: 56.0))
         

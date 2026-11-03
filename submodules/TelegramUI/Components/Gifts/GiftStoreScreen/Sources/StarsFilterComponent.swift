@@ -17,17 +17,20 @@ final class StarsFilterComponent: Component {
     let text: String
     let isSelected: Bool
     let selectionUpdated: (Bool) -> Void
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
         text: String,
         isSelected: Bool,
-        selectionUpdated: @escaping (Bool) -> Void
+        selectionUpdated: @escaping (Bool) -> Void,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.text = text
         self.isSelected = isSelected
         self.selectionUpdated = selectionUpdated
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: StarsFilterComponent, rhs: StarsFilterComponent) -> Bool {
@@ -38,6 +41,9 @@ final class StarsFilterComponent: Component {
             return false
         }
         if lhs.isSelected != rhs.isSelected {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -82,7 +88,7 @@ final class StarsFilterComponent: Component {
             let textSize = self.text.update(
                 transition: .immediate,
                 component: AnyComponent(
-                    Text(text: component.text, font: Font.regular(17.0), color: component.theme.list.itemPrimaryTextColor)
+                    Text(text: component.text, font: Font.regular(component.fontSize), color: component.theme.list.itemPrimaryTextColor)
                 ),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - 44.0, height: 52.0)

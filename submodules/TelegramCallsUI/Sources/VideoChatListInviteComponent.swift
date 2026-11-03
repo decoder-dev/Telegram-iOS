@@ -16,6 +16,7 @@ final class VideoChatListInviteComponent: Component {
     let icon: Icon
     let theme: PresentationTheme
     let hasNext: Bool
+    let fontSize: CGFloat
     let action: () -> Void
 
     init(
@@ -23,12 +24,14 @@ final class VideoChatListInviteComponent: Component {
         icon: Icon,
         theme: PresentationTheme,
         hasNext: Bool,
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.icon = icon
         self.theme = theme
         self.hasNext = hasNext
+        self.fontSize = fontSize
         self.action = action
     }
 
@@ -43,6 +46,9 @@ final class VideoChatListInviteComponent: Component {
             return false
         }
         if lhs.hasNext != rhs.hasNext {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -127,7 +133,7 @@ final class VideoChatListInviteComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: component.theme.list.itemAccentColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(component.fontSize), textColor: component.theme.list.itemAccentColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - 62.0 - 8.0, height: 100.0)

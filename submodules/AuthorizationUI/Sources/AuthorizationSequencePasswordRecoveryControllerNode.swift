@@ -34,7 +34,7 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
         }
     }
     
-    init(strings: PresentationStrings, theme: PresentationTheme) {
+    init(strings: PresentationStrings, theme: PresentationTheme, listFontSize: CGFloat = 17.0) {
         self.strings = strings
         self.theme = theme
         
@@ -46,7 +46,7 @@ final class AuthorizationSequencePasswordRecoveryControllerNode: ASDisplayNode, 
         self.noticeNode = ASTextNode()
         self.noticeNode.isUserInteractionEnabled = false
         self.noticeNode.displaysAsynchronously = false
-        self.noticeNode.attributedText = NSAttributedString(string: strings.TwoStepAuth_RecoveryCodeHelp, font: Font.regular(17.0), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.noticeNode.attributedText = NSAttributedString(string: strings.TwoStepAuth_RecoveryCodeHelp, font: Font.regular(listFontSize), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
         self.noticeNode.lineSpacing = 0.1
         
         self.noAccessNode = HighlightableButtonNode()

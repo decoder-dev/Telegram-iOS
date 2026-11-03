@@ -30,6 +30,7 @@ final class StarsBalanceComponent: Component {
     let secondaryActionCooldownUntilTimestamp: Int32?
     let secondaryAction: (() -> Void)?
     let additionalAction: AnyComponent<Empty>?
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
@@ -48,7 +49,8 @@ final class StarsBalanceComponent: Component {
         secondaryActionIcon: UIImage? = nil,
         secondaryActionCooldownUntilTimestamp: Int32? = nil,
         secondaryAction: (() -> Void)? = nil,
-        additionalAction: AnyComponent<Empty>? = nil
+        additionalAction: AnyComponent<Empty>? = nil,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.strings = strings
@@ -67,6 +69,7 @@ final class StarsBalanceComponent: Component {
         self.secondaryActionIcon = secondaryActionIcon
         self.secondaryAction = secondaryAction
         self.additionalAction = additionalAction
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: StarsBalanceComponent, rhs: StarsBalanceComponent) -> Bool {
@@ -233,7 +236,7 @@ final class StarsBalanceComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(17.0), textColor: component.theme.list.itemSecondaryTextColor)),
+                        text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(component.fontSize), textColor: component.theme.list.itemSecondaryTextColor)),
                         horizontalAlignment: .center
                     )
                 ),
@@ -261,7 +264,7 @@ final class StarsBalanceComponent: Component {
                 if remainingCooldownSeconds > 0 {
                     content = AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(
                         VStack([
-                            AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(Text(text: component.actionTitle, font: Font.semibold(17.0), color: component.theme.list.itemCheckColors.foregroundColor))),
+                            AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(Text(text: component.actionTitle, font: Font.semibold(component.fontSize), color: component.theme.list.itemCheckColors.foregroundColor))),
                             AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(HStack([
                                 AnyComponentWithIdentity(id: 1, component: AnyComponent(BundleIconComponent(name: "Chat List/StatusLockIcon", tintColor: component.theme.list.itemCheckColors.fillColor.mixedWith(component.theme.list.itemCheckColors.foregroundColor, alpha: 0.7)))),
                                 AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: stringForRemainingTime(remainingCooldownSeconds), font: Font.with(size: 11.0, weight: .medium, traits: [.monospacedNumbers]), color: component.theme.list.itemCheckColors.fillColor.mixedWith(component.theme.list.itemCheckColors.foregroundColor, alpha: 0.7))))
@@ -273,7 +276,7 @@ final class StarsBalanceComponent: Component {
                     if let icon = component.actionIcon {
                         items.append(AnyComponentWithIdentity(id: "icon", component: AnyComponent(Image(image: icon, tintColor: component.theme.list.itemCheckColors.foregroundColor, size: icon.size))))
                     }
-                    items.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: component.actionTitle, font: Font.semibold(17.0), color: component.theme.list.itemCheckColors.foregroundColor))))
+                    items.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: component.actionTitle, font: Font.semibold(component.fontSize), color: component.theme.list.itemCheckColors.foregroundColor))))
                     content = AnyComponentWithIdentity(
                         id: AnyHashable(0 as Int),
                         component: AnyComponent(
@@ -322,7 +325,7 @@ final class StarsBalanceComponent: Component {
                     if remainingSecondaryCooldownSeconds > 0 {
                         items.append(AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(
                             VStack([
-                                AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(Text(text: secondaryActionTitle, font: Font.semibold(17.0), color: component.theme.list.itemCheckColors.foregroundColor))),
+                                AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(Text(text: secondaryActionTitle, font: Font.semibold(component.fontSize), color: component.theme.list.itemCheckColors.foregroundColor))),
                                 AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(HStack([
                                     AnyComponentWithIdentity(id: 1, component: AnyComponent(BundleIconComponent(name: "Chat List/StatusLockIcon", tintColor: component.theme.list.itemCheckColors.fillColor.mixedWith(component.theme.list.itemCheckColors.foregroundColor, alpha: 0.7)))),
                                     AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: stringForRemainingTime(remainingSecondaryCooldownSeconds), font: Font.with(size: 11.0, weight: .medium, traits: [.monospacedNumbers]), color: component.theme.list.itemCheckColors.fillColor.mixedWith(component.theme.list.itemCheckColors.foregroundColor, alpha: 0.7))))
@@ -330,7 +333,7 @@ final class StarsBalanceComponent: Component {
                             ], spacing: 1.0)
                         )))
                     } else {
-                        items.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: secondaryActionTitle, font: Font.semibold(17.0), color: component.theme.list.itemCheckColors.foregroundColor))))
+                        items.append(AnyComponentWithIdentity(id: "label", component: AnyComponent(Text(text: secondaryActionTitle, font: Font.semibold(component.fontSize), color: component.theme.list.itemCheckColors.foregroundColor))))
                     }
                     content = AnyComponentWithIdentity(
                         id: AnyHashable(0 as Int),

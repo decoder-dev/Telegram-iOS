@@ -20,22 +20,24 @@ public final class PaneSearchBarPlaceholderItem: GridItem {
     public let theme: PresentationTheme
     public let strings: PresentationStrings
     public let type: PaneSearchBarType
+    public let listFontSize: CGFloat
     public let activate: () -> Void
     
     public let section: GridSection? = nil
     public let fillsRowWithHeight: (CGFloat, Bool)? = (56.0, true)
     
-    public init(theme: PresentationTheme, strings: PresentationStrings, type: PaneSearchBarType, activate: @escaping () -> Void) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, type: PaneSearchBarType, listFontSize: CGFloat = 17.0, activate: @escaping () -> Void) {
         self.theme = theme
         self.strings = strings
         self.type = type
+        self.listFontSize = listFontSize
         self.activate = activate
     }
     
     public func node(layout: GridNodeLayout, synchronousLoad: Bool) -> GridItemNode {
         let node = PaneSearchBarPlaceholderNode()
         node.activate = self.activate
-        node.setup(theme: self.theme, strings: self.strings, type: self.type)
+        node.setup(theme: self.theme, strings: self.strings, type: self.type, listFontSize: self.listFontSize)
         return node
     }
     
@@ -45,12 +47,12 @@ public final class PaneSearchBarPlaceholderItem: GridItem {
             return
         }
         node.activate = self.activate
-        node.setup(theme: self.theme, strings: self.strings, type: self.type)
+        node.setup(theme: self.theme, strings: self.strings, type: self.type, listFontSize: self.listFontSize)
     }
 }
 
 public final class PaneSearchBarPlaceholderNode: GridItemNode {
-    private var currentState: (PresentationTheme, PresentationStrings, PaneSearchBarType)?
+    private var currentState: (PresentationTheme, PresentationStrings, PaneSearchBarType, CGFloat)?
     public var activate: (() -> Void)?
     
     public let backgroundNode: ASImageNode
@@ -88,8 +90,8 @@ public final class PaneSearchBarPlaceholderNode: GridItemNode {
         self.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.tapGesture(_:))))
     }
     
-    public func setup(theme: PresentationTheme, strings: PresentationStrings, type: PaneSearchBarType) {
-        if self.currentState?.0 !== theme || self.currentState?.1 !== strings || self.currentState?.2 != type {
+    public func setup(theme: PresentationTheme, strings: PresentationStrings, type: PaneSearchBarType, listFontSize: CGFloat = 17.0) {
+        if self.currentState?.0 !== theme || self.currentState?.1 !== strings || self.currentState?.2 != type || self.currentState?.3 != listFontSize {
             self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 36.0, color: theme.chat.inputMediaPanel.stickersSearchBackgroundColor)
             self.iconNode.image = generateLoupeIcon(color: theme.chat.inputMediaPanel.stickersSearchControlColor)
             let placeholder: String
@@ -99,9 +101,9 @@ public final class PaneSearchBarPlaceholderNode: GridItemNode {
                 case .gifs:
                     placeholder = strings.Gif_Search
             }
-            self.labelNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(17.0), textColor: theme.chat.inputMediaPanel.stickersSearchPlaceholderColor)
+            self.labelNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(listFontSize), textColor: theme.chat.inputMediaPanel.stickersSearchPlaceholderColor)
             self.accessibilityLabel = placeholder
-            self.currentState = (theme, strings, type)
+            self.currentState = (theme, strings, type, listFontSize)
         }
     }
     

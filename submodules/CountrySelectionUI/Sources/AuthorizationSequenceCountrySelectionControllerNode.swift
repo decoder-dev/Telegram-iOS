@@ -195,6 +195,7 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
     private let strings: PresentationStrings
     private let displayCodes: Bool
     private let glass: Bool
+    private let listFontSize: CGFloat
     private let needsSubtitle: Bool
     
     private let tableView: UITableView
@@ -213,11 +214,12 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
     
     private var validLayout: ContainerViewLayout?
     
-    init(theme: PresentationTheme, strings: PresentationStrings, displayCodes: Bool, glass: Bool, itemSelected: @escaping (((String, String), String, Int)) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, displayCodes: Bool, glass: Bool, listFontSize: CGFloat = 17.0, itemSelected: @escaping (((String, String), String, Int)) -> Void) {
         self.theme = theme
         self.strings = strings
         self.displayCodes = displayCodes
         self.glass = glass
+        self.listFontSize = listFontSize
         self.itemSelected = itemSelected
         
         self.needsSubtitle = strings.baseLanguageCode != "en"
@@ -440,7 +442,7 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
         } else {
             cell = UITableViewCell(style: self.needsSubtitle ? .subtitle : .default, reuseIdentifier: "CountryCell")
             let label = UILabel()
-            label.font = Font.regular(17.0)
+            label.font = Font.regular(self.listFontSize)
             cell.accessoryView = label
             cell.selectedBackgroundView = UIView()
         }

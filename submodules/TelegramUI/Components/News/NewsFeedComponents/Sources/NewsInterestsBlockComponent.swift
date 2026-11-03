@@ -71,7 +71,7 @@ public final class NewsInterestChipComponent: Component {
                     action: nil
                 ))
             } else if let emoji = component.category.emoji {
-                emojiComponent = AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: emoji, font: Font.regular(17.0), textColor: textColor))))
+                emojiComponent = AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: emoji, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: textColor))))
             }
 
             var x = horizontalInset

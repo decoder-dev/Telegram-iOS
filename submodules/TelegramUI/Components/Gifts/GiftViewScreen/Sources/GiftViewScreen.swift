@@ -5694,7 +5694,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         background: buttonBackground,
                         content: AnyComponentWithIdentity(
                             id: AnyHashable("custom"),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: customAction.title, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: customAction.title, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                         ),
                         isEnabled: true,
                         displaysProgress: state.inProgress,
@@ -5709,7 +5709,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         background: buttonBackground,
                         content: AnyComponentWithIdentity(
                             id: AnyHashable("skip"),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Upgrade_Skip, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Upgrade_Skip, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                         ),
                         isEnabled: true,
                         displaysProgress: state.inProgress,
@@ -5733,7 +5733,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                             VStack([
                                 AnyComponentWithIdentity(
                                     id: AnyHashable("label"),
-                                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Wear_Start, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Wear_Start, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                                 ),
                                 AnyComponentWithIdentity(
                                     id: AnyHashable("level"),
@@ -5758,7 +5758,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                 ),
                                 AnyComponentWithIdentity(
                                     id: AnyHashable("label"),
-                                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Wear_Start, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                                    component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Wear_Start, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                                 )
                             ], spacing: 3.0)
                         )
@@ -5766,7 +5766,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 } else {
                     buttonContent = AnyComponentWithIdentity(
                         id: AnyHashable("wear"),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Wear_Start, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Wear_Start, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                     )
                 }
                 
@@ -5862,7 +5862,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     upgradeString = strings.Gift_Upgrade_UpgradeFor(" # \(priceString)").string
                 }
                 let buttonTitle = subject.arguments?.upgradeStars != nil ? strings.Gift_Upgrade_Confirm : upgradeString
-                let buttonAttributedString = NSMutableAttributedString(string: buttonTitle, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+                let buttonAttributedString = NSMutableAttributedString(string: buttonTitle, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
                 if let range = buttonAttributedString.string.range(of: "#"), let starImage = state.cachedStarImage?.0 {
                     buttonAttributedString.addAttribute(.attachment, value: starImage, range: NSRange(range, in: buttonAttributedString.string))
                     buttonAttributedString.addAttribute(.foregroundColor, value: theme.list.itemCheckColors.foregroundColor, range: NSRange(range, in: buttonAttributedString.string))
@@ -6015,7 +6015,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         background: buttonBackground,
                         content: AnyComponentWithIdentity(
                             id: AnyHashable("button"),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: buttonTitle, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: buttonTitle, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                         ),
                         isEnabled: true,
                         displaysProgress: false,
@@ -6038,7 +6038,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                             id: AnyHashable("previewUpgrade"),
                             component: AnyComponent(HStack([
                                 AnyComponentWithIdentity(id: 0, component: AnyComponent(
-                                    MultilineTextComponent(text: .plain(NSAttributedString(string: buttonTitle, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))
+                                    MultilineTextComponent(text: .plain(NSAttributedString(string: buttonTitle, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))
                                 ))),
                                 AnyComponentWithIdentity(id: 1, component: AnyComponent(
                                     LottieComponent(
@@ -6064,7 +6064,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         background: buttonBackground,
                         content: AnyComponentWithIdentity(
                             id: AnyHashable("button"),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: buttonTitle, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: buttonTitle, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                         ),
                         isEnabled: true,
                         displaysProgress: state.inProgress,
@@ -6101,7 +6101,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 buyString += "  \(currencySymbol) \(currencyAmount)"
                 
                 let buttonTitle = subject.arguments?.upgradeStars != nil ? strings.Gift_Upgrade_Confirm : buyString
-                let buttonAttributedString = NSMutableAttributedString(string: buttonTitle, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
+                let buttonAttributedString = NSMutableAttributedString(string: buttonTitle, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center)
                 
                 
                 if let range = buttonAttributedString.string.range(of: "#"), let starImage = state.cachedStarImage?.0 {
@@ -6147,7 +6147,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         background: buttonBackground,
                         content: AnyComponentWithIdentity(
                             id: AnyHashable("ok"),
-                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Common_OK, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                            component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Common_OK, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                         ),
                         isEnabled: true,
                         displaysProgress: state.inProgress,
@@ -6163,7 +6163,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     content: AnyComponent(
                         HStack([
                             AnyComponentWithIdentity(id: "label", component: AnyComponent(
-                                MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Upgrade_UpgradeNext, font: Font.regular(17.0), textColor: theme.actionSheet.controlAccentColor)))
+                                MultilineTextComponent(text: .plain(NSAttributedString(string: strings.Gift_Upgrade_UpgradeNext, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.actionSheet.controlAccentColor)))
                             )),
                             AnyComponentWithIdentity(id: "icon", component: AnyComponent(
                                 GiftItemComponent(

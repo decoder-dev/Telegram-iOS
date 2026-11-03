@@ -1359,7 +1359,7 @@ final class StoryItemContentComponent: Component {
                 let unsupportedTextSize = unsupportedText.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.strings.Story_UnsupportedText, font: Font.regular(17.0), textColor: .white)),
+                        text: .plain(NSAttributedString(string: component.strings.Story_UnsupportedText, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: .white)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0
                     )),
@@ -1374,7 +1374,7 @@ final class StoryItemContentComponent: Component {
                             foreground: environment.theme.list.itemCheckColors.foregroundColor,
                             pressedColor: environment.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.7)
                         ),
-                        content: AnyComponentWithIdentity(id: AnyHashable(""), component: AnyComponent(Text(text: component.strings.Story_UnsupportedAction, font: Font.semibold(17.0), color: environment.theme.list.itemCheckColors.foregroundColor
+                        content: AnyComponentWithIdentity(id: AnyHashable(""), component: AnyComponent(Text(text: component.strings.Story_UnsupportedAction, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: environment.theme.list.itemCheckColors.foregroundColor
                         ))),
                         isEnabled: true,
                         displaysProgress: false,

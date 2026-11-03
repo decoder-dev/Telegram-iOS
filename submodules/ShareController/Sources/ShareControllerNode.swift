@@ -825,6 +825,7 @@ final class ShareControllerNode: ViewControllerTracingNode, ASScrollViewDelegate
             context: context,
             theme: self.presentationData.theme,
             strings: self.presentationData.strings,
+            listFontSize: self.presentationData.listsFontSize.baseDisplaySize,
             peer: mainPeer,
             topics: threads,
             controllerInteraction: controllerInteraction

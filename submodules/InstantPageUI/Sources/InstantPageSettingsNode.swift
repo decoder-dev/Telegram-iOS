@@ -38,7 +38,7 @@ final class InstantPageSettingsNode: ASDisplayNode {
     private let arrowNode: ASImageNode
     private let itemContainerNode: ASDisplayNode
     
-    init(strings: PresentationStrings, settings: InstantPagePresentationSettings, currentThemeType: (InstantPageThemeType, Bool), applySettings: @escaping (InstantPagePresentationSettings) -> Void, openInSafari: @escaping () -> Void) {
+    init(strings: PresentationStrings, settings: InstantPagePresentationSettings, currentThemeType: (InstantPageThemeType, Bool), listFontSize: CGFloat = 17.0, applySettings: @escaping (InstantPagePresentationSettings) -> Void, openInSafari: @escaping () -> Void) {
         self.settings = settings
         self.currentThemeType = currentThemeType
         self.theme = InstantPageSettingsItemTheme.themeFor(currentThemeType.0)
@@ -108,6 +108,7 @@ final class InstantPageSettingsNode: ASDisplayNode {
         
         for section in self.sections {
             for item in section {
+                item.listFontSize = listFontSize
                 self.itemContainerNode.addSubnode(item)
             }
         }

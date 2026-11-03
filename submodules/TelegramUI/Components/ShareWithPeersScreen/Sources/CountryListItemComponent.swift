@@ -25,6 +25,7 @@ final class CountryListItemComponent: Component {
     let title: String
     let selectionState: SelectionState
     let hasNext: Bool
+    let fontSize: CGFloat
     let action: () -> Void
     
     init(
@@ -34,6 +35,7 @@ final class CountryListItemComponent: Component {
         title: String,
         selectionState: SelectionState,
         hasNext: Bool,
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void
     ) {
         self.context = context
@@ -41,6 +43,7 @@ final class CountryListItemComponent: Component {
         self.countryId = countryId
         self.title = title
         self.selectionState = selectionState
+        self.fontSize = fontSize
         self.hasNext = hasNext
         self.action = action
     }
@@ -62,6 +65,9 @@ final class CountryListItemComponent: Component {
             return false
         }
         if lhs.hasNext != rhs.hasNext {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -175,7 +181,7 @@ final class CountryListItemComponent: Component {
                 previousTitleContents = self.title.view?.snapshotView(afterScreenUpdates: false)
             }
             
-            let titleFont = Font.regular(17.0)
+            let titleFont = Font.regular(component.fontSize)
             let titleString = NSMutableAttributedString()
             if let countryId = component.countryId {
                 titleString.append(countryFlagAttributedString(countryId: countryId, font: titleFont, textColor: component.theme.list.itemPrimaryTextColor))

@@ -15,6 +15,8 @@ class InstantPageSettingsItemNode: ASDisplayNode {
     private let highlightedBackgroundNode: ASDisplayNode?
     private let highlightButtonNode: HighlightTrackingButtonNode?
     
+    var listFontSize: CGFloat = 17.0
+    
     init(theme: InstantPageSettingsItemTheme, selectable: Bool) {
         self.topSeparatorNode = ASDisplayNode()
         self.topSeparatorNode.isLayerBacked = true

@@ -2181,7 +2181,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
         if case .glass = style {
             self.buttons = ComponentView()
         }
-        self.cancelButtonNode = WebAppCancelButtonNode(theme: self.presentationData.theme, strings: self.presentationData.strings)
+        self.cancelButtonNode = WebAppCancelButtonNode(theme: self.presentationData.theme, strings: self.presentationData.strings, listFontSize: self.presentationData.listsFontSize.baseDisplaySize)
         
         self.moreButtonNode = MoreButtonNode(theme: self.presentationData.theme)
         self.moreButtonNode.iconNode.enqueueState(.more, animated: false)

@@ -17,12 +17,12 @@ final class AuthorizationDividerNode: ASDisplayNode {
     private let leftLineNode: ASDisplayNode
     private let rightLineNode: ASDisplayNode
     
-    init(theme: PresentationTheme, strings: PresentationStrings) {
+    init(theme: PresentationTheme, strings: PresentationStrings, listFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
         self.titleNode = ImmediateTextNode()
         self.titleNode.maximumNumberOfLines = 1
-        self.titleNode.attributedText = NSAttributedString(string: strings.Login_Or, font: Font.regular(17.0), textColor: theme.list.itemSecondaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: strings.Login_Or, font: Font.regular(listFontSize), textColor: theme.list.itemSecondaryTextColor)
 
         self.leftLineNode = ASDisplayNode()
         self.leftLineNode.backgroundColor = theme.list.itemPlainSeparatorColor
@@ -99,7 +99,7 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
     
     private let appearanceTimestamp = CACurrentMediaTime()
     
-    init(strings: PresentationStrings, theme: PresentationTheme, mode: AuthorizationSequenceEmailEntryController.Mode) {
+    init(strings: PresentationStrings, theme: PresentationTheme, mode: AuthorizationSequenceEmailEntryController.Mode, listFontSize: CGFloat = 17.0) {
         self.strings = strings
         self.theme = theme
         self.mode = mode
@@ -145,7 +145,7 @@ final class AuthorizationSequenceEmailEntryControllerNode: ASDisplayNode, UIText
         self.codeField.textField.tintColor = self.theme.list.itemAccentColor
         self.codeField.textField.placeholder = self.strings.Login_AddEmailPlaceholder
                 
-        self.dividerNode = AuthorizationDividerNode(theme: self.theme, strings: self.strings)
+        self.dividerNode = AuthorizationDividerNode(theme: self.theme, strings: self.strings, listFontSize: listFontSize)
         
         super.init()
         
