@@ -734,7 +734,6 @@ private final class SheetContent: CombinedComponent {
                                     let component = state.component
                                     
                                     let theme = environment.theme
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                                     
                                     let minimalTime: Int32 = Int32(Date().timeIntervalSince1970) + 5 * 60 + 10
                                     let controller = ChatScheduleTimeController(context: state.context, updatedPresentationData: (state.context.sharedContext.currentPresentationData.with({ $0 }).withUpdated(theme: theme), state.context.sharedContext.presentationData |> map { $0.withUpdated(theme: theme) }), mode: .suggestPost(needsTime: false, isAdmin: false, funds: nil), style: .default, currentTime: state.timestamp, minimalTime: minimalTime, dismissByTapOutside: true, completion: { [weak state] time in
@@ -1277,7 +1276,6 @@ private final class StarsWithdrawSheetComponent: CombinedComponent {
         let sheetExternalState = SheetComponent<EnvironmentType>.ExternalState()
         
         return { context in
-            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[EnvironmentType.self]
             
             let controller = environment.controller
@@ -2319,7 +2317,7 @@ private final class CurrencyTabItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.medium(floor(fontSize * 14.0 / 17.0)), textColor: .white))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.medium(14.0), textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)

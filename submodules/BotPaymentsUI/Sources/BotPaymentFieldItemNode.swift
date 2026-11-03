@@ -44,7 +44,7 @@ final class BotPaymentFieldItemNode: BotPaymentItemNode, UITextFieldDelegate {
         self.titleNode.maximumNumberOfLines = 1
         
         self.textField = TextFieldNode()
-        self.textField.textField.font = Font.regular(listFontSize)
+        self.textField.textField.font = Font.regular(17.0)
         self.textField.textField.returnKeyType = .next
         self.textField.textField.text = text
         switch contentType {

@@ -1042,7 +1042,7 @@ final class StickerPaneSearchContentNode: ASDisplayNode, PaneSearchContentNode {
         self.theme = theme
         self.strings = strings
         self.notFoundNode.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Media/StickersNotFoundIcon"), color: theme.list.freeMonoIconColor)
-        self.notFoundLabel.attributedText = NSAttributedString(string: strings.Stickers_NoStickersFound, font: Font.medium(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: theme.list.freeTextColor)
+        self.notFoundLabel.attributedText = NSAttributedString(string: strings.Stickers_NoStickersFound, font: Font.medium(14.0), textColor: theme.list.freeTextColor)
     }
 
     private func enqueueTransition(_ transition: StickerPaneSearchGridTransition) {
@@ -1204,7 +1204,7 @@ final class StickerPaneSearchContentNode: ASDisplayNode, PaneSearchContentNode {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(buttonTitle),
-                        component: AnyComponent(Text(text: buttonTitle, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), color: buttonForegroundColor))
+                        component: AnyComponent(Text(text: buttonTitle, font: Font.semibold(17.0), color: buttonForegroundColor))
                     ),
                     action: { [weak self] in
                         self?.installSelectedStickerPack()

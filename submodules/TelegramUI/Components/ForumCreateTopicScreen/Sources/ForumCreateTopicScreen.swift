@@ -159,7 +159,7 @@ private final class TitleFieldComponent: Component {
         }
         
         func update(component: TitleFieldComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let fontSize: CGFloat = 17.0
             
             self.textField.textColor = component.textColor
             self.textField.text = component.text
@@ -664,7 +664,7 @@ private final class ForumCreateTopicScreenComponent: CombinedComponent {
         
         return { context in
             let environment = context.environment[EnvironmentType.self].value
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let fontSize: CGFloat = 17.0
             let state = context.state
                         
             let background = background.update(

@@ -288,7 +288,7 @@ public final class GroupStickerSearchContainerNode: SearchDisplayControllerConte
                 
                 strongSelf.listNode.isHidden = !isSearching
                                 
-                strongSelf.emptyResultsTextNode.attributedText = NSAttributedString(string: strongSelf.presentationData.strings.ChatList_Search_NoResultsQueryDescription(transition.query).string, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: strongSelf.presentationData.theme.list.freeTextColor)
+                strongSelf.emptyResultsTextNode.attributedText = NSAttributedString(string: strongSelf.presentationData.strings.ChatList_Search_NoResultsQueryDescription(transition.query).string, font: Font.regular(floor(self.presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: strongSelf.presentationData.theme.list.freeTextColor)
                 
                 let emptyResults = transition.isSearching && transition.isEmpty
                 strongSelf.emptyResultsTitleNode.isHidden = !emptyResults
