@@ -73,7 +73,7 @@ final class FormControllerTextInputItemNode: FormBlockItemNode<FormControllerTex
         self.errorNode.maximumNumberOfLines = 0
         
         self.textField = TextFieldNode()
-        self.textField.textField.font = textFont
+        self.textField.textField.font = Font.regular(17.0)
         
         super.init(selectable: false, topSeparatorInset: .regular)
         
@@ -89,7 +89,7 @@ final class FormControllerTextInputItemNode: FormBlockItemNode<FormControllerTex
         self.item = item
         
         let leftInset: CGFloat = 16.0
-        self.titleNode.attributedText = NSAttributedString(string: item.title, font: textFont, textColor: theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: item.title, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor)
         let titleSize = self.titleNode.updateLayout(CGSize(width: width - leftInset - 70.0, height: CGFloat.greatestFiniteMagnitude))
         
         let aligningInset: CGFloat
@@ -145,7 +145,7 @@ final class FormControllerTextInputItemNode: FormBlockItemNode<FormControllerTex
             self.textField.textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
             self.textField.textField.tintColor = theme.list.itemAccentColor
             
-            let attributedPlaceholder = NSAttributedString(string: item.placeholder, font: textFont, textColor: theme.list.itemPlaceholderTextColor)
+            let attributedPlaceholder = NSAttributedString(string: item.placeholder, font: Font.regular(17.0), textColor: theme.list.itemPlaceholderTextColor)
             if !(self.textField.textField.attributedPlaceholder?.isEqual(to: attributedPlaceholder) ?? false) {
                 self.textField.textField.attributedPlaceholder = attributedPlaceholder
             }

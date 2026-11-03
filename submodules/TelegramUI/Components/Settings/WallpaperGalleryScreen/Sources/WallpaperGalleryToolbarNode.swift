@@ -165,7 +165,7 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
                             count: requiredLevel,
                             color: UIColor(rgb: 0xffffff, alpha: 0.7),
                             strings: self.strings,
-                            fontSize: self.listFontSize
+                            fontSize: 17.0
                         )
                     ),
                     environment: {},

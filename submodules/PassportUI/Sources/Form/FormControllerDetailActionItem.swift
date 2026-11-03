@@ -67,7 +67,7 @@ final class FormControllerDetailActionItemNode: FormBlockItemNode<FormController
         self.item = item
         
         let leftInset: CGFloat = 16.0
-        self.titleNode.attributedText = NSAttributedString(string: item.title, font: textFont, textColor: theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: item.title, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor)
         let titleSize = self.titleNode.updateLayout(CGSize(width: width - leftInset - 70.0, height: CGFloat.greatestFiniteMagnitude))
         
         let aligningInset: CGFloat
@@ -81,9 +81,9 @@ final class FormControllerDetailActionItemNode: FormBlockItemNode<FormController
             transition.updateFrame(node: self.titleNode, frame: CGRect(origin: CGPoint(x: leftInset, y: 11.0), size: titleSize))
             
             if !item.text.isEmpty {
-                self.textNode.attributedText = NSAttributedString(string: item.text, font: textFont, textColor: theme.list.itemPrimaryTextColor)
+                self.textNode.attributedText = NSAttributedString(string: item.text, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor)
             } else {
-                self.textNode.attributedText = NSAttributedString(string: item.placeholder, font: textFont, textColor: theme.list.itemPlaceholderTextColor)
+                self.textNode.attributedText = NSAttributedString(string: item.placeholder, font: Font.regular(17.0), textColor: theme.list.itemPlaceholderTextColor)
             }
             
             let textSize = self.textNode.updateLayout(CGSize(width: width - params.maxAligningInset - 16.0, height: CGFloat.greatestFiniteMagnitude))

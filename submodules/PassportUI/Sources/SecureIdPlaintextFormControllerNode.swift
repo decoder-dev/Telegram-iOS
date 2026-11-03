@@ -5,6 +5,7 @@ import Display
 import TelegramCore
 import SwiftSignalKit
 import TelegramPresentationData
+import TelegramUIPreferences
 import AccountContext
 import AlertUI
 import PresentationDataUtils

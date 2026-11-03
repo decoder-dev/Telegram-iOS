@@ -65,7 +65,7 @@ final class FormControllerActionItemNode: FormBlockItemNode<FormControllerAction
             case .destructive:
                 titleColor = theme.list.itemDestructiveColor
         }
-        self.titleNode.attributedText = NSAttributedString(string: item.title, font: textFont, textColor: titleColor)
+        self.titleNode.attributedText = NSAttributedString(string: item.title, font: Font.regular(17.0), textColor: titleColor)
         let titleSize = self.titleNode.updateLayout(CGSize(width: width - leftInset - 16.0, height: CGFloat.greatestFiniteMagnitude))
         
         return (FormControllerItemPreLayout(aligningInset: 0.0), { params in

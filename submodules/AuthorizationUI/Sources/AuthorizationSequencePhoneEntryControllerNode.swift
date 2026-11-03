@@ -163,7 +163,7 @@ private final class PhoneAndCountryNode: ASDisplayNode {
                     strongSelf.hasCountry = true
                     
                     if strongSelf.phoneInputNode.mask == nil {
-                        strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(floor(self.listFontSize * 20.0 / 17.0)), textColor: theme.list.itemPlaceholderTextColor)
+                        strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(20.0), textColor: theme.list.itemPlaceholderTextColor)
                     }
                 } else if let code = Int(code), let (countryId, countryName) = countryCodeToIdAndName[code] {
                     var localizedName: String = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(countryId, strings: strongSelf.strings) ?? countryName

@@ -54,7 +54,7 @@ final class SecureIdAuthPasswordSetupContentNode: ASDisplayNode, SecureIdAuthCon
         self.buttonHighlightedBackgroundNode.backgroundColor = theme.list.itemHighlightedBackgroundColor
         self.buttonHighlightedBackgroundNode.alpha = 0.0
         self.buttonTextNode = ImmediateTextNode()
-        self.buttonTextNode.attributedText = NSAttributedString(string: strings.Passport_PasswordCreate, font: buttonFont, textColor: theme.list.itemAccentColor)
+        self.buttonTextNode.attributedText = NSAttributedString(string: strings.Passport_PasswordCreate, font: Font.regular(17.0), textColor: theme.list.itemAccentColor)
         self.buttonTextNode.maximumNumberOfLines = 1
         self.buttonTextNode.textAlignment = .center
         self.buttonNode = HighlightableButtonNode()
@@ -90,9 +90,9 @@ final class SecureIdAuthPasswordSetupContentNode: ASDisplayNode, SecureIdAuthCon
             self.currentPendingConfirmation = pendingConfirmation
         }
         if !pendingConfirmation {
-            self.buttonTextNode.attributedText = NSAttributedString(string: self.strings.Passport_PasswordCreate, font: buttonFont, textColor: self.theme.list.itemAccentColor)
+            self.buttonTextNode.attributedText = NSAttributedString(string: self.strings.Passport_PasswordCreate, font: Font.regular(17.0), textColor: self.theme.list.itemAccentColor)
         } else {
-            self.buttonTextNode.attributedText = NSAttributedString(string: self.strings.Passport_PasswordCompleteSetup, font: buttonFont, textColor: self.theme.list.itemAccentColor)
+            self.buttonTextNode.attributedText = NSAttributedString(string: self.strings.Passport_PasswordCompleteSetup, font: Font.regular(17.0), textColor: self.theme.list.itemAccentColor)
         }
         if let width = self.validLayout {
             let _ = self.updateLayout(width: width, transition: .immediate)

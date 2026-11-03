@@ -203,7 +203,7 @@ final class SecureIdAuthListFieldNode: ASDisplayNode {
     func updateValues(_ values: [SecureIdValueWithContext]) {
         let (title, text) = fieldTitleAndText(field: self.field, strings: self.strings, values: values)
         let textColor = self.theme.list.itemSecondaryTextColor
-        self.titleNode.attributedText = NSAttributedString(string: title, font: titleFont, textColor: self.theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.regular(17.0), textColor: self.theme.list.itemPrimaryTextColor)
         self.textNode.attributedText = NSAttributedString(string: text, font: textFont, textColor: textColor)
         
         self.disclosureNode.isHidden = false

@@ -72,7 +72,7 @@ final class SecureIdAuthPasswordOptionContentNode: ASDisplayNode, SecureIdAuthCo
         self.buttonNode.addSubnode(self.buttonBackground)
         
         self.buttonLabel = ImmediateTextNode()
-        self.buttonLabel.attributedText = NSAttributedString(string: strings.Common_Next, font: buttonFont, textColor: theme.list.itemCheckColors.foregroundColor)
+        self.buttonLabel.attributedText = NSAttributedString(string: strings.Common_Next, font: Font.regular(17.0), textColor: theme.list.itemCheckColors.foregroundColor)
         self.buttonNode.addSubnode(self.buttonLabel)
         
         super.init()

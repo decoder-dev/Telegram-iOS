@@ -134,7 +134,7 @@ private final class AvatarGalleryEditButtonNode: HighlightableButtonNode {
         self.textNode = ASTextNode()
         self.textNode.displaysAsynchronously = false
         self.textNode.isUserInteractionEnabled = false
-        self.textNode.attributedText = NSAttributedString(string: title, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: .white)
+        self.textNode.attributedText = NSAttributedString(string: title, font: Font.regular(17.0), textColor: .white)
 
         super.init()
 

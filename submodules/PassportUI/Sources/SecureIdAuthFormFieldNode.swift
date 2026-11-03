@@ -967,7 +967,7 @@ final class SecureIdAuthFormFieldNode: ASDisplayNode {
             }
         }
         
-        self.titleNode.attributedText = NSAttributedString(string: title, font: titleFont, textColor: self.theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.regular(17.0), textColor: self.theme.list.itemPrimaryTextColor)
         self.textNode.attributedText = NSAttributedString(string: text, font: textFont, textColor: textColor)
         
         self.checkNode.isHidden = !filled
