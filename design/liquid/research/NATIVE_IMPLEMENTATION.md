@@ -307,3 +307,7 @@ WebApp/Game/Browser/VideoChat/Counter/RecentActions titles, ChatList empty info,
 ## Instant Page, PeerInfo header и оставшиеся insets
 
 Доведены InstantPage navigation/audio/peer/settings fonts, PeerInfoHeader MultiScale subtitles и collapsed title, phone stacks (Change Phone / Delete Account), Premium demo pages, Passport accept CTA, GlassControl text, Payment Method sheets/inputs, MinimizedHeader, InviteLink/Stats/Sessions empty titles и оставшиеся ItemList/CallList/Browser `listHorizontalInset` half-migrates. Branding Liquid: ожидается 7 pass. Simulator NOT RUN.
+
+## Alert, QR и GlassControlPanel fontSize
+
+`AlertComponentEnvironment.fontSize` масштабирует title/body AlertContent; QR scan/chat captions берут bold/italic от listsFontSize; ChatList/ItemList/Gallery/TabBar GlassControlPanel передают fontSize в группы. Branding Liquid: 7 pass. Simulator NOT RUN.
