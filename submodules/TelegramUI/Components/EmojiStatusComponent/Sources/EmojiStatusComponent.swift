@@ -193,6 +193,9 @@ public final class EmojiStatusComponent: Component {
         if lhs.tag !== rhs.tag {
             return false
         }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
+            return false
+        }
         return true
     }
 

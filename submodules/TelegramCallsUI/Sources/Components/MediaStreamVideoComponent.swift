@@ -305,7 +305,7 @@ public final class MediaStreamVideoComponent: Component {
             if let peer = component.callPeer, !didBeginLoadingAvatar {
                 didBeginLoadingAvatar = true
                 
-                let avatarFontSize = floor(component.call.account.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 16.0 / 17.0)
+                let avatarFontSize = floor(component.call.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 16.0 / 17.0)
                 avatarDisposable = peerAvatarCompleteImage(account: component.call.account, peer: peer, size: CGSize(width: 250.0, height: 250.0), round: false, font: Font.regular(avatarFontSize), drawLetters: false, fullSize: false, blurred: true).start(next: { [weak self] image in
                     DispatchQueue.main.async {
                         self?.placeholderView.contentMode = .scaleAspectFill

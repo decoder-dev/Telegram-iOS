@@ -1216,7 +1216,8 @@ private enum StatsEntry: ItemListNodeEntry {
                 if value == nil {
                     badgeComponent = AnyComponent(BoostLevelIconComponent(
                         strings: presentationData.strings,
-                        level: Int(minLevel)
+                        level: Int(minLevel),
+                        fontSize: presentationData.listsFontSize.baseDisplaySize
                     ))
                 }
                 return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, titleBadgeComponent: badgeComponent, value: value == true, enableInteractiveChanges: value != nil, enabled: true, displayLocked: value == nil, sectionId: self.section, style: .blocks, updated: { updatedValue in

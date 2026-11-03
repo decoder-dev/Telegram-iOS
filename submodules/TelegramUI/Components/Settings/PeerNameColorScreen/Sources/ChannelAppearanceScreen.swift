@@ -1155,7 +1155,8 @@ final class ChannelAppearanceScreenComponent: Component {
             if let boostLevel = self.boostLevel, boostLevel < (isGroup ? premiumConfiguration.minGroupProfileIconLevel : premiumConfiguration.minChannelProfileIconLevel) {
                 profileLogoContents.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(BoostLevelIconComponent(
                     strings: environment.strings,
-                    level: profileIconLevel
+                    level: profileIconLevel,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 ))))
             }
             let bannerSectionSize = self.bannerSection.update(
@@ -1300,7 +1301,8 @@ final class ChannelAppearanceScreenComponent: Component {
                 if let boostLevel = self.boostLevel, boostLevel < premiumConfiguration.minGroupEmojiPackLevel {
                     emojiPackContents.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(BoostLevelIconComponent(
                         strings: environment.strings,
-                        level: emojiPackLevel
+                        level: emojiPackLevel,
+                        fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                     ))))
                 }
                 
@@ -1372,7 +1374,8 @@ final class ChannelAppearanceScreenComponent: Component {
             if let boostLevel = self.boostLevel, boostLevel < (isGroup ? premiumConfiguration.minGroupEmojiStatusLevel : premiumConfiguration.minChannelEmojiStatusLevel) {
                 emojiStatusContents.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(BoostLevelIconComponent(
                     strings: environment.strings,
-                    level: emojiStatusLevel
+                    level: emojiStatusLevel,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 ))))
             }
             let emojiStatusSectionSize = self.emojiStatusSection.update(
@@ -1530,7 +1533,8 @@ final class ChannelAppearanceScreenComponent: Component {
                 if let boostLevel = self.boostLevel, boostLevel < premiumConfiguration.minChannelNameIconLevel {
                     replyLogoContents.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(BoostLevelIconComponent(
                         strings: environment.strings,
-                        level: replyIconLevel
+                        level: replyIconLevel,
+                        fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                     ))))
                 }
                                 
@@ -1631,7 +1635,8 @@ final class ChannelAppearanceScreenComponent: Component {
                 if let boostLevel = self.boostLevel, boostLevel < (isGroup ? premiumConfiguration.minGroupCustomWallpaperLevel : premiumConfiguration.minChannelCustomWallpaperLevel) {
                     wallpaperLogoContents.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(BoostLevelIconComponent(
                         strings: environment.strings,
-                        level: customWallpaperLevel
+                        level: customWallpaperLevel,
+                        fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                     ))))
                 }
                 

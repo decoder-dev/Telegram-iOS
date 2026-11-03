@@ -1301,7 +1301,7 @@ func editingItems(data: PeerInfoScreenData?, boostStatus: ChannelBoostStatus?, s
                     
                     var boostIcon: UIImage?
                     if let approximateBoostLevel = channel.approximateBoostLevel, approximateBoostLevel < 1 {
-                        boostIcon = generateDisclosureActionBoostLevelBadgeImage(text: presentationData.strings.Channel_Info_BoostLevelPlusBadge("1").string)
+                        boostIcon = generateDisclosureActionBoostLevelBadgeImage(text: presentationData.strings.Channel_Info_BoostLevelPlusBadge("1").string, fontSize: presentationData.listsFontSize.baseDisplaySize)
                     }
                     items[.peerSettings]!.append(PeerInfoScreenDisclosureItem(id: ItemPeerColor, label: .image(colorImage, colorImage.size), additionalBadgeIcon: boostIcon, text: presentationData.strings.Channel_Info_AppearanceItem, icon: PresentationResourcesSettings.chatAppearance, action: {
                         interaction.editingOpenNameColorSetup()
@@ -1626,7 +1626,7 @@ func editingItems(data: PeerInfoScreenData?, boostStatus: ChannelBoostStatus?, s
                         
                         var boostIcon: UIImage?
                         if let approximateBoostLevel = channel.approximateBoostLevel, approximateBoostLevel < 1 {
-                            boostIcon = generateDisclosureActionBoostLevelBadgeImage(text: presentationData.strings.Channel_Info_BoostLevelPlusBadge("1").string)
+                            boostIcon = generateDisclosureActionBoostLevelBadgeImage(text: presentationData.strings.Channel_Info_BoostLevelPlusBadge("1").string, fontSize: presentationData.listsFontSize.baseDisplaySize)
                         } else {
                             boostIcon = nil
                         }

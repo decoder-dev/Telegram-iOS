@@ -44,13 +44,16 @@ public func generateDisclosureActionBoostLevelBadgeImage(text: String, fontSize:
 public final class BoostLevelIconComponent: Component {
     let strings: PresentationStrings
     let level: Int
+    let fontSize: CGFloat
     
     public init(
         strings: PresentationStrings,
-        level: Int
+        level: Int,
+        fontSize: CGFloat = 17.0
     ) {
         self.strings = strings
         self.level = level
+        self.fontSize = fontSize
     }
     
     public static func ==(lhs: BoostLevelIconComponent, rhs: BoostLevelIconComponent) -> Bool {
@@ -58,6 +61,9 @@ public final class BoostLevelIconComponent: Component {
             return false
         }
         if lhs.level != rhs.level {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -82,7 +88,7 @@ public final class BoostLevelIconComponent: Component {
         
         func update(component: BoostLevelIconComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             if self.component != component {
-                self.imageView.image = generateDisclosureActionBoostLevelBadgeImage(text: component.strings.Channel_Appearance_BoostLevel("\(component.level)").string)
+                self.imageView.image = generateDisclosureActionBoostLevelBadgeImage(text: component.strings.Channel_Appearance_BoostLevel("\(component.level)").string, fontSize: component.fontSize)
             }
             self.component = component
             

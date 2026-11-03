@@ -164,7 +164,8 @@ public final class WallpaperGalleryToolbarNode: ASDisplayNode, WallpaperGalleryT
                         PremiumLockButtonSubtitleComponent(
                             count: requiredLevel,
                             color: UIColor(rgb: 0xffffff, alpha: 0.7),
-                            strings: self.strings
+                            strings: self.strings,
+                            fontSize: self.listFontSize
                         )
                     ),
                     environment: {},

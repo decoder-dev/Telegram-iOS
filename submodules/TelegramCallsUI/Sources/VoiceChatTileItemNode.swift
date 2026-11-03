@@ -371,7 +371,7 @@ final class VoiceChatTileItemNode: ASDisplayNode {
                 shimmerNode = current
                 shimmerTransition = transition
             } else {
-                shimmerNode = VoiceChatTileShimmeringNode(account: item.account, peer: item.peer)
+                shimmerNode = VoiceChatTileShimmeringNode(account: item.account, peer: item.peer, fontSize: item.accountContext.map { $0.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize } ?? self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
                 self.contentNode.insertSubnode(shimmerNode, aboveSubnode: self.fadeNode)
                 self.shimmerNode = shimmerNode
                 
