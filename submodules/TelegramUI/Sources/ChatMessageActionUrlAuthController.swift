@@ -11,10 +11,10 @@ import TextFormat
 import AccountContext
 import Markdown
 
-private func formattedText(_ text: String, color: UIColor, fontSize: CGFloat, textAlignment: NSTextAlignment = .natural) -> NSAttributedString {
-    let bodyFontSize = floor(fontSize * 13.0 / 17.0)
-    let textFont = Font.regular(bodyFontSize)
-    let boldTextFont = Font.semibold(bodyFontSize)
+private func formattedText(_ text: String, color: UIColor, textAlignment: NSTextAlignment = .natural) -> NSAttributedString {
+    let metrics = UIFontMetrics(forTextStyle: .footnote)
+    let textFont = metrics.scaledFont(for: Font.regular(13.0))
+    let boldTextFont = metrics.scaledFont(for: Font.semibold(13.0))
     return parseMarkdownIntoAttributedString(text, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: color), bold: MarkdownAttributeSet(font: boldTextFont, textColor: color), link: MarkdownAttributeSet(font: textFont, textColor: color), linkAttribute: { _ in return nil}), textAlignment: textAlignment)
 }
 
@@ -60,7 +60,6 @@ private final class ChatMessageActionUrlAuthAlertContentNode: AlertContentNode {
     private let domain: String
     private let bot: EnginePeer
     private let displayName: String
-    private let fontSize: CGFloat
     
     private let titleNode: ASTextNode
     private let textNode: ASTextNode
@@ -103,7 +102,7 @@ private final class ChatMessageActionUrlAuthAlertContentNode: AlertContentNode {
         }
     }
     
-    init(theme: AlertControllerTheme, ptheme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, defaultUrl: String, domain: String, bot: EnginePeer, requestWriteAccess: Bool, displayName: String, fontSize: CGFloat, actions: [TextAlertAction]) {
+    init(theme: AlertControllerTheme, ptheme: PresentationTheme, strings: PresentationStrings, nameDisplayOrder: PresentationPersonNameOrder, defaultUrl: String, domain: String, bot: EnginePeer, requestWriteAccess: Bool, displayName: String, actions: [TextAlertAction]) {
         self.theme = theme
         self.strings = strings
         self.nameDisplayOrder = nameDisplayOrder
@@ -111,7 +110,6 @@ private final class ChatMessageActionUrlAuthAlertContentNode: AlertContentNode {
         self.domain = domain
         self.bot = bot
         self.displayName = displayName
-        self.fontSize = fontSize
         
         self.titleNode = ASTextNode()
         self.titleNode.maximumNumberOfLines = 0
@@ -224,12 +222,12 @@ private final class ChatMessageActionUrlAuthAlertContentNode: AlertContentNode {
     
     override func updateTheme(_ theme: AlertControllerTheme) {
         self.theme = theme
-        let titleFont = Font.bold(self.fontSize)
+        let titleFont = UIFontMetrics(forTextStyle: .headline).scaledFont(for: Font.bold(17.0))
         self.titleNode.attributedText = NSAttributedString(string: strings.Conversation_OpenBotLinkTitle, font: titleFont, textColor: theme.primaryColor, paragraphAlignment: .center)
         
-        self.textNode.attributedText = formattedText(strings.Conversation_OpenBotLinkText(self.defaultUrl).string, color: theme.primaryColor, fontSize: self.fontSize, textAlignment: .center)
-        self.authorizeLabelNode.attributedText = formattedText(strings.Conversation_OpenBotLinkLogin(self.domain, self.displayName).string, color: theme.primaryColor, fontSize: self.fontSize)
-        self.allowWriteLabelNode.attributedText = formattedText(strings.Conversation_OpenBotLinkAllowMessages(self.bot.displayTitle(strings: self.strings, displayOrder: self.nameDisplayOrder)).string, color: theme.primaryColor, fontSize: self.fontSize)
+        self.textNode.attributedText = formattedText(strings.Conversation_OpenBotLinkText(self.defaultUrl).string, color: theme.primaryColor, textAlignment: .center)
+        self.authorizeLabelNode.attributedText = formattedText(strings.Conversation_OpenBotLinkLogin(self.domain, self.displayName).string, color: theme.primaryColor)
+        self.allowWriteLabelNode.attributedText = formattedText(strings.Conversation_OpenBotLinkAllowMessages(self.bot.displayTitle(strings: self.strings, displayOrder: self.nameDisplayOrder)).string, color: theme.primaryColor)
         self.titleNode.accessibilityLabel = self.titleNode.attributedText?.string
         self.textNode.isAccessibilityElement = true
         self.textNode.accessibilityLabel = self.textNode.attributedText?.string
@@ -419,7 +417,7 @@ func chatMessageActionUrlAuthController(context: AccountContext, defaultUrl: Str
             open(contentNode.authorize, contentNode.allowWriteAccess)
         }
     })]
-    contentNode = ChatMessageActionUrlAuthAlertContentNode(theme: AlertControllerTheme(presentationData: presentationData), ptheme: theme, strings: strings, nameDisplayOrder: presentationData.nameDisplayOrder, defaultUrl: defaultUrl, domain: domain, bot: bot, requestWriteAccess: requestWriteAccess, displayName: displayName, fontSize: presentationData.listsFontSize.baseDisplaySize, actions: actions)
+    contentNode = ChatMessageActionUrlAuthAlertContentNode(theme: AlertControllerTheme(presentationData: presentationData), ptheme: theme, strings: strings, nameDisplayOrder: presentationData.nameDisplayOrder, defaultUrl: defaultUrl, domain: domain, bot: bot, requestWriteAccess: requestWriteAccess, displayName: displayName, actions: actions)
     let controller = AlertController(theme: AlertControllerTheme(presentationData: presentationData), contentNode: contentNode!)
     dismissImpl = { [weak controller] animated in
         if animated {
