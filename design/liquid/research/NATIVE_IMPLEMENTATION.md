@@ -251,3 +251,7 @@ Premium option rows и CTA на PremiumIntro масштабируются с `li
 ## Privacy, story sheets и appearance chrome
 
 Privacy intro и Recent Session sheet масштабируют тексты/CTA от listsFontSize и держат interactive минимум. Story quality/stealth sheets и StoryActions hit targets на PresentationLayoutMetrics. Theme accent/app icon/theme grid/text size slider и wallpaper gallery top chrome — те же inset/height. MessagePriceItem принимает fontSize и масштабирует price/unlock. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Sessions, contacts, sticker search и папки
+
+Recent Sessions/Website rows, ContactsPeerItem, ItemListPeerActionItem, Settings search rows, ChatList filter preset/category/title items и sticker/GIF PaneSearchContainer используют PresentationLayoutMetrics и Dynamic Type. Avatar/row floors clamp к minimumInteractiveSize. Branding Liquid: 7 pass. Simulator NOT RUN.

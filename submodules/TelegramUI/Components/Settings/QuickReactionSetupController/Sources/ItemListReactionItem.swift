@@ -176,7 +176,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
             let contentSize: CGSize
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
@@ -199,7 +199,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
             }
             
             var additionalTextRightInset: CGFloat = 0.0
-            additionalTextRightInset += 44.0
+            additionalTextRightInset += PresentationLayoutMetrics.minimumInteractiveSize
             if item.arrowStyle == .arrow {
                 additionalTextRightInset += 24.0
             }
@@ -219,7 +219,7 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
             }
             
             let height: CGFloat
-            height = verticalInset * 2.0 + titleLayout.size.height
+            height = max(PresentationLayoutMetrics.minimumInteractiveSize, verticalInset * 2.0 + titleLayout.size.height)
             
             switch item.style {
             case .plain:

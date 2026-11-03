@@ -125,10 +125,10 @@ private enum SettingsSearchEntry: Comparable, Identifiable {
         return false
     }
     
-    func item(theme: PresentationTheme, strings: PresentationStrings, interaction: SettingsSearchInteraction)  -> ListViewItem {
+    func item(theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize, interaction: SettingsSearchInteraction)  -> ListViewItem {
         switch self {
             case let .result(_, item, icon):
-                return SettingsSearchResultItem(theme: theme, strings: strings, item: item, icon: icon, interaction: interaction, sectionId: 0)
+                return SettingsSearchResultItem(theme: theme, strings: strings, fontSize: fontSize, item: item, icon: icon, interaction: interaction, sectionId: 0)
         }
     }
 }
@@ -140,12 +140,12 @@ private struct SettingsSearchContainerTransition {
     let isSearching: Bool
 }
 
-private func preparedSettingsSearchContainerTransition(theme: PresentationTheme, strings: PresentationStrings, from fromEntries: [SettingsSearchEntry], to toEntries: [SettingsSearchEntry], interaction: SettingsSearchInteraction, isSearching: Bool, forceUpdate: Bool) -> SettingsSearchContainerTransition {
+private func preparedSettingsSearchContainerTransition(theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize, from fromEntries: [SettingsSearchEntry], to toEntries: [SettingsSearchEntry], interaction: SettingsSearchInteraction, isSearching: Bool, forceUpdate: Bool) -> SettingsSearchContainerTransition {
     let (deleteIndices, indicesAndItems, updateIndices) = mergeListsStableWithUpdates(leftList: fromEntries, rightList: toEntries, allUpdated: forceUpdate)
     
     let deletions = deleteIndices.map { ListViewDeleteItem(index: $0, directionHint: nil) }
-    let insertions = indicesAndItems.map { ListViewInsertItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(theme: theme, strings: strings, interaction: interaction), directionHint: nil) }
-    let updates = updateIndices.map { ListViewUpdateItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(theme: theme, strings: strings, interaction: interaction), directionHint: nil) }
+    let insertions = indicesAndItems.map { ListViewInsertItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(theme: theme, strings: strings, fontSize: fontSize, interaction: interaction), directionHint: nil) }
+    let updates = updateIndices.map { ListViewUpdateItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(theme: theme, strings: strings, fontSize: fontSize, interaction: interaction), directionHint: nil) }
     
     return SettingsSearchContainerTransition(deletions: deletions, insertions: insertions, updates: updates, isSearching: isSearching)
 }
@@ -208,20 +208,20 @@ private enum SettingsSearchRecentEntry: Comparable, Identifiable {
         }
     }
     
-    func item(account: Account, theme: PresentationTheme, strings: PresentationStrings, interaction: SettingsSearchInteraction) -> ListViewItem {
+    func item(account: Account, theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize, interaction: SettingsSearchInteraction) -> ListViewItem {
         switch self {
             case let .recent(_, item, header):
                 var title = item.title
                 if title.isEmpty, let id = item.id.base as? String {
                     title = id
                 }
-                return SettingsSearchRecentItem(account: account, theme: theme, strings: strings, title: title, breadcrumbs: item.breadcrumbs, isFaq: false, action: {
+                return SettingsSearchRecentItem(account: account, theme: theme, strings: strings, fontSize: fontSize, title: title, breadcrumbs: item.breadcrumbs, isFaq: false, action: {
                     interaction.openItem(item)
                 }, deleted: {
                     interaction.deleteRecentItem(item.id)
                 }, header: header)
             case let .faq(_, item, header):
-                return SettingsSearchRecentItem(account: account, theme: theme, strings: strings, title: item.title, breadcrumbs: item.breadcrumbs, isFaq: true, action: {
+                return SettingsSearchRecentItem(account: account, theme: theme, strings: strings, fontSize: fontSize, title: item.title, breadcrumbs: item.breadcrumbs, isFaq: true, action: {
                     interaction.openItem(item)
                 }, deleted: {
                     interaction.deleteRecentItem(item.id)
@@ -237,12 +237,12 @@ private struct SettingsSearchContainerRecentTransition {
     let isEmpty: Bool
 }
 
-private func preparedSettingsSearchContainerRecentTransition(from fromEntries: [SettingsSearchRecentEntry], to toEntries: [SettingsSearchRecentEntry], account: Account, theme: PresentationTheme, strings: PresentationStrings, interaction: SettingsSearchInteraction) -> SettingsSearchContainerRecentTransition {
+private func preparedSettingsSearchContainerRecentTransition(from fromEntries: [SettingsSearchRecentEntry], to toEntries: [SettingsSearchRecentEntry], account: Account, theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize, interaction: SettingsSearchInteraction) -> SettingsSearchContainerRecentTransition {
     let (deleteIndices, indicesAndItems, updateIndices) = mergeListsStableWithUpdates(leftList: fromEntries, rightList: toEntries)
     
     let deletions = deleteIndices.map { ListViewDeleteItem(index: $0, directionHint: nil) }
-    let insertions = indicesAndItems.map { ListViewInsertItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(account: account, theme: theme, strings: strings, interaction: interaction), directionHint: nil) }
-    let updates = updateIndices.map { ListViewUpdateItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(account: account, theme: theme, strings: strings, interaction: interaction), directionHint: nil) }
+    let insertions = indicesAndItems.map { ListViewInsertItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(account: account, theme: theme, strings: strings, fontSize: fontSize, interaction: interaction), directionHint: nil) }
+    let updates = updateIndices.map { ListViewUpdateItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(account: account, theme: theme, strings: strings, fontSize: fontSize, interaction: interaction), directionHint: nil) }
     
     return SettingsSearchContainerRecentTransition(deletions: deletions, insertions: insertions, updates: updates, isEmpty: toEntries.isEmpty)
 }
@@ -422,7 +422,7 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
                 }
                 
                 let previousEntries = previousRecentItems.swap(entries)
-                let transition = preparedSettingsSearchContainerRecentTransition(from: previousEntries ?? [], to: entries, account: context.account, theme: presentationData.theme, strings: presentationData.strings, interaction: interaction)
+                let transition = preparedSettingsSearchContainerRecentTransition(from: previousEntries ?? [], to: entries, account: context.account, theme: presentationData.theme, strings: presentationData.strings, fontSize: presentationData.listsFontSize, interaction: interaction)
                 strongSelf.enqueueRecentTransition(transition, firstTime: previousEntries == nil)
             }
         })
@@ -449,7 +449,7 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
             
             if !entries.isEmpty || currentQuery == nil {
                 let previousEntriesAndPresentationData = previousEntriesHolder.swap((entries, presentationData.theme, presentationData.strings))
-                let transition = preparedSettingsSearchContainerTransition(theme: presentationData.theme, strings: presentationData.strings, from: previousEntriesAndPresentationData?.0 ?? [], to: entries, interaction: interaction, isSearching: queryAndFoundItems != nil, forceUpdate: previousEntriesAndPresentationData?.1 !== presentationData.theme || previousEntriesAndPresentationData?.2 !== presentationData.strings)
+                let transition = preparedSettingsSearchContainerTransition(theme: presentationData.theme, strings: presentationData.strings, fontSize: presentationData.listsFontSize, from: previousEntriesAndPresentationData?.0 ?? [], to: entries, interaction: interaction, isSearching: queryAndFoundItems != nil, forceUpdate: previousEntriesAndPresentationData?.1 !== presentationData.theme || previousEntriesAndPresentationData?.2 !== presentationData.strings)
                 strongSelf.enqueueTransition(transition)
             }
         }))

@@ -15,6 +15,7 @@ private enum RevealOptionKey: Int32 {
 class SettingsSearchRecentItem: ListViewItem {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: PresentationFontSize
     let account: Account
     let title: String
     let breadcrumbs: [String]
@@ -28,9 +29,10 @@ class SettingsSearchRecentItem: ListViewItem {
         return AnyEquatable(HeaderNeighborDescriptor(headerId: self.header?.id, headerFamily: .settingsSearchRecent))
     }
     
-    init(account: Account, theme: PresentationTheme, strings: PresentationStrings, title: String, breadcrumbs: [String], isFaq: Bool, action: @escaping () -> Void, deleted: @escaping () -> Void, header: ListViewItemHeader) {
+    init(account: Account, theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize, title: String, breadcrumbs: [String], isFaq: Bool, action: @escaping () -> Void, deleted: @escaping () -> Void, header: ListViewItemHeader) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.account = account
         self.title = title
         self.breadcrumbs = breadcrumbs
@@ -97,8 +99,7 @@ class SettingsSearchRecentItem: ListViewItem {
     }
 }
 
-private let titleFont = Font.regular(17.0)
-private let subtitleFont = Font.regular(13.0)
+private let subtitleFontScale: CGFloat = 13.0 / 17.0
 
 class SettingsSearchRecentItemNode: ItemListRevealOptionsItemNode {
     private let backgroundNode: ASDisplayNode
@@ -157,14 +158,16 @@ class SettingsSearchRecentItemNode: ItemListRevealOptionsItemNode {
         let currentItem = self.item
         
         return { [weak self] item, params, last, firstWithHeader in
-            let leftInset: CGFloat = 15.0 + params.leftInset
+            let titleFont = Font.regular(item.fontSize.itemListBaseFontSize)
+            let subtitleFont = Font.regular(floor(item.fontSize.itemListBaseFontSize * subtitleFontScale))
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.leftInset
             let rightInset: CGFloat = params.rightInset
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 2, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 16.0 - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 2, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - PresentationLayoutMetrics.listHorizontalInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let subtitle = item.breadcrumbs.joined(separator: " → ")
             
-            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: subtitle, font: subtitleFont, textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 16.0 - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: subtitle, font: subtitleFont, textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - PresentationLayoutMetrics.listHorizontalInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             var height: CGFloat = 30.0 + titleLayout.size.height
             if !subtitle.isEmpty {

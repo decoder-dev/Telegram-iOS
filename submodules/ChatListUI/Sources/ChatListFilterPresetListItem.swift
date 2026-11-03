@@ -277,7 +277,7 @@ final class ChatListFilterPresetListItemNode: ItemListRevealOptionsItemNode {
                 }
             }
             
-            let leftInset: CGFloat = 16.0 + params.leftInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             let rightInset: CGFloat = params.rightInset + max(reorderInset, 55.0)
             let rightArrowInset: CGFloat = 34.0 + params.rightInset
             
@@ -297,7 +297,7 @@ final class ChatListFilterPresetListItemNode: ItemListRevealOptionsItemNode {
             let insets = itemListNeighborsGroupedInsets(neighbors, params)
             let contentSize = CGSize(width: params.width, height: titleLayout.size.height + verticalInset * 2.0)
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             let layoutSize = layout.size
@@ -544,7 +544,7 @@ final class ChatListFilterPresetListItemNode: ItemListRevealOptionsItemNode {
             return
         }
         
-        let leftInset: CGFloat = 16.0 + params.leftInset
+        let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
         var rightArrowInset: CGFloat = 34.0 + params.rightInset
         if self.item?.isDisabled == true {
             rightArrowInset -= 3.0

@@ -221,7 +221,7 @@ public final class ItemListPeerActionItemNode: ListViewItemNode, ItemListItemNod
                     case .legacy:
                         verticalInset = 12.0
                     }
-                    leftInset = (item.icon == nil && item.iconSignal == nil ? 16.0 : 59.0) + params.leftInset
+                    leftInset = (item.icon == nil && item.iconSignal == nil ? PresentationLayoutMetrics.listHorizontalInset : 59.0) + params.leftInset
                 case .peerList:
                     iconOffset = 3.0
                     switch item.systemStyle {
@@ -257,14 +257,14 @@ public final class ItemListPeerActionItemNode: ListViewItemNode, ItemListItemNod
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: textColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - editingOffset - max(0.0, params.rightInset - params.leftInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             var insets = itemListNeighborsGroupedInsets(neighbors, params)
             if item.noInsets {
                 insets.top = 0.0
                 insets.bottom = 0.0
             }
-            let contentSize = CGSize(width: params.width, height: titleLayout.size.height + verticalInset * 2.0)
+            let contentSize = CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, titleLayout.size.height + verticalInset * 2.0))
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             let layoutSize = layout.size

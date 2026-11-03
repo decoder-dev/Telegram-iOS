@@ -325,7 +325,7 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
             
             locationAttributedString = NSAttributedString(string: "\(trimmedLocationName(item.session)) • \(label)", font: textFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor)
                         
-            let leftInset: CGFloat = 59.0 + params.leftInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + 43.0 + params.leftInset
             
             var editableControlSizeAndApply: (CGFloat, (CGFloat) -> ItemListEditableControlNode)?
             
@@ -338,14 +338,15 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
                 editingOffset = 0.0
             }
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 16.0 - editingOffset - rightInset - 5.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - PresentationLayoutMetrics.listHorizontalInset - editingOffset - rightInset - 5.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             let (appLayout, appApply) = makeAppLayout(TextNodeLayoutArguments(attributedString: appAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 8.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             let (locationLayout, locationApply) = makeLocationLayout(TextNodeLayoutArguments(attributedString: locationAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 8.0 - editingOffset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let insets = itemListNeighborsGroupedInsets(neighbors, params)
-            let contentSize = CGSize(width: params.width, height: verticalInset * 2.0 + titleLayout.size.height + titleSpacing + appLayout.size.height + textSpacing + locationLayout.size.height - 4.0)
+            let contentHeight = verticalInset * 2.0 + titleLayout.size.height + titleSpacing + appLayout.size.height + textSpacing + locationLayout.size.height - 4.0
+            let contentSize = CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, contentHeight))
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             let layoutSize = layout.size
@@ -510,7 +511,7 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
                     transition.updateFrame(node: strongSelf.topStripeNode, frame: CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: layoutSize.width, height: separatorHeight)))
                     transition.updateFrame(node: strongSelf.bottomStripeNode, frame: CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height + bottomStripeOffset), size: CGSize(width: layoutSize.width - bottomStripeInset - params.rightInset - separatorRightInset, height: separatorHeight)))
                     
-                    transition.updateFrame(node: strongSelf.iconNode, frame: CGRect(origin: CGPoint(x: params.leftInset + revealOffset + editingOffset + 16.0, y: 15.0), size: CGSize(width: 30.0, height: 30.0)))
+                    transition.updateFrame(node: strongSelf.iconNode, frame: CGRect(origin: CGPoint(x: params.leftInset + revealOffset + editingOffset + PresentationLayoutMetrics.listHorizontalInset, y: 15.0), size: CGSize(width: 30.0, height: 30.0)))
                     transition.updateFrame(node: strongSelf.titleNode, frame: CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: verticalInset - 2.0), size: titleLayout.size))
                     transition.updateFrame(node: strongSelf.appNode, frame: CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: strongSelf.titleNode.frame.maxY + titleSpacing), size: appLayout.size))
                     transition.updateFrame(node: strongSelf.locationNode, frame: CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: strongSelf.appNode.frame.maxY + textSpacing), size: locationLayout.size))
@@ -548,7 +549,7 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
             return
         }
         
-        let leftInset: CGFloat = 59.0 + params.leftInset
+        let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + 43.0 + params.leftInset
         
         let editingOffset: CGFloat
         if let editableControlNode = self.editableControlNode {
@@ -560,7 +561,7 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
             editingOffset = 0.0
         }
         
-        transition.updateFrame(node: self.iconNode, frame: CGRect(origin: CGPoint(x: params.leftInset + self.revealOffset + editingOffset + 16.0, y: self.iconNode.frame.minY), size: self.iconNode.bounds.size))
+        transition.updateFrame(node: self.iconNode, frame: CGRect(origin: CGPoint(x: params.leftInset + self.revealOffset + editingOffset + PresentationLayoutMetrics.listHorizontalInset, y: self.iconNode.frame.minY), size: self.iconNode.bounds.size))
         transition.updateFrame(node: self.titleNode, frame: CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: self.titleNode.frame.minY), size: self.titleNode.bounds.size))
         transition.updateFrame(node: self.appNode, frame: CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: self.appNode.frame.minY), size: self.appNode.bounds.size))
         transition.updateFrame(node: self.locationNode, frame: CGRect(origin: CGPoint(x: leftInset + revealOffset + editingOffset, y: self.locationNode.frame.minY), size: self.locationNode.bounds.size))

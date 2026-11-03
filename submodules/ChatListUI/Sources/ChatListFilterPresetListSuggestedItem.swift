@@ -183,12 +183,12 @@ public class ChatListFilterPresetListSuggestedItemNode: ListViewItemNode, ItemLi
             let contentSize: CGSize
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.leftInset
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             
             let titleColor: UIColor
             titleColor = item.presentationData.theme.list.itemPrimaryTextColor

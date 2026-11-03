@@ -816,7 +816,8 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             // and Messages draws those rows smaller than conversation rows — at 52 the row floor
             // below forced 68 pt and search results looked padded out. Text lands at 16 + 44 + 12
             // = 72 pt, within 2 pt of the chat list's 74, so the two lists still line up.
-            let avatarDiameter = min(44.0, floor(item.presentationData.fontSize.itemListBaseFontSize * 44.0 / 17.0))
+            let avatarReferenceSize = PresentationLayoutMetrics.minimumInteractiveSize
+            let avatarDiameter = min(avatarReferenceSize, floor(item.presentationData.fontSize.itemListBaseFontSize * avatarReferenceSize / 17.0))
             // Matches the chat list, which dropped this inset: a 16 pt card here left white
             // stripes down both sides of Calls and Contacts while chats ran full width.
             let higCardInset: CGFloat = 0.0
@@ -826,7 +827,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             if currentItem?.presentationData.theme !== item.presentationData.theme {
                 updatedTheme = item.presentationData.theme
             }
-            var leftInset: CGFloat = 16.0 + avatarDiameter + 12.0 + params.leftInset + higCardInset
+            var leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + avatarDiameter + 12.0 + params.leftInset + higCardInset
             var rightInset: CGFloat = 10.0 + params.rightInset + higCardInset
             
             // Thread rows keep the same left column as peer rows: the 32 pt topic glyph is
@@ -1234,7 +1235,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
             // the row height here (text alone needs less), so this term is the row's padding, and
             // 8 pt on a 52 pt avatar was what made search results read as oversized. 44 + 12 = 56,
             // the standard two-line iOS row.
-            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(44.0, avatarDiameter + 12.0, verticalInset * 2.0 + titleLayout.size.height + statusHeightComponent)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
+            let nodeLayout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: max(PresentationLayoutMetrics.minimumInteractiveSize, avatarDiameter + 12.0, verticalInset * 2.0 + titleLayout.size.height + statusHeightComponent)), insets: UIEdgeInsets(top: firstWithHeader ? 29.0 : 0.0, left: 0.0, bottom: 0.0, right: 0.0))
             
             let titleFrame: CGRect
             if statusAttributedString != nil {
@@ -1305,7 +1306,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                             strongSelf.containerNode.isGestureEnabled = item.contextAction != nil
                             
                             let nonExtractedRect = CGRect(origin: CGPoint(), size: CGSize(width: nodeLayout.contentSize.width - 16.0, height: nodeLayout.contentSize.height))
-                            let extractedRect = CGRect(origin: CGPoint(), size: nodeLayout.contentSize).inset(by: UIEdgeInsets(top: 0.0, left: 16.0 + params.leftInset, bottom: 0.0, right: 16.0 + params.rightInset))
+                            let extractedRect = CGRect(origin: CGPoint(), size: nodeLayout.contentSize).inset(by: UIEdgeInsets(top: 0.0, left: PresentationLayoutMetrics.listHorizontalInset + params.leftInset, bottom: 0.0, right: PresentationLayoutMetrics.listHorizontalInset + params.rightInset))
                             strongSelf.extractedRect = extractedRect
                             strongSelf.nonExtractedRect = nonExtractedRect
                             

@@ -10,14 +10,16 @@ import PresentationDataUtils
 class SettingsSearchResultItem: ListViewItem, ItemListItem {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: PresentationFontSize
     let item: SettingsSearchableItem
     let icon: UIImage?
     let interaction: SettingsSearchInteraction
     let sectionId: ItemListSectionId
     
-    init(theme: PresentationTheme, strings: PresentationStrings, item: SettingsSearchableItem, icon: UIImage?, interaction: SettingsSearchInteraction, sectionId: ItemListSectionId) {
+    init(theme: PresentationTheme, strings: PresentationStrings, fontSize: PresentationFontSize, item: SettingsSearchableItem, icon: UIImage?, interaction: SettingsSearchInteraction, sectionId: ItemListSectionId) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.item = item
         self.icon = icon
         self.interaction = interaction
@@ -73,8 +75,7 @@ class SettingsSearchResultItem: ListViewItem, ItemListItem {
     }
 }
 
-private let titleFont = Font.regular(17.0)
-private let subtitleFont = Font.regular(13.0)
+private let subtitleFontScale: CGFloat = 13.0 / 17.0
 
 class SettingsSearchResultItemNode: ListViewItemNode {
     private let contextSourceNode: ContextExtractedContentContainingNode
@@ -188,6 +189,9 @@ class SettingsSearchResultItemNode: ListViewItemNode {
         let currentItem = self.item
         
         return { [weak self] item, params, neighbors in
+            let titleFont = Font.regular(item.fontSize.itemListBaseFontSize)
+            let subtitleFont = Font.regular(floor(item.fontSize.itemListBaseFontSize * subtitleFontScale))
+            
             var leftInset: CGFloat = params.leftInset
             let contentInset: CGFloat = 60.0
             
@@ -195,11 +199,11 @@ class SettingsSearchResultItemNode: ListViewItemNode {
             
             leftInset += contentInset
             
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.item.title, font: titleFont, textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 2, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 16.0 - max(0.0, params.rightInset - params.leftInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.item.title, font: titleFont, textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 2, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - PresentationLayoutMetrics.listHorizontalInset - max(0.0, params.rightInset - params.leftInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let subtitle = item.item.breadcrumbs.joined(separator: " → ")
             
-            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: subtitle, font: subtitleFont, textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - 16.0 - max(0.0, params.rightInset - params.leftInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: subtitle, font: subtitleFont, textColor: item.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - PresentationLayoutMetrics.listHorizontalInset - max(0.0, params.rightInset - params.leftInset), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let separatorHeight = UIScreenPixel
             

@@ -142,7 +142,7 @@ public class ItemListFilterTitleInputItemNode: ListViewItemNode, UITextFieldDele
                 updatedTheme = item.presentationData.theme
             }
             
-            let leftInset: CGFloat = 16.0 + params.leftInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             let rightInset: CGFloat = 16.0 + params.rightInset
             let _ = rightInset
             

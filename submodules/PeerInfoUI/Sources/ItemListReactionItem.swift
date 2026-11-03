@@ -203,12 +203,12 @@ public class ItemListReactionItemNode: ListViewItemNode, ItemListItemNode {
             var contentSize: CGSize
             var insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let sideImageInset: CGFloat = 44.0
+            let sideImageInset: CGFloat = PresentationLayoutMetrics.minimumInteractiveSize
             
             let titleFont = Font.regular(item.presentationData.fontSize.itemListBaseFontSize)
             

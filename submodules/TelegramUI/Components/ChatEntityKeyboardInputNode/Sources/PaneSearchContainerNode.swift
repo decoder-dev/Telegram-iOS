@@ -21,9 +21,17 @@ import EntityKeyboardGifContent
 import BatchVideoRendering
 import UndoUI
 
-private let searchBarHeight: CGFloat = 76.0
-private let searchBarTopInset: CGFloat = 16.0
-private let searchBarFieldHeight: CGFloat = 44.0
+private var searchBarTopInset: CGFloat {
+    PresentationLayoutMetrics.listHorizontalInset
+}
+
+private var searchBarFieldHeight: CGFloat {
+    PresentationLayoutMetrics.minimumInteractiveSize
+}
+
+private var searchBarHeight: CGFloat {
+    searchBarTopInset + searchBarFieldHeight + PresentationLayoutMetrics.listHorizontalInset
+}
 
 private func paneSearchBarTheme(_ theme: PresentationTheme) -> SearchBarNodeTheme {
     return SearchBarNodeTheme(
@@ -208,7 +216,8 @@ public final class PaneSearchContainerNode: ASDisplayNode, EntitySearchContainer
         case .sticker, .trending:
             placeholder = strings.Stickers_Search
         }
-        self.searchBar.placeholderString = NSAttributedString(string: placeholder, font: Font.regular(17.0), textColor: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+        let placeholderFontSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        self.searchBar.placeholderString = NSAttributedString(string: placeholder, font: Font.regular(placeholderFontSize), textColor: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
     }
 
     public func updateQuery(_ query: String) {
@@ -351,7 +360,7 @@ public final class PaneSearchContainerNode: ASDisplayNode, EntitySearchContainer
         transition.updateAlpha(node: self.searchBar, alpha: self.selectedStickerPack == nil ? 1.0 : 0.0)
         
         let componentTransition = ComponentTransition(transition)
-        let navigationButtonsFrame = CGRect(origin: CGPoint(x: leftInset + 16.0, y: searchBarTopInset), size: CGSize(width: max(1.0, size.width - leftInset - rightInset - 16.0 * 2.0), height: 48.0))
+        let navigationButtonsFrame = CGRect(origin: CGPoint(x: leftInset + PresentationLayoutMetrics.listHorizontalInset, y: searchBarTopInset), size: CGSize(width: max(1.0, size.width - leftInset - rightInset - PresentationLayoutMetrics.listHorizontalInset * 2.0), height: 48.0))
 
         let navigationButtonsSize = self.navigationButtons.update(
             transition: componentTransition,
@@ -401,10 +410,11 @@ public final class PaneSearchContainerNode: ASDisplayNode, EntitySearchContainer
         }
 
         let title = self.selectedStickerPack?.info.title ?? ""
+        let titleFontSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         let titleSize = self.selectedPackTitle.update(
             transition: componentTransition,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: title, font: Font.semibold(17.0), textColor: self.theme.chat.inputPanel.primaryTextColor)),
+                text: .plain(NSAttributedString(string: title, font: Font.semibold(titleFontSize), textColor: self.theme.chat.inputPanel.primaryTextColor)),
                 horizontalAlignment: .center
             )),
             environment: {},
