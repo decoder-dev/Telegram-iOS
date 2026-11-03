@@ -375,7 +375,7 @@ final class TextProcessingLanguageSelectionComponent: Component {
                             transition: itemTransition,
                             component: AnyComponent(LanguageItemComponent(
                                 theme: component.theme,
-                                fontSize: fontSize,
+                                fontSize: 17.0,
                                 title: item.name,
                                 isSelected: item.languageCode == component.selectedLanguageCode,
                                 action: { [weak self] in
@@ -474,7 +474,7 @@ final class TextProcessingLanguageSelectionComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(LanguageItemComponent(
                     theme: component.theme,
-                    fontSize: fontSize,
+                    fontSize: 17.0,
                     title: "A",
                     isSelected: false,
                     action: {
@@ -522,7 +522,7 @@ final class TextProcessingLanguageSelectionComponent: Component {
                         component: AnyComponent(StyleItemComponent(
                             context: component.context,
                             theme: component.theme,
-                            fontSize: fontSize,
+                            fontSize: 17.0,
                             iconFileId: item.iconFileId,
                             iconFile: item.iconFile,
                             title: item.title,
@@ -596,7 +596,7 @@ final class TextProcessingLanguageSelectionComponent: Component {
                 transition: transition,
                 component: AnyComponent(SearchItemComponent(
                     theme: component.theme,
-                    fontSize: fontSize,
+                    fontSize: 17.0,
                     placeholder: component.strings.Common_Search,
                     externalState: self.searchExternalState,
                     valueChanged: { [weak self] query in

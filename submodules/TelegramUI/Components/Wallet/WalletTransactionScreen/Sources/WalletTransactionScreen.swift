@@ -595,7 +595,7 @@ private final class SendButtonContentComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.text,
-                        font: Font.regular(floor(fontSize * 11.0 / 17.0)),
+                        font: Font.regular(11.0),
                         textColor: component.color
                     )),
                     maximumNumberOfLines: 1
@@ -691,7 +691,7 @@ private final class CounterpartyRowComponent: CombinedComponent {
         let sendButton = Child(environment: Empty.self)
 
         return { context in
-            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let fontSize: CGFloat = 17.0
             let sendButton = sendButton.update(
                 component: context.component.sendButton,
                 availableSize: context.availableSize,
@@ -2556,7 +2556,6 @@ private final class WalletTransactionContentComponent: Component {
             })
 
             let theme = environment.theme
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let transaction = self.currentTransaction()
             let walletState = self.latestWalletState ?? (self.walletContext ?? component.walletContext)?.stateValue
             let walletAddress: String?
