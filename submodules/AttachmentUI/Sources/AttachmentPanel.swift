@@ -864,9 +864,9 @@ private final class MainButtonNode: HighlightTrackingButtonNode {
             let font: UIFont
             switch state.font {
             case .regular:
-                font = Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
+                font = Font.regular(17.0)
             case .bold:
-                font = Font.semibold(self.presentationData.listsFontSize.baseDisplaySize)
+                font = Font.semibold(17.0)
             }
             self.textNode.attributedText = NSAttributedString(string: text, font: font, textColor: state.textColor)
 
