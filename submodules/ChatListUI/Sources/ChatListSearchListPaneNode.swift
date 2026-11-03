@@ -1288,7 +1288,7 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
                 return ChatListSearchEmptyFooterItem(
                     theme: presentationData.theme,
                     strings: presentationData.strings,
-                    fontSize: presentationData.listsFontSize.baseDisplaySize,
+                    fontSize: presentationData.fontSize.baseDisplaySize,
                     header: header,
                     searchQuery: searchQuery,
                     searchAllMessages: searchScope == .everywhere ? nil : {
