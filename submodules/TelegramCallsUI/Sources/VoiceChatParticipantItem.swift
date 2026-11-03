@@ -858,7 +858,7 @@ class VoiceChatParticipantItemNode: ItemListRevealOptionsItemNode {
                 titleIconsWidth += 4.0
                 switch credibilityIcon {
                 case let .text(_, string):
-                    let textString = NSAttributedString(string: string, font: Font.bold(floor(item.presentationData.listsFontSize.baseDisplaySize * 10.0 / 17.0)), textColor: .black, paragraphAlignment: .center)
+                    let textString = NSAttributedString(string: string, font: Font.bold(10.0), textColor: .black, paragraphAlignment: .center)
                     let stringRect = textString.boundingRect(with: CGSize(width: 100.0, height: 16.0), options: .usesLineFragmentOrigin, context: nil)
                     titleIconsWidth += floor(stringRect.width) + 11.0
                 default:

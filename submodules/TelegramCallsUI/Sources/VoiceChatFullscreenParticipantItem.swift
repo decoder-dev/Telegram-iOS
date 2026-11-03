@@ -513,7 +513,7 @@ class VoiceChatFullscreenParticipantItemNode: ItemListRevealOptionsItemNode {
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: constrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                         
             let availableWidth = params.availableHeight
-            self?.statusNode.listsFontBaseSize = item.presentationData.listsFontSize.baseDisplaySize
+            self?.statusNode.listsFontBaseSize = 17.0
             let (statusLayout, _) = makeStatusLayout(CGSize(width: availableWidth - 30.0, height: CGFloat.greatestFiniteMagnitude), item.text, true)
             
             let contentSize = tileSize
