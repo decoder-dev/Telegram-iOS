@@ -1486,7 +1486,7 @@ private final class WalletReceiveSheetContent: Component {
                 if self.displaysAddress {
                     let addressGridSize = self.addressGrid.update(
                         transition: cardContentTransition,
-                        component: AnyComponent(WalletReceiveAddressGridComponent(address: component.address, listFontSize: fontSize)),
+                        component: AnyComponent(WalletReceiveAddressGridComponent(address: component.address, listFontSize: 17.0)),
                         environment: {},
                         containerSize: CGSize(width: max(1.0, cardWidth - 52.0), height: cardHeight)
                     )

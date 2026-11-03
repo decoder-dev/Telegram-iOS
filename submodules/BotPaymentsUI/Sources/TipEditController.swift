@@ -214,7 +214,7 @@ private final class TipEditAlertContentNode: AlertContentNode {
         self.textNode = ASTextNode()
         self.textNode.maximumNumberOfLines = 8
         
-        self.inputFieldNode = TipEditInputFieldNode(theme: ptheme, fontSize: theme.baseFontSize, placeholder: placeholder)
+        self.inputFieldNode = TipEditInputFieldNode(theme: ptheme, placeholder: placeholder, fontSize: theme.baseFontSize)
         self.inputFieldNode.text = value ?? ""
         
         self.actionNodesSeparator = ASDisplayNode()

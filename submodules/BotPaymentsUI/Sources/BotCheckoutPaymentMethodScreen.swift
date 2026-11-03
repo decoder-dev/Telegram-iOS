@@ -380,7 +380,7 @@ private final class BotCheckoutPaymentMethodScreenComponent: Component {
                     titleItem: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.Checkout_PaymentMethod,
-                            font: Font.semibold(environment.presentationData.listsFontSize.baseDisplaySize),
+                            font: Font.semibold(17.0),
                             textColor: theme.list.itemPrimaryTextColor
                         )),
                         maximumNumberOfLines: 1

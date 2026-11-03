@@ -17,7 +17,7 @@ class BotPaymentItemNode: ASDisplayNode {
     private let maskNode: ASImageNode
     
     private var theme: PresentationTheme?
-    fileprivate var listFontSize: CGFloat = 17.0
+    var listFontSize: CGFloat = 17.0
     
     init(needsBackground: Bool) {
         self.needsBackground = needsBackground

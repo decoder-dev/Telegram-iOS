@@ -140,7 +140,7 @@ class IncreaseLimitHeaderItemNode: ListViewItemNode {
             let bottomInset: CGFloat = -86.0
             
             let textColor = item.theme.list.freeTextColor
-            let attributedText = parseMarkdownIntoAttributedString(item.text, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: titleFont, textColor: textColor), linkAttribute: { _ in
+            let attributedText = parseMarkdownIntoAttributedString(item.text, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: textFont, textColor: textColor), bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor), link: MarkdownAttributeSet(font: Font.semibold(17.0), textColor: textColor), linkAttribute: { _ in
                 return nil
             }))
             

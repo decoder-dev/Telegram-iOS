@@ -523,7 +523,7 @@ private final class SheetContent: CombinedComponent {
                             foreground: theme.list.itemCheckColors.foregroundColor,
                             pressedColor: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                         ),
-                        content: AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: strings.ChannelBoost_Boost, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), color: theme.list.itemCheckColors.foregroundColor))),
+                        content: AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: strings.ChannelBoost_Boost, font: Font.semibold(17.0), color: theme.list.itemCheckColors.foregroundColor))),
                         action: {
                             component.boost()
                         }
@@ -540,7 +540,7 @@ private final class SheetContent: CombinedComponent {
                             foreground: theme.list.itemCheckColors.foregroundColor,
                             pressedColor: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                         ),
-                        content: AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: strings.ChannelBoost_Copy, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), color: theme.list.itemCheckColors.foregroundColor))),
+                        content: AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: strings.ChannelBoost_Copy, font: Font.semibold(17.0), color: theme.list.itemCheckColors.foregroundColor))),
                         action: {
                             component.copyLink(status.url)
                             component.dismiss()
@@ -1391,7 +1391,7 @@ private final class PremiumBoostLevelsSheetComponent: CombinedComponent {
                         }
                     )),
                     titleItem: AnyComponent(
-                        MultilineTextComponent(text: .plain(NSAttributedString(string: titleString, font: Font.semibold(presentationData.listsFontSize.baseDisplaySize), textColor: theme.list.itemPrimaryTextColor)))
+                        MultilineTextComponent(text: .plain(NSAttributedString(string: titleString, font: Font.semibold(17.0), textColor: theme.list.itemPrimaryTextColor)))
                     ),
                     leftItem: AnyComponent(
                         GlassBarButtonComponent(
