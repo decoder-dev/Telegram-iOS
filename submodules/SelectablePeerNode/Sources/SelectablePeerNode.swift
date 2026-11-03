@@ -176,7 +176,8 @@ public final class SelectablePeerNode: ASDisplayNode {
             iconColor: iconColor,
             online: online,
             numberOfLines: numberOfLines,
-            synchronousLoad: synchronousLoad
+            synchronousLoad: synchronousLoad,
+            listsFontSizeBase: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         )
     }
     
@@ -207,7 +208,7 @@ public final class SelectablePeerNode: ASDisplayNode {
         }
     }
     
-    public func setup(accountPeerId: EnginePeer.Id, stateManager: AccountStateManager, energyUsageSettings: EnergyUsageSettings, contentSettings: ContentSettings, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, resolveInlineStickers: @escaping ([Int64]) -> Signal<[Int64: TelegramMediaFile], NoError>, theme: PresentationTheme, strings: PresentationStrings, peer: EngineRenderedPeer, requiresPremiumForMessaging: Bool, requiresStars: Int64? = nil, customTitle: String? = nil, iconId: Int64? = nil, iconColor: Int32? = nil, online: Bool = false, numberOfLines: Int = 2, synchronousLoad: Bool) {
+    public func setup(accountPeerId: EnginePeer.Id, stateManager: AccountStateManager, energyUsageSettings: EnergyUsageSettings, contentSettings: ContentSettings, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, resolveInlineStickers: @escaping ([Int64]) -> Signal<[Int64: TelegramMediaFile], NoError>, theme: PresentationTheme, strings: PresentationStrings, peer: EngineRenderedPeer, requiresPremiumForMessaging: Bool, requiresStars: Int64? = nil, customTitle: String? = nil, iconId: Int64? = nil, iconColor: Int32? = nil, online: Bool = false, numberOfLines: Int = 2, synchronousLoad: Bool, listsFontSizeBase: CGFloat = 17.0) {
         let isFirstTime = self.peer == nil
         self.peer = peer
         guard let mainPeer = peer.chatOrMonoforumMainPeer else {
@@ -378,7 +379,8 @@ public final class SelectablePeerNode: ASDisplayNode {
                     animationRenderer: animationRenderer,
                     content: iconContent,
                     isVisibleForAnimations: true,
-                    action: nil
+                    action: nil,
+                    listsFontSizeBase: listsFontSizeBase
                 )),
                 environment: {},
                 containerSize: CGSize(width: 18.0, height: 18.0)

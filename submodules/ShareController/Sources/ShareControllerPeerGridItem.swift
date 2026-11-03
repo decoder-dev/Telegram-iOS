@@ -262,7 +262,8 @@ final class ShareControllerPeerGridItemNode: GridItemNode {
                     iconId: threadData?.info.icon,
                     iconColor: threadData?.info.iconColor ?? 0,
                     online: isOnline,
-                    synchronousLoad: synchronousLoad
+                    synchronousLoad: synchronousLoad,
+                    listsFontSizeBase: environment.presentationData.listsFontSize.baseDisplaySize
                 )
                 self.accessibilityLabel = threadData?.info.title ?? peer.compactDisplayTitle
                 if let shimmerNode = self.placeholderNode {

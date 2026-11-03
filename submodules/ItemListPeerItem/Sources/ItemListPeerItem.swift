@@ -1518,7 +1518,8 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
                             content: verifiedIcon,
                             isVisibleForAnimations: strongSelf.visibilityStatus,
                             action: nil,
-                            emojiFileUpdated: nil
+                            emojiFileUpdated: nil,
+                            listsFontSizeBase: item.presentationData.fontSize.baseDisplaySize
                         )
                         strongSelf.verifiedIconComponent = verifiedIconComponent
                                                 
@@ -1567,7 +1568,8 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
                             particleColor: credibilityParticleColor,
                             isVisibleForAnimations: strongSelf.visibilityStatus,
                             action: nil,
-                            emojiFileUpdated: nil
+                            emojiFileUpdated: nil,
+                            listsFontSizeBase: item.presentationData.fontSize.baseDisplaySize
                         )
                         strongSelf.credibilityIconComponent = credibilityIconComponent
                         let iconSize = credibilityIconView.update(
@@ -1735,7 +1737,8 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
                             content: avatarIconContent,
                             isVisibleForAnimations: strongSelf.visibilityStatus,
                             action: nil,
-                            emojiFileUpdated: nil
+                            emojiFileUpdated: nil,
+                            listsFontSizeBase: item.presentationData.fontSize.baseDisplaySize
                         )
                         strongSelf.avatarIconComponent = avatarIconComponent
                         let _ = avatarIconView.update(

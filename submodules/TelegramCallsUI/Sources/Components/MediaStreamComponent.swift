@@ -666,6 +666,7 @@ public final class MediaStreamComponent: CombinedComponent {
                 ).minSize(CGSize(width: 44.0, height: 44.0)).tagged(moreButtonTag))
             }
             
+            let streamTitleFontSize = call.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let navigationComponent = NavigationBarComponent(
                 // The bar reaches the top edge; in full screen beside iPhone Duo's status island (unfolded portrait) its
                 // 44pt row is centred on the island's clock line (compact status height + 31), elsewhere at the top.
@@ -677,7 +678,8 @@ public final class MediaStreamComponent: CombinedComponent {
                 backgroundVisible: isFullscreen,
                 leftItem: topLeftButton,
                 rightItems: navigationRightItems,
-                centerItem: AnyComponent(StreamTitleComponent(text: state.callTitle ?? state.peerTitle, isRecording: state.recordingStartTimestamp != nil, isLive: context.state.videoIsPlayable, fontSize: call.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize))
+                centerItem: AnyComponent(StreamTitleComponent(text: state.callTitle ?? state.peerTitle, isRecording: state.recordingStartTimestamp != nil, isLive: context.state.videoIsPlayable, fontSize: streamTitleFontSize)),
+                titleFontSize: streamTitleFontSize
             )
             
             if context.state.storedIsFullscreen != isFullscreen {

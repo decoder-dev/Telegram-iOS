@@ -143,7 +143,8 @@ final class ShareTopicGridItemNode: GridItemNode {
                     animationRenderer: item.context.animationRenderer,
                     content: iconContent,
                     isVisibleForAnimations: true,
-                    action: nil
+                    action: nil,
+                    listsFontSizeBase: item.environment.presentationData.listsFontSize.baseDisplaySize
                 )),
                 environment: {},
                 containerSize: CGSize(width: 54.0, height: 54.0)
