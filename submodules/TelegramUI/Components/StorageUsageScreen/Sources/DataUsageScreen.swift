@@ -901,6 +901,7 @@ final class DataUsageScreenComponent: Component {
                         SegmentControlComponent.Item(id: AnyHashable(SelectedStats.wifi), title: environment.strings.DataUsage_TopSectionWifi)
                     ],
                     selectedId: AnyHashable(self.selectedStats),
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                     action: { [weak self] id in
                         guard let self, let id = id.base as? SelectedStats else {
                             return

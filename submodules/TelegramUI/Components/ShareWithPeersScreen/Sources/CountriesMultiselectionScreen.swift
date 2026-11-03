@@ -559,7 +559,7 @@ final class CountriesMultiselectionScreenComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: environment.strings.Contacts_Search_NoResultsQueryDescription(query).string, font: Font.regular(15.0), textColor: environment.theme.list.itemSecondaryTextColor)),
+                            text: .plain(NSAttributedString(string: environment.strings.Contacts_Search_NoResultsQueryDescription(query).string, font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: environment.theme.list.itemSecondaryTextColor)),
                             horizontalAlignment: .center,
                             maximumNumberOfLines: 0
                         )
@@ -880,7 +880,7 @@ final class CountriesMultiselectionScreenComponent: Component {
                 titleComponents.append(
                     AnyComponentWithIdentity(
                         id: "subtitle",
-                        component: AnyComponent(Text(text: environment.strings.CountriesList_SelectUpTo(maxCount), font: Font.regular(13.0), color: environment.theme.rootController.navigationBar.secondaryTextColor))
+                        component: AnyComponent(Text(text: environment.strings.CountriesList_SelectUpTo(maxCount), font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)), color: environment.theme.rootController.navigationBar.secondaryTextColor))
                     )
                 )
             }

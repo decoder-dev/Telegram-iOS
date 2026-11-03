@@ -205,7 +205,7 @@ private final class StickerSearchPackTopPanelItemComponent: Component {
                 let titleSize = titleView.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.info.title, font: Font.regular(10.0), textColor: component.theme.chat.inputPanel.primaryTextColor)),
+                        text: .plain(NSAttributedString(string: component.info.title, font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 10.0 / 17.0)), textColor: component.theme.chat.inputPanel.primaryTextColor)),
                         insets: UIEdgeInsets(top: 1.0, left: 1.0, bottom: 1.0, right: 1.0)
                     )),
                     environment: {},
@@ -1042,7 +1042,7 @@ final class StickerPaneSearchContentNode: ASDisplayNode, PaneSearchContentNode {
         self.theme = theme
         self.strings = strings
         self.notFoundNode.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Media/StickersNotFoundIcon"), color: theme.list.freeMonoIconColor)
-        self.notFoundLabel.attributedText = NSAttributedString(string: strings.Stickers_NoStickersFound, font: Font.medium(14.0), textColor: theme.list.freeTextColor)
+        self.notFoundLabel.attributedText = NSAttributedString(string: strings.Stickers_NoStickersFound, font: Font.medium(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: theme.list.freeTextColor)
     }
 
     private func enqueueTransition(_ transition: StickerPaneSearchGridTransition) {

@@ -369,6 +369,7 @@ public final class EntityKeyboardComponent: Component {
                                     useAccentColor: false,
                                     customTintColor: component.customTintColor,
                                     title: title,
+                                    fontSize: maskContent.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                                     pressed: { [weak self] in
                                         self?.scrollToItemGroup(contentId: "masks", groupId: itemGroup.supergroupId, subgroupId: nil)
                                     }
@@ -455,6 +456,7 @@ public final class EntityKeyboardComponent: Component {
                             useAccentColor: false,
                             customTintColor: component.customTintColor,
                             title: component.strings.Stickers_Trending,
+                            fontSize: stickerContent.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                             pressed: { [weak self] in
                                 self?.component?.stickerContent?.inputInteractionHolder.inputInteraction?.openFeatured?()
                             }
@@ -502,6 +504,7 @@ public final class EntityKeyboardComponent: Component {
                                         useAccentColor: false,
                                         customTintColor: component.customTintColor,
                                         title: title,
+                                        fontSize: stickerContent.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                                         pressed: { [weak self] in
                                             self?.scrollToItemGroup(contentId: "stickers", groupId: itemGroup.supergroupId, subgroupId: nil)
                                         }
@@ -601,6 +604,7 @@ public final class EntityKeyboardComponent: Component {
                                             useAccentColor: false,
                                             customTintColor: component.customTintColor,
                                             title: title,
+                                            fontSize: emojiContent.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                                             pressed: { [weak self] in
                                                 self?.scrollToItemGroup(contentId: "emoji", groupId: itemGroup.supergroupId, subgroupId: nil)
                                             }
@@ -614,6 +618,7 @@ public final class EntityKeyboardComponent: Component {
                                     content: AnyComponent(EntityKeyboardStaticStickersPanelComponent(
                                         theme: component.theme,
                                         title: component.strings.EmojiInput_PanelTitleEmoji,
+                                        fontSize: emojiContent.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                                         pressed: { [weak self] subgroupId in
                                             guard let strongSelf = self else {
                                                 return

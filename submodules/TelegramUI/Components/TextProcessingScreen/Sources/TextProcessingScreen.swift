@@ -2643,7 +2643,8 @@ private final class ActionButtonsComponent: Component {
                 actionButtonContents.append(AnyComponentWithIdentity(id: 1, component: AnyComponent(IncreaseLimitBadgeComponent(
                     title: component.strings.TextProcessing_ActionValueNonPremium,
                     fillColor: component.theme.list.itemCheckColors.foregroundColor,
-                    foregroundColor: .clear
+                    foregroundColor: .clear,
+                    listsFontSizeBase: component.fontSize
                 ))))
             }
             
@@ -2752,15 +2753,18 @@ private final class IncreaseLimitBadgeComponent: Component {
     let title: String
     let fillColor: UIColor
     let foregroundColor: UIColor
+    let listsFontSizeBase: CGFloat
     
     init(
         title: String,
         fillColor: UIColor,
-        foregroundColor: UIColor
+        foregroundColor: UIColor,
+        listsFontSizeBase: CGFloat
     ) {
         self.title = title
         self.fillColor = fillColor
         self.foregroundColor = foregroundColor
+        self.listsFontSizeBase = listsFontSizeBase
     }
     
     static func ==(lhs: IncreaseLimitBadgeComponent, rhs: IncreaseLimitBadgeComponent) -> Bool {
@@ -2771,6 +2775,9 @@ private final class IncreaseLimitBadgeComponent: Component {
             return false
         }
         if lhs.foregroundColor != rhs.foregroundColor {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         return true
@@ -2802,7 +2809,7 @@ private final class IncreaseLimitBadgeComponent: Component {
             let topInset: CGFloat = 1.0
             let bottomInset: CGFloat = 0.0
             
-            let text = NSAttributedString(string: component.title, font: Font.with(size: 14.0, design: .round, weight: .semibold), textColor: .clear)
+            let text = NSAttributedString(string: component.title, font: Font.with(size: floor(component.listsFontSizeBase * 14.0 / 17.0), design: .round, weight: .semibold), textColor: .clear)
             let rawTextSize = text.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: [.usesLineFragmentOrigin], context: nil)
             let textSize = CGSize(width: ceil(rawTextSize.width), height: ceil(rawTextSize.height))
             let backgroundSize = CGSize(width: leftInset + rightInset + textSize.width, height: topInset + bottomInset + textSize.height)

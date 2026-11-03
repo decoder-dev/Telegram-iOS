@@ -370,7 +370,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
                 rightInset += 34.0
             }
             
-            let textLimitFont = Font.regular(15.0)
+            let textLimitFont = Font.regular(floor(listsFontSize.baseDisplaySize * 15.0 / 17.0))
             var measureTextLimitInset: CGFloat = 0.0
             if component.characterLimit != nil && component.displayCharacterLimit {
                 let measureTextLimitLabel: ComponentView<Empty>

@@ -503,7 +503,7 @@ final class TextStyleEditContentComponent: Component {
                             selected: component.externalState.isLinkToProfileEnabled
                         ))),
                         AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: environment.strings.TextProcessing_EditStyle_AddLink, font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor))
+                            text: .plain(NSAttributedString(string: environment.strings.TextProcessing_EditStyle_AddLink, font: Font.regular(floor(listFontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor))
                         )))
                     ], spacing: 10.0)),
                     effectAlignment: .center,

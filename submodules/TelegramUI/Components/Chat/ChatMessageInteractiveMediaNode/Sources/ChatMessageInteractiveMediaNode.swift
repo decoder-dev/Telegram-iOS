@@ -382,7 +382,7 @@ private class ExtendedMediaOverlayNode: ASDisplayNode {
             
             self.textNode.arguments = TextNodeWithEntities.Arguments(context: self.context, cache: self.context.animationCache, renderer: self.context.animationRenderer, placeholderColor: .clear, attemptSynchronous: true)
             
-            let string = NSMutableAttributedString(string: text, font: Font.semibold(15.0), textColor: .white)
+            let string = NSMutableAttributedString(string: text, font: Font.semibold(floor(self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: .white)
             if let range = string.string.range(of: "⭐️") {
                 string.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: false)), range: NSRange(range, in: string.string))
                 string.addAttribute(.baselineOffset, value: 0.5, range: NSRange(range, in: string.string))

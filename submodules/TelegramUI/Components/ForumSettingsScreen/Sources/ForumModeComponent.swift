@@ -230,7 +230,7 @@ private final class ItemComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: component.title, font: Font.medium(13.0), textColor: component.isSelected ? component.theme.list.itemCheckColors.foregroundColor : component.theme.list.itemPrimaryTextColor)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: component.title, font: Font.medium(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: component.isSelected ? component.theme.list.itemCheckColors.foregroundColor : component.theme.list.itemPrimaryTextColor)))
                 ),
                 environment: {},
                 containerSize: size

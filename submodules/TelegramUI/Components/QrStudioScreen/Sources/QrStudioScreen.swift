@@ -2424,6 +2424,7 @@ final class QrStudioScreenComponent: Component {
                             return strings.QrStudio_Pill_ExpiresIn(value).string
                         }
                     ),
+                    fontSize: listFontSize,
                     transition: isAppearing ? .immediate : transition
                 )
                 if isAppearing {

@@ -4,9 +4,6 @@ import UIKit
 import AsyncDisplayKit
 import TelegramPresentationData
 
-private let textFont = Font.regular(14.0)
-private let selectedTextFont = Font.semibold(14.0)
-
 public enum SegmentedControlLayout {
     case stretchToFill(width: CGFloat)
     case sizeToFit(maximumWidth: CGFloat, minimumWidth: CGFloat, height: CGFloat)
@@ -85,6 +82,7 @@ private class SegmentedControlItemNode: HighlightTrackingButtonNode {
 
 public final class SegmentedControlNode: ASDisplayNode, ASGestureRecognizerDelegate {
     private var theme: SegmentedControlTheme
+    private var fontSize: CGFloat
     private var _items: [SegmentedControlItem]
     private var _selectedIndex: Int = 0
     
@@ -96,6 +94,14 @@ public final class SegmentedControlNode: ASDisplayNode, ASGestureRecognizerDeleg
     
     private var gestureRecognizer: UIPanGestureRecognizer?
     private var gestureSelectedIndex: Int?
+    
+    private var textFont: UIFont {
+        return Font.regular(floor(self.fontSize * 14.0 / 17.0))
+    }
+    
+    private var selectedTextFont: UIFont {
+        return Font.semibold(floor(self.fontSize * 14.0 / 17.0))
+    }
     
     public var items: [SegmentedControlItem] {
         get {
@@ -177,8 +183,9 @@ public final class SegmentedControlNode: ASDisplayNode, ASGestureRecognizerDeleg
         f(true)
     }
     
-    public init(theme: SegmentedControlTheme, items: [SegmentedControlItem], selectedIndex: Int, cornerRadius: CGFloat = 9.0) {
+    public init(theme: SegmentedControlTheme, items: [SegmentedControlItem], selectedIndex: Int, cornerRadius: CGFloat = 9.0, fontSize: CGFloat = 17.0) {
         self.theme = theme
+        self.fontSize = fontSize
         self._items = items
         self._selectedIndex = selectedIndex
         
@@ -186,6 +193,8 @@ public final class SegmentedControlNode: ASDisplayNode, ASGestureRecognizerDeleg
         self.selectionNode.displaysAsynchronously = false
         self.selectionNode.displayWithoutProcessing = true
         
+        let textFont = Font.regular(floor(fontSize * 14.0 / 17.0))
+        let selectedTextFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
         self.itemNodes = items.map { item in
             let itemNode = SegmentedControlItemNode()
             itemNode.contentEdgeInsets = UIEdgeInsets(top: 0.0, left: 8.0, bottom: 0.0, right: 8.0)
@@ -330,16 +339,30 @@ public final class SegmentedControlNode: ASDisplayNode, ASGestureRecognizerDeleg
         self.backgroundColor = self.theme.backgroundColor
         self.selectionNode.image = generateSelectionImage(theme: self.theme, cornerRadius: self.cornerRadius)
         
+        self.applyItemFonts()
+        
+        for dividerNode in self.dividerNodes {
+            dividerNode.backgroundColor = theme.dividerColor
+        }
+    }
+    
+    public func updateFontSize(_ fontSize: CGFloat) {
+        guard abs(self.fontSize - fontSize) > .ulpOfOne else {
+            return
+        }
+        self.fontSize = fontSize
+        self.applyItemFonts()
+    }
+    
+    private func applyItemFonts() {
+        let textFont = self.textFont
+        let selectedTextFont = self.selectedTextFont
         for itemNode in self.itemNodes {
             if let title = itemNode.attributedTitle(for: .normal)?.string {
                 itemNode.setTitle(title, with: textFont, with: self.theme.textColor, for: .normal)
                 itemNode.setTitle(title, with: selectedTextFont, with: self.theme.textColor, for: .selected)
                 itemNode.setTitle(title, with: selectedTextFont, with: self.theme.textColor, for: [.selected, .highlighted])
             }
-        }
-        
-        for dividerNode in self.dividerNodes {
-            dividerNode.backgroundColor = theme.dividerColor
         }
     }
     

@@ -1694,6 +1694,7 @@ final class GiftOptionsScreenComponent: Component {
                             simple: true
                         ),
                         theme: theme,
+                        fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                         items: tabSelectorItems,
                         selectedId: AnyHashable(self.starsFilter.rawValue),
                         setSelectedId: { [weak self] id in

@@ -282,7 +282,7 @@ private final class WalletImportScreenComponent: Component {
                     transition: transition,
                     component: AnyComponent(Text(
                         text: "\(self.displayNumber).",
-                        font: Font.with(size: 17.0, traits: .monospacedNumbers),
+                        font: Font.with(size: fontSize, traits: .monospacedNumbers),
                         color: .white,
                         tintColor: numberColor
                     )),
@@ -1302,7 +1302,7 @@ private final class WalletImportScreenComponent: Component {
             let strings = component.context.sharedContext.currentPresentationData.with { $0 }.strings
             HapticFeedback().error()
             let theme = component.context.sharedContext.currentPresentationData.with { $0.theme }
-            let addressFont = Font.with(size: 14.0, design: .monospace)
+            let addressFont = Font.with(size: floor((component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize) * 14.0 / 17.0), design: .monospace)
             let addressText = NSMutableAttributedString(string: "")
             var addressIndex = info.address.startIndex
             var groupIndex = 0
@@ -1855,6 +1855,7 @@ private final class WalletImportScreenComponent: Component {
                         ],
                         selectedId: AnyHashable(self.words.count),
                         fillWidth: false,
+                        fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                         action: { [weak self] id in
                             guard let count = id.base as? Int else {
                                 return

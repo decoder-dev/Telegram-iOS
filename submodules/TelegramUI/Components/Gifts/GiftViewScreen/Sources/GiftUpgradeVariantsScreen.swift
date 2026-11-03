@@ -987,6 +987,7 @@ private final class GiftUpgradeVariantsScreenComponent: Component {
                         SegmentControlComponent.Item(id: AnyHashable(SelectedSection.symbols), title: environment.strings.Gift_Variants_Symbols)
                     ],
                     selectedId: selectedId,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                     action: { [weak self] id in
                         guard let self, let component = self.component, let id = id.base as? SelectedSection else {
                             return

@@ -135,11 +135,11 @@ private final class TimerPickerItemView: UIView {
     override init(frame: CGRect) {
         self.valueLabel.backgroundColor = nil
         self.valueLabel.isOpaque = false
-        self.valueLabel.font = Font.regular(floor(self.fontSize * 24.0 / 17.0))
+        self.valueLabel.font = Font.regular(floor(17.0 * 24.0 / 17.0))
 
         self.unitLabel.backgroundColor = nil
         self.unitLabel.isOpaque = false
-        self.unitLabel.font = Font.medium(floor(self.fontSize * 16.0 / 17.0))
+        self.unitLabel.font = Font.medium(floor(17.0 * 16.0 / 17.0))
 
         super.init(frame: frame)
 

@@ -320,6 +320,7 @@ public final class AlertWebpagePreviewComponent: Component {
             let previewContent = makeAlertWebpagePreviewContent(
                 context: component.context,
                 presentationData: presentationData,
+                listsFontSize: environment.fontSize,
                 automaticDownloadSettings: controllerInteraction.automaticMediaDownloadSettings,
                 associatedData: associatedData,
                 message: message,
@@ -382,6 +383,7 @@ public final class AlertWebpagePreviewComponent: Component {
 private func makeAlertWebpagePreviewContent(
     context: AccountContext,
     presentationData: ChatPresentationData,
+    listsFontSize: CGFloat,
     automaticDownloadSettings: MediaAutoDownloadSettings,
     associatedData: ChatMessageItemAssociatedData,
     message: EngineRawMessage,
@@ -395,7 +397,7 @@ private func makeAlertWebpagePreviewContent(
     }
     
     if let title = webpage.title, !title.isEmpty {
-        result.subtitle = NSAttributedString(string: title, font: Font.semibold(15.0))
+        result.subtitle = NSAttributedString(string: title, font: Font.semibold(floor(listsFontSize * 15.0 / 17.0)))
     }
     
     if let textValue = webpage.text, !textValue.isEmpty {

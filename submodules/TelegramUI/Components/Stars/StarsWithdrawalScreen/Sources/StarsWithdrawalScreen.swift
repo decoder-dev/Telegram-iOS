@@ -338,6 +338,7 @@ private final class SheetContent: CombinedComponent {
                             font: Font.medium(floor(fontSize * 14.0 / 17.0)),
                             spacing: 10.0
                         ),
+                        fontSize: fontSize,
                         items: [
                             TabSelectorComponent.Item(
                                 id: AnyHashable(0),

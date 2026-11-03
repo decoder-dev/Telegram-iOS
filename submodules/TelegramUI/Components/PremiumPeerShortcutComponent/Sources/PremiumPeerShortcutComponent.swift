@@ -95,7 +95,7 @@ public final class PremiumPeerShortcutComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.peer.compactDisplayTitle, font: Font.medium(15.0), textColor: component.theme.list.itemPrimaryTextColor, paragraphAlignment: .left))
+                        text: .plain(NSAttributedString(string: component.peer.compactDisplayTitle, font: Font.medium(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor, paragraphAlignment: .left))
                     )
                 ),
                 environment: {},

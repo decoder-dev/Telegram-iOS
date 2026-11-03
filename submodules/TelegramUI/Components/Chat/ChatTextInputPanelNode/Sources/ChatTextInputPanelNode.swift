@@ -2688,6 +2688,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 component: AnyComponent(LiveMicrophoneButtonComponent(
                     theme: interfaceState.theme,
                     strings: interfaceState.strings,
+                    fontSize: interfaceState.fontSize.baseDisplaySize,
                     call: call
                 )),
                 environment: {},

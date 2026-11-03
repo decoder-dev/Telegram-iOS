@@ -124,11 +124,14 @@ private final class BalanceNeededSheetContentComponent: Component {
             }
             
             contentHeight += 110.0
+
+            let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: environment.strings.BalanceNeeded_FragmentTitle(formatTonAmountText(component.amount.value, dateTimeFormat: component.context.sharedContext.currentPresentationData.with({ $0 }).dateTimeFormat)).string, font: Font.bold(24.0), textColor: environment.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: environment.strings.BalanceNeeded_FragmentTitle(formatTonAmountText(component.amount.value, dateTimeFormat: presentationData.dateTimeFormat)).string, font: Font.bold(floor(fontSize * 24.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0
                 )),
@@ -147,7 +150,7 @@ private final class BalanceNeededSheetContentComponent: Component {
             let textSize = self.text.update(
                 transition: transition,
                 component: AnyComponent(BalancedTextComponent(
-                    text: .plain(NSAttributedString(string: environment.strings.BalanceNeeded_FragmentSubtitle, font: Font.regular(15.0), textColor: environment.theme.list.itemPrimaryTextColor)),
+                    text: .plain(NSAttributedString(string: environment.strings.BalanceNeeded_FragmentSubtitle, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: environment.theme.list.itemPrimaryTextColor)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0,
                     lineSpacing: 0.18

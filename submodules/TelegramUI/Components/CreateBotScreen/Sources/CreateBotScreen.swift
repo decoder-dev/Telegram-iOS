@@ -342,6 +342,7 @@ final class CreateBotContentComponent: Component {
                                 component: AnyComponent(EditLabelComponent(
                                     theme: environment.theme,
                                     strings: environment.strings,
+                                    fontSize: fontSize,
                                     action: { [weak self] in
                                         guard let self, let itemView = self.nameSection.findTaggedView(tag: self.nameInputTag) as? ListMultilineTextFieldItemComponent.View else {
                                             return
@@ -484,6 +485,7 @@ final class CreateBotContentComponent: Component {
                                 component: AnyComponent(EditLabelComponent(
                                     theme: environment.theme,
                                     strings: environment.strings,
+                                    fontSize: fontSize,
                                     action: { [weak self] in
                                         guard let self, let itemView = self.usernameSection.findTaggedView(tag: self.usernameInputTag) as? ListMultilineTextFieldItemComponent.View else {
                                             return
@@ -1095,15 +1097,18 @@ private final class ActionButtonsComponent: Component {
 private final class EditLabelComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let action: () -> Void
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: CGFloat,
         action: @escaping () -> Void
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -1112,6 +1117,9 @@ private final class EditLabelComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -1154,7 +1162,7 @@ private final class EditLabelComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.CreateBot_InputBadge, font: Font.regular(11.0), textColor: component.theme.list.itemAccentColor))
+                    text: .plain(NSAttributedString(string: component.strings.CreateBot_InputBadge, font: Font.regular(floor(component.fontSize * 11.0 / 17.0)), textColor: component.theme.list.itemAccentColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)

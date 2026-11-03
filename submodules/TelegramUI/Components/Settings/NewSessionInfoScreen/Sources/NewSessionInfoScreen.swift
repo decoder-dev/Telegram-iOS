@@ -109,7 +109,7 @@ private final class NewSessionInfoSheetContentComponent: Component {
             )))
             if self.remainingTimer > 0 {
                 buttonContents.append(AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(
-                    AnimatedTextComponent(font: Font.with(size: 17.0, weight: .semibold, traits: .monospacedNumbers), color: environment.theme.list.itemCheckColors.foregroundColor.withMultipliedAlpha(0.5), items: [
+                    AnimatedTextComponent(font: Font.with(size: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize, weight: .semibold, traits: .monospacedNumbers), color: environment.theme.list.itemCheckColors.foregroundColor.withMultipliedAlpha(0.5), items: [
                         AnimatedTextComponent.Item(id: AnyHashable(0 as Int), content: .number(self.remainingTimer, minDigits: 0))
                     ])
                 )))

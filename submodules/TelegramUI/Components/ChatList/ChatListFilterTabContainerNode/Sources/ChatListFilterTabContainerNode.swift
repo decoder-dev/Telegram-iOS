@@ -311,7 +311,7 @@ private final class ItemNode: ASDisplayNode {
         
         if unreadCount != 0 {
             if themeUpdated || unreadCountUpdated || self.badgeTextNode.attributedText == nil {
-                self.badgeTextNode.attributedText = NSAttributedString(string: "\(unreadCount)", font: Font.regular(14.0), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
+                self.badgeTextNode.attributedText = NSAttributedString(string: "\(unreadCount)", font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
             }
             
             let badgeSelectionFraction: CGFloat = unreadHasUnmuted ? 1.0 : selectionFraction

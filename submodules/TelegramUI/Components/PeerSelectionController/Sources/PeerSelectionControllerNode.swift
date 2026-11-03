@@ -1178,6 +1178,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                         )
                     },
                     selectedId: AnyHashable(self.segmentedControlSelectedIndex),
+                    fontSize: self.presentationData.listsFontSize.baseDisplaySize,
                     action: { [weak self] id in
                         guard let self, let index = id.base as? Int else {
                             return

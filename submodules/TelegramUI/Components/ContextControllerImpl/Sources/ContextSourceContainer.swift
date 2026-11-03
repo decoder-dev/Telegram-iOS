@@ -710,6 +710,7 @@ final class ContextSourceContainer: ASDisplayNode {
                         font: Font.medium(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)),
                         spacing: 9.0
                     ),
+                    fontSize: presentationData.listsFontSize.baseDisplaySize,
                     items: mappedItems,
                     selectedId: self.activeSource?.id,
                     setSelectedId: { [weak self] id in

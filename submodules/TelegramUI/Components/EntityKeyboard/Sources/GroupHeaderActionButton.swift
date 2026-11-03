@@ -83,7 +83,7 @@ final class GroupHeaderActionButton: UIButton {
         super.touchesCancelled(touches, with: event)
     }
     
-    func update(theme: PresentationTheme, title: String, compact: Bool) -> CGSize {
+    func update(theme: PresentationTheme, title: String, compact: Bool, fontSize: CGFloat) -> CGSize {
         let textConstrainedWidth: CGFloat = 100.0
         
         let needsVibrancy = !theme.overallDarkAppearance && compact
@@ -108,7 +108,7 @@ final class GroupHeaderActionButton: UIButton {
         if let currentTextLayout = self.currentTextLayout, currentTextLayout.string == title, currentTextLayout.color == foregroundColor, currentTextLayout.constrainedWidth == textConstrainedWidth {
             textSize = currentTextLayout.size
         } else {
-            let font: UIFont = compact ? Font.medium(11.0) : Font.semibold(15.0)
+            let font: UIFont = compact ? Font.medium(floor(fontSize * 11.0 / 17.0)) : Font.semibold(floor(fontSize * 15.0 / 17.0))
             let string = NSAttributedString(string: title.uppercased(), font: font, textColor: foregroundColor)
             let tintString = NSAttributedString(string: title.uppercased(), font: font, textColor: .black)
             let stringBounds = string.boundingRect(with: CGSize(width: textConstrainedWidth, height: 100.0), options: .usesLineFragmentOrigin, context: nil)

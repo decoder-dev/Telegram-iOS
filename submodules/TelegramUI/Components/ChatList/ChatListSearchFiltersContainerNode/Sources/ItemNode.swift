@@ -130,7 +130,8 @@ final class ItemNode: ASDisplayNode {
             icon = generateTintedImage(image: UIImage(bundleImageName: "Chat List/Search/Calendar"), color: color)
         }
         
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(15.0), textColor: color)
+        let fontSize = presentationData.listsFontSize.baseDisplaySize
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: color)
         
         if let titleBadge {
             let titleBadgeView: UIImageView
@@ -141,7 +142,7 @@ final class ItemNode: ASDisplayNode {
                 self.titleBadgeView = titleBadgeView
                 self.view.addSubview(titleBadgeView)
                 
-                let labelText = NSAttributedString(string: titleBadge, font: Font.medium(11.0), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
+                let labelText = NSAttributedString(string: titleBadge, font: Font.medium(floor(fontSize * 11.0 / 17.0)), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
                 let labelBounds = labelText.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: [.usesLineFragmentOrigin], context: nil)
                 let labelSize = CGSize(width: ceil(labelBounds.width), height: ceil(labelBounds.height))
                 let badgeSize = CGSize(width: labelSize.width + 8.0, height: labelSize.height + 2.0 + 1.0)

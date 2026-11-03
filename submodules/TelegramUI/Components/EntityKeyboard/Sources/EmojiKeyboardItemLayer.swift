@@ -437,7 +437,7 @@ public final class EmojiKeyboardItemLayer: MultiAnimationRenderTarget {
                         let components = string.components(separatedBy: "\n")
                         for component in components {
                             context.saveGState()
-                            let attributedString = NSAttributedString(string: component, attributes: [NSAttributedString.Key.font: Font.medium(16.0), NSAttributedString.Key.foregroundColor: color])
+                            let attributedString = NSAttributedString(string: component, attributes: [NSAttributedString.Key.font: Font.medium(floor(self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 16.0 / 17.0)), NSAttributedString.Key.foregroundColor: color])
                             
                             let line = CTLineCreateWithAttributedString(attributedString)
                             let lineBounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)

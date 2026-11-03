@@ -300,20 +300,21 @@ private final class MessageShotScreenNode: ASDisplayNode {
 
     private func updatePanel(layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) -> CGFloat {
         let theme = self.presentationData.theme
+        let listsFontSizeBase = self.presentationData.listsFontSize.baseDisplaySize
         let sideInset: CGFloat = 16.0 + layout.safeInsets.left
         let availableWidth = layout.size.width - sideInset * 2.0
 
         var y: CGFloat = 12.0
-        let wallpaperSize = self.wallpaperChipNode.update(title: messageShotText("Обои", "Wallpaper"), isSelected: self.showWallpaper, isAction: false, width: nil, theme: theme)
-        let darkSize = self.darkChipNode.update(title: messageShotText("Тёмная тема", "Dark theme"), isSelected: self.darkTheme, isAction: false, width: nil, theme: theme)
+        let wallpaperSize = self.wallpaperChipNode.update(title: messageShotText("Обои", "Wallpaper"), isSelected: self.showWallpaper, isAction: false, width: nil, theme: theme, listsFontSizeBase: listsFontSizeBase)
+        let darkSize = self.darkChipNode.update(title: messageShotText("Тёмная тема", "Dark theme"), isSelected: self.darkTheme, isAction: false, width: nil, theme: theme, listsFontSizeBase: listsFontSizeBase)
         transition.updateFrame(node: self.wallpaperChipNode, frame: CGRect(origin: CGPoint(x: sideInset, y: y), size: wallpaperSize))
         transition.updateFrame(node: self.darkChipNode, frame: CGRect(origin: CGPoint(x: sideInset + wallpaperSize.width + 8.0, y: y), size: darkSize))
         y += wallpaperSize.height + 16.0
 
         let spacing: CGFloat = 8.0
         let actionWidth = floor((availableWidth - spacing) / 2.0)
-        let shareSize = self.shareNode.update(title: messageShotText("Поделиться", "Share"), isSelected: true, isAction: true, width: actionWidth, theme: theme)
-        let saveSize = self.saveNode.update(title: messageShotText("В Фото", "Save to Photos"), isSelected: false, isAction: true, width: actionWidth, theme: theme)
+        let shareSize = self.shareNode.update(title: messageShotText("Поделиться", "Share"), isSelected: true, isAction: true, width: actionWidth, theme: theme, listsFontSizeBase: listsFontSizeBase)
+        let saveSize = self.saveNode.update(title: messageShotText("В Фото", "Save to Photos"), isSelected: false, isAction: true, width: actionWidth, theme: theme, listsFontSizeBase: listsFontSizeBase)
         transition.updateFrame(node: self.shareNode, frame: CGRect(origin: CGPoint(x: sideInset, y: y), size: shareSize))
         transition.updateFrame(node: self.saveNode, frame: CGRect(origin: CGPoint(x: sideInset + actionWidth + spacing, y: y), size: saveSize))
         y += shareSize.height + 12.0

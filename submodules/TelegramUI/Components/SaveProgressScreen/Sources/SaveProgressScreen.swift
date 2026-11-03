@@ -222,7 +222,7 @@ private final class BannerComponent: Component {
             let textSize = self.text.update(
                 transition: transition,
                 component: AnyComponent(
-                    Text(text: component.text, font: Font.regular(14.0), color: .white)
+                    Text(text: component.text, font: Font.regular(floor(component.listsFontSizeBase * 14.0 / 17.0)), color: .white)
                 ),
                 environment: {},
                 containerSize: CGSize(width: 200.0, height: height)
@@ -345,12 +345,13 @@ public final class SaveProgressScreenComponent: Component {
         
             let cornerRadius: CGFloat
             let content: AnyComponent<Empty>
+            let listsFontSizeBase = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             switch component.content {
             case let .progress(title, progress):
-                content = AnyComponent(ProgressComponent(title: title, value: progress, cancel: component.cancel))
+                content = AnyComponent(ProgressComponent(title: title, value: progress, listsFontSizeBase: listsFontSizeBase, cancel: component.cancel))
                 cornerRadius = 18.0
             case let .completion(text):
-                content = AnyComponent(BannerComponent(iconName: "anim_savemedia", text: text))
+                content = AnyComponent(BannerComponent(iconName: "anim_savemedia", text: text, listsFontSizeBase: listsFontSizeBase))
                 cornerRadius = 9.0
             }
             

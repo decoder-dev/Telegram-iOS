@@ -413,6 +413,7 @@ public final class StreamAsComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
+            let fontSize = presentationData.listsFontSize.baseDisplaySize
             let avatarSize = CGSize(width: 32.0, height: 32.0)
             self.avatarNode.frame = CGRect(origin: .zero, size: avatarSize)
             if let peer = self.peer {
@@ -428,7 +429,7 @@ public final class StreamAsComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: self.peer?.compactDisplayTitle ?? "", font: Font.semibold(14.0), textColor: .white, paragraphAlignment: .left))
+                        text: .plain(NSAttributedString(string: self.peer?.compactDisplayTitle ?? "", font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: .white, paragraphAlignment: .left))
                     )
                 ),
                 environment: {},
@@ -448,7 +449,7 @@ public final class StreamAsComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: presentationData.strings.Camera_LiveStream_Change, font: Font.regular(11.0), textColor: UIColor(white: 1.0, alpha: 0.8), paragraphAlignment: .left))
+                            text: .plain(NSAttributedString(string: presentationData.strings.Camera_LiveStream_Change, font: Font.regular(floor(fontSize * 11.0 / 17.0)), textColor: UIColor(white: 1.0, alpha: 0.8), paragraphAlignment: .left))
                         )
                     ),
                     environment: {},

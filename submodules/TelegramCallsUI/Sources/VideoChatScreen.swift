@@ -3204,6 +3204,7 @@ final class VideoChatScreenComponent: Component {
                     content: micButtonContent,
                     isCollapsed: areButtonsActuallyCollapsed || buttonsOnTheSide,
                     isCompact: true,
+                    fontSize: environment.presentationData.listsFontSize.baseDisplaySize,
                     updateUnmutedStateIsPushToTalk: { [weak self] unmutedStateIsPushToTalk in
                         guard let self, let currentCall = self.currentCall else {
                             return

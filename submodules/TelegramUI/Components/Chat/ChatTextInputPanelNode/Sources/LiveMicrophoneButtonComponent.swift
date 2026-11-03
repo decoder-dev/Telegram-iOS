@@ -11,15 +11,18 @@ import AccountContext
 final class LiveMicrophoneButtonComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let call: AnyObject?
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: CGFloat,
         call: AnyObject?
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.call = call
     }
     
@@ -28,6 +31,9 @@ final class LiveMicrophoneButtonComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.call !== rhs.call {
@@ -132,6 +138,7 @@ final class LiveMicrophoneButtonComponent: Component {
                     content: micButtonContent,
                     isCollapsed: true,
                     isCompact: true,
+                    fontSize: component.fontSize,
                     customIconScale: 0.45,
                     updateUnmutedStateIsPushToTalk: { [weak self] unmutedStateIsPushToTalk in
                         guard let self, let component = self.component, let call = component.call as? PresentationGroupCall else {

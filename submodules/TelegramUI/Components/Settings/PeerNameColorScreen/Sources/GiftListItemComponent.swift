@@ -252,6 +252,7 @@ final class GiftListItemComponent: Component {
                         font: Font.medium(floor(fontSize * 14.0 / 17.0)),
                         spacing: 2.0
                     ),
+                    fontSize: fontSize,
                     items: tabSelectorItems,
                     selectedId: AnyHashable(self.selectedGiftId),
                     reorderItem: nil,

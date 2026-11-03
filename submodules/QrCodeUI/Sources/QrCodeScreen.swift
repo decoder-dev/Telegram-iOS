@@ -233,6 +233,7 @@ private final class SheetContent: CombinedComponent {
                             SegmentControlComponent.Item(id: AnyHashable(true), title: strings.SocksProxySetup_QrCode_TMeLink)
                         ],
                         selectedId: AnyHashable(state.selectedProxyExternalLink),
+                        fontSize: component.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                         action: { id in
                             guard let externalLink = id.base as? Bool else {
                                 return

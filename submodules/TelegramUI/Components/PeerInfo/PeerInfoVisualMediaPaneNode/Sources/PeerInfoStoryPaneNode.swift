@@ -4131,6 +4131,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
                     verticalInset: 11.0,
                     height: 44.0 - 5.0 * 2.0
                 ),
+                fontSize: self.presentationData.listsFontSize.baseDisplaySize,
                 items: folderItems,
                 selectedId: selectedId,
                 reorderItem: self.isReordering ? { [weak self] fromId, toId in

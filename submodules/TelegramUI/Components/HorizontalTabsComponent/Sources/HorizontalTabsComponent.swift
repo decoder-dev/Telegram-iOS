@@ -3,6 +3,7 @@ import UIKit
 import Display
 import ComponentFlow
 import TelegramPresentationData
+import TelegramUIPreferences
 import AccountContext
 import TelegramCore
 import MultilineTextWithEntitiesComponent
@@ -292,6 +293,7 @@ public final class HorizontalTabsComponent: Component {
     public let isEditing: Bool
     public let layout: Layout
     public let liftWhileSwitching: Bool
+    public let listsFontSizeBase: CGFloat
     
     public init(
         context: AccountContext?,
@@ -300,7 +302,8 @@ public final class HorizontalTabsComponent: Component {
         selectedTab: Tab.Id?,
         isEditing: Bool,
         layout: Layout = .fill,
-        liftWhileSwitching: Bool = true
+        liftWhileSwitching: Bool = true,
+        listsFontSizeBase: CGFloat
     ) {
         self.context = context
         self.theme = theme
@@ -309,6 +312,7 @@ public final class HorizontalTabsComponent: Component {
         self.isEditing = isEditing
         self.layout = layout
         self.liftWhileSwitching = liftWhileSwitching
+        self.listsFontSizeBase = listsFontSizeBase
     }
     
     public static func ==(lhs: HorizontalTabsComponent, rhs: HorizontalTabsComponent) -> Bool {
@@ -322,6 +326,9 @@ public final class HorizontalTabsComponent: Component {
             return false
         }
         if lhs.isEditing != rhs.isEditing {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         if lhs.layout != rhs.layout {
@@ -793,7 +800,6 @@ public final class HorizontalTabsComponent: Component {
                 if component.isEditing {
                     itemEditing = ItemComponent.Editing(isEditable: true)
                 }
-                
                 let itemSize = itemView.regularView.update(
                     transition: itemTransition,
                     component: AnyComponent(ItemComponent(
@@ -801,7 +807,8 @@ public final class HorizontalTabsComponent: Component {
                         theme: component.theme,
                         tab: tab,
                         isSelected: false,
-                        editing: itemEditing
+                        editing: itemEditing,
+                        listsFontSizeBase: component.listsFontSizeBase
                     )),
                     environment: {},
                     containerSize: CGSize(width: 1000.0, height: sizeHeight - lensInset * 2.0)
@@ -813,7 +820,8 @@ public final class HorizontalTabsComponent: Component {
                         theme: component.theme,
                         tab: tab,
                         isSelected: true,
-                        editing: itemEditing
+                        editing: itemEditing,
+                        listsFontSizeBase: component.listsFontSizeBase
                     )),
                     environment: {},
                     containerSize: CGSize(width: 1000.0, height: sizeHeight - lensInset * 2.0)
@@ -1037,13 +1045,15 @@ private final class ItemComponent: Component {
     let tab: HorizontalTabsComponent.Tab
     let isSelected: Bool
     let editing: Editing?
+    let listsFontSizeBase: CGFloat
     
-    init(context: AccountContext?, theme: PresentationTheme, tab: HorizontalTabsComponent.Tab, isSelected: Bool, editing: Editing?) {
+    init(context: AccountContext?, theme: PresentationTheme, tab: HorizontalTabsComponent.Tab, isSelected: Bool, editing: Editing?, listsFontSizeBase: CGFloat) {
         self.context = context
         self.theme = theme
         self.tab = tab
         self.isSelected = isSelected
         self.editing = editing
+        self.listsFontSizeBase = listsFontSizeBase
     }
     
     static func ==(lhs: ItemComponent, rhs: ItemComponent) -> Bool {
@@ -1057,6 +1067,9 @@ private final class ItemComponent: Component {
             return false
         }
         if lhs.editing != rhs.editing {
+            return false
+        }
+        if lhs.listsFontSizeBase != rhs.listsFontSizeBase {
             return false
         }
         return true
@@ -1206,8 +1219,7 @@ private final class ItemComponent: Component {
                     self.titleContent = titleContent
                 }
                 
-                let fontSize = component.context?.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize ?? 17.0
-                let font = Font.medium(floor(fontSize * 15.0 / 17.0))
+                let font = Font.medium(floor(component.listsFontSizeBase * 15.0 / 17.0))
                 
                 let rawAttributedString = ChatTextInputStateText(text: title.text, attributes: title.entities.compactMap { entity -> ChatTextInputStateTextAttribute? in
                     if case let .CustomEmoji(_, fileId) = entity.type {
@@ -1282,7 +1294,7 @@ private final class ItemComponent: Component {
                     transition: badgeTransition,
                     component: AnyComponent(TextBadgeComponent(
                         text: badgeData.title,
-                        font: Font.medium(floor((component.context?.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize ?? 17.0) * 12.0 / 17.0)),
+                        font: Font.medium(floor(component.listsFontSizeBase * 12.0 / 17.0)),
                         background: badgeData.isAccent ? component.theme.list.itemCheckColors.fillColor : component.theme.chatList.unreadBadgeInactiveBackgroundColor,
                         foreground: component.theme.list.itemCheckColors.foregroundColor,
                         insets: UIEdgeInsets(top: 1.0, left: 5.0, bottom: 2.0, right: 5.0)

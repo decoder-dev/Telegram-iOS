@@ -845,7 +845,7 @@ public final class ChatTitleComponent: Component {
                 inputActivitiesAllowed = false
             }
             
-            let subtitleFont = Font.regular(12.0)
+            let subtitleFont = Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 12.0 / 17.0))
             var state: ChatTitleActivityNodeState = .none
             switch component.networkState {
             case .waitingForNetwork, .connecting, .updating:

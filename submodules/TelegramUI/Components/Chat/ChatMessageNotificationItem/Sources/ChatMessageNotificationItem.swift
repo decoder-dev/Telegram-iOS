@@ -354,7 +354,8 @@ final class ChatMessageNotificationItemNode: NotificationItemNode {
             }
         }
                 
-        let textFont = compact ? Font.regular(15.0) : Font.regular(16.0)
+        let listsFontSizeBase = presentationData.listsFontSize.baseDisplaySize
+        let textFont = compact ? Font.regular(floor(listsFontSizeBase * 15.0 / 17.0)) : Font.regular(floor(listsFontSizeBase * 16.0 / 17.0))
         let textColor = presentationData.theme.inAppNotification.primaryTextColor
         var attributedMessageText: NSAttributedString
         
@@ -403,7 +404,7 @@ final class ChatMessageNotificationItemNode: NotificationItemNode {
             attributedMessageText = NSAttributedString(string: messageText.replacingOccurrences(of: "\n\n", with: " "), font: textFont, textColor: textColor)
         }
                 
-        self.titleAttributedText = NSAttributedString(string: title ?? "", font: compact ? Font.semibold(15.0) : Font.semibold(16.0), textColor: presentationData.theme.inAppNotification.primaryTextColor)
+        self.titleAttributedText = NSAttributedString(string: title ?? "", font: compact ? Font.semibold(floor(listsFontSizeBase * 15.0 / 17.0)) : Font.semibold(floor(listsFontSizeBase * 16.0 / 17.0)), textColor: presentationData.theme.inAppNotification.primaryTextColor)
         
         let imageNodeLayout = self.imageNode.asyncLayout()
         var applyImage: (() -> Void)?

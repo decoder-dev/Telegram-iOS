@@ -133,7 +133,8 @@ final class GroupHeaderLayer: UIView {
                 self.tintContentLayer.addSublayer(actionButton.tintContainerLayer)
             }
             
-            actionButtonSize = actionButton.update(theme: theme, title: actionButtonTitle, compact: actionButtonIsCompact)
+            let actionButtonFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            actionButtonSize = actionButton.update(theme: theme, title: actionButtonTitle, compact: actionButtonIsCompact, fontSize: actionButtonFontSize)
         } else {
             if let actionButton = self.actionButton {
                 self.actionButton = nil

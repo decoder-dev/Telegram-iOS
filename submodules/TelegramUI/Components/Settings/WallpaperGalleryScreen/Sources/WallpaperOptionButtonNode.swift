@@ -291,8 +291,8 @@ public final class WallpaperOptionButtonNode: HighlightTrackingButtonNode {
     
     public init(title: String, value: WallpaperOptionButtonValue, fontSize: CGFloat) {
         self._value = value
-        self.title = title
         self.fontSize = fontSize
+        self.title = title
         
         self.backgroundNode = WallpaperOptionBackgroundNode()
         

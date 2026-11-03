@@ -229,7 +229,9 @@ private struct Month: Equatable {
     }
 }
 
-private let durationFont = Font.semibold(11.0)
+private func durationFont(fontSize: CGFloat) -> UIFont {
+    Font.semibold(floor(fontSize * 11.0 / 17.0))
+}
 private let minDurationImage: UIImage = {
     let image = generateImage(CGSize(width: 20.0, height: 20.0), rotatedContext: { size, context in
         context.clear(CGRect(origin: CGPoint(), size: size))
@@ -272,11 +274,11 @@ private final class DurationLayer: CALayer {
         return nullAction
     }
 
-    func update(duration: Int32, isMin: Bool) {
+    func update(duration: Int32, isMin: Bool, fontSize: CGFloat) {
         if isMin {
             self.contents = minDurationImage.cgImage
         } else {
-            let string = NSAttributedString(string: stringForDuration(duration), font: durationFont, textColor: .white)
+            let string = NSAttributedString(string: stringForDuration(duration), font: durationFont(fontSize: fontSize), textColor: .white)
             let bounds = string.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
             let textSize = CGSize(width: ceil(bounds.width), height: ceil(bounds.height))
             let sideInset: CGFloat = 6.0
@@ -307,7 +309,7 @@ private protocol ItemLayer: SparseItemGridLayer {
     var hasContents: Bool { get set }
     func setSpoilerContents(_ contents: Any?)
     
-    func updateDuration(duration: Int32?, isLivePhoto: Bool, isMin: Bool, minFactor: CGFloat)
+    func updateDuration(duration: Int32?, isLivePhoto: Bool, isMin: Bool, minFactor: CGFloat, fontSize: CGFloat)
     func updateSelection(theme: CheckNodeTheme, isSelected: Bool?, animated: Bool)
     func updateHasSpoiler(hasSpoiler: Bool)
     
@@ -369,7 +371,7 @@ private final class GenericItemLayer: CALayer, ItemLayer {
         self.item = item
     }
 
-    func updateDuration(duration: Int32?, isLivePhoto: Bool, isMin: Bool, minFactor: CGFloat) {
+    func updateDuration(duration: Int32?, isLivePhoto: Bool, isMin: Bool, minFactor: CGFloat, fontSize: CGFloat) {
         self.minFactor = minFactor
 
         if isLivePhoto && !isMin {
@@ -392,10 +394,10 @@ private final class GenericItemLayer: CALayer, ItemLayer {
         
         if let duration {
             if let durationLayer = self.durationLayer {
-                durationLayer.update(duration: duration, isMin: isMin)
+                durationLayer.update(duration: duration, isMin: isMin, fontSize: fontSize)
             } else {
                 let durationLayer = DurationLayer()
-                durationLayer.update(duration: duration, isMin: isMin)
+                durationLayer.update(duration: duration, isMin: isMin, fontSize: fontSize)
                 self.addSublayer(durationLayer)
                 durationLayer.frame = CGRect(origin: CGPoint(x: self.bounds.width - 3.0, y: self.bounds.height - 3.0), size: CGSize())
                 durationLayer.transform = CATransform3DMakeScale(minFactor, minFactor, 1.0)
@@ -673,6 +675,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding, ListShimme
     let chatControllerInteraction: ChatControllerInteraction
     var chatPresentationData: ChatPresentationData
     var checkNodeTheme: CheckNodeTheme
+    var listsFontSizeBase: CGFloat
 
     var loadHoleImpl: ((SparseItemGrid.HoleAnchor, SparseItemGrid.HoleLocation) -> Signal<Never, NoError>)?
     var onTapImpl: ((VisualMediaItem) -> Void)?
@@ -700,6 +703,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding, ListShimme
 
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
         self.strings = presentationData.strings
+        self.listsFontSizeBase = presentationData.listsFontSize.baseDisplaySize
 
         let themeData = ChatPresentationThemeData(theme: presentationData.theme, wallpaper: presentationData.chatWallpaper)
         self.chatPresentationData = ChatPresentationData(theme: themeData, fontSize: presentationData.chatFontSize, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat, nameDisplayOrder: presentationData.nameDisplayOrder, disableAnimations: true, largeEmoji: presentationData.largeEmoji, chatBubbleCorners: presentationData.chatBubbleCorners, animatedEmojiScale: 1.0)
@@ -709,6 +713,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding, ListShimme
 
     func updatePresentationData(presentationData: PresentationData) {
         self.strings = presentationData.strings
+        self.listsFontSizeBase = presentationData.listsFontSize.baseDisplaySize
 
         let themeData = ChatPresentationThemeData(theme: presentationData.theme, wallpaper: presentationData.chatWallpaper)
         self.chatPresentationData = ChatPresentationData(theme: themeData, fontSize: presentationData.chatFontSize, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat, nameDisplayOrder: presentationData.nameDisplayOrder, disableAnimations: true, largeEmoji: presentationData.largeEmoji, chatBubbleCorners: presentationData.chatBubbleCorners, animatedEmojiScale: 1.0)
@@ -997,7 +1002,7 @@ private final class SparseItemGridBindingImpl: SparseItemGridBinding, ListShimme
                         duration = file.duration.flatMap { Int32(floor($0)) }
                         isMin = layer.bounds.width < 80.0
                     }
-                    layer.updateDuration(duration: duration, isLivePhoto: isLivePhoto, isMin: isMin, minFactor: min(1.0, layer.bounds.height / 74.0))
+                    layer.updateDuration(duration: duration, isLivePhoto: isLivePhoto, isMin: isMin, minFactor: min(1.0, layer.bounds.height / 74.0), fontSize: self.listsFontSizeBase)
                 }
 
                 if let selectionState = self.chatControllerInteraction.selectionState {

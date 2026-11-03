@@ -224,7 +224,7 @@ final class StoryPreviewComponent: Component {
                 transition: transition,
                 component: AnyComponent(Text(
                     text: presentationData.strings.Story_HeaderYourStory,
-                    font: Font.medium(14.0),
+                    font: Font.medium(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)),
                     color: .white
                 )),
                 environment: {},

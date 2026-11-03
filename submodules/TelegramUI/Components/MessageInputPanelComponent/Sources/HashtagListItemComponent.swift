@@ -329,8 +329,9 @@ public final class HashtagListItemComponent: Component {
             }
             
             let height: CGFloat = 42.0
-            let titleFont: UIFont = Font.semibold(14.0)
-            let subtitleFont: UIFont = Font.regular(14.0)
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let titleFont: UIFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
+            let subtitleFont: UIFont = Font.regular(floor(fontSize * 14.0 / 17.0))
           
             let verticalInset: CGFloat = 1.0
             let leftInset: CGFloat = 55.0

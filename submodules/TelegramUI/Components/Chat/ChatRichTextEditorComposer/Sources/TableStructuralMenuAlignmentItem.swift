@@ -95,7 +95,7 @@ private final class TableStructuralMenuAlignmentItemNode: ASDisplayNode, Context
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: self.presentationData.strings.RichText_TableMenu_Alignment, font: Font.regular(13.0), textColor: self.presentationData.theme.contextMenu.secondaryColor))
+                    text: .plain(NSAttributedString(string: self.presentationData.strings.RichText_TableMenu_Alignment, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: self.presentationData.theme.contextMenu.secondaryColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 1000.0, height: 100.0)

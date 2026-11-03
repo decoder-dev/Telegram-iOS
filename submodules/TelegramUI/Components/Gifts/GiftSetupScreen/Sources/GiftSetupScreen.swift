@@ -2005,7 +2005,7 @@ private final class GiftSetupScreenComponent: Component {
                         }
                         
                         buttonTitleItems.append(AnyComponentWithIdentity(id: "timer", component: AnyComponent(AnimatedTextComponent(
-                            font: Font.with(size: 12.0, weight: .medium, traits: .monospacedNumbers),
+                            font: Font.with(size: floor(presentationData.listsFontSize.baseDisplaySize * 12.0 / 17.0), weight: .medium, traits: .monospacedNumbers),
                             color: environment.theme.list.itemCheckColors.foregroundColor.withAlphaComponent(0.7),
                             items: buttonAnimatedTitleItems,
                             noDelay: true

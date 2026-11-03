@@ -37,7 +37,7 @@ final class ContextMenuActionNode: ASDisplayNode {
             let textNode = ImmediateTextNode()
             textNode.isUserInteractionEnabled = false
             textNode.displaysAsynchronously = false
-            textNode.attributedText = NSAttributedString(string: title, font: Font.regular(14.0), textColor: isDark ? .white : .black)
+            textNode.attributedText = NSAttributedString(string: title, font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: isDark ? .white : .black)
             textNode.isAccessibilityElement = false
             
             self.textNode = textNode
@@ -67,7 +67,7 @@ final class ContextMenuActionNode: ASDisplayNode {
             let subtitleNode = ImmediateTextNode()
             subtitleNode.isUserInteractionEnabled = false
             subtitleNode.displaysAsynchronously = false
-            subtitleNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(12.0), textColor: (isDark ? UIColor.white : UIColor.black).withAlphaComponent(0.5))
+            subtitleNode.attributedText = NSAttributedString(string: subtitle, font: Font.regular(floor(fontSize * 12.0 / 17.0)), textColor: (isDark ? UIColor.white : UIColor.black).withAlphaComponent(0.5))
             subtitleNode.isAccessibilityElement = false
             
             let iconView = UIImageView()

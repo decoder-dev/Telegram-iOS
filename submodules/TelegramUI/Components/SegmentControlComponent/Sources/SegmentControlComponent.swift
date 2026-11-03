@@ -81,7 +81,7 @@ public final class SegmentControlComponent: Component {
         items: [Item],
         selectedId: AnyHashable?,
         fillWidth: Bool = false,
-        fontSize: CGFloat = 17.0,
+        fontSize: CGFloat,
         action: @escaping (AnyHashable) -> Void
     ) {
         self.theme = theme
@@ -97,7 +97,7 @@ public final class SegmentControlComponent: Component {
         items: [Item],
         selectedId: AnyHashable?,
         fillWidth: Bool = false,
-        fontSize: CGFloat = 17.0,
+        fontSize: CGFloat,
         action: @escaping (AnyHashable) -> Void
     ) {
         self.init(

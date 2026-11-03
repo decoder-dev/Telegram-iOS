@@ -23,6 +23,7 @@ enum GroupStickerPackCurrentItemContent: Equatable {
 final class GroupStickerPackCurrentItem: ListViewItem, ItemListItem {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let systemStyle: ItemListSystemStyle
     let account: Account
     let content: GroupStickerPackCurrentItemContent
@@ -30,9 +31,10 @@ final class GroupStickerPackCurrentItem: ListViewItem, ItemListItem {
     let action: (() -> Void)?
     let remove: (() -> Void)?
     
-    init(theme: PresentationTheme, strings: PresentationStrings, systemStyle: ItemListSystemStyle = .legacy, account: Account, content: GroupStickerPackCurrentItemContent, sectionId: ItemListSectionId, action: (() -> Void)?, remove: (() -> Void)?) {
+    init(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat, systemStyle: ItemListSystemStyle = .legacy, account: Account, content: GroupStickerPackCurrentItemContent, sectionId: ItemListSectionId, action: (() -> Void)?, remove: (() -> Void)?) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.systemStyle = systemStyle
         self.account = account
         self.content = content
@@ -86,9 +88,6 @@ final class GroupStickerPackCurrentItem: ListViewItem, ItemListItem {
         self.action?()
     }
 }
-
-private let titleFont = Font.bold(15.0)
-private let statusFont = Font.regular(14.0)
 
 class GroupStickerPackCurrentItemNode: ItemListRevealOptionsItemNode {
     private let backgroundNode: ASDisplayNode
@@ -270,6 +269,9 @@ class GroupStickerPackCurrentItemNode: ItemListRevealOptionsItemNode {
             if let currentItem = currentItem, case let .found(_, topItem, _) = currentItem.content {
                 previousFile = topItem?.file._parse()
             }
+            
+            let titleFont = Font.bold(floor(item.fontSize * 15.0 / 17.0))
+            let statusFont = Font.regular(floor(item.fontSize * 14.0 / 17.0))
             
             switch item.content {
                 case let .notFound(isEmoji):

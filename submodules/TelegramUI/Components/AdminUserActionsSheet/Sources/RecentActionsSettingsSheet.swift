@@ -283,6 +283,7 @@ private final class RecentActionsSettingsContentComponent: Component {
                     ))),
                     AnyComponentWithIdentity(id: 1, component: AnyComponent(MediaSectionExpandIndicatorComponent(
                         theme: theme,
+                        fontSize: presentationData.listsFontSize.baseDisplaySize,
                         title: "\(selectedCount)/\(totalCount)",
                         isExpanded: isExpanded
                     )))
@@ -890,21 +891,27 @@ public class RecentActionsSettingsSheet: ViewControllerComponentContainer {
 
 private final class MediaSectionExpandIndicatorComponent: Component {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let title: String
     let isExpanded: Bool
     
     init(
         theme: PresentationTheme,
+        fontSize: CGFloat,
         title: String,
         isExpanded: Bool
     ) {
         self.theme = theme
+        self.fontSize = fontSize
         self.title = title
         self.isExpanded = isExpanded
     }
     
     static func ==(lhs: MediaSectionExpandIndicatorComponent, rhs: MediaSectionExpandIndicatorComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.title != rhs.title {
@@ -944,7 +951,7 @@ private final class MediaSectionExpandIndicatorComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(13.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(floor(component.fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 100.0, height: 100.0)

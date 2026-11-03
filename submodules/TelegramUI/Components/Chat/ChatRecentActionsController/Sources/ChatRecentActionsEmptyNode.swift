@@ -7,9 +7,6 @@ import TelegramPresentationData
 import WallpaperBackgroundNode
 import ChatPresentationInterfaceState
 
-private let titleFont = Font.semibold(15.0)
-private let textFont = Font.regular(13.0)
-
 public final class ChatRecentActionsEmptyNode: ASDisplayNode {
     private var theme: PresentationTheme
     private var chatWallpaper: TelegramWallpaper
@@ -80,6 +77,9 @@ public final class ChatRecentActionsEmptyNode: ASDisplayNode {
         let makeTextLayout = TextNode.asyncLayout(self.textNode)
         
         let serviceColor = serviceMessageColorComponents(theme: self.theme, wallpaper: self.chatWallpaper)
+        let baseDisplaySize = presentationData.fontSize.baseDisplaySize
+        let titleFont = Font.semibold(floor(baseDisplaySize * 15.0 / 17.0))
+        let textFont = Font.regular(floor(baseDisplaySize * 13.0 / 17.0))
         
         let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: self.title, font: titleFont, textColor: serviceColor.primaryText), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: maxTextWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .center, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
         let spacing: CGFloat = titleLayout.size.height.isZero ? 0.0 : 7.0

@@ -782,7 +782,7 @@ private final class ActiveAuctionComponent: Component {
                                 )),
                                 AnyComponentWithIdentity(id: "timer", component: AnyComponent(
                                     AnimatedTextComponent(
-                                        font: Font.with(size: 17.0, weight: .medium, traits: .monospacedNumbers),
+                                        font: Font.with(size: fontSize, weight: .medium, traits: .monospacedNumbers),
                                         color: component.theme.list.itemCheckColors.foregroundColor.withAlphaComponent(0.7),
                                         items: buttonAnimatedTitleItems,
                                         noDelay: true

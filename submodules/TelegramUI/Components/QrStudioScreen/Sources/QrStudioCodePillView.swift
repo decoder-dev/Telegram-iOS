@@ -255,7 +255,7 @@ final class QrStudioCodePillView: UIView {
     private var lastShapeTick: Double = -1.0
     private var isPressed = false
     private var pillWidth: CGFloat = 0.0
-    private var fontSize: CGFloat = 17.0
+    private var fontSize: CGFloat?
 
     private static let heatLevels = 3
     private static let alphaLevels = 5
@@ -422,11 +422,11 @@ final class QrStudioCodePillView: UIView {
     }
 
     private func updateLabels(at time: Double, size: CGSize, transition: ComponentTransition) {
-        guard let content = self.labelContent(at: time) else {
+        guard let content = self.labelContent(at: time), let fontSize = self.fontSize else {
             return
         }
-        self.glyphLabel.update(content: content, color: self.glyphColor, size: size, transition: transition)
-        self.inkLabel.update(content: content, color: self.inkLabelColor, size: size, transition: transition)
+        self.glyphLabel.update(content: content, color: self.glyphColor, fontSize: fontSize, size: size, transition: transition)
+        self.inkLabel.update(content: content, color: self.inkLabelColor, fontSize: fontSize, size: size, transition: transition)
     }
 
     private(set) var isTaken = false
@@ -446,7 +446,7 @@ final class QrStudioCodePillView: UIView {
         })
     }
 
-    func update(state: QrStudioCodeState, price: Int64, ink: QrStudioColor, isLight: Bool, glassTint: GlassBackgroundView.TintColor, texts: Texts, transition: ComponentTransition) -> CGSize {
+    func update(state: QrStudioCodeState, price: Int64, ink: QrStudioColor, isLight: Bool, glassTint: GlassBackgroundView.TintColor, texts: Texts, fontSize: CGFloat, transition: ComponentTransition) -> CGSize {
         let previousState = self.state
         let colorsChanged = self.appliedSizeOnce && (self.isLight != isLight || self.ink != ink)
         if self.appliedSizeOnce && self.isLight != isLight && !transition.animation.isImmediate {
@@ -457,9 +457,10 @@ final class QrStudioCodePillView: UIView {
         self.ink = ink
         self.isLight = isLight
         self.texts = texts
+        self.fontSize = fontSize
 
         let time = QrStudioClock.now
-        let contentWidth = self.labelContent(at: time).map(QrStudioPillLabelView.width) ?? 0.0
+        let contentWidth = self.labelContent(at: time).map { QrStudioPillLabelView.width($0, fontSize: fontSize) } ?? 0.0
         let size = CGSize(width: ceil(contentWidth) + QrStudioPillLabelView.padding * 2.0, height: QrStudioCodePillView.height)
         self.pillWidth = size.width
 

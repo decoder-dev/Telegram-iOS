@@ -164,7 +164,7 @@ public final class TabSelectorComponent: Component {
         theme: PresentationTheme,
         style: Style = .legacy,
         customLayout: CustomLayout? = nil,
-        fontSize: CGFloat = 17.0,
+        fontSize: CGFloat,
         items: [Item],
         selectedId: AnyHashable?,
         reorderItem: ((AnyHashable, AnyHashable) -> Void)? = nil,

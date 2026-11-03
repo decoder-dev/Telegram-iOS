@@ -223,6 +223,7 @@ public final class VideoChatMicButtonComponent: Component {
     let content: Content
     let isCollapsed: Bool
     let isCompact: Bool
+    let fontSize: CGFloat
     let customIconScale: CGFloat?
     let updateUnmutedStateIsPushToTalk: (Bool?) -> Void
     let raiseHand: () -> Void
@@ -234,6 +235,7 @@ public final class VideoChatMicButtonComponent: Component {
         content: Content,
         isCollapsed: Bool,
         isCompact: Bool,
+        fontSize: CGFloat,
         customIconScale: CGFloat? = nil,
         updateUnmutedStateIsPushToTalk: @escaping (Bool?) -> Void,
         raiseHand: @escaping () -> Void,
@@ -244,6 +246,7 @@ public final class VideoChatMicButtonComponent: Component {
         self.content = content
         self.isCollapsed = isCollapsed
         self.isCompact = isCompact
+        self.fontSize = fontSize
         self.customIconScale = customIconScale
         self.updateUnmutedStateIsPushToTalk = updateUnmutedStateIsPushToTalk
         self.raiseHand = raiseHand
@@ -261,6 +264,9 @@ public final class VideoChatMicButtonComponent: Component {
             return false
         }
         if lhs.isCompact != rhs.isCompact {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.customIconScale != rhs.customIconScale {
@@ -428,7 +434,7 @@ public final class VideoChatMicButtonComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleText, font: Font.regular(13.0), textColor: .white))
+                    text: .plain(NSAttributedString(string: titleText, font: Font.regular(floor(component.fontSize * 13.0 / 17.0)), textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: 180.0, height: 100.0)
@@ -581,7 +587,7 @@ public final class VideoChatMicButtonComponent: Component {
                 let subtitleSize = subtitle.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(13.0), textColor: .white))
+                        text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(floor(component.fontSize * 13.0 / 17.0)), textColor: .white))
                     )),
                     environment: {},
                     containerSize: CGSize(width: 180.0, height: 100.0)

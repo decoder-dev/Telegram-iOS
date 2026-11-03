@@ -190,11 +190,12 @@ public final class ChatNewThreadInfoItemNode: ListViewItemNode, ASGestureRecogni
             backgroundSize.height += iconTextSpacing
             
             let titleConstrainedWidth = constrainedWidth
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: titleString, font: Font.semibold(15.0), textColor: primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 3, truncationType: .end, constrainedSize: CGSize(width: titleConstrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
+            let baseDisplaySize = item.presentationData.fontSize.baseDisplaySize
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: titleString, font: Font.semibold(floor(baseDisplaySize * 15.0 / 17.0)), textColor: primaryTextColor), backgroundColor: nil, maximumNumberOfLines: 3, truncationType: .end, constrainedSize: CGSize(width: titleConstrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             backgroundSize.height += titleLayout.size.height
             backgroundSize.height += verticalSpacing
             
-            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: subtitleString, font: Font.regular(13.0), textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: titleConstrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, lineSpacing: 0.2, cutout: nil, insets: UIEdgeInsets()))
+            let (subtitleLayout, subtitleApply) = makeSubtitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: subtitleString, font: Font.regular(floor(baseDisplaySize * 13.0 / 17.0)), textColor: subtitleColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: titleConstrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, lineSpacing: 0.2, cutout: nil, insets: UIEdgeInsets()))
             backgroundSize.height += subtitleLayout.size.height
             backgroundSize.height += 10.0
 

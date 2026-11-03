@@ -288,7 +288,7 @@ public final class MultiplexedVideoNode: ASDisplayNode, ASScrollViewDelegate {
         self.scrollNode = ASScrollNode()
         
         self.trendingTitleNode = ImmediateTextNode()
-        self.trendingTitleNode.attributedText = NSAttributedString(string: strings.Chat_Gifs_TrendingSectionHeader, font: Font.medium(12.0), textColor: theme.chat.inputMediaPanel.stickersSectionTextColor)
+        self.trendingTitleNode.attributedText = NSAttributedString(string: strings.Chat_Gifs_TrendingSectionHeader, font: Font.medium(floor(self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 12.0 / 17.0)), textColor: theme.chat.inputMediaPanel.stickersSectionTextColor)
         
         super.init()
         

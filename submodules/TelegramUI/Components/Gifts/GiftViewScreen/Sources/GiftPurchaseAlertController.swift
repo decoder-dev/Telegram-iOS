@@ -370,6 +370,7 @@ private final class AlertCurrencyComponent: Component {
                         font: Font.medium(floor(environment.fontSize * 14.0 / 17.0)),
                         spacing: 10.0
                     ),
+                    fontSize: environment.fontSize,
                     items: [
                         TabSelectorComponent.Item(
                             id: AnyHashable(0),

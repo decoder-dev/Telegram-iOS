@@ -678,6 +678,7 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
                             spacing: 2.0,
                             height: 44.0 - 5.0 * 2.0
                         ),
+                        fontSize: params.presentationData.listsFontSize.baseDisplaySize,
                         items: tabSelectorItems,
                         selectedId: AnyHashable(self.currentCollection.rawValue),
                         reorderItem: self.isReordering ? { [weak self] fromId, toId in

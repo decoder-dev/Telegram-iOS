@@ -1979,6 +1979,7 @@ private final class ColorPickerContent: CombinedComponent {
                         .init(id: 2, title: strings.Paint_ColorSliders),
                     ],
                     selectedId: state.selectedMode,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                     action: { [weak state] index in
                         if let value = index.base as? Int {
                             state?.updateSelectedMode(value)

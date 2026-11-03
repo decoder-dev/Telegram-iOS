@@ -267,6 +267,7 @@ final class BrowserAddressListComponent: Component {
                                 title: sectionTitle,
                                 insets: component.insets,
                                 actionTitle: section.id == 0 ? component.strings.WebBrowser_AddressBar_RecentlyVisited_Clear : nil,
+                                fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                                 action: { [weak self] in
                                     if let self, let component = self.component {
                                         let _ = clearRecentlyVisitedLinks(engine: component.context.engine).start()

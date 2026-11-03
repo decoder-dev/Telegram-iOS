@@ -121,10 +121,11 @@ final class ChatCallNotificationItemNode: NotificationItemNode {
         
         let maxTextWidth: CGFloat = width - leftInset - avatarTextSpacing - rightInset - avatarSize * 2.0 - buttonSpacing - avatarTextSpacing
         
+        let notificationFontSize = floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)
         let titleSize = self.title.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: item.peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), font: Font.semibold(15.0), textColor: presentationData.theme.list.itemPrimaryTextColor))
+                text: .plain(NSAttributedString(string: item.peer.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder), font: Font.semibold(notificationFontSize), textColor: presentationData.theme.list.itemPrimaryTextColor))
             )),
             environment: {},
             containerSize: CGSize(width: maxTextWidth, height: 100.0)
@@ -133,7 +134,7 @@ final class ChatCallNotificationItemNode: NotificationItemNode {
         let textSize = self.text.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: item.isVideo ? presentationData.strings.Notification_VideoCallIncoming : presentationData.strings.Notification_CallIncoming, font: Font.regular(15.0), textColor: presentationData.theme.list.itemPrimaryTextColor))
+                text: .plain(NSAttributedString(string: item.isVideo ? presentationData.strings.Notification_VideoCallIncoming : presentationData.strings.Notification_CallIncoming, font: Font.regular(notificationFontSize), textColor: presentationData.theme.list.itemPrimaryTextColor))
             )),
             environment: {},
             containerSize: CGSize(width: maxTextWidth, height: 100.0)

@@ -975,7 +975,7 @@ final class OverscrollContentsComponent: Component {
             } else {
                 titleText = component.context.sharedContext.currentPresentationData.with({ $0 }).strings.Chat_NavigationNoChannels
             }
-            self.titleNode.attributedText = NSAttributedString(string: titleText, font: Font.semibold(13.0), textColor: component.foregroundColor)
+            self.titleNode.attributedText = NSAttributedString(string: titleText, font: Font.semibold(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: component.foregroundColor)
             let titleSize = self.titleNode.updateLayout(CGSize(width: availableSize.width - 32.0, height: 100.0))
             let titleBackgroundSize = CGSize(width: titleSize.width + 18.0, height: titleSize.height + 8.0)
             let titleBackgroundFrame = CGRect(origin: CGPoint(x: floor((availableSize.width - titleBackgroundSize.width) / 2.0), y: fullHeight - titleBackgroundSize.height - 8.0), size: titleBackgroundSize)

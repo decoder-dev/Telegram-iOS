@@ -175,7 +175,7 @@ final class GifPaneSearchContentNode: ASDisplayNode & PaneSearchContentNode {
     
     func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
         self.notFoundNode.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Media/GifsNotFoundIcon"), color: theme.list.freeMonoIconColor)
-        self.notFoundLabel.attributedText = NSAttributedString(string: strings.Gif_NoGifsFound, font: Font.medium(14.0), textColor: theme.list.freeTextColor)
+        self.notFoundLabel.attributedText = NSAttributedString(string: strings.Gif_NoGifsFound, font: Font.medium(floor(self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 14.0 / 17.0)), textColor: theme.list.freeTextColor)
     }
     
     func updatePreviewing(animated: Bool) {

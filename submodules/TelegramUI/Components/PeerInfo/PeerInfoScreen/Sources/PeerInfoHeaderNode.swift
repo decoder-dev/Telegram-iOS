@@ -1779,7 +1779,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 self.subtitleNodeContainer.view.addSubview(subtitleBadgeView)
             }
             
-            subtitleBadgeSize = subtitleBadgeView.update(title: presentationData.strings.PeerInfo_HiddenStatusBadge, fillColor: contentButtonBackgroundColor, foregroundColor: contentButtonForegroundColor)
+            subtitleBadgeSize = subtitleBadgeView.update(title: presentationData.strings.PeerInfo_HiddenStatusBadge, fillColor: contentButtonBackgroundColor, foregroundColor: contentButtonForegroundColor, fontSize: presentationData.listsFontSize.baseDisplaySize)
         } else if let subtitleBadgeView = self.subtitleBadgeView {
             subtitleBadgeView.removeFromSuperview()
         }

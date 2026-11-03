@@ -496,7 +496,7 @@ private final class FloatingHeaderNode: ASDisplayNode {
     private let backgroundNode: ASImageNode
     private let labelNode: ImmediateTextNode
     
-    private var currentParams: (constrainedWidth: CGFloat, year: Int32, month: Int32, theme: PresentationTheme)?
+    private var currentParams: (constrainedWidth: CGFloat, year: Int32, month: Int32, theme: PresentationTheme, fontSize: CGFloat)?
     private var currentSize: CGSize?
     
     override init() {
@@ -513,12 +513,13 @@ private final class FloatingHeaderNode: ASDisplayNode {
         self.addSubnode(self.labelNode)
     }
     
-    func update(constrainedWidth: CGFloat, year: Int32, month: Int32, theme: PresentationTheme, strings: PresentationStrings) -> CGSize {
+    func update(constrainedWidth: CGFloat, year: Int32, month: Int32, theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat) -> CGSize {
         if let currentParams = self.currentParams, let currentSize = self.currentSize {
             if currentParams.constrainedWidth == constrainedWidth &&
                currentParams.year == year &&
                currentParams.month == month &&
-               currentParams.theme === theme {
+               currentParams.theme === theme &&
+               currentParams.fontSize == fontSize {
                 return currentSize
             }
         }
@@ -527,9 +528,9 @@ private final class FloatingHeaderNode: ASDisplayNode {
             self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 27.0, color: mediaBadgeBackgroundColor)
         }
         
-        self.currentParams = (constrainedWidth, year, month, theme)
+        self.currentParams = (constrainedWidth, year, month, theme, fontSize)
         
-        self.labelNode.attributedText = NSAttributedString(string: stringForMonth(strings: strings, month: month, ofYear: year), font: Font.regular(14.0), textColor: .white)
+        self.labelNode.attributedText = NSAttributedString(string: stringForMonth(strings: strings, month: month, ofYear: year), font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: .white)
         let labelSize = self.labelNode.updateLayout(CGSize(width: constrainedWidth, height: .greatestFiniteMagnitude))
         
         let sideInset: CGFloat = 10.0
@@ -978,7 +979,7 @@ final class PeerInfoGifPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScrollViewDe
         }
         
         self.scrollNode.view.contentSize = CGSize(width: size.width, height: itemsLayout.contentHeight)
-        self.updateVisibleItems(size: size, sideInset: sideInset, bottomInset: bottomInset, visibleHeight: visibleHeight, theme: presentationData.theme, strings: presentationData.strings, synchronousLoad: synchronous)
+        self.updateVisibleItems(size: size, sideInset: sideInset, bottomInset: bottomInset, visibleHeight: visibleHeight, theme: presentationData.theme, strings: presentationData.strings, fontSize: presentationData.listsFontSize.baseDisplaySize, synchronousLoad: synchronous)
         
         if isScrollingLockedAtTop {
             if self.scrollNode.view.contentOffset.y > .ulpOfOne {
@@ -1003,7 +1004,7 @@ final class PeerInfoGifPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScrollViewDe
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {        
         if let (size, _, sideInset, bottomInset, _, visibleHeight, _, _, _, presentationData) = self.currentParams {
-            self.updateVisibleItems(size: size, sideInset: sideInset, bottomInset: bottomInset, visibleHeight: visibleHeight, theme: presentationData.theme, strings: presentationData.strings, synchronousLoad: false)
+            self.updateVisibleItems(size: size, sideInset: sideInset, bottomInset: bottomInset, visibleHeight: visibleHeight, theme: presentationData.theme, strings: presentationData.strings, fontSize: presentationData.listsFontSize.baseDisplaySize, synchronousLoad: false)
             
             if scrollView.contentOffset.y >= scrollView.contentSize.height - scrollView.bounds.height * 2.0, let currentView = self.currentView, currentView.earlierId != nil {
                 if !self.isRequestingView {
@@ -1031,7 +1032,7 @@ final class PeerInfoGifPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScrollViewDe
         self.updateHeaderFlashing(animated: true)
     }
     
-    private func updateVisibleItems(size: CGSize, sideInset: CGFloat, bottomInset: CGFloat, visibleHeight: CGFloat, theme: PresentationTheme, strings: PresentationStrings, synchronousLoad: Bool) {
+    private func updateVisibleItems(size: CGSize, sideInset: CGFloat, bottomInset: CGFloat, visibleHeight: CGFloat, theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat, synchronousLoad: Bool) {
         guard let itemsLayout = self.itemsLayout else {
             return
         }
@@ -1086,7 +1087,7 @@ final class PeerInfoGifPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScrollViewDe
         
         if let headerItem = headerItem {
             let (year, month) = listMessageDateHeaderInfo(timestamp: headerItem.timestamp)
-            let headerSize = self.floatingHeaderNode.update(constrainedWidth: size.width, year: year, month: month, theme: theme, strings: strings)
+            let headerSize = self.floatingHeaderNode.update(constrainedWidth: size.width, year: year, month: month, theme: theme, strings: strings, fontSize: fontSize)
             self.floatingHeaderNode.frame = CGRect(origin: CGPoint(x: floor((size.width - headerSize.width) / 2.0), y: 7.0), size: headerSize)
             self.floatingHeaderNode.isHidden = false
         } else {

@@ -246,9 +246,9 @@ private final class WalletTransferSigningCardComponent: Component {
             let text = NSMutableAttributedString()
             switch component.content {
             case let .text(value):
-                text.append(NSAttributedString(string: value, font: Font.with(size: 17.0, design: .monospace), textColor: component.theme.list.itemPrimaryTextColor))
+                text.append(NSAttributedString(string: value, font: Font.with(size: component.fontSize, design: .monospace), textColor: component.theme.list.itemPrimaryTextColor))
             case let .message(groups):
-                let font = Font.with(size: 14.0, design: .monospace)
+                let font = Font.with(size: floor(component.fontSize * 14.0 / 17.0), design: .monospace)
                 for (groupIndex, fields) in groups.enumerated() {
                     if groupIndex != 0 { text.append(NSAttributedString(string: "\n\n", font: font, textColor: component.theme.list.itemPrimaryTextColor)) }
                     for (fieldIndex, field) in fields.enumerated() {

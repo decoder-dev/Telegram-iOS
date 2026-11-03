@@ -822,7 +822,8 @@ public final class StoryPeerListItemComponent: Component {
                     self.indicatorMaskUnseenLayer.addSublayer(avatarLiveBadgeMaskUnseenLayer)
                 }
                 if avatarLiveBadgeView.image == nil || themeUpdated {
-                    let liveString = NSAttributedString(string: component.strings.Story_LiveBadge, font: Font.semibold(10.0), textColor: .white)
+                    let liveBadgeFontSize = floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 10.0 / 17.0)
+                    let liveString = NSAttributedString(string: component.strings.Story_LiveBadge, font: Font.semibold(liveBadgeFontSize), textColor: .white)
                     let liveStringBounds = liveString.boundingRect(with: CGSize(width: 100.0, height: 100.0), options: .usesLineFragmentOrigin, context: nil)
                     let liveBadgeSize = CGSize(width: ceil(liveStringBounds.width) + 4.0 * 2.0, height: ceil(liveStringBounds.height) + 2.0 * 2.0)
                     avatarLiveBadgeView.image = generateImage(liveBadgeSize, rotatedContext: { size, context in
@@ -1008,7 +1009,7 @@ public final class StoryPeerListItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleString, font: Font.regular(11.0), textColor: (component.unseenCount != 0 || component.hasLiveItems || component.peer.id == component.context.account.peerId) ? component.theme.list.itemPrimaryTextColor : component.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.5))),
+                    text: .plain(NSAttributedString(string: titleString, font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 11.0 / 17.0)), textColor: (component.unseenCount != 0 || component.hasLiveItems || component.peer.id == component.context.account.peerId) ? component.theme.list.itemPrimaryTextColor : component.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.5))),
                     maximumNumberOfLines: 1
                 )),
                 environment: {},

@@ -522,6 +522,7 @@ final class TextProcessingLanguageSelectionComponent: Component {
                         component: AnyComponent(StyleItemComponent(
                             context: component.context,
                             theme: component.theme,
+                            fontSize: fontSize,
                             iconFileId: item.iconFileId,
                             iconFile: item.iconFile,
                             title: item.title,
@@ -882,6 +883,7 @@ private final class LanguageItemComponent: Component {
 private final class StyleItemComponent: Component {
     let context: AccountContext
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let iconFileId: Int64?
     let iconFile: TelegramMediaFile?
     let title: String
@@ -890,6 +892,7 @@ private final class StyleItemComponent: Component {
     init(
         context: AccountContext,
         theme: PresentationTheme,
+        fontSize: CGFloat,
         iconFileId: Int64?,
         iconFile: TelegramMediaFile?,
         title: String,
@@ -897,6 +900,7 @@ private final class StyleItemComponent: Component {
     ) {
         self.context = context
         self.theme = theme
+        self.fontSize = fontSize
         self.iconFileId = iconFileId
         self.iconFile = iconFile
         self.title = title
@@ -905,6 +909,9 @@ private final class StyleItemComponent: Component {
 
     static func ==(lhs: StyleItemComponent, rhs: StyleItemComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.iconFileId != rhs.iconFileId {

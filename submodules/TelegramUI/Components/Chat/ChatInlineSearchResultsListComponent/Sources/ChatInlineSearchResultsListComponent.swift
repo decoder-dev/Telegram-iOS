@@ -1246,7 +1246,7 @@ public final class ChatInlineSearchResultsListComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: placeholderText, font: Font.regular(15.0), textColor: component.presentation.theme.list.itemSecondaryTextColor)),
+                            text: .plain(NSAttributedString(string: placeholderText, font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: component.presentation.theme.list.itemSecondaryTextColor)),
                             horizontalAlignment: .center,
                             maximumNumberOfLines: 0
                         )

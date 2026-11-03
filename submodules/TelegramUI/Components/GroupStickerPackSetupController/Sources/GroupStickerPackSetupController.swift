@@ -231,7 +231,7 @@ private enum GroupStickerPackEntry: ItemListNodeEntry {
                 }, toggleSelected: {
                 })
             case let .currentPack(_, theme, strings, content):
-                return GroupStickerPackCurrentItem(theme: theme, strings: strings, systemStyle: .glass, account: arguments.context.account, content: content, sectionId: self.section, action: {
+                return GroupStickerPackCurrentItem(theme: theme, strings: strings, fontSize: presentationData.fontSize.baseDisplaySize, systemStyle: .glass, account: arguments.context.account, content: content, sectionId: self.section, action: {
                     if case let .found(packInfo, _, _) = content {
                         arguments.openStickerPack(packInfo)
                     }

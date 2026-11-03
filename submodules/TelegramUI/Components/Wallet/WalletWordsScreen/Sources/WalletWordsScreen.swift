@@ -260,7 +260,7 @@ private final class WalletWordsScreenComponent: Component {
                         component: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: "\(wordIndex + 1).",
-                                font: Font.with(size: 17.0, traits: .monospacedNumbers),
+                                font: Font.with(size: fontSize, traits: .monospacedNumbers),
                                 textColor: theme.list.itemSecondaryTextColor
                             )),
                             horizontalAlignment: .right,

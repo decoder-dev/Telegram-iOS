@@ -190,7 +190,7 @@ final class EntityKeyboardAnimationTopPanelComponent: Component {
                 let titleSize = titleView.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.title, font: Font.regular(10.0), textColor: component.theme.chat.inputPanel.primaryTextColor)),
+                        text: .plain(NSAttributedString(string: component.title, font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 10.0 / 17.0)), textColor: component.theme.chat.inputPanel.primaryTextColor)),
                         insets: UIEdgeInsets(top: 1.0, left: 1.0, bottom: 1.0, right: 1.0)
                     )),
                     environment: {},
@@ -285,6 +285,7 @@ final class EntityKeyboardIconTopPanelComponent: Component {
     let useAccentColor: Bool
     let customTintColor: UIColor?
     let title: String
+    let fontSize: CGFloat
     let pressed: () -> Void
     
     init(
@@ -293,6 +294,7 @@ final class EntityKeyboardIconTopPanelComponent: Component {
         useAccentColor: Bool,
         customTintColor: UIColor?,
         title: String,
+        fontSize: CGFloat,
         pressed: @escaping () -> Void
     ) {
         self.icon = icon
@@ -300,6 +302,7 @@ final class EntityKeyboardIconTopPanelComponent: Component {
         self.useAccentColor = useAccentColor
         self.customTintColor = customTintColor
         self.title = title
+        self.fontSize = fontSize
         self.pressed = pressed
     }
     
@@ -317,6 +320,9 @@ final class EntityKeyboardIconTopPanelComponent: Component {
             return false
         }
         if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         
@@ -442,7 +448,7 @@ final class EntityKeyboardIconTopPanelComponent: Component {
                 let titleSize = titleView.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.title, font: Font.regular(10.0), textColor: component.theme.chat.inputPanel.primaryTextColor)),
+                        text: .plain(NSAttributedString(string: component.title, font: Font.regular(floor(component.fontSize * 10.0 / 17.0)), textColor: component.theme.chat.inputPanel.primaryTextColor)),
                         insets: UIEdgeInsets(top: 1.0, left: 1.0, bottom: 1.0, right: 1.0)
                     )),
                     environment: {},
@@ -573,7 +579,7 @@ final class EntityKeyboardAvatarTopPanelComponent: Component {
                 let titleSize = titleView.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.title, font: Font.regular(10.0), textColor: component.theme.chat.inputPanel.primaryTextColor)),
+                        text: .plain(NSAttributedString(string: component.title, font: Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 10.0 / 17.0)), textColor: component.theme.chat.inputPanel.primaryTextColor)),
                         insets: UIEdgeInsets(top: 1.0, left: 1.0, bottom: 1.0, right: 1.0)
                     )),
                     environment: {},
@@ -619,15 +625,18 @@ final class EntityKeyboardStaticStickersPanelComponent: Component {
     
     let theme: PresentationTheme
     let title: String
+    let fontSize: CGFloat
     let pressed: (EmojiPagerContentComponent.StaticEmojiSegment) -> Void
     
     init(
         theme: PresentationTheme,
         title: String,
+        fontSize: CGFloat,
         pressed: @escaping (EmojiPagerContentComponent.StaticEmojiSegment) -> Void
     ) {
         self.theme = theme
         self.title = title
+        self.fontSize = fontSize
         self.pressed = pressed
     }
     
@@ -636,6 +645,9 @@ final class EntityKeyboardStaticStickersPanelComponent: Component {
             return false
         }
         if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         
@@ -914,7 +926,7 @@ final class EntityKeyboardStaticStickersPanelComponent: Component {
                 let titleSize = titleView.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.title, font: Font.regular(10.0), textColor: component.theme.chat.inputPanel.primaryTextColor)),
+                        text: .plain(NSAttributedString(string: component.title, font: Font.regular(floor(component.fontSize * 10.0 / 17.0)), textColor: component.theme.chat.inputPanel.primaryTextColor)),
                         insets: UIEdgeInsets(top: 1.0, left: 1.0, bottom: 1.0, right: 1.0)
                     )),
                     environment: {},

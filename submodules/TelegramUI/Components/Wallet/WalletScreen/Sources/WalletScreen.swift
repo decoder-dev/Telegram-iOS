@@ -470,13 +470,13 @@ private final class WalletNavigationBalanceComponent: Component {
             )
             let balanceSpacing: CGFloat = 2.0
             let balanceAttributedString = NSMutableAttributedString(string: formattedBalance, attributes: [
-                .font: Font.with(size: 17.0, weight: .semibold, traits: .monospacedNumbers),
+                .font: Font.with(size: fontSize, weight: .semibold, traits: .monospacedNumbers),
                 .foregroundColor: primaryColor
             ])
             if let decimalRange = formattedBalance.range(of: component.dateTimeFormat.decimalSeparator) {
                 balanceAttributedString.addAttribute(
                     .font,
-                    value: Font.with(size: 14.0, weight: .semibold, traits: .monospacedNumbers),
+                    value: Font.with(size: floor(fontSize * 14.0 / 17.0), weight: .semibold, traits: .monospacedNumbers),
                     range: NSRange(decimalRange.lowerBound ..< formattedBalance.endIndex, in: formattedBalance)
                 )
             }

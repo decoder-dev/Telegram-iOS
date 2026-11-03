@@ -17,17 +17,20 @@ private final class WalletTransactionAddressTitleComponent: Component {
     let address: String
     let textColor: UIColor
     let backgroundColor: UIColor
+    let fontSize: CGFloat
 
-    init(address: String, textColor: UIColor, backgroundColor: UIColor) {
+    init(address: String, textColor: UIColor, backgroundColor: UIColor, fontSize: CGFloat) {
         self.address = address
         self.textColor = textColor
         self.backgroundColor = backgroundColor
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: WalletTransactionAddressTitleComponent, rhs: WalletTransactionAddressTitleComponent) -> Bool {
         return lhs.address == rhs.address
             && lhs.textColor == rhs.textColor
             && lhs.backgroundColor == rhs.backgroundColor
+            && lhs.fontSize == rhs.fontSize
     }
 
     final class View: UIView {
@@ -50,7 +53,6 @@ private final class WalletTransactionAddressTitleComponent: Component {
                 self.backgrounds.append(background)
 
                 let label = UILabel(frame: background.bounds)
-                label.font = Font.with(size: 16.0, design: .monospace, weight: .semibold)
                 label.textAlignment = .center
                 label.isAccessibilityElement = false
                 background.addSubview(label)
@@ -73,12 +75,14 @@ private final class WalletTransactionAddressTitleComponent: Component {
         }
 
         func update(component: WalletTransactionAddressTitleComponent, availableSize: CGSize) -> CGSize {
+            let addressFont = Font.with(size: floor(component.fontSize * 16.0 / 17.0), design: .monospace, weight: .semibold)
             let groups = [
                 String(component.address.prefix(4)),
                 String(component.address.dropFirst(4).prefix(2)) + String(component.address.suffix(6).prefix(2)),
                 String(component.address.suffix(4))
             ]
             for index in 0 ..< self.labels.count {
+                self.labels[index].font = addressFont
                 self.labels[index].text = groups[index]
                 self.labels[index].textColor = component.textColor
                 self.backgrounds[index].backgroundColor = component.backgroundColor
@@ -1131,7 +1135,8 @@ public final class WalletTransactionItemComponent: Component {
                     component: AnyComponent(WalletTransactionAddressTitleComponent(
                         address: titleAddress,
                         textColor: component.theme.list.itemPrimaryTextColor,
-                        backgroundColor: component.theme.list.itemSecondaryTextColor.withAlphaComponent(0.08)
+                        backgroundColor: component.theme.list.itemSecondaryTextColor.withAlphaComponent(0.08),
+                        fontSize: fontSize
                     )),
                     environment: {},
                     containerSize: CGSize(width: titleAvailableWidth, height: 100.0)

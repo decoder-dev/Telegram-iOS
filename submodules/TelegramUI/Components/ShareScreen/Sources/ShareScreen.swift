@@ -957,6 +957,7 @@ private final class ShareScreenComponent: Component {
                     items: values.enumerated().map { SegmentControlComponent.Item(id: $0.offset, title: $0.element.title) },
                     selectedId: hostScreen?.selectedSegment ?? 0,
                     fillWidth: true,
+                    fontSize: model.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                     action: { id in
                         guard let index = id.base as? Int else { return }
                         (controller() as? ShareScreen)?.selectSegment(index)

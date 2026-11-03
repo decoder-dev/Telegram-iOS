@@ -1607,6 +1607,7 @@ public final class StoryItemSetViewListComponent: Component {
                         selection: UIColor(rgb: 0xffffff, alpha: 0.09)
                     ),
                     theme: component.theme,
+                    fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                     items: [
                         TabSelectorComponent.Item(
                             id: AnyHashable(ListMode.everyone.rawValue),

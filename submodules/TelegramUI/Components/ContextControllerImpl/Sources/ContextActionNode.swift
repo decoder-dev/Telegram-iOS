@@ -83,7 +83,7 @@ public final class ContextActionNode: ASDisplayNode, ContextActionNodeProtocol {
             titleBoldFont = customFont
         }
         
-        let subtitleFont = Font.regular(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0)
+        let subtitleFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0))
         
         if action.parseMarkdown {
             let attributedText = parseMarkdownIntoAttributedString(action.text, attributes: MarkdownAttributes(body: MarkdownAttributeSet(font: titleFont, textColor: textColor), bold: MarkdownAttributeSet(font: titleBoldFont, textColor: textColor), link: MarkdownAttributeSet(font: titleFont, textColor: textColor), linkAttribute: { _ in
@@ -352,7 +352,7 @@ public final class ContextActionNode: ASDisplayNode, ContextActionNodeProtocol {
         
         self.textNode.attributedText = NSAttributedString(string: self.action.text, font: titleFont, textColor: textColor)
         
-        let subtitleFont = Font.regular(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)
+        let subtitleFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0))
         switch self.action.textLayout {
         case let .secondLineWithValue(value):
             self.statusNode?.attributedText = NSAttributedString(string: value, font: subtitleFont, textColor: presentationData.theme.contextMenu.secondaryColor)
