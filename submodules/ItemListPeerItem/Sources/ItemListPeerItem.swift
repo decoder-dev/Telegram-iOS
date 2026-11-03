@@ -1305,7 +1305,7 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
             
             let contentSize = CGSize(width: params.width, height: max(minHeight, rawHeight))
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             let layoutSize = layout.size
@@ -1620,7 +1620,7 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
                         strongSelf.checkNode = nil
                     }
                     
-                    var rightLabelInset: CGFloat = 15.0 + params.rightInset
+                    var rightLabelInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.rightInset
                     
                     if let updatedLabelArrowNode = updatedLabelArrowNode {
                         strongSelf.labelArrowNode = updatedLabelArrowNode
@@ -1973,7 +1973,7 @@ public class ItemListPeerItemNode: ItemListRevealOptionsItemNode, ItemListItemNo
             transition.updateFrame(view: credibilityIconView, frame: CGRect(origin: CGPoint(x: self.titleNode.frame.maxX + 4.0, y: credibilityIconView.frame.minY), size: credibilityIconView.bounds.size))
         }
         
-        var rightLabelInset: CGFloat = 15.0 + params.rightInset
+        var rightLabelInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.rightInset
         
         if let labelArrowNode = self.labelArrowNode {
             if let image = labelArrowNode.image {

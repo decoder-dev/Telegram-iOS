@@ -478,6 +478,7 @@ private final class ImportStickerPackTitleAlertContentNode: AlertContentNode {
     private let strings: PresentationStrings
     private let title: String
     private let text: String
+    private let titleFontSize: CGFloat
     
     var infoText: InfoText? {
         didSet {
@@ -541,12 +542,13 @@ private final class ImportStickerPackTitleAlertContentNode: AlertContentNode {
         return self.isUserInteractionEnabled
     }
     
-    init(theme: AlertControllerTheme, ptheme: PresentationTheme, strings: PresentationStrings, actions: [TextAlertAction], title: String, text: String, placeholder: String, value: String?, maxLength: Int, asciiOnly: Bool = false, hasClearButton: Bool) {
+    init(theme: AlertControllerTheme, ptheme: PresentationTheme, strings: PresentationStrings, actions: [TextAlertAction], title: String, text: String, placeholder: String, value: String?, maxLength: Int, asciiOnly: Bool = false, hasClearButton: Bool, titleFontSize: CGFloat = 17.0) {
         self.strings = strings
         self.alertTheme = theme
         self.theme = ptheme
         self.title = title
         self.text = text
+        self.titleFontSize = titleFontSize
         
         self.titleNode = ASTextNode()
         self.titleNode.maximumNumberOfLines = 2
@@ -622,8 +624,8 @@ private final class ImportStickerPackTitleAlertContentNode: AlertContentNode {
     override func updateTheme(_ theme: AlertControllerTheme) {
         self.alertTheme = theme
         
-        self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.bold(17.0), textColor: theme.primaryColor, paragraphAlignment: .center)
-        self.textNode.attributedText = NSAttributedString(string: self.text, font: Font.regular(13.0), textColor: theme.primaryColor, paragraphAlignment: .center)
+        self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.bold(self.titleFontSize), textColor: theme.primaryColor, paragraphAlignment: .center)
+        self.textNode.attributedText = NSAttributedString(string: self.text, font: Font.regular(floor(self.titleFontSize * 13.0 / 17.0)), textColor: theme.primaryColor, paragraphAlignment: .center)
 
         self.actionNodesSeparator.backgroundColor = theme.separatorColor
         for actionNode in self.actionNodes {
@@ -778,7 +780,7 @@ public func stickerPackEditTitleController(context: AccountContext, forceDark: B
         applyImpl?()
     })]
     
-    let contentNode = ImportStickerPackTitleAlertContentNode(theme: AlertControllerTheme(presentationData: presentationData), ptheme: presentationData.theme, strings: presentationData.strings, actions: actions, title: title, text: text, placeholder: placeholder, value: value, maxLength: maxLength, hasClearButton: false)
+    let contentNode = ImportStickerPackTitleAlertContentNode(theme: AlertControllerTheme(presentationData: presentationData), ptheme: presentationData.theme, strings: presentationData.strings, actions: actions, title: title, text: text, placeholder: placeholder, value: value, maxLength: maxLength, hasClearButton: false, titleFontSize: presentationData.listsFontSize.baseDisplaySize)
     contentNode.complete = {
         applyImpl?()
     }
@@ -840,7 +842,7 @@ public func importStickerPackShortNameController(context: AccountContext, title:
         applyImpl?()
     })]
     
-    let contentNode = ImportStickerPackTitleAlertContentNode(theme: AlertControllerTheme(presentationData: presentationData), ptheme: presentationData.theme, strings: presentationData.strings, actions: actions, title: title, text: text, placeholder: placeholder, value: value, maxLength: maxLength, asciiOnly: true, hasClearButton: true)
+    let contentNode = ImportStickerPackTitleAlertContentNode(theme: AlertControllerTheme(presentationData: presentationData), ptheme: presentationData.theme, strings: presentationData.strings, actions: actions, title: title, text: text, placeholder: placeholder, value: value, maxLength: maxLength, asciiOnly: true, hasClearButton: true, titleFontSize: presentationData.listsFontSize.baseDisplaySize)
     contentNode.complete = {
         applyImpl?()
     }

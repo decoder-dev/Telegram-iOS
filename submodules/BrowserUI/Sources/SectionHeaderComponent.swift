@@ -79,7 +79,7 @@ final class SectionHeaderComponent: Component {
             self.state = state
             
             let height: CGFloat = 28.0
-            let leftInset: CGFloat = 16.0 + component.insets.left
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + component.insets.left
             let rightInset: CGFloat = 0.0
             
             let previousTitleFrame = self.title.view?.frame
@@ -140,7 +140,7 @@ final class SectionHeaderComponent: Component {
                     }
                     // Per side: beside iPhone Duo's side strip the right inset is the strip's. Equal insets give the
                     // old position.
-                    let actionRightInset: CGFloat = 16.0 + component.insets.right
+                    let actionRightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + component.insets.right
                     let actionFrame = CGRect(origin: CGPoint(x: availableSize.width - actionRightInset - actionSize.width, y: floor((height - titleSize.height) / 2.0)), size: actionSize)
                     view.frame = actionFrame
                 }

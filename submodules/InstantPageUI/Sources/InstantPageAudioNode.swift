@@ -33,7 +33,7 @@ private func generatePauseButton(color: UIColor) -> UIImage? {
     })
 }
 
-private func titleString(media: InstantPageMedia, theme: InstantPageTheme, strings: PresentationStrings) -> NSAttributedString {
+private func titleString(media: InstantPageMedia, theme: InstantPageTheme, strings: PresentationStrings, fontSize: CGFloat) -> NSAttributedString {
     let string = NSMutableAttributedString()
     if case let .file(file) = media.media {
         loop: for attribute in file.attributes {
@@ -41,8 +41,8 @@ private func titleString(media: InstantPageMedia, theme: InstantPageTheme, strin
                 let titleText: String = title ?? strings.MediaPlayer_UnknownTrack
                 let subtitleText: String = performer ?? strings.MediaPlayer_UnknownArtist
                 
-                let titleString = NSAttributedString(string: titleText, font: Font.semibold(17.0), textColor: theme.textCategories.paragraph.color)
-                let subtitleString = NSAttributedString(string: " — \(subtitleText)", font: Font.regular(17.0), textColor: theme.textCategories.paragraph.color)
+                let titleString = NSAttributedString(string: titleText, font: Font.semibold(fontSize), textColor: theme.textCategories.paragraph.color)
+                let subtitleString = NSAttributedString(string: " — \(subtitleText)", font: Font.regular(fontSize), textColor: theme.textCategories.paragraph.color)
                 
                 string.append(titleString)
                 string.append(subtitleString)
@@ -109,7 +109,8 @@ final class InstantPageAudioNode: ASDisplayNode, InstantPageNode {
         
         super.init()
         
-        self.titleNode.attributedText = titleString(media: media, theme: theme, strings: strings)
+        let listFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        self.titleNode.attributedText = titleString(media: media, theme: theme, strings: strings, fontSize: listFontSize)
         
         self.addSubnode(self.statusNode)
         self.addSubnode(self.titleNode)
@@ -224,7 +225,8 @@ final class InstantPageAudioNode: ASDisplayNode, InstantPageNode {
                 self.playImage = generatePlayButton(color: theme.textCategories.paragraph.color)!
                 self.pauseImage = generatePauseButton(color: theme.textCategories.paragraph.color)!
                 
-                self.titleNode.attributedText = titleString(media: self.media, theme: theme, strings: strings)
+                let listFontSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+                self.titleNode.attributedText = titleString(media: self.media, theme: theme, strings: strings, fontSize: listFontSize)
                 
                 var brightness: CGFloat = 0.0
                 theme.textCategories.paragraph.color.getHue(nil, saturation: nil, brightness: &brightness, alpha: nil)

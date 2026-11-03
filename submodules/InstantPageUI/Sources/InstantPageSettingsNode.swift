@@ -61,10 +61,10 @@ final class InstantPageSettingsNode: ASDisplayNode {
         var updateAutoNightImpl: ((Bool) -> Void)?
         var openInSafariImpl: (() -> Void)?
         
-        self.sansFamilyNode = InstantPageSettingsFontFamilyNode(theme: self.theme, title: "San Francisco", family: nil, checked: !settings.forceSerif, tapped: {
+        self.sansFamilyNode = InstantPageSettingsFontFamilyNode(theme: self.theme, title: "San Francisco", family: nil, checked: !settings.forceSerif, fontSize: listFontSize, tapped: {
             updateSerifImpl?(false)
         })
-        self.serifFamilyNode = InstantPageSettingsFontFamilyNode(theme: self.theme, title: "Georgia", family: "Georgia", checked: settings.forceSerif, tapped: {
+        self.serifFamilyNode = InstantPageSettingsFontFamilyNode(theme: self.theme, title: "Georgia", family: "Georgia", checked: settings.forceSerif, fontSize: listFontSize, tapped: {
             updateSerifImpl?(true)
         })
         self.themeItemNode = InstantPageSettingsThemeItemNode(theme: theme, themeType: settings.themeType, update: { value in

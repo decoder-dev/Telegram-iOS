@@ -9,6 +9,7 @@ import AnimatedStickerComponent
 import SolidRoundedButtonComponent
 import MultilineTextComponent
 import PresentationDataUtils
+import TelegramPresentationData
 
 private final class AddPaymentMethodSheetContent: CombinedComponent {
     typealias EnvironmentType = ViewControllerComponentContainer.Environment
@@ -40,11 +41,13 @@ private final class AddPaymentMethodSheetContent: CombinedComponent {
         
         return { context in
             let sideInset: CGFloat = 40.0
-            let buttonSideInset: CGFloat = 16.0
+            let buttonSideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset
             
             let environment = context.environment[EnvironmentType.self].value
             let action = context.component.action
             let dismiss = context.component.dismiss
+            let listFontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let detailFontSize = floor(listFontSize * 15.0 / 17.0)
             
             let animation = animation.update(
                 component: AnimatedStickerComponent(
@@ -62,7 +65,7 @@ private final class AddPaymentMethodSheetContent: CombinedComponent {
             
             let title = title.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: "Payment Method", font: UIFont.boldSystemFont(ofSize: 17.0), textColor: .black)),
+                    text: .plain(NSAttributedString(string: "Payment Method", font: UIFont.boldSystemFont(ofSize: listFontSize), textColor: .black)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 1
                 ),
@@ -73,7 +76,7 @@ private final class AddPaymentMethodSheetContent: CombinedComponent {
             
             let text = text.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: "Add your debit or credit card to buy goods and services on Telegram.", font: UIFont.systemFont(ofSize: 15.0), textColor: .gray)),
+                    text: .plain(NSAttributedString(string: "Add your debit or credit card to buy goods and services on Telegram.", font: UIFont.systemFont(ofSize: detailFontSize), textColor: .gray)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0
                 ),
@@ -87,7 +90,7 @@ private final class AddPaymentMethodSheetContent: CombinedComponent {
                     title: "Add Payment Method",
                     theme: SolidRoundedButtonComponent.Theme(theme: environment.theme),
                     font: .bold,
-                    fontSize: 17.0,
+                    fontSize: listFontSize,
                     height: 50.0,
                     cornerRadius: 10.0,
                     gloss: true,
@@ -105,7 +108,7 @@ private final class AddPaymentMethodSheetContent: CombinedComponent {
                     content: AnyComponent(
                         Text(
                             text: "Cancel",
-                            font: UIFont.systemFont(ofSize: 17.0),
+                            font: UIFont.systemFont(ofSize: listFontSize),
                             color: environment.theme.list.itemAccentColor
                         )
                     ),

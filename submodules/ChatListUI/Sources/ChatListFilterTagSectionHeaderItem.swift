@@ -129,8 +129,8 @@ public class ChatListFilterTagSectionHeaderItemNode: ListViewItemNode {
         let previousItem = self.item
         
         return { [weak self] item, params, neighbors in
-            let leftInset: CGFloat = 15.0 + params.leftInset
-            let rightInset: CGFloat = 15.0 + params.rightInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.leftInset
+            let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.rightInset
             
             let titleFont = Font.regular(item.presentationData.fontSize.itemListBaseHeaderFontSize)
             

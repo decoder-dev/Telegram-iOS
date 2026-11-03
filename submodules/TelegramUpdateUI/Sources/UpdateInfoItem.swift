@@ -31,6 +31,7 @@ private func generateBorderImage(theme: PresentationTheme, bordered: Bool) -> UI
 
 class UpdateInfoItem: ListViewItem, ItemListItem {
     let theme: PresentationTheme
+    let fontSize: CGFloat
     let appIcon: PresentationAppIcon?
     let title: String
     let text: String
@@ -43,8 +44,9 @@ class UpdateInfoItem: ListViewItem, ItemListItem {
     
     let selectable: Bool = false
     
-    init(theme: PresentationTheme, appIcon: PresentationAppIcon?, title: String, text: String, entities: [MessageTextEntity], sectionId: ItemListSectionId, style: ItemListStyle, linkItemAction: ((TextLinkItemActionType, TextLinkItem) -> Void)? = nil, tag: Any? = nil) {
+    init(theme: PresentationTheme, fontSize: CGFloat = 17.0, appIcon: PresentationAppIcon?, title: String, text: String, entities: [MessageTextEntity], sectionId: ItemListSectionId, style: ItemListStyle, linkItemAction: ((TextLinkItemActionType, TextLinkItem) -> Void)? = nil, tag: Any? = nil) {
         self.theme = theme
+        self.fontSize = fontSize
         self.appIcon = appIcon
         self.title = title
         self.text = text
@@ -89,12 +91,6 @@ class UpdateInfoItem: ListViewItem, ItemListItem {
     }
 }
 
-private let titleFont = Font.bold(17.0)
-private let textFont = Font.regular(16.0)
-private let textBoldFont = Font.medium(16.0)
-private let textItalicFont = Font.italic(16.0)
-private let textBoldItalicFont = Font.semiboldItalic(16.0)
-private let textFixedFont = Font.regular(16.0)
 
 class UpdateInfoItemNode: ListViewItemNode {
     private let backgroundNode: ASDisplayNode
@@ -198,6 +194,12 @@ class UpdateInfoItemNode: ListViewItemNode {
             }
             
             let textColor: UIColor = item.theme.list.itemPrimaryTextColor
+            let titleFont = Font.bold(item.fontSize)
+            let textFont = Font.regular(floor(item.fontSize * 16.0 / 17.0))
+            let textBoldFont = Font.medium(floor(item.fontSize * 16.0 / 17.0))
+            let textItalicFont = Font.italic(floor(item.fontSize * 16.0 / 17.0))
+            let textBoldItalicFont = Font.semiboldItalic(floor(item.fontSize * 16.0 / 17.0))
+            let textFixedFont = Font.regular(floor(item.fontSize * 16.0 / 17.0))
             
             let inset: CGFloat
             let spacing: CGFloat = 16.0

@@ -178,7 +178,7 @@ private class VoiceChatCameraPreviewControllerNode: ViewControllerTracingNode, A
         let title =  self.presentationData.strings.VoiceChat_VideoPreviewTitle
         
         self.titleNode = ASTextNode()
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.bold(17.0), textColor: UIColor(rgb: 0xffffff))
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.bold(self.presentationData.listsFontSize.baseDisplaySize), textColor: UIColor(rgb: 0xffffff))
                 
         self.doneButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(backgroundColor: UIColor(rgb: 0xffffff), foregroundColor: UIColor(rgb: 0x4f5352)), font: .bold, height: 48.0, cornerRadius: 24.0)
         self.doneButton.title = self.presentationData.strings.VoiceChat_VideoPreviewContinue

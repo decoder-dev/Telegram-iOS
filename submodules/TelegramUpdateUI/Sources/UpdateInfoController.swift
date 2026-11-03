@@ -70,7 +70,7 @@ private enum UpdateInfoControllerEntry: ItemListNodeEntry {
         let arguments = arguments as! UpdateInfoControllerArguments
         switch self {
             case let .info(theme, icon, title, text, entities):
-                return UpdateInfoItem(theme: theme, appIcon: icon, title: title, text: text, entities: entities, sectionId: self.section, style: .blocks, linkItemAction: { action, itemLink in
+                return UpdateInfoItem(theme: theme, fontSize: presentationData.fontSize.baseDisplaySize, appIcon: icon, title: title, text: text, entities: entities, sectionId: self.section, style: .blocks, linkItemAction: { action, itemLink in
                     arguments.linkAction(action, itemLink)
                 })
             case let .update(_, title):

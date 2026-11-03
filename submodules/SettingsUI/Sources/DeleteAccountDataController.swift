@@ -124,7 +124,7 @@ private enum DeleteAccountDataEntry: ItemListNodeEntry, Equatable {
             case let .info(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .markdown(text), sectionId: self.section)
             case .phone:
-                return DeleteAccountPhoneItem(theme: presentationData.theme, strings: presentationData.strings, value: (nil, nil, ""), sectionId: self.section, selectCountryCode: {
+                return DeleteAccountPhoneItem(theme: presentationData.theme, strings: presentationData.strings, fontSize: presentationData.listsFontSize.baseDisplaySize, value: (nil, nil, ""), sectionId: self.section, selectCountryCode: {
                     arguments.selectCountryCode()
                 }, updated: { _ in
                     

@@ -164,7 +164,7 @@ class BotCheckoutHeaderItemNode: ListViewItemNode {
             
             let textColor = item.theme.list.itemPrimaryTextColor
             
-            let contentInsets = UIEdgeInsets(top: 15.0, left: 15.0 + params.leftInset, bottom: 15.0, right: 15.0 + params.rightInset)
+            let contentInsets = UIEdgeInsets(top: 15.0, left: PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.leftInset, bottom: 15.0, right: PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.rightInset)
             let separatorHeight = UIScreenPixel
             let titleTextSpacing: CGFloat = 1.0
             let textBotNameSpacing: CGFloat = 3.0

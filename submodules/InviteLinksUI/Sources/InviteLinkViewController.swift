@@ -347,7 +347,6 @@ private func preparedTransition(from fromEntries: [InviteLinkViewEntry], to toEn
     return InviteLinkViewTransaction(deletions: deletions, insertions: insertions, updates: updates, isLoading: isLoading, animated: animated, crossfade: crossfade)
 }
 
-private let titleFont = Font.bold(17.0)
 private let subtitleFont = Font.with(size: 13, design: .regular, weight: .regular, traits: .monospacedNumbers)
 
 func textForTimeout(value: Int32) -> String {
@@ -554,7 +553,7 @@ public final class InviteLinkViewController: ViewController {
             self.editButton.setTitle(self.presentationData.strings.Common_Edit, with: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), with: accentColor, for: .normal)
             
             self.doneButton = HighlightableButtonNode()
-            self.doneButton.setTitle(self.presentationData.strings.Common_Done, with: Font.bold(17.0), with: accentColor, for: .normal)
+            self.doneButton.setTitle(self.presentationData.strings.Common_Done, with: Font.bold(self.presentationData.listsFontSize.baseDisplaySize), with: accentColor, for: .normal)
             
             self.historyBackgroundNode = ASDisplayNode()
             self.historyBackgroundNode.isLayerBacked = true
@@ -1046,12 +1045,12 @@ public final class InviteLinkViewController: ViewController {
             
             self.historyBackgroundContentNode.backgroundColor = self.presentationData.theme.actionSheet.opaqueItemBackgroundColor
             self.headerBackgroundNode.backgroundColor = self.presentationData.theme.actionSheet.opaqueItemBackgroundColor
-            self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: titleFont, textColor: self.presentationData.theme.actionSheet.primaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.bold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
             self.subtitleNode.attributedText = NSAttributedString(string: self.subtitleNode.attributedText?.string ?? "", font: subtitleFont, textColor: self.presentationData.theme.list.itemSecondaryTextColor)
             
             let accentColor = self.presentationData.theme.actionSheet.controlAccentColor
             self.editButton.setTitle(self.presentationData.strings.Common_Edit, with: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), with: accentColor, for: .normal)
-            self.doneButton.setTitle(self.presentationData.strings.Common_Done, with: Font.bold(17.0), with: accentColor, for: .normal)
+            self.doneButton.setTitle(self.presentationData.strings.Common_Done, with: Font.bold(self.presentationData.listsFontSize.baseDisplaySize), with: accentColor, for: .normal)
         }
         
         private func enqueueTransition(_ transition: InviteLinkViewTransaction) {
@@ -1181,7 +1180,7 @@ public final class InviteLinkViewController: ViewController {
                 }
             }
             
-            self.titleNode.attributedText = NSAttributedString(string: titleText, font: Font.bold(17.0), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: titleText, font: Font.bold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
             self.subtitleNode.attributedText = NSAttributedString(string: subtitleText, font: subtitleFont, textColor: subtitleColor)
                                                 
             let editSize = self.editButton.measure(CGSize(width: layout.size.width, height: headerHeight))

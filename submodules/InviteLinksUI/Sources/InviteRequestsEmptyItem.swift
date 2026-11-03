@@ -81,8 +81,10 @@ final class InviteRequestsEmptyStateItemNode: ItemListControllerEmptyStateItemNo
     }
     
     private func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
-        self.titleNode.attributedText = NSAttributedString(string: strings.MemberRequests_NoRequests, font: Font.bold(17.0), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
-        self.textNode.attributedText = NSAttributedString(string: self.item.isGroup ? strings.MemberRequests_NoRequestsDescriptionGroup : strings.MemberRequests_NoRequestsDescriptionChannel, font: Font.regular(14.0), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
+        let listFontSize = self.item.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        let detailFontSize = floor(listFontSize * 14.0 / 17.0)
+        self.titleNode.attributedText = NSAttributedString(string: strings.MemberRequests_NoRequests, font: Font.bold(listFontSize), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
+        self.textNode.attributedText = NSAttributedString(string: self.item.isGroup ? strings.MemberRequests_NoRequestsDescriptionGroup : strings.MemberRequests_NoRequestsDescriptionChannel, font: Font.regular(detailFontSize), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
     }
     
     override func updateLayout(layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {

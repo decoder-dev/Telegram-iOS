@@ -225,11 +225,6 @@ public func internalDocumentItemSupportsMimeType(_ type: String, fileName: Strin
     return false
 }
 
-private let boldFont = Font.bold(17.0)
-private let italicFont = Font.italic(17.0)
-private let boldItalicFont = Font.semiboldItalic(17.0)
-private let fixedFont = UIFont(name: "Menlo-Regular", size: 17.0) ?? Font.regular(self.presentationData.listsFontSize.baseDisplaySize)
-
 public func galleryCaptionStringWithAppliedEntities(context: AccountContext, text: String, entities: [MessageTextEntity], message: Message?, cachedMessageSyntaxHighlight: CachedMessageSyntaxHighlight? = nil) -> NSAttributedString {
     var baseQuoteSecondaryTintColor: UIColor?
     var baseQuoteTertiaryTintColor: UIColor?
@@ -249,6 +244,13 @@ public func galleryCaptionStringWithAppliedEntities(context: AccountContext, tex
         }
     }
     
+    let fontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+    let boldFont = Font.bold(fontSize)
+    let italicFont = Font.italic(fontSize)
+    let boldItalicFont = Font.semiboldItalic(fontSize)
+    let fixedFont = UIFont(name: "Menlo-Regular", size: fontSize) ?? Font.regular(fontSize)
+    let baseFont = Font.regular(fontSize)
+    
     return stringWithAppliedEntities(
         text,
         entities: entities,
@@ -260,7 +262,7 @@ public func galleryCaptionStringWithAppliedEntities(context: AccountContext, tex
         codeBlockTitleColor: .white,
         codeBlockAccentColor: .white,
         codeBlockBackgroundColor: UIColor(white: 1.0, alpha: 0.2),
-        baseFont: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), linkFont: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), boldFont: boldFont, italicFont: italicFont, boldItalicFont: boldItalicFont, fixedFont: fixedFont, blockQuoteFont: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), underlineLinks: false, message: message, adjustQuoteFontSize: true, cachedMessageSyntaxHighlight: cachedMessageSyntaxHighlight)
+        baseFont: baseFont, linkFont: baseFont, boldFont: boldFont, italicFont: italicFont, boldItalicFont: boldItalicFont, fixedFont: fixedFont, blockQuoteFont: baseFont, underlineLinks: false, message: message, adjustQuoteFontSize: true, cachedMessageSyntaxHighlight: cachedMessageSyntaxHighlight)
 }
 
 func galleryMessageCaptionText(_ message: Message, mediaSubject: GalleryMediaSubject?) -> (String, [MessageTextEntity]) {

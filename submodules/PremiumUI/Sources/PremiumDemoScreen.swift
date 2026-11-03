@@ -180,17 +180,20 @@ final class PageComponent<ChildEnvironment: Equatable>: CombinedComponent {
     private let title: String
     private let text: String
     private let textColor: UIColor
+    private let fontSize: CGFloat
     
     init(
         content: AnyComponent<ChildEnvironment>,
         title: String,
         text: String,
-        textColor: UIColor
+        textColor: UIColor,
+        fontSize: CGFloat = 17.0
     ) {
         self.content = content
         self.title = title
         self.text = text
         self.textColor = textColor
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: PageComponent<ChildEnvironment>, rhs: PageComponent<ChildEnvironment>) -> Bool {
@@ -206,6 +209,9 @@ final class PageComponent<ChildEnvironment: Equatable>: CombinedComponent {
         if lhs.textColor != rhs.textColor {
             return false
         }
+        if lhs.fontSize != rhs.fontSize {
+            return false
+        }
         return true
     }
     
@@ -218,12 +224,12 @@ final class PageComponent<ChildEnvironment: Equatable>: CombinedComponent {
             let availableSize = context.availableSize
             let component = context.component
             
-            let sideInset: CGFloat = 16.0
+            let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset
             let textSideInset: CGFloat = 24.0
             
             let textColor = component.textColor
-            let textFont = Font.regular(17.0)
-            let boldTextFont = Font.semibold(17.0)
+            let textFont = Font.regular(component.fontSize)
+            let boldTextFont = Font.semibold(component.fontSize)
             
             let content = children["main"].update(
                 component: component.content,
@@ -697,6 +703,7 @@ private final class DemoSheetContent: CombinedComponent {
                         
             if let stickers = state.stickers, let appIcons = state.appIcons, let configuration = state.promoConfiguration {
                 let textColor = theme.actionSheet.primaryTextColor
+                let demoListFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 
                 var availableItems: [PremiumPerk: DemoPagerComponent.Item] = [:]
                 
@@ -713,7 +720,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_UploadSize,
                                 text: strings.Premium_UploadSizeInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -731,7 +739,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_FasterSpeed,
                                 text: isStandalone ? strings.Premium_FasterSpeedStandaloneInfo : strings.Premium_FasterSpeedInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -749,7 +758,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_VoiceToText,
                                 text: isStandalone ? strings.Premium_VoiceToTextStandaloneInfo : strings.Premium_VoiceToTextInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -767,7 +777,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_NoAds,
                                 text: isStandalone ? strings.Premium_NoAdsStandaloneInfo : strings.Premium_NoAdsInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -785,7 +796,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_InfiniteReactions,
                                 text: strings.Premium_InfiniteReactionsInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -804,7 +816,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 ),
                                 title: strings.Premium_Stickers,
                                 text: strings.Premium_StickersInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -822,7 +835,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_EmojiStatus,
                                 text: strings.Premium_EmojiStatusInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -840,7 +854,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_ChatManagement,
                                 text: isStandalone ? strings.Premium_ChatManagementStandaloneInfo : strings.Premium_ChatManagementInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -858,7 +873,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_Badge,
                                 text: strings.Premium_BadgeInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -876,7 +892,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_Avatar,
                                 text: strings.Premium_AvatarInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -892,7 +909,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: isStandalone ? strings.Premium_AppIconStandalone : strings.Premium_AppIcon,
                                 text: isStandalone ? strings.Premium_AppIconStandaloneInfo :strings.Premium_AppIconInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -910,7 +928,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_AnimatedEmoji,
                                 text: isStandalone ? strings.Premium_AnimatedEmojiStandaloneInfo : strings.Premium_AnimatedEmojiInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -929,7 +948,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_Translation,
                                 text: isStandalone ? strings.Premium_TranslationStandaloneInfo : strings.Premium_TranslationInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -947,7 +967,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_Colors,
                                 text: strings.Premium_ColorsInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -966,7 +987,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_Wallpapers,
                                 text: strings.Premium_WallpapersInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -985,7 +1007,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_MessageTags,
                                 text: strings.Premium_MessageTagsInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -1004,7 +1027,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_LastSeen,
                                 text: strings.Premium_LastSeenInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -1023,7 +1047,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_MessagePrivacy,
                                 text: strings.Premium_MessagePrivacyInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -1043,7 +1068,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_FolderTags,
                                 text: strings.Premium_FolderTagsStandaloneInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -1063,7 +1089,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_MessageEffects,
                                 text: strings.Premium_MessageEffectsInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -1083,7 +1110,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_Todo,
                                 text: strings.Premium_TodoInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -1103,7 +1131,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_CopyProtection,
                                 text: strings.Premium_CopyProtectionInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -1123,7 +1152,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_AiTools,
                                 text: strings.Premium_AiToolsInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -1143,7 +1173,8 @@ private final class DemoSheetContent: CombinedComponent {
                                 )),
                                 title: strings.Premium_RichText,
                                 text: strings.Premium_RichTextInfo,
-                                textColor: textColor
+                                textColor: textColor,
+                                fontSize: demoListFontSize
                             )
                         )
                     )
@@ -1251,9 +1282,10 @@ private final class DemoSheetContent: CombinedComponent {
         
             let textSideInset: CGFloat = 24.0
             
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let textColor = UIColor.black
-            let textFont = Font.regular(17.0)
-            let boldTextFont = Font.semibold(17.0)
+            let textFont = Font.regular(listFontSize)
+            let boldTextFont = Font.semibold(listFontSize)
             let markdownAttributes = MarkdownAttributes(
                 body: MarkdownAttributeSet(font: textFont, textColor: textColor),
                 bold: MarkdownAttributeSet(font: boldTextFont, textColor: textColor),

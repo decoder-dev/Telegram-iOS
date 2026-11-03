@@ -193,7 +193,7 @@ private class VoiceChatRecordingSetupControllerNode: ViewControllerTracingNode, 
         let title = isLivestream ? self.presentationData.strings.LiveStream_RecordTitle : self.presentationData.strings.VoiceChat_RecordTitle
         
         self.titleNode = ASTextNode()
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.bold(17.0), textColor: textColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.bold(self.presentationData.listsFontSize.baseDisplaySize), textColor: textColor)
                 
         self.doneButton = VoiceChatActionButton()
         

@@ -337,7 +337,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                 editingOffset = 0.0
             }
             
-            var leftInset: CGFloat = 16.0 + callListTypeIconSlotWidth + callListTypeIconSlotSpacing + avatarDiameter + 12.0 + params.leftInset + higCardInset
+            var leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + callListTypeIconSlotWidth + callListTypeIconSlotSpacing + avatarDiameter + 12.0 + params.leftInset + higCardInset
             let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset - 1.0
             
@@ -879,7 +879,7 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
             // Matches the chat list, which dropped this inset: a 16 pt card here left white
             // stripes down both sides of Calls and Contacts while chats ran full width.
             let higCardInset: CGFloat = 0.0
-            let leftInset: CGFloat = 16.0 + callListTypeIconSlotWidth + callListTypeIconSlotSpacing + avatarDiameter + 12.0 + params.leftInset + higCardInset + editingOffset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + callListTypeIconSlotWidth + callListTypeIconSlotSpacing + avatarDiameter + 12.0 + params.leftInset + higCardInset + editingOffset
             let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset - 1.0
             

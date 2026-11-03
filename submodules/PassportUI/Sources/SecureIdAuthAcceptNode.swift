@@ -18,7 +18,7 @@ final class SecureIdAuthAcceptNode: ASDisplayNode {
     
     var pressed: (() -> Void)?
     
-    init(title: String, theme: PresentationTheme) {
+    init(title: String, theme: PresentationTheme, fontSize: CGFloat = 17.0) {
         self.separatorNode = ASDisplayNode()
         self.separatorNode.isLayerBacked = true
         self.separatorNode.backgroundColor = theme.rootController.navigationBar.separatorColor
@@ -39,7 +39,7 @@ final class SecureIdAuthAcceptNode: ASDisplayNode {
         
         self.labelNode = ImmediateTextNode()
         self.labelNode.isUserInteractionEnabled = false
-        self.labelNode.attributedText = NSAttributedString(string: title, font: Font.medium(17.0), textColor: theme.list.itemCheckColors.foregroundColor)
+        self.labelNode.attributedText = NSAttributedString(string: title, font: Font.medium(fontSize), textColor: theme.list.itemCheckColors.foregroundColor)
         
         super.init()
         
@@ -71,8 +71,8 @@ final class SecureIdAuthAcceptNode: ASDisplayNode {
         transition.updateFrame(node: self.separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: width, height: UIScreenPixel)))
         
         let baseHeight: CGFloat = 78.0
-        let buttonSize = CGSize(width: width - leftInset - rightInset - 16.0 * 2.0, height: 48.0)
-        let buttonFrame = CGRect(origin: CGPoint(x: leftInset + 16.0, y: floor((baseHeight - buttonSize.height) / 2.0)), size: buttonSize)
+        let buttonSize = CGSize(width: width - leftInset - rightInset - PresentationLayoutMetrics.listHorizontalInset * 2.0, height: max(PresentationLayoutMetrics.minimumInteractiveSize, 48.0))
+        let buttonFrame = CGRect(origin: CGPoint(x: leftInset + PresentationLayoutMetrics.listHorizontalInset, y: floor((baseHeight - buttonSize.height) / 2.0)), size: buttonSize)
         transition.updateFrame(node: self.buttonBackgroundNode, frame: buttonFrame)
         transition.updateFrame(node: self.buttonNode, frame: buttonFrame)
         

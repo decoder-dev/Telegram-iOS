@@ -12,6 +12,7 @@ import PrefixSectionGroupComponent
 import TextInputComponent
 import CreditCardInputComponent
 import Markdown
+import TelegramPresentationData
 
 public final class ScrollChildEnvironment: Equatable {
     public let insets: UIEdgeInsets
@@ -157,7 +158,7 @@ private final class PaymentCardEntryScreenContentComponent: CombinedComponent {
         let infoText = Child(MultilineTextComponent.self)
         
         return { context in
-            let sideInset: CGFloat = 16.0
+            let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset
             
             let scrollEnvironment = context.environment[ScrollChildEnvironment.self].value
             let environment = context.environment[ViewControllerComponentContainer.Environment.self].value
@@ -219,6 +220,7 @@ private final class PaymentCardEntryScreenContentComponent: CombinedComponent {
                                     errorTextColor: environment.theme.list.itemDestructiveColor,
                                     placeholder: "Card Number",
                                     placeholderColor: environment.theme.list.itemPlaceholderTextColor,
+                                    fontSize: fontSize,
                                     updated: { value in
                                         updateModelKey(\.number, value)
                                     }
@@ -237,6 +239,7 @@ private final class PaymentCardEntryScreenContentComponent: CombinedComponent {
                                     textColor: environment.theme.list.itemPrimaryTextColor,
                                     placeholder: "Cardholder",
                                     placeholderColor: environment.theme.list.itemPlaceholderTextColor,
+                                    fontSize: fontSize,
                                     updated: { value in
                                         updateModelKey(\.name, value)
                                     }
@@ -257,6 +260,7 @@ private final class PaymentCardEntryScreenContentComponent: CombinedComponent {
                                     errorTextColor: environment.theme.list.itemDestructiveColor,
                                     placeholder: "MM/YY",
                                     placeholderColor: environment.theme.list.itemPlaceholderTextColor,
+                                    fontSize: fontSize,
                                     updated: { value in
                                         updateModelKey(\.expiration, value)
                                     }
@@ -275,6 +279,7 @@ private final class PaymentCardEntryScreenContentComponent: CombinedComponent {
                                     textColor: environment.theme.list.itemPrimaryTextColor,
                                     placeholder: "123",
                                     placeholderColor: environment.theme.list.itemPlaceholderTextColor,
+                                    fontSize: fontSize,
                                     updated: { value in
                                         updateModelKey(\.code, value)
                                     }

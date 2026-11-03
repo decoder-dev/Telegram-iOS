@@ -231,7 +231,10 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
 
     private let allowDark: Bool
 
+    private var listFontSize: CGFloat = 17.0
+    
     public init(context: AccountContext, theme: PresentationTheme, strings: PresentationStrings) {
+        self.listFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         self.context = context
         self.theme = theme
         self.allowDark = theme.overallDarkAppearance
@@ -244,10 +247,10 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
         self.scrollNode = ASScrollNode()
         
         self.titleNode = ImmediateTextNode()
-        self.titleNode.attributedText = NSAttributedString(string: strings.WallpaperPreview_PatternTitle, font: Font.bold(17.0), textColor: theme.rootController.navigationBar.primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: strings.WallpaperPreview_PatternTitle, font: Font.bold(self.listFontSize), textColor: theme.rootController.navigationBar.primaryTextColor)
     
         self.labelNode = ImmediateTextNode()
-        self.labelNode.attributedText = NSAttributedString(string: strings.WallpaperPreview_PatternIntensity, font: Font.regular(14.0), textColor: theme.rootController.navigationBar.primaryTextColor)
+        self.labelNode.attributedText = NSAttributedString(string: strings.WallpaperPreview_PatternIntensity, font: Font.regular(floor(self.listFontSize * 14.0 / 17.0)), textColor: theme.rootController.navigationBar.primaryTextColor)
         
         super.init()
         
@@ -403,8 +406,8 @@ public final class WallpaperPatternPanelNode: ASDisplayNode {
         } else {
             self.sliderView?.trackColor = self.theme.list.itemAccentColor
         }
-        self.titleNode.attributedText = NSAttributedString(string: self.labelNode.attributedText?.string ?? "", font: Font.bold(17.0), textColor: self.theme.rootController.navigationBar.primaryTextColor)
-        self.labelNode.attributedText = NSAttributedString(string: self.labelNode.attributedText?.string ?? "", font: Font.regular(14.0), textColor: self.theme.rootController.navigationBar.primaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: self.labelNode.attributedText?.string ?? "", font: Font.bold(self.listFontSize), textColor: self.theme.rootController.navigationBar.primaryTextColor)
+        self.labelNode.attributedText = NSAttributedString(string: self.labelNode.attributedText?.string ?? "", font: Font.regular(floor(self.listFontSize * 14.0 / 17.0)), textColor: self.theme.rootController.navigationBar.primaryTextColor)
         
         if let (size, bottomInset) = self.validLayout {
             self.updateLayout(size: size, bottomInset: bottomInset, transition: .immediate)

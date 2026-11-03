@@ -10,10 +10,12 @@ import AppBundle
 final class RecentSessionsEmptyStateItem: ItemListControllerEmptyStateItem {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     
-    init(theme: PresentationTheme, strings: PresentationStrings) {
+    init(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
     }
     
     func isEqual(to: ItemListControllerEmptyStateItem) -> Bool {
@@ -70,9 +72,11 @@ final class RecentSessionsEmptyStateItemNode: ItemListControllerEmptyStateItemNo
     }
     
     private func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
+        let listFontSize = self.item.fontSize
+        let detailFontSize = floor(listFontSize * 14.0 / 17.0)
         self.imageNode.image = generateTintedImage(image: UIImage(bundleImageName: "Settings/RecentSessionsPlaceholder"), color: theme.list.freeTextColor)
-        self.titleNode.attributedText = NSAttributedString(string: strings.AuthSessions_EmptyTitle, font: Font.bold(17.0), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
-        self.textNode.attributedText = NSAttributedString(string: strings.AuthSessions_EmptyText, font: Font.regular(14.0), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
+        self.titleNode.attributedText = NSAttributedString(string: strings.AuthSessions_EmptyTitle, font: Font.bold(listFontSize), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
+        self.textNode.attributedText = NSAttributedString(string: strings.AuthSessions_EmptyText, font: Font.regular(detailFontSize), textColor: theme.list.freeTextColor, paragraphAlignment: .center)
     }
     
     override func updateLayout(layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {

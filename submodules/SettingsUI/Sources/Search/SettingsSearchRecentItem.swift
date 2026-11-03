@@ -243,7 +243,7 @@ class SettingsSearchRecentItemNode: ItemListRevealOptionsItemNode {
         super.updateRevealOffset(offset: offset, transition: transition)
         
         if let params = self.layoutParams {
-            let leftInset: CGFloat = 15.0 + params.leftInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.leftInset
         
             var titleFrame = self.titleNode.frame
             titleFrame.origin.x = leftInset + offset

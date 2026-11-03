@@ -78,14 +78,16 @@ private func generatePhoneInputBackground(color: UIColor, strokeColor: UIColor) 
 final class DeleteAccountPhoneItem: ListViewItem, ItemListItem {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
     let value: (Int32?, String?, String)
     let sectionId: ItemListSectionId
     let selectCountryCode: () -> Void
     let updated: (Int) -> Void
     
-    public init(theme: PresentationTheme, strings: PresentationStrings, value: (Int32?, String?, String), sectionId: ItemListSectionId, selectCountryCode: @escaping () -> Void, updated: @escaping (Int) -> Void) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat = 17.0, value: (Int32?, String?, String), sectionId: ItemListSectionId, selectCountryCode: @escaping () -> Void, updated: @escaping (Int) -> Void) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.value = value
         self.sectionId = sectionId
         self.selectCountryCode = selectCountryCode
@@ -94,7 +96,7 @@ final class DeleteAccountPhoneItem: ListViewItem, ItemListItem {
     
     func nodeConfiguredForParams(async: @escaping (@escaping () -> Void) -> Void, params: ListViewItemLayoutParams, synchronousLoads: Bool, neighbors: ListViewItemNeighbors, completion: @escaping (ListViewItemNode, @escaping () -> (Signal<Void, NoError>?, (ListViewItemApply) -> Void)) -> Void) {
         async {
-            let node = DeleteAccountPhoneItemNode()
+            let node = DeleteAccountPhoneItemNode(fontSize: self.fontSize)
             let (layout, apply) = node.asyncLayout()(self, params, itemListNeighbors(item: self, topFacet: neighbors.previous?.base(ItemListNeighborFacet.self), bottomFacet: neighbors.next?.base(ItemListNeighborFacet.self)))
             
             node.contentSize = layout.contentSize
@@ -145,7 +147,7 @@ final class DeleteAccountPhoneItemNode: ListViewItemNode, ItemListItemNode {
         return self.item?.tag
     }
     
-    init() {
+    init(fontSize: CGFloat = 17.0) {
         self.backgroundNode = ASDisplayNode()
         self.backgroundNode.isLayerBacked = true
         
@@ -165,7 +167,7 @@ final class DeleteAccountPhoneItemNode: ListViewItemNode, ItemListItemNode {
         self.phoneBackground.displayWithoutProcessing = true
         self.phoneBackground.isLayerBacked = true
         
-        self.phoneInputNode = PhoneInputNode(fontSize: 17.0)
+        self.phoneInputNode = PhoneInputNode(fontSize: fontSize)
         
         super.init(layerBacked: false)
         
@@ -184,15 +186,15 @@ final class DeleteAccountPhoneItemNode: ListViewItemNode, ItemListItemNode {
             }
             if let (country, _) = AuthorizationSequenceCountrySelectionController.lookupCountryIdByNumber(number, preferredCountries: strongSelf.preferredCountryIdForCode) {
                 let localizedName: String = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(country.id, strings: item.strings) ?? country.name
-                strongSelf.countryButton.setCountryTitle(countryId: country.id, name: localizedName, font: Font.regular(17.0), color: item.theme.list.itemPrimaryTextColor)
+                strongSelf.countryButton.setCountryTitle(countryId: country.id, name: localizedName, font: Font.regular(item.fontSize), color: item.theme.list.itemPrimaryTextColor)
                 
-                let maskFont = Font.with(size: 17.0, design: .regular, traits: [.monospacedNumbers])
+                let maskFont = Font.with(size: item.fontSize, design: .regular, traits: [.monospacedNumbers])
                 if let mask = AuthorizationSequenceCountrySelectionController.lookupPatternByNumber(number, preferredCountries: strongSelf.preferredCountryIdForCode).flatMap({ NSAttributedString(string: $0, font: maskFont, textColor: item.theme.list.itemPlaceholderTextColor) }) {
                     strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = nil
                     strongSelf.phoneInputNode.mask = mask
                 } else {
                     strongSelf.phoneInputNode.mask = nil
-                    strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: item.strings.Login_PhonePlaceholder, font: Font.regular(17.0), textColor: item.theme.list.itemPlaceholderTextColor)
+                    strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: item.strings.Login_PhonePlaceholder, font: Font.regular(item.fontSize), textColor: item.theme.list.itemPlaceholderTextColor)
                 }
                 return true
             } else {
@@ -215,11 +217,11 @@ final class DeleteAccountPhoneItemNode: ListViewItemNode, ItemListItemNode {
                 if processNumberChange(strongSelf.phoneInputNode.number) {
                 } else if let code = Int(code), let name = name, let countryName = countryCodeAndIdToName[CountryCodeAndId(code: code, id: name)] {
                     let localizedName: String = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(name, strings: item.strings) ?? countryName
-                    strongSelf.countryButton.setTitle(localizedName, with: Font.regular(17.0), with: item.theme.list.itemPrimaryTextColor, for: [])
+                    strongSelf.countryButton.setTitle(localizedName, with: Font.regular(item.fontSize), with: item.theme.list.itemPrimaryTextColor, for: [])
                 } else if let code = Int(code), let (_, countryName) = countryCodeToIdAndName[code] {
-                    strongSelf.countryButton.setTitle(countryName, with: Font.regular(17.0), with: item.theme.list.itemPrimaryTextColor, for: [])
+                    strongSelf.countryButton.setTitle(countryName, with: Font.regular(item.fontSize), with: item.theme.list.itemPrimaryTextColor, for: [])
                 } else {
-                    strongSelf.countryButton.setTitle(item.strings.Login_CountryCode, with: Font.regular(17.0), with: item.theme.list.itemPrimaryTextColor, for: [])
+                    strongSelf.countryButton.setTitle(item.strings.Login_CountryCode, with: Font.regular(item.fontSize), with: item.theme.list.itemPrimaryTextColor, for: [])
                 }
             }
         }

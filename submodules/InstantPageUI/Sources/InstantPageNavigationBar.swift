@@ -54,6 +54,7 @@ final private class InstantPageProgressNode: ASDisplayNode {
 
 final class InstantPageNavigationBar: ASDisplayNode {
     private var strings: PresentationStrings
+    private var titleFontSize: CGFloat
     
     private let pageProgressNode: ASDisplayNode
     private let backButton: HighlightableButtonNode
@@ -80,8 +81,9 @@ final class InstantPageNavigationBar: ASDisplayNode {
     var settings: (() -> Void)?
     var scrollToTop: (() -> Void)?
     
-    init(strings: PresentationStrings) {
+    init(strings: PresentationStrings, titleFontSize: CGFloat = 17.0) {
         self.strings = strings
+        self.titleFontSize = titleFontSize
         
         self.pageProgressNode = ASDisplayNode()
         self.pageProgressNode.isLayerBacked = true
@@ -211,7 +213,7 @@ final class InstantPageNavigationBar: ASDisplayNode {
             self.currentTitle = title
             if let title = title {
                 self.titleNode.transform = CATransform3DIdentity
-                self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(17.0), textColor: .white, paragraphAlignment: .center)
+                self.titleNode.attributedText = NSAttributedString(string: title, font: Font.semibold(self.titleFontSize), textColor: .white, paragraphAlignment: .center)
                 let titleSize = self.titleNode.measure(CGSize(width: size.width - leftInset - rightInset - 170.0, height: size.height))
                 self.titleNode.frame = CGRect(origin: CGPoint(x: (size.width - titleSize.width) / 2.0, y: size.height - 30.0), size: titleSize)
             }

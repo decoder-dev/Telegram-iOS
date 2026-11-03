@@ -1309,6 +1309,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         let titleShadowColor: UIColor? = nil
         
         var displayStandardTitle = false
+        let listFontSize = presentationData.listsFontSize.baseDisplaySize
+        let smallListFontSize = floor(listFontSize * 16.0 / 17.0)
         
         if let peer = peer {
             var title: String
@@ -1355,19 +1357,19 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     subtitle = "\(subtitle) • @\(mainUsername)"
                 }
                 subtitleStringText = subtitle
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: .white)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(listFontSize), color: .white)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white, shadowColor: titleShadowColor)
                 
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white))
             } else if self.isMyProfile {
                 let subtitleColor: UIColor
                 subtitleColor = .white
                 
                 subtitleStringText = presentationData.strings.Presence_online
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(listFontSize), color: subtitleColor)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white, shadowColor: titleShadowColor)
                 
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white))
 
                 let (maybePanelStatusData, _, _) = panelStatusData
                 if let panelStatusData = maybePanelStatusData {
@@ -1377,7 +1379,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     } else {
                         subtitleColor = UIColor.white
                     }
-                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor))
+                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(listFontSize), color: subtitleColor))
                 }
             } else if let _ = threadData {
                 let subtitleColor: UIColor = .white
@@ -1391,10 +1393,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 }
                 
                 subtitleStringText = statusText
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.semibold(16.0), color: subtitleColor)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.semibold(smallListFontSize), color: subtitleColor)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white, shadowColor: titleShadowColor)
                 
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white))
 
                 let (maybePanelStatusData, _, _) = panelStatusData
                 if let panelStatusData = maybePanelStatusData {
@@ -1404,7 +1406,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     } else {
                         subtitleColor = UIColor.white
                     }
-                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor))
+                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(listFontSize), color: subtitleColor))
                 }
             } else if let statusData = statusData {
                 let subtitleColor: UIColor
@@ -1415,8 +1417,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 }
                 
                 subtitleStringText = statusData.text
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(listFontSize), color: subtitleColor)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white, shadowColor: titleShadowColor)
                 if statusData.hasHiddenCommunityPrefix {
                     let icon = UIImage(bundleImageName: "Chat List/HiddenIcon")?.withRenderingMode(.alwaysTemplate)
                     if let icon {
@@ -1429,7 +1431,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     }
                 }
                 
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white))
 
                 let (maybePanelStatusData, _, _) = panelStatusData
                 if let panelStatusData = maybePanelStatusData {
@@ -1439,14 +1441,14 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     } else {
                         subtitleColor = UIColor.white
                     }
-                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor))
+                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(listFontSize), color: subtitleColor))
                 }
             } else {
                 subtitleStringText = " "
-                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white)
-                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+                subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white)
+                smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white, shadowColor: titleShadowColor)
                 
-                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+                usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white))
                 
                 let (maybePanelStatusData, _, _) = panelStatusData
                 if let panelStatusData = maybePanelStatusData {
@@ -1456,7 +1458,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                     } else {
                         subtitleColor = UIColor.white
                     }
-                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(17.0), color: subtitleColor))
+                    panelSubtitleString = (panelStatusData.text, MultiScaleTextState.Attributes(font: Font.regular(listFontSize), color: subtitleColor))
                 }
             }
         } else {
@@ -1465,10 +1467,10 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             smallTitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(24.0), color: .white, shadowColor: titleShadowColor)
             
             subtitleStringText = " "
-            subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white)
-            smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white, shadowColor: titleShadowColor)
+            subtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white)
+            smallSubtitleAttributes = MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white, shadowColor: titleShadowColor)
             
-            usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(16.0), color: .white))
+            usernameString = ("", MultiScaleTextState.Attributes(font: Font.regular(smallListFontSize), color: .white))
         }
         
         let textSideInset: CGFloat = 36.0
@@ -2282,7 +2284,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             let titleSize = standardTitle.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleStringText, font: Font.semibold(17.0), textColor: navigationContentsPrimaryColor))
+                    text: .plain(NSAttributedString(string: titleStringText, font: Font.semibold(listFontSize), textColor: navigationContentsPrimaryColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: width, height: navigationHeight)

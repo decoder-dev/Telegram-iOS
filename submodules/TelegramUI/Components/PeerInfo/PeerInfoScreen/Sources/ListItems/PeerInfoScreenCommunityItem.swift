@@ -107,7 +107,7 @@ private final class PeerInfoScreenCommunityItemNode: PeerInfoScreenItemNode {
             return true
         }
 
-        let sideInset: CGFloat = 16.0 + safeInsets.left
+        let sideInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.left
         let avatarSize: CGFloat = 30.0
         let height: CGFloat = 58.0
         let titleFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
@@ -135,7 +135,7 @@ private final class PeerInfoScreenCommunityItemNode: PeerInfoScreenItemNode {
         let arrowImage = PresentationResourcesItemList.disclosureArrowImage(presentationData.theme)
         self.arrowNode.image = arrowImage
 
-        let rightInset: CGFloat = 16.0 + safeInsets.right + (arrowImage?.size.width ?? 0.0) + 12.0
+        let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + safeInsets.right + (arrowImage?.size.width ?? 0.0) + 12.0
         let textLeftInset = sideInset + avatarSize + 12.0
         let textConstrainedWidth = max(1.0, width - textLeftInset - rightInset)
         let titleSize = self.titleNode.updateLayout(CGSize(width: textConstrainedWidth, height: .greatestFiniteMagnitude))
@@ -188,7 +188,7 @@ private final class PeerInfoScreenCommunityItemNode: PeerInfoScreenItemNode {
         self.selectionNode.update(size: CGSize(width: width, height: height + highlightNodeOffset), theme: presentationData.theme, transition: transition)
         transition.updateFrame(node: self.selectionNode, frame: CGRect(origin: CGPoint(x: 0.0, y: -highlightNodeOffset), size: CGSize(width: width, height: height + highlightNodeOffset)))
 
-        transition.updateFrame(node: self.bottomSeparatorNode, frame: CGRect(origin: CGPoint(x: textLeftInset, y: height - UIScreenPixel), size: CGSize(width: width - textLeftInset - 16.0 - safeInsets.right, height: UIScreenPixel)))
+        transition.updateFrame(node: self.bottomSeparatorNode, frame: CGRect(origin: CGPoint(x: textLeftInset, y: height - UIScreenPixel), size: CGSize(width: width - textLeftInset - PresentationLayoutMetrics.listHorizontalInset - safeInsets.right, height: UIScreenPixel)))
         transition.updateAlpha(node: self.bottomSeparatorNode, alpha: bottomItem == nil ? 0.0 : 1.0)
 
         self.activateArea.accessibilityLabel = item.community.title

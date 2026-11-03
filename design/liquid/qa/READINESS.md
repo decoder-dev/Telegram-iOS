@@ -24,4 +24,4 @@
 - нативные build, smoke, security, клавиатура и покадровая анимация: BLOCKED Linux-хостом без Xcode/Simulator;
 - окончательный полный handoff ZIP: ещё не сформирован, финальная приёмка не пройдена.
 
-Начата нативная реализация: изменены Swift-фабрики тем, флаг хвостиков и заголовок списка. Подробности — `research/NATIVE_IMPLEMENTATION.md`, фактические результаты — `qa/native/validation.json`. MTProto, storage, entitlements и сохранённые app settings не изменялись. Работа не считается завершённой.
+Нативная реализация продвинута в ветке `liquid`: `PresentationLayoutMetrics`, Dynamic Type и 44 pt hit targets распространены по ItemList, настройкам, чатам, auth, calls, navigation/search, Wallet, Share, Stars/Gifts, Instant Page, PeerInfo header, phone stacks, Premium demo, Passport, GlassControls, Payment Method и смежным поверхностям. Подробности — `research/NATIVE_IMPLEMENTATION.md`. Branding Liquid tests pass на Linux. Нативные build/Simulator/видеоприёмка по-прежнему BLOCKED. MTProto, storage, entitlements не менялись.

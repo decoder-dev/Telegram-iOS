@@ -344,7 +344,7 @@ public final class InviteLinkInviteController: ViewController {
             self.titleNode = ImmediateTextNode()
             self.titleNode.maximumNumberOfLines = 1
             self.titleNode.textAlignment = .center
-            self.titleNode.attributedText = NSAttributedString(string: self.presentationData.strings.InviteLink_InviteLink, font: Font.bold(17.0), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.presentationData.strings.InviteLink_InviteLink, font: Font.bold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
 
             self.doneButton = HighlightableButtonNode()
             
@@ -750,7 +750,7 @@ public final class InviteLinkInviteController: ViewController {
             
             self.historyBackgroundContentNode.backgroundColor = getBackgroundColor(theme: self.presentationData.theme)
             self.headerBackgroundNode.backgroundColor = getBackgroundColor(theme: self.presentationData.theme)
-            self.titleNode.attributedText = NSAttributedString(string: self.presentationData.strings.InviteLink_InviteLink, font: Font.bold(17.0), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
+            self.titleNode.attributedText = NSAttributedString(string: self.presentationData.strings.InviteLink_InviteLink, font: Font.bold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
             
             self.doneButtonIconNode.image = generateCloseButtonImage(backgroundColor: self.presentationData.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.05), foregroundColor: self.presentationData.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.4))!
         }

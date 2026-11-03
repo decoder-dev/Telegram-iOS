@@ -170,7 +170,7 @@ public class ChatListFilterPresetListSuggestedItemNode: ListViewItemNode, ItemLi
         
         return { [weak self] item, params, neighbors in
             let rightInset: CGFloat
-            rightInset = 16.0 + params.rightInset
+            rightInset = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             
             var updatedTheme: PresentationTheme?
             var updatedButtonImage: UIImage?

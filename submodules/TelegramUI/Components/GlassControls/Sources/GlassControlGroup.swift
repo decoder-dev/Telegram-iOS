@@ -75,6 +75,7 @@ public final class GlassControlGroupComponent: Component {
     public let items: [Item]
     public let minWidth: CGFloat
     public let textHorizontalInset: CGFloat
+    public let fontSize: CGFloat
 
     public init(
         theme: PresentationTheme,
@@ -82,7 +83,8 @@ public final class GlassControlGroupComponent: Component {
         background: Background,
         items: [Item],
         minWidth: CGFloat,
-        textHorizontalInset: CGFloat = 10.0
+        textHorizontalInset: CGFloat = 10.0,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.preferClearGlass = preferClearGlass
@@ -90,6 +92,7 @@ public final class GlassControlGroupComponent: Component {
         self.items = items
         self.minWidth = minWidth
         self.textHorizontalInset = textHorizontalInset
+        self.fontSize = fontSize
     }
 
     public static func ==(lhs: GlassControlGroupComponent, rhs: GlassControlGroupComponent) -> Bool {
@@ -109,6 +112,9 @@ public final class GlassControlGroupComponent: Component {
             return false
         }
         if lhs.textHorizontalInset != rhs.textHorizontalInset {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -209,7 +215,7 @@ public final class GlassControlGroupComponent: Component {
                     ))
                 case let .text(string):
                     content = AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: string, font: Font.medium(17.0), textColor: foregroundColor))
+                        text: .plain(NSAttributedString(string: string, font: Font.medium(component.fontSize), textColor: foregroundColor))
                     ))
                     itemInsets.left = component.textHorizontalInset
                     itemInsets.right = itemInsets.left

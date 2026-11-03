@@ -126,7 +126,7 @@ final class ChangePhoneNumberControllerNode: ASDisplayNode {
         self.phoneBackground.displayWithoutProcessing = true
         self.phoneBackground.isLayerBacked = true
         
-        self.phoneInputNode = PhoneInputNode(fontSize: 17.0)
+        self.phoneInputNode = PhoneInputNode(fontSize: self.presentationData.listsFontSize.baseDisplaySize)
         self.phoneInputNode.countryCodeField.textField.textColor = self.presentationData.theme.list.itemPrimaryTextColor
         self.phoneInputNode.countryCodeField.textField.keyboardAppearance = self.presentationData.theme.rootController.keyboardColor.keyboardAppearance
         self.phoneInputNode.countryCodeField.textField.tintColor = self.presentationData.theme.list.itemAccentColor
@@ -151,7 +151,7 @@ final class ChangePhoneNumberControllerNode: ASDisplayNode {
         self.countryButton.contentEdgeInsets = UIEdgeInsets(top: 0.0, left: 15.0, bottom: 4.0, right: 0.0)
         self.countryButton.contentHorizontalAlignment = .left
         
-        self.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: self.presentationData.strings.Login_PhonePlaceholder, font: Font.regular(17.0), textColor: self.presentationData.theme.list.itemPlaceholderTextColor)
+        self.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: self.presentationData.strings.Login_PhonePlaceholder, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.itemPlaceholderTextColor)
         
         self.countryButton.addTarget(self, action: #selector(self.countryPressed), forControlEvents: .touchUpInside)
         
@@ -161,15 +161,15 @@ final class ChangePhoneNumberControllerNode: ASDisplayNode {
             }
             if let (country, _) = AuthorizationSequenceCountrySelectionController.lookupCountryIdByNumber(number, preferredCountries: strongSelf.preferredCountryIdForCode) {
                 let localizedName: String = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(country.id, strings: strongSelf.presentationData.strings) ?? country.name
-                strongSelf.countryButton.setCountryTitle(countryId: country.id, name: localizedName, font: Font.regular(17.0), color: strongSelf.presentationData.theme.list.itemPrimaryTextColor)
+                strongSelf.countryButton.setCountryTitle(countryId: country.id, name: localizedName, font: Font.regular(strongSelf.presentationData.listsFontSize.baseDisplaySize), color: strongSelf.presentationData.theme.list.itemPrimaryTextColor)
                 
-                let maskFont = Font.with(size: 17.0, design: .regular, traits: [.monospacedNumbers])
+                let maskFont = Font.with(size: strongSelf.presentationData.listsFontSize.baseDisplaySize, design: .regular, traits: [.monospacedNumbers])
                 if let mask = AuthorizationSequenceCountrySelectionController.lookupPatternByNumber(number, preferredCountries: strongSelf.preferredCountryIdForCode).flatMap({ NSAttributedString(string: $0, font: maskFont, textColor: strongSelf.presentationData.theme.list.itemPlaceholderTextColor) }) {
                     strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = nil
                     strongSelf.phoneInputNode.mask = mask
                 } else {
                     strongSelf.phoneInputNode.mask = nil
-                    strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strongSelf.presentationData.strings.Login_PhonePlaceholder, font: Font.regular(17.0), textColor: strongSelf.presentationData.theme.list.itemPlaceholderTextColor)
+                    strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strongSelf.presentationData.strings.Login_PhonePlaceholder, font: Font.regular(strongSelf.presentationData.listsFontSize.baseDisplaySize), textColor: strongSelf.presentationData.theme.list.itemPlaceholderTextColor)
                 }
                 return true
             } else {
@@ -192,11 +192,11 @@ final class ChangePhoneNumberControllerNode: ASDisplayNode {
                 if processNumberChange(strongSelf.phoneInputNode.number) {
                 } else if let code = Int(code), let name = name, let countryName = countryCodeAndIdToName[CountryCodeAndId(code: code, id: name)] {
                     let localizedName: String = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(name, strings: strongSelf.presentationData.strings) ?? countryName
-                    strongSelf.countryButton.setTitle(localizedName, with: Font.regular(17.0), with: strongSelf.presentationData.theme.list.itemPrimaryTextColor, for: [])
+                    strongSelf.countryButton.setTitle(localizedName, with: Font.regular(strongSelf.presentationData.listsFontSize.baseDisplaySize), with: strongSelf.presentationData.theme.list.itemPrimaryTextColor, for: [])
                 } else if let code = Int(code), let (_, countryName) = countryCodeToIdAndName[code] {
-                    strongSelf.countryButton.setTitle(countryName, with: Font.regular(17.0), with: strongSelf.presentationData.theme.list.itemPrimaryTextColor, for: [])
+                    strongSelf.countryButton.setTitle(countryName, with: Font.regular(strongSelf.presentationData.listsFontSize.baseDisplaySize), with: strongSelf.presentationData.theme.list.itemPrimaryTextColor, for: [])
                 } else {
-                    strongSelf.countryButton.setTitle(strongSelf.presentationData.strings.Login_CountryCode, with: Font.regular(17.0), with: strongSelf.presentationData.theme.list.itemPrimaryTextColor, for: [])
+                    strongSelf.countryButton.setTitle(strongSelf.presentationData.strings.Login_CountryCode, with: Font.regular(strongSelf.presentationData.listsFontSize.baseDisplaySize), with: strongSelf.presentationData.theme.list.itemPrimaryTextColor, for: [])
                 }
             }
         }

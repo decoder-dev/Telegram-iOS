@@ -56,7 +56,7 @@ final class WalletSendRecipientAlertContentComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.bold(17.0), textColor: theme.actionSheet.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.title, font: Font.bold(component.fontSize), textColor: theme.actionSheet.primaryTextColor)),
                     maximumNumberOfLines: 0
                 )),
                 environment: {},

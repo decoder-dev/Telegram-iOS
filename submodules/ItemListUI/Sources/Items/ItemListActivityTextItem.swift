@@ -105,7 +105,7 @@ public class ItemListActivityTextItemNode: ListViewItemNode {
         let makeTitleLayout = TextNode.asyncLayout(self.titleNode)
         
         return { [weak self] item, params, neighbors in
-            let leftInset: CGFloat = 15.0 + params.leftInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.leftInset
             let verticalInset: CGFloat = 7.0
             
             let titleFont = Font.regular(item.presentationData.fontSize.itemListBaseHeaderFontSize)

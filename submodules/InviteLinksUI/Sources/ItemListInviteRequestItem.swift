@@ -292,7 +292,7 @@ public class ItemListInviteRequestItemNode: ListViewItemNode, ItemListItemNode {
                 let rect: CGRect
                 if isExtracted {
                     if extractedVerticalOffset > 0.0 {
-                        rect = CGRect(x: extractedRect.minX - 16.0, y: extractedRect.minY + extractedVerticalOffset, width: extractedRect.width, height: extractedRect.height - extractedVerticalOffset)
+                        rect = CGRect(x: extractedRect.minX - PresentationLayoutMetrics.listHorizontalInset, y: extractedRect.minY + extractedVerticalOffset, width: extractedRect.width, height: extractedRect.height - extractedVerticalOffset)
                     } else {
                         rect = extractedRect
                     }
@@ -326,7 +326,7 @@ public class ItemListInviteRequestItemNode: ListViewItemNode, ItemListItemNode {
                         strongSelf.avatarNode.transform = CATransform3DIdentity
                         var avatarInitialRect = strongSelf.avatarNode.view.convert(strongSelf.avatarNode.bounds, to: strongSelf.offsetContainerNode.supernode?.view)
                         if strongSelf.avatarTransitionNode == nil {
-                            let targetRect = CGRect(x: extractedRect.minX - 16.0, y: extractedRect.minY, width: extractedRect.width, height: extractedRect.width)
+                            let targetRect = CGRect(x: extractedRect.minX - PresentationLayoutMetrics.listHorizontalInset, y: extractedRect.minY, width: extractedRect.width, height: extractedRect.width)
                             let initialScale = avatarInitialRect.width / targetRect.width
                             avatarInitialRect.origin.y += backgroundCornerRadius / 2.0 * initialScale
                             
@@ -556,7 +556,7 @@ public class ItemListInviteRequestItemNode: ListViewItemNode, ItemListItemNode {
             let dateAttributedString = NSAttributedString(string: dateText, font: subtitleFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor)
             
             let leftInset: CGFloat = 62.0 + params.leftInset
-            let rightInset: CGFloat = 16.0 + params.rightInset
+            let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             let verticalInset: CGFloat = 9.0
            
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - rightInset - 44.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
@@ -623,7 +623,7 @@ public class ItemListInviteRequestItemNode: ListViewItemNode, ItemListItemNode {
                     if case .blocks = item.style {
                         extractedRect = CGRect(origin: CGPoint(), size: layout.contentSize).inset(by: UIEdgeInsets(top: 0.0, left: params.leftInset, bottom: 0.0, right: params.rightInset))
                     } else {
-                        extractedRect = CGRect(origin: CGPoint(), size: layout.contentSize).inset(by: UIEdgeInsets(top: 0.0, left: params.leftInset + 16.0, bottom: 0.0, right: params.rightInset + 16.0))
+                        extractedRect = CGRect(origin: CGPoint(), size: layout.contentSize).inset(by: UIEdgeInsets(top: 0.0, left: params.leftInset + PresentationLayoutMetrics.listHorizontalInset, bottom: 0.0, right: params.rightInset + PresentationLayoutMetrics.listHorizontalInset))
                     }
                     var extractedHeight = extractedRect.height + expandedSubtitleLayout.size.height - subtitleLayout.size.height
                     var extractedVerticalOffset: CGFloat = 0.0

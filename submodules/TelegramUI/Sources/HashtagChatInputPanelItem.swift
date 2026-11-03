@@ -197,7 +197,7 @@ final class HashtagChatInputPanelItemNode: ListViewItemNode {
             let textFont = Font.regular(floor(item.presentationData.fontSize.baseDisplaySize * 14.0 / 17.0))
             let badgeFont = Font.medium(floor(item.presentationData.fontSize.baseDisplaySize * 10.0 / 17.0))
             
-            let leftInset: CGFloat = 15.0 + params.leftInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset - 1.0 + params.leftInset
             let textLeftInset: CGFloat = 40.0
             let baseWidth = params.width - params.leftInset - params.rightInset - textLeftInset
             

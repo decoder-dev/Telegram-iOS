@@ -48,6 +48,7 @@ public final class GlassControlPanelComponent: Component {
     public let centralItem: Item?
     public let centerAlignmentIfPossible: Bool
     public let isDark: Bool?
+    public let fontSize: CGFloat
     public let tag: AnyObject?
 
     public init(
@@ -58,6 +59,7 @@ public final class GlassControlPanelComponent: Component {
         rightItem: Item?,
         centerAlignmentIfPossible: Bool = false,
         isDark: Bool? = nil,
+        fontSize: CGFloat = 17.0,
         tag: AnyObject? = nil
     ) {
         self.theme = theme
@@ -67,6 +69,7 @@ public final class GlassControlPanelComponent: Component {
         self.rightItem = rightItem
         self.centerAlignmentIfPossible = centerAlignmentIfPossible
         self.isDark = isDark
+        self.fontSize = fontSize
         self.tag = tag
     }
 
@@ -90,6 +93,9 @@ public final class GlassControlPanelComponent: Component {
             return false
         }
         if lhs.isDark != rhs.isDark {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.tag !== rhs.tag {
@@ -169,7 +175,8 @@ public final class GlassControlPanelComponent: Component {
                         background: leftItem.background,
                         items: leftItem.items,
                         minWidth: leftItem.minWidth ?? availableSize.height,
-                        textHorizontalInset: leftItem.textHorizontalInset
+                        textHorizontalInset: leftItem.textHorizontalInset,
+                        fontSize: component.fontSize
                     )),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width, height: availableSize.height)
@@ -220,7 +227,8 @@ public final class GlassControlPanelComponent: Component {
                         background: rightItem.background,
                         items: rightItem.items,
                         minWidth: rightItem.minWidth ?? availableSize.height,
-                        textHorizontalInset: rightItem.textHorizontalInset
+                        textHorizontalInset: rightItem.textHorizontalInset,
+                        fontSize: component.fontSize
                     )),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width, height: availableSize.height)
@@ -288,7 +296,8 @@ public final class GlassControlPanelComponent: Component {
                         background: centralItem.background,
                         items: centralItem.items,
                         minWidth: centralItem.minWidth ?? (centralItem.keepWide ? 165.0 : availableSize.height),
-                        textHorizontalInset: centralItem.textHorizontalInset
+                        textHorizontalInset: centralItem.textHorizontalInset,
+                        fontSize: component.fontSize
                     )),
                     environment: {},
                     containerSize: maxCentralItemSize

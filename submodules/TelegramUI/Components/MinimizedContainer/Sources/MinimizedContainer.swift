@@ -86,7 +86,7 @@ public class MinimizedContainerImpl: ASDisplayNode, MinimizedContainer, ASScroll
         
         private var validLayout: (CGSize, UIEdgeInsets, Bool)?
         
-        init(theme: PresentationTheme, strings: PresentationStrings, item: Item) {
+        init(theme: PresentationTheme, strings: PresentationStrings, item: Item, titleFontSize: CGFloat = 17.0) {
             self.theme = theme
             self.item = item
             
@@ -102,7 +102,7 @@ public class MinimizedContainerImpl: ASDisplayNode, MinimizedContainer, ASScroll
             self.containerNode.isUserInteractionEnabled = false
             self.containerNode.cornerRadius = 25.0
             
-            self.headerNode = MinimizedHeaderNode(theme: NavigationControllerTheme(presentationTheme: theme), strings: strings)
+            self.headerNode = MinimizedHeaderNode(theme: NavigationControllerTheme(presentationTheme: theme), strings: strings, titleFontSize: titleFontSize)
             self.headerNode.layer.allowsGroupOpacity = true
             
             self.dimCoverNode = ASDisplayNode()
@@ -854,7 +854,7 @@ public class MinimizedContainerImpl: ASDisplayNode, MinimizedContainer, ASScroll
                 itemNode.theme = self.presentationData.theme
             } else {
                 itemTransition = .immediate
-                itemNode = ItemNode(theme: self.presentationData.theme, strings: self.presentationData.strings, item: item)
+                itemNode = ItemNode(theme: self.presentationData.theme, strings: self.presentationData.strings, item: item, titleFontSize: self.presentationData.listsFontSize.baseDisplaySize)
                 self.scrollView.addSubnode(itemNode)
                 self.itemNodes[item.id] = itemNode
             }

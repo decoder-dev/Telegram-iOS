@@ -192,9 +192,12 @@ final class MinimizedHeaderNode: ASDisplayNode {
     
     private var validLayout: (CGSize, UIEdgeInsets, Bool)?
     
-    init(theme: NavigationControllerTheme, strings: PresentationStrings) {
+    private let titleFontSize: CGFloat
+    
+    init(theme: NavigationControllerTheme, strings: PresentationStrings, titleFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
+        self.titleFontSize = titleFontSize
         
         self.backgroundView.clipsToBounds = true
         self.backgroundView.backgroundColor = theme.opaqueBackgroundColor
@@ -257,7 +260,7 @@ final class MinimizedHeaderNode: ASDisplayNode {
         let titleSize = self.titleLabel.update(
             transition: .immediate,
             component: AnyComponent(
-                MultilineTextComponent(text: .plain(NSAttributedString(string: self.title ?? "", font: Font.bold(17.0), textColor: self.theme.navigationBar.primaryTextColor)), horizontalAlignment: .center, maximumNumberOfLines: 1)
+                MultilineTextComponent(text: .plain(NSAttributedString(string: self.title ?? "", font: Font.bold(self.titleFontSize), textColor: self.theme.navigationBar.primaryTextColor)), horizontalAlignment: .center, maximumNumberOfLines: 1)
             ),
             environment: {},
             containerSize: CGSize(width: size.width - titleSideInset * 2.0, height: headerHeight)

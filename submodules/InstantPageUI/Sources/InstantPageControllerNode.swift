@@ -117,7 +117,7 @@ final class InstantPageControllerNode: ASDisplayNode, ASScrollViewDelegate {
         self.pushController = pushController
         self.openPeer = openPeer
         
-        self.navigationBar = InstantPageNavigationBar(strings: strings)
+        self.navigationBar = InstantPageNavigationBar(strings: strings, titleFontSize: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
         self.scrollNode = ASScrollNode()
         self.scrollNodeHeader = ASDisplayNode()
         self.scrollNodeHeader.backgroundColor = .black

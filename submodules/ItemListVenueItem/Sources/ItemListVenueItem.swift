@@ -249,7 +249,7 @@ public class ItemListVenueItemNode: ListViewItemNode, ItemListItemNode {
             let addressAttributedString = NSAttributedString(string: subtitle, font: addressFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor)
             
             let leftInset: CGFloat = 65.0 + params.leftInset
-            let rightInset: CGFloat = 16.0 + params.rightInset + (item.infoAction != nil ? 48.0 : 0.0)
+            let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset + (item.infoAction != nil ? 48.0 : 0.0)
             let verticalInset: CGFloat = addressAttributedString.string.isEmpty ? 14.0 : 8.0
             let iconSize: CGFloat = 40.0
            
@@ -279,7 +279,7 @@ public class ItemListVenueItemNode: ListViewItemNode, ItemListItemNode {
             
             let contentSize = CGSize(width: params.width, height: max(minHeight, rawHeight))
             let separatorHeight = UIScreenPixel
-            let separatorRightInset = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             

@@ -8,6 +8,7 @@ public final class TextInputComponent: Component {
     public let textColor: UIColor
     public let placeholder: String
     public let placeholderColor: UIColor
+    public let fontSize: CGFloat
     public let updated: (String) -> Void
     
     public init(
@@ -15,12 +16,14 @@ public final class TextInputComponent: Component {
         textColor: UIColor,
         placeholder: String,
         placeholderColor: UIColor,
+        fontSize: CGFloat = 17.0,
         updated: @escaping (String) -> Void
     ) {
         self.text = text
         self.textColor = textColor
         self.placeholder = placeholder
         self.placeholderColor = placeholderColor
+        self.fontSize = fontSize
         self.updated = updated
     }
     
@@ -35,6 +38,9 @@ public final class TextInputComponent: Component {
             return false
         }
         if lhs.placeholderColor != rhs.placeholderColor {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -59,7 +65,7 @@ public final class TextInputComponent: Component {
         }
         
         func update(component: TextInputComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
-            self.font = UIFont.systemFont(ofSize: 17.0)
+            self.font = UIFont.systemFont(ofSize: component.fontSize)
             self.textColor = component.textColor
             
             if self.text != component.text {

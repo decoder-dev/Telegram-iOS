@@ -9,6 +9,7 @@ private let constructiveColor: UIColor = UIColor(rgb: 0x34c759)
 
 final class VoiceChatTitleNode: ASDisplayNode {
     private var theme: PresentationTheme
+    private var titleFontSize: CGFloat
     
     private let titleNode: ASTextNode
     private let infoNode: ChatTitleActivityNode
@@ -22,8 +23,9 @@ final class VoiceChatTitleNode: ASDisplayNode {
     
     var tapped: (() -> Void)?
     
-    init(theme: PresentationTheme) {
+    init(theme: PresentationTheme, titleFontSize: CGFloat = 17.0) {
         self.theme = theme
+        self.titleFontSize = titleFontSize
         
         self.titleNode = ASTextNode()
         self.titleNode.displaysAsynchronously = false
@@ -92,13 +94,13 @@ final class VoiceChatTitleNode: ASDisplayNode {
             }
         }
         
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(17.0), textColor: UIColor(rgb: 0xffffff))
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.medium(self.titleFontSize), textColor: UIColor(rgb: 0xffffff))
             
         var state = ChatTitleActivityNodeState.none
         if speaking {
-            state = .recordingVoice(NSAttributedString(string: subtitle, font: Font.regular(13.0), textColor: constructiveColor), constructiveColor)
+            state = .recordingVoice(NSAttributedString(string: subtitle, font: Font.regular(floor(self.titleFontSize * 13.0 / 17.0)), textColor: constructiveColor), constructiveColor)
         } else {
-            state = .info(NSAttributedString(string: subtitle, font: Font.regular(13.0), textColor: UIColor(rgb: 0xffffff, alpha: 0.5)), .generic)
+            state = .info(NSAttributedString(string: subtitle, font: Font.regular(floor(self.titleFontSize * 13.0 / 17.0)), textColor: UIColor(rgb: 0xffffff, alpha: 0.5)), .generic)
         }
         let _ = self.infoNode.transitionToState(state, animation: .slide)
         

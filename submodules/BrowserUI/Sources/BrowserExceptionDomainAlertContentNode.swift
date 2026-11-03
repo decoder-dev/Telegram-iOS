@@ -126,7 +126,7 @@ private final class BrowserExceptionDomainAlertContentNode: AlertContentNode {
     }
     
     override func updateTheme(_ theme: AlertControllerTheme) {
-        self.titleNode.attributedText = NSAttributedString(string: "Open in Browser", font: Font.bold(17.0), textColor: theme.primaryColor, paragraphAlignment: .center)
+        self.titleNode.attributedText = NSAttributedString(string: "Open in Browser", font: Font.bold(presentationData.listsFontSize.baseDisplaySize), textColor: theme.primaryColor, paragraphAlignment: .center)
         self.textNode.attributedText = NSAttributedString(string: "Do you want to open this link in your default browser?", font: Font.regular(13.0), textColor: theme.primaryColor, paragraphAlignment: .center)
                 
         self.allowWriteLabelNode.attributedText = formattedText("Always open links from **\(self.domain)** in browser", color: theme.primaryColor)

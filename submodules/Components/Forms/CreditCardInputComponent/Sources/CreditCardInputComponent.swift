@@ -16,6 +16,7 @@ public final class CreditCardInputComponent: Component {
     public let errorTextColor: UIColor
     public let placeholder: String
     public let placeholderColor: UIColor
+    public let fontSize: CGFloat
     public let updated: (String) -> Void
     
     public init(
@@ -25,6 +26,7 @@ public final class CreditCardInputComponent: Component {
         errorTextColor: UIColor,
         placeholder: String,
         placeholderColor: UIColor,
+        fontSize: CGFloat = 17.0,
         updated: @escaping (String) -> Void
     ) {
         self.dataType = dataType
@@ -33,6 +35,7 @@ public final class CreditCardInputComponent: Component {
         self.errorTextColor = errorTextColor
         self.placeholder = placeholder
         self.placeholderColor = placeholderColor
+        self.fontSize = fontSize
         self.updated = updated
     }
     
@@ -53,6 +56,9 @@ public final class CreditCardInputComponent: Component {
             return false
         }
         if lhs.placeholderColor != rhs.placeholderColor {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -141,7 +147,7 @@ public final class CreditCardInputComponent: Component {
                 self.textField.autoFormattingBehavior = .expiration
             }
             
-            self.textField.font = UIFont.systemFont(ofSize: 17.0)
+            self.textField.font = UIFont.systemFont(ofSize: component.fontSize)
             self.textField.defaultColor = component.textColor
             self.textField.errorColor = .red
             self.textField.placeholderColor = component.placeholderColor

@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
+import TelegramPresentationData
 
 private func generateCheckIcon(_ color: UIColor) -> UIImage? {
     return generateImage(CGSize(width: 14.0, height: 11.0), rotatedContext: { size, context in
@@ -18,6 +19,7 @@ private func generateCheckIcon(_ color: UIColor) -> UIImage? {
 final class InstantPageSettingsFontFamilyNode: InstantPageSettingsItemNode {
     private let title: String
     private let family: String?
+    private let fontSize: CGFloat
     private let tapped: () -> Void
     
     private let labelNode: ASTextNode
@@ -33,9 +35,10 @@ final class InstantPageSettingsFontFamilyNode: InstantPageSettingsItemNode {
         }
     }
     
-    init(theme: InstantPageSettingsItemTheme, title: String, family: String?, checked: Bool, tapped: @escaping () -> Void) {
+    init(theme: InstantPageSettingsItemTheme, title: String, family: String?, checked: Bool, fontSize: CGFloat = 17.0, tapped: @escaping () -> Void) {
         self.title = title
         self.family = family
+        self.fontSize = fontSize
         self._checked = checked
         self.tapped = tapped
         
@@ -59,13 +62,13 @@ final class InstantPageSettingsFontFamilyNode: InstantPageSettingsItemNode {
         
         let font: UIFont
         if let family = self.family {
-            if let familyFont = UIFont(name: family, size: 17.0) {
+            if let familyFont = UIFont(name: family, size: self.fontSize) {
                 font = familyFont
             } else {
-                font = UIFont.systemFont(ofSize: 17.0)
+                font = UIFont.systemFont(ofSize: self.fontSize)
             }
         } else {
-            font = UIFont.systemFont(ofSize: 17.0)
+            font = UIFont.systemFont(ofSize: self.fontSize)
         }
         self.labelNode.attributedText = NSAttributedString(string: self.title, font: font, textColor: theme.primaryColor)
         self.checkNode.image = generateCheckIcon(theme.accentColor)
@@ -76,12 +79,12 @@ final class InstantPageSettingsFontFamilyNode: InstantPageSettingsItemNode {
         if case .sameSection = previousItem.0, let previousNode = previousItem.1, previousNode is InstantPageSettingsFontFamilyNode {
             separatorInset = 46.0
         }
-        let labelSize = self.labelNode.measure(CGSize(width: width - 46.0 - 5.0, height: 44.0))
-        self.labelNode.frame = CGRect(origin: CGPoint(x: 46.0, y: insets.top + floor((44.0 - labelSize.height) / 2.0)), size: labelSize)
+        let labelSize = self.labelNode.measure(CGSize(width: width - 46.0 - 5.0, height: PresentationLayoutMetrics.minimumInteractiveSize))
+        self.labelNode.frame = CGRect(origin: CGPoint(x: 46.0, y: insets.top + floor((PresentationLayoutMetrics.minimumInteractiveSize - labelSize.height) / 2.0)), size: labelSize)
         if let image = self.checkNode.image {
-            self.checkNode.frame = CGRect(origin: CGPoint(x: 16.0, y: insets.top + floor((44.0 - image.size.height) / 2.0)), size: image.size)
+            self.checkNode.frame = CGRect(origin: CGPoint(x: PresentationLayoutMetrics.listHorizontalInset, y: insets.top + floor((PresentationLayoutMetrics.minimumInteractiveSize - image.size.height) / 2.0)), size: image.size)
         }
-        return (44.0 + insets.top + insets.bottom, separatorInset)
+        return (PresentationLayoutMetrics.minimumInteractiveSize + insets.top + insets.bottom, separatorInset)
     }
     
     override func pressed() {

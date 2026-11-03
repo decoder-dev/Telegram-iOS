@@ -310,13 +310,13 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             // `CallListCallItem` reserves — see `callListTypeIconSlotWidth`. Both must reserve it
             // unconditionally or the two kinds of row give the list two avatar columns.
             let indicatorSize: CGFloat = callListTypeIconSlotWidth
-            var leftInset: CGFloat = 16.0 + callListTypeIconSlotWidth + callListTypeIconSlotSpacing + avatarDiameter + 12.0 + params.leftInset + higCardInset
+            var leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + callListTypeIconSlotWidth + callListTypeIconSlotSpacing + avatarDiameter + 12.0 + params.leftInset + higCardInset
             let rightInset: CGFloat = 13.0 + params.rightInset + higCardInset
             var infoIconRightInset: CGFloat = rightInset
             
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             

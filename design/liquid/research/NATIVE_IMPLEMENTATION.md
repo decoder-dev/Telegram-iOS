@@ -303,3 +303,7 @@ SearchBar contentFontSize wired through Location/Contact/FeaturedStickers/PaneSe
 ## Специализированные title views
 
 WebApp/Game/Browser/VideoChat/Counter/RecentActions titles, ChatList empty info, StickerPack emojis header, ChannelParticipant footer, Wallet send button, Stars overview/category/news status и связанные call sites берут listsFontSize. Осталось только InstantPage parity и PeerInfoHeader animation. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Instant Page, PeerInfo header и оставшиеся insets
+
+Доведены InstantPage navigation/audio/peer/settings fonts, PeerInfoHeader MultiScale subtitles и collapsed title, phone stacks (Change Phone / Delete Account), Premium demo pages, Passport accept CTA, GlassControl text, Payment Method sheets/inputs, MinimizedHeader, InviteLink/Stats/Sessions empty titles и оставшиеся ItemList/CallList/Browser `listHorizontalInset` half-migrates. Branding Liquid: ожидается 7 pass. Simulator NOT RUN.

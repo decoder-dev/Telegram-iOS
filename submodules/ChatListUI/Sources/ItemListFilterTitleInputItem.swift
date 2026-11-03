@@ -143,11 +143,11 @@ public class ItemListFilterTitleInputItemNode: ListViewItemNode, UITextFieldDele
             }
             
             let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
-            let rightInset: CGFloat = 16.0 + params.rightInset
+            let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             let _ = rightInset
             
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let contentSize = CGSize(width: params.width, height: item.systemStyle == .glass ? 52.0 : 44.0)
             let insets = itemListNeighborsGroupedInsets(neighbors, params)
