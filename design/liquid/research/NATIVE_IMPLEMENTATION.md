@@ -342,8 +342,12 @@ Story footer/pinned/author/stealth sheets, PeerSelection empty/requirements и Q
 
 ## Gifts, Storage и смежные sheets
 
-Data Usage markdown (13 pt freeText), Clear Cache keep-opened описание (15 pt), Gift Store resale subtitle и FilterSelector (14 pt), Gift Setup footer markdown (13 pt), Gift Message public toggle (13 pt), Gift Demo description и InfoParagraph (15 pt), PeerTableCell (15 pt), Gift Options body/balance labels (15/14 pt), TableComponent row titles (15 pt) и GiftItemComponent list titles (13/14/15 pt) масштабируются от `listsFontSize.baseDisplaySize` по шаблону `Font.*(floor(fontSize * N / 17.0))`. Дополнительно: Forum topics info markdown, Join Subject sheet markdown, Chat Folder link preview descriptions, Ads Info paragraphs. Branding Liquid: pass после прогона. Simulator NOT RUN.
+Data Usage markdown (13 pt freeText), Clear Cache keep-opened описание (15 pt), Gift Store resale subtitle и FilterSelector (14 pt), Gift Setup footer markdown (13 pt), Gift Message public toggle (13 pt), Gift Demo description и InfoParagraph (15 pt), PeerTableCell (15 pt), Gift Options body/balance labels (15/14 pt), TableComponent row titles (15 pt) и GiftItemComponent list titles (13/14/15 pt) масштабируются от `listsFontSize.baseDisplaySize` по шаблону `Font.*(floor(fontSize * N / 17.0))`. Дополнительно: Forum topics info markdown, Join Subject sheet markdown, Chat Folder link preview descriptions, Ads Info paragraphs. Wallet (Transaction/Import/Send/Screen/Collectible/TransactionItem/Connect/Transfer), Stars Transaction/Withdrawal и TextProcessing (screen, translate content, text area) — chrome labels по тому же шаблону. Branding Liquid: 7 pass. Simulator NOT RUN.
 
 ## Gifts, Storage, chat accessory и setup screens
 
 Gift store/setup/options/demo/item/table, Storage/DataUsage, ChatInputMessageAccessory, ChatUserInfo, SavedTag alert, SendStars, Affiliate/JoinSubject/CreateBot/Collectible/ShareWithPeers/FolderLink/Cocoon/ProfileLevel — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Wallet, Stars и TextProcessing
+
+Wallet screens/send/import/connect/transactions, Stars transaction/withdrawal и TextProcessing translate/editor labels масштабируют от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.

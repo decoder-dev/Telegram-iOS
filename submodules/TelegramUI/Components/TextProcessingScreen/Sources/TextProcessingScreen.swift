@@ -659,7 +659,7 @@ final class TextProcessingContentComponent: Component {
                 let titleSize = previewTitle.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: style.title, font: Font.bold(30.0), textColor: theme.list.itemPrimaryTextColor))
+                        text: .plain(NSAttributedString(string: style.title, font: Font.bold(floor(fontSize * 30.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -678,7 +678,7 @@ final class TextProcessingContentComponent: Component {
                 let descriptionSize = previewDescription.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.TextProcessing_StylePreview_Subtitle, font: Font.regular(15.0), textColor: theme.list.itemPrimaryTextColor)),
+                        text: .plain(NSAttributedString(string: environment.strings.TextProcessing_StylePreview_Subtitle, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor)),
                         horizontalAlignment: .center,
                         maximumNumberOfLines: 0,
                         lineSpacing: 0.12
@@ -1529,7 +1529,6 @@ private final class TextProcessingSheetComponent: Component {
                 self.styles = component.initialStyles
             }
             
-            self.component = component
             self.state = state
 
             let environmentValue = environment[ViewControllerComponentContainer.Environment.self].value
@@ -1971,8 +1970,8 @@ private final class TextProcessingSheetComponent: Component {
                     toast = ComponentView()
                     self.toast = toast
                 }
-                let body = MarkdownAttributeSet(font: Font.regular(14.0), textColor: .white)
-                let bold = MarkdownAttributeSet(font: Font.semibold(14.0), textColor: .white)
+                let body = MarkdownAttributeSet(font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: .white)
+                let bold = MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: .white)
                 let playOnce = ActionSlot<Void>()
                 let toastSize = toast.update(
                     transition: toastTransition,
@@ -1986,7 +1985,7 @@ private final class TextProcessingSheetComponent: Component {
                         )),
                         content: AnyComponent(VStack([
                             AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: environmentValue.strings.TextProcessing_LimitToast_Title, font: Font.semibold(14.0), textColor: .white)),
+                                text: .plain(NSAttributedString(string: environmentValue.strings.TextProcessing_LimitToast_Title, font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: .white)),
                             ))),
                             AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
                                 text: .markdown(text: environmentValue.strings.TextProcessing_LimitToast_Text, attributes: MarkdownAttributes(body: body, bold: bold, link: body, linkAttribute: { _ in nil })),
@@ -2035,8 +2034,8 @@ private final class TextProcessingSheetComponent: Component {
                     styleCreatedToast = ComponentView()
                     self.styleCreatedToast = styleCreatedToast
                 }
-                let body = MarkdownAttributeSet(font: Font.regular(14.0), textColor: .white)
-                let bold = MarkdownAttributeSet(font: Font.semibold(14.0), textColor: .white)
+                let body = MarkdownAttributeSet(font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: .white)
+                let bold = MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: .white)
                 let styleCreatedToastSize = styleCreatedToast.update(
                     transition: styleCreatedToastTransition,
                     component: AnyComponent(ToastContentComponent(
@@ -2057,7 +2056,7 @@ private final class TextProcessingSheetComponent: Component {
                         )),
                         content: AnyComponent(VStack([
                             AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: environmentValue.strings.TextProcessing_ToastStyleCreated_Title(styleCreatedToastData.style.title).string, font: Font.semibold(14.0), textColor: .white)),
+                                text: .plain(NSAttributedString(string: environmentValue.strings.TextProcessing_ToastStyleCreated_Title(styleCreatedToastData.style.title).string, font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: .white)),
                             ))),
                             AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
                                 text: .markdown(text: environmentValue.strings.TextProcessing_ToastStyleCreated_Text, attributes: MarkdownAttributes(body: body, bold: bold, link: body, linkAttribute: { _ in nil })),
@@ -2102,8 +2101,8 @@ private final class TextProcessingSheetComponent: Component {
                     customToast = ComponentView()
                     self.customToast = customToast
                 }
-                let body = MarkdownAttributeSet(font: Font.regular(14.0), textColor: .white)
-                let bold = MarkdownAttributeSet(font: Font.semibold(14.0), textColor: .white)
+                let body = MarkdownAttributeSet(font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: .white)
+                let bold = MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 14.0 / 17.0)), textColor: .white)
                 let playOnce = ActionSlot<Void>()
                 let customToastSize = customToast.update(
                     transition: customToastTransition,
@@ -2462,7 +2461,6 @@ private final class TitleComponent: Component {
         }
         
         func update(component: TitleComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
-            self.component = component
             self.state = state
             
             let titleSize = self.title.update(
@@ -2629,7 +2627,6 @@ private final class ActionButtonsComponent: Component {
         }
         
         func update(component: ActionButtonsComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
-            self.component = component
             self.state = state
             
             let spacing: CGFloat = 10.0
@@ -2798,7 +2795,6 @@ private final class IncreaseLimitBadgeComponent: Component {
         }
         
         func update(component: IncreaseLimitBadgeComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
-            self.component = component
             self.state = state
             
             let leftInset: CGFloat = 4.0

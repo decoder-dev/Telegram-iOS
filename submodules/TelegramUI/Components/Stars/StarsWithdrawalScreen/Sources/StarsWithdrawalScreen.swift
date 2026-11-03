@@ -335,7 +335,7 @@ private final class SheetContent: CombinedComponent {
                         theme: theme,
                         style: .glass,
                         customLayout: TabSelectorComponent.CustomLayout(
-                            font: Font.medium(14.0),
+                            font: Font.medium(floor(fontSize * 14.0 / 17.0)),
                             spacing: 10.0
                         ),
                         items: [
@@ -378,8 +378,8 @@ private final class SheetContent: CombinedComponent {
                 contentSize.height += currencyToggle.size.height + 29.0
             }
             
-            let amountFont = Font.regular(13.0)
-            let boldAmountFont = Font.semibold(13.0)
+            let amountFont = Font.regular(floor(fontSize * 13.0 / 17.0))
+            let boldAmountFont = Font.semibold(floor(fontSize * 13.0 / 17.0))
             let amountTextColor = theme.list.freeTextColor
             let amountMarkdownAttributes = MarkdownAttributes(
                 body: MarkdownAttributeSet(font: amountFont, textColor: amountTextColor),
@@ -733,6 +733,7 @@ private final class SheetContent: CombinedComponent {
                                     let component = state.component
                                     
                                     let theme = environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                                     
                                     let minimalTime: Int32 = Int32(Date().timeIntervalSince1970) + 5 * 60 + 10
                                     let controller = ChatScheduleTimeController(context: state.context, updatedPresentationData: (state.context.sharedContext.currentPresentationData.with({ $0 }).withUpdated(theme: theme), state.context.sharedContext.presentationData |> map { $0.withUpdated(theme: theme) }), mode: .suggestPost(needsTime: false, isAdmin: false, funds: nil), style: .default, currentTime: state.timestamp, minimalTime: minimalTime, dismissByTapOutside: true, completion: { [weak state] time in
@@ -1275,6 +1276,7 @@ private final class StarsWithdrawSheetComponent: CombinedComponent {
         let sheetExternalState = SheetComponent<EnvironmentType>.ExternalState()
         
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[EnvironmentType.self]
             
             let controller = environment.controller
@@ -1954,7 +1956,6 @@ public final class AmountFieldComponent: Component {
                 self.textField.reloadInputViews()
             }
                         
-            self.component = component
             self.state = state
                        
             let size = CGSize(width: availableSize.width, height: 52.0)
@@ -2151,11 +2152,12 @@ private final class BalanceComponent: CombinedComponent {
         let icon = Child(BundleIconComponent.self)
         
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             var size = CGSize(width: 0.0, height: 0.0)
             
             let title = title.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: context.component.strings.SendStarReactions_Balance, font: Font.regular(14.0), textColor: context.component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: context.component.strings.SendStarReactions_Balance, font: Font.regular(floor(fontSize * 14.0 / 17.0)), textColor: context.component.theme.list.itemPrimaryTextColor))
                 ),
                 availableSize: context.availableSize,
                 transition: .immediate
@@ -2178,7 +2180,7 @@ private final class BalanceComponent: CombinedComponent {
             }
             let balance = balance.update(
                 component: MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: balanceText, font: Font.medium(15.0), textColor: context.component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: balanceText, font: Font.medium(floor(fontSize * 15.0 / 17.0)), textColor: context.component.theme.list.itemPrimaryTextColor))
                 ),
                 availableSize: context.availableSize,
                 transition: .immediate
@@ -2316,7 +2318,7 @@ private final class CurrencyTabItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.medium(14.0), textColor: .white))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.medium(floor(fontSize * 14.0 / 17.0)), textColor: .white))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -2448,7 +2450,6 @@ private final class MenuComponent: Component {
         }
         
         func update(component: MenuComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
-            self.component = component
             
             var componentView: ComponentView<Empty>
             var componentTransition = transition
@@ -2580,7 +2581,6 @@ private final class MenuButtonComponent: Component {
         }
                 
         func update(component: MenuButtonComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
-            self.component = component
             self.componentState = state
             
             let leftInset: CGFloat = 60.0
@@ -2709,7 +2709,6 @@ private final class DurationMenuComponent: Component {
         }
                 
         func update(component: DurationMenuComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
-            self.component = component
             
             let itemHeight: CGFloat = 40.0
             

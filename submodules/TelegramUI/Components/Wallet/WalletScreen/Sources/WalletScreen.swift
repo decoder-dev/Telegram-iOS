@@ -348,19 +348,22 @@ private final class WalletNavigationBalanceComponent: Component {
     let fiatCurrency: WalletContext.FiatCurrency
     let fiatRate: WalletContext.FiatRate?
     let dateTimeFormat: PresentationDateTimeFormat
+    let fontSize: CGFloat
 
     init(
         theme: PresentationTheme,
         balance: Int64?,
         fiatCurrency: WalletContext.FiatCurrency,
         fiatRate: WalletContext.FiatRate?,
-        dateTimeFormat: PresentationDateTimeFormat
+        dateTimeFormat: PresentationDateTimeFormat,
+        fontSize: CGFloat
     ) {
         self.theme = theme
         self.balance = balance
         self.fiatCurrency = fiatCurrency
         self.fiatRate = fiatRate
         self.dateTimeFormat = dateTimeFormat
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: WalletNavigationBalanceComponent, rhs: WalletNavigationBalanceComponent) -> Bool {
@@ -374,6 +377,9 @@ private final class WalletNavigationBalanceComponent: Component {
             return false
         }
         if lhs.dateTimeFormat != rhs.dateTimeFormat {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -424,6 +430,7 @@ private final class WalletNavigationBalanceComponent: Component {
             environment: Environment<Empty>,
             transition: ComponentTransition
         ) -> CGSize {
+            let fontSize = component.fontSize
             let formattedBalance: String
             if let balance = component.balance {
                 formattedBalance = formatTonAmountText(
@@ -490,7 +497,7 @@ private final class WalletNavigationBalanceComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: formattedFiatBalance,
-                        font: Font.regular(13.0),
+                        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                         textColor: secondaryColor
                     )),
                     maximumNumberOfLines: 1
@@ -1256,6 +1263,10 @@ private final class WalletScreenComponent: Component {
             width: CGFloat,
             transition: ComponentTransition
         ) -> CGFloat {
+            guard let component = self.component else {
+                return 0.0
+            }
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             var items: [AnyComponentWithIdentity<Empty>] = []
             func appendItem(id: String, title: NSAttributedString, action: @escaping () -> Void) {
                 items.append(AnyComponentWithIdentity(id: id, component: AnyComponent(ListActionItemComponent(
@@ -1272,7 +1283,7 @@ private final class WalletScreenComponent: Component {
                 ))))
             }
 
-            let font = Font.medium(15.0)
+            let font = Font.medium(floor(fontSize * 15.0 / 17.0))
             let textColor = environment.theme.list.itemPrimaryTextColor
             if self.existingWaltBalance?.hasBalance == true {
                 items.append(AnyComponentWithIdentity(id: "walt", component: AnyComponent(ListActionItemComponent(
@@ -1683,10 +1694,12 @@ private final class WalletScreenComponent: Component {
 
         private func updateGramTooltip() {
             guard let tooltip = self.gramTooltip,
+                  let component = self.component,
                   let environment = self.environment,
                   let cardView = self.card.view as? WalletCardComponent.View else {
                 return
             }
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let leftInset = environment.safeInsets.left + 26.0
             let rightInset = environment.safeInsets.right + 26.0
             let availableWidth = self.scrollView.bounds.width - leftInset - rightInset
@@ -1700,7 +1713,8 @@ private final class WalletScreenComponent: Component {
                     colors: (
                         cardView.giftStyled(WalletTooltipComponent.defaultColors.0) ?? WalletTooltipComponent.defaultColors.0,
                         cardView.giftStyled(WalletTooltipComponent.defaultColors.1) ?? WalletTooltipComponent.defaultColors.1
-                    )
+                    ),
+                    fontSize: fontSize
                 )),
                 environment: {},
                 containerSize: CGSize(width: min(614.0, availableWidth), height: 10000.0)
@@ -3054,7 +3068,8 @@ private final class WalletScreenComponent: Component {
                     balance: self.displayBalance,
                     fiatCurrency: self.walletState?.fiat.selectedCurrency ?? .usd,
                     fiatRate: self.walletState?.fiat.selectedRate,
-                    dateTimeFormat: environment.dateTimeFormat
+                    dateTimeFormat: environment.dateTimeFormat,
+                    fontSize: fontSize
                 )),
                 environment: {},
                 containerSize: CGSize(
@@ -3134,6 +3149,7 @@ private final class WalletScreenComponent: Component {
             }
 
             let environment = environment[EnvironmentType.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             if self.component?.context !== component.context || self.walletContext !== component.walletContext {
                 self.dismissGramTooltip(animated: false)
                 self.gramTooltipWalletAddress = nil
@@ -3644,7 +3660,7 @@ private final class WalletScreenComponent: Component {
                     footer: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.Wallet_HiddenTransactions(formattedMinAmount).string,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: environment.theme.list.freeTextColor
                         )),
                         maximumNumberOfLines: 0
@@ -3705,7 +3721,7 @@ private final class WalletScreenComponent: Component {
                     let footerSize = self.collectiblesFooter.update(
                         transition: .immediate,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: environment.strings.Wallet_Sticker_GridFooter, font: Font.regular(13.0), textColor: environment.theme.list.freeTextColor)),
+                            text: .plain(NSAttributedString(string: environment.strings.Wallet_Sticker_GridFooter, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: environment.theme.list.freeTextColor)),
                             horizontalAlignment: .center,
                             maximumNumberOfLines: 0,
                             lineSpacing: 0.1
@@ -3820,9 +3836,9 @@ private final class WalletScreenComponent: Component {
                     transition: transition,
                     component: AnyComponent(MultilineTextComponent(
                         text: .markdown(text: environment.strings.Wallet_TermsText, attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: textColor),
-                            bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: textColor),
-                            link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: accentColor),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: textColor),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: textColor),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: accentColor),
                             linkAttribute: { contents in
                                 return (TelegramTextAttributes.URL, contents)
                             }

@@ -414,7 +414,8 @@ public final class WalletTransactionItemComponent: Component {
             }
             self.amountIcon.view?.alpha = iconAlpha
             self.amountIcon.view?.transform = CGAffineTransform(scaleX: max(0.001, iconScale), y: max(0.001, iconScale))
-            if clockAlpha > 0.0 && self.pendingClock == nil {
+            if clockAlpha > 0.0 && self.pendingClock == nil, let component = self.component {
+                let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 let clock = UIView(frame: CGRect(x: 0.0, y: 0.0, width: 17.0, height: 17.0))
                 clock.isUserInteractionEnabled = false
                 clock.accessibilityElementsHidden = true
@@ -436,7 +437,7 @@ public final class WalletTransactionItemComponent: Component {
                 self.addSubview(clock)
                 self.pendingClock = clock
                 let status = UILabel()
-                status.font = Font.regular(14.0)
+                status.font = Font.regular(floor(fontSize * 14.0 / 17.0))
                 self.addSubview(status)
                 self.pendingStatus = status
             }
@@ -681,7 +682,7 @@ public final class WalletTransactionItemComponent: Component {
             environment: Environment<Empty>,
             transition: ComponentTransition
         ) -> CGSize {
-            self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.amount.view?.transform = .identity
             self.amountIcon.view?.transform = .identity
             if !component.animatesPendingTransfer { self.resetTransferPresentation() }
@@ -1038,8 +1039,8 @@ public final class WalletTransactionItemComponent: Component {
             }
             let amountAttributedText = tonAmountAttributedString(
                 amountText,
-                integralFont: Font.semibold(15.0),
-                fractionalFont: Font.semibold(12.0),
+                integralFont: Font.semibold(floor(fontSize * 15.0 / 17.0)),
+                fractionalFont: Font.semibold(floor(fontSize * 12.0 / 17.0)),
                 color: .white,
                 decimalSeparator: component.dateTimeFormat.decimalSeparator
             )
@@ -1157,7 +1158,7 @@ public final class WalletTransactionItemComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: subtitleText,
-                        font: Font.regular(15.0),
+                        font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                         textColor: component.theme.list.itemPrimaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -1184,7 +1185,7 @@ public final class WalletTransactionItemComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: dateText,
-                        font: Font.regular(14.0),
+                        font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                         textColor: component.theme.list.itemSecondaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -1240,7 +1241,7 @@ public final class WalletTransactionItemComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: collectible.name,
-                            font: Font.semibold(14.0),
+                            font: Font.semibold(floor(fontSize * 14.0 / 17.0)),
                             textColor: component.theme.list.itemPrimaryTextColor
                         )),
                         maximumNumberOfLines: 1
@@ -1264,7 +1265,7 @@ public final class WalletTransactionItemComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: collectibleTypeText,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             textColor: component.theme.list.itemSecondaryTextColor
                         )),
                         maximumNumberOfLines: 1

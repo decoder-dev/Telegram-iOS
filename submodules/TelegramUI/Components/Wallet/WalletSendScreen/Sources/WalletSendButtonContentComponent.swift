@@ -68,6 +68,7 @@ final class WalletSendButtonContentComponent: Component {
                 }
             }
             self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.accessibilityLabel = [component.title, component.subtitle].compactMap { $0 }.joined(separator: ", ")
             let now = CACurrentMediaTime()
             let sharedStart = component.timing.flatMap { now - $0.start < $0.duration ? $0.start : nil }
@@ -103,7 +104,7 @@ final class WalletSendButtonContentComponent: Component {
                     transition: self.subtitle.view == nil ? .immediate : textTransition,
                     component: AnyComponent(WalletSendAnimatedTextComponent(
                         text: subtitle,
-                        font: Font.medium(11.0),
+                        font: Font.medium(floor(fontSize * 11.0 / 17.0)),
                         color: component.color.withAlphaComponent(0.7),
                         dateTimeFormat: component.dateTimeFormat,
                         isVisible: component.isVisible && component.subtitle != nil,

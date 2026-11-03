@@ -57,7 +57,7 @@ public final class WalletConnectAppIconComponent: Component {
             self.backgroundColor = UIColor(rgb: 0x2aabee)
             self.imageView.contentMode = .scaleAspectFill
             self.fallbackLabel.textAlignment = .center
-            self.fallbackLabel.font = Font.bold(40.0)
+            self.fallbackLabel.font = Font.bold(floor(fontSize * 40.0 / 17.0))
             self.fallbackLabel.textColor = .white
             self.addSubview(self.fallbackLabel)
             self.addSubview(self.imageView)
@@ -289,10 +289,12 @@ private final class WalletConnectSheetContent: CombinedComponent {
         let closeButton = Child(GlassBarButtonComponent.self)
 
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let component = context.component
             let state = context.state
             let environment = context.environment[EnvironmentType.self].value
             let theme = environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
 
             let safeContentWidth = max(
                 0.0,
@@ -333,7 +335,7 @@ private final class WalletConnectSheetContent: CombinedComponent {
                 component: BalancedTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Wallet_Connect_Title(component.request.applicationName).string,
-                        font: Font.bold(22.0),
+                        font: Font.bold(floor(fontSize * 22.0 / 17.0)),
                         textColor: primaryTextColor
                     )),
                     horizontalAlignment: .center,
@@ -354,7 +356,7 @@ private final class WalletConnectSheetContent: CombinedComponent {
                 id: "domain",
                 component: AnyComponent(Text(
                     text: component.request.domain,
-                    font: Font.semibold(15.0),
+                    font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                     color: accentColor
                 ))
             )]
@@ -382,7 +384,7 @@ private final class WalletConnectSheetContent: CombinedComponent {
                 component: BalancedTextComponent(
                     text: .plain(NSAttributedString(
                         string: permissionText,
-                        font: Font.regular(15.0),
+                        font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                         textColor: primaryTextColor
                     )),
                     horizontalAlignment: .center,
@@ -445,7 +447,7 @@ private final class WalletConnectSheetContent: CombinedComponent {
                 component: BalancedTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Wallet_Connect_Disclaimer(component.request.applicationName).string,
-                        font: Font.regular(13.0),
+                        font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                         textColor: secondaryTextColor
                     )),
                     horizontalAlignment: .center,

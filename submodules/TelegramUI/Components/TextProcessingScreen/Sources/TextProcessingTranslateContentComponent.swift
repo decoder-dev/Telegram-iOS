@@ -326,6 +326,7 @@ final class TextProcessingTranslateContentComponent: Component {
             defer {
                 self.isUpdating = false
             }
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let previousComponent = self.component
             
             if component.externalState.sourceLanguage == nil {
@@ -499,9 +500,9 @@ final class TextProcessingTranslateContentComponent: Component {
                     }
                     component.externalState.sectionFooter = AnyComponentWithIdentity(id: "style_by_\(authorPeer.id.toInt64())", component: AnyComponent(MultilineTextComponent(
                         text: .markdown(text: footerText, attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.list.freeTextColor),
-                            bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: component.theme.list.freeTextColor),
-                            link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.list.itemAccentColor),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.freeTextColor),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.freeTextColor),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemAccentColor),
                             linkAttribute: { url in
                                 return ("URL", url)
                             }
@@ -530,9 +531,9 @@ final class TextProcessingTranslateContentComponent: Component {
                 component.externalState.sectionHeader = AnyComponentWithIdentity(id: "preview", component: AnyComponent(HStack([
                     AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
                         text: .markdown(text: component.strings.TextProcessing_StylePreview_ExampleHeader, attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.list.freeTextColor),
-                            bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: component.theme.list.freeTextColor),
-                            link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.list.itemAccentColor),
+                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.freeTextColor),
+                            bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.freeTextColor),
+                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemAccentColor),
                             linkAttribute: { url in
                                 return ("URL", url)
                             }
@@ -545,7 +546,7 @@ final class TextProcessingTranslateContentComponent: Component {
                                 tintColor: component.theme.list.itemAccentColor
                             ))),
                             AnyComponentWithIdentity(id: 1, component: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: component.strings.TextProcessing_StylePreview_ExampleHeaderRefresh, font: Font.regular(13.0), textColor: component.theme.list.itemAccentColor))
+                                text: .plain(NSAttributedString(string: component.strings.TextProcessing_StylePreview_ExampleHeaderRefresh, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemAccentColor))
                             )))
                         ], spacing: 2.0)),
                         action: { [weak self] in
@@ -573,9 +574,9 @@ final class TextProcessingTranslateContentComponent: Component {
                 }
                 component.externalState.sectionFooter = AnyComponentWithIdentity(id: "style_by_\(authorPeer?.id.toInt64() ?? 0)", component: AnyComponent(MultilineTextComponent(
                     text: .markdown(text: footerText, attributes: MarkdownAttributes(
-                        body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.list.freeTextColor),
-                        bold: MarkdownAttributeSet(font: Font.semibold(13.0), textColor: component.theme.list.freeTextColor),
-                        link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: component.theme.list.itemAccentColor),
+                        body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.freeTextColor),
+                        bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.freeTextColor),
+                        link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemAccentColor),
                         linkAttribute: { url in
                             return ("URL", url)
                         }
@@ -948,7 +949,7 @@ final class TextProcessingTranslateContentComponent: Component {
                     transition: tooltipTransition,
                     component: AnyComponent(TooltipComponent(
                         content: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: component.strings.TextProcessing_StyleTooltip, font: Font.regular(15.0), textColor: .white))
+                            text: .plain(NSAttributedString(string: component.strings.TextProcessing_StyleTooltip, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: .white))
                         ))
                     )),
                     environment: {},

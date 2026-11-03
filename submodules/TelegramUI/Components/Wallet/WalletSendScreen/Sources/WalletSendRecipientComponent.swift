@@ -713,6 +713,7 @@ final class WalletSendRecipientComponent: Component {
         }
 
         func update(component: WalletSendRecipientComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.advanceAnimation(to: CACurrentMediaTime())
             let contextChanged = self.component?.context !== component.context
             if self.component?.peer?.id != component.peer?.id {
@@ -793,7 +794,7 @@ final class WalletSendRecipientComponent: Component {
                         component: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: "@\(addressName)",
-                                font: Font.regular(14.0),
+                                font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                                 textColor: component.theme.list.itemSecondaryTextColor
                             )),
                             maximumNumberOfLines: 1
@@ -808,7 +809,7 @@ final class WalletSendRecipientComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.peer?.displayTitle(strings: component.strings, displayOrder: component.nameDisplayOrder) ?? component.strings.Wallet_Recipient_GramWallet,
-                        font: Font.semibold(16.0),
+                        font: Font.semibold(floor(fontSize * 16.0 / 17.0)),
                         textColor: component.theme.list.itemPrimaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -875,7 +876,7 @@ final class WalletSendRecipientComponent: Component {
                 }
                 usernameView.isAccessibilityElement = usernameText != nil
                 usernameView.accessibilityLabel = usernameText
-                let baselineOffset = floorToScreenPixels(Font.semibold(16.0).ascender) - floorToScreenPixels(Font.regular(14.0).ascender)
+                let baselineOffset = floorToScreenPixels(Font.semibold(floor(fontSize * 16.0 / 17.0)).ascender) - floorToScreenPixels(Font.regular(floor(fontSize * 14.0 / 17.0)).ascender)
                 transition.setFrame(view: usernameView, frame: CGRect(x: textOriginX + nameSize.width + 6.0, y: textOriginY + baselineOffset - 1.0, width: usernameSize.width, height: usernameSize.height))
                 transition.setAlpha(view: usernameView, alpha: usernameText == nil ? 0.0 : 1.0)
             }

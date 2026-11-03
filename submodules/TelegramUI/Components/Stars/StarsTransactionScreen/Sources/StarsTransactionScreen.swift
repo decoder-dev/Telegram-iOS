@@ -176,6 +176,7 @@ private final class StarsTransactionSheetContent: CombinedComponent {
         let giftCompositionExternalState = GiftCompositionComponent.ExternalState()
         
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[ViewControllerComponentContainer.Environment.self].value
             let controller = environment.controller
             
@@ -734,9 +735,9 @@ private final class StarsTransactionSheetContent: CombinedComponent {
                 }
             }
             
-            var titleFont = Font.bold(25.0)
+            var titleFont = Font.bold(floor(fontSize * 25.0 / 17.0))
             if case .unique = giftAnimationSubject {
-                titleFont = Font.bold(20.0)
+                titleFont = Font.bold(floor(fontSize * 20.0 / 17.0))
             }
             
             let title = title.update(
@@ -854,7 +855,7 @@ private final class StarsTransactionSheetContent: CombinedComponent {
              
             let amountAttributedText: NSAttributedString
             if amountText.contains(environment.dateTimeFormat.decimalSeparator) {
-                let smallCountFont = Font.regular(14.0)
+                let smallCountFont = Font.regular(floor(fontSize * 14.0 / 17.0))
                 amountAttributedText = tonAmountAttributedString(amountText, integralFont: countFont, fractionalFont: smallCountFont, color: countColor, decimalSeparator: environment.dateTimeFormat.decimalSeparator)
             } else {
                 amountAttributedText = NSAttributedString(string: amountText, font: countFont, textColor: countColor)
@@ -896,8 +897,8 @@ private final class StarsTransactionSheetContent: CombinedComponent {
                 transition: .immediate
             )
             
-            let tableFont = Font.regular(15.0)
-            let tableBoldFont = Font.semibold(15.0)
+            let tableFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let tableBoldFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let tableTextColor = theme.list.itemPrimaryTextColor
             let tableLinkColor = theme.list.itemAccentColor
             var tableItems: [TableComponent.Item] = []
@@ -1397,8 +1398,8 @@ private final class StarsTransactionSheetContent: CombinedComponent {
                 transition: .immediate
             )
             
-            let textFont = Font.regular(15.0)
-            let boldTextFont = Font.semibold(15.0)
+            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
             let textColor = theme.actionSheet.secondaryTextColor
             let linkColor = theme.actionSheet.controlAccentColor
             let destructiveColor = theme.actionSheet.destructiveActionTextColor
@@ -1469,11 +1470,11 @@ private final class StarsTransactionSheetContent: CombinedComponent {
                     state.cachedChevronImage = (generateTintedImage(image: UIImage(bundleImageName: "Settings/TextArrowRight"), color: linkColor)!, theme)
                 }
 
-                var textFont = Font.regular(15.0)
-                let boldTextFont = Font.semibold(15.0)
+                var textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
+                let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
                 var textColor = theme.actionSheet.secondaryTextColor
                 if case .unique = giftAnimationSubject {
-                    textFont = Font.regular(13.0)
+                    textFont = Font.regular(floor(fontSize * 13.0 / 17.0))
                     textColor = vibrantColor
                 } else if countOnTop && !isSubscriber {
                     textColor = theme.list.itemPrimaryTextColor
@@ -1541,7 +1542,7 @@ private final class StarsTransactionSheetContent: CombinedComponent {
                     component: MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: statusText,
-                            font: Font.medium(14.0),
+                            font: Font.medium(floor(fontSize * 14.0 / 17.0)),
                             textColor: statusColor
                         ))
                     ),
@@ -2201,6 +2202,7 @@ private final class PeerCellComponent: Component {
         
         func update(component: PeerCellComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.state = state
                                     
             let avatarSize = CGSize(width: 22.0, height: 22.0)
@@ -2229,7 +2231,7 @@ private final class PeerCellComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: peerName, font: Font.regular(15.0), textColor: component.theme.list.itemAccentColor, paragraphAlignment: .left))
+                        text: .plain(NSAttributedString(string: peerName, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: component.theme.list.itemAccentColor, paragraphAlignment: .left))
                     )
                 ),
                 environment: {},
@@ -2320,7 +2322,6 @@ private final class TransactionCellComponent: Component {
         }
         
         func update(component: TransactionCellComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
-            self.component = component
             self.state = state
                                                 
             self.gradientView.tintColor = component.backgroundColor
@@ -2456,10 +2457,10 @@ private final class ButtonContentComponent: Component {
         }
         
         func update(component: ButtonContentComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
-            self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.componentState = state
                         
-            let attributedText = NSAttributedString(string: component.text, font: Font.regular(11.0), textColor: component.color)
+            let attributedText = NSAttributedString(string: component.text, font: Font.regular(floor(fontSize * 11.0 / 17.0)), textColor: component.color)
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(

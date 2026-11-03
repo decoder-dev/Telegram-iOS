@@ -2048,6 +2048,7 @@ private final class WalletSendScreenComponent: Component {
             }
 
             let environment = environment[EnvironmentType.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let peerChanged = self.component?.peer?.id != component.peer?.id
             let resolvedAddressChanged = self.component?.resolvedAddress != component.resolvedAddress
             self.component = component
@@ -2186,6 +2187,7 @@ private final class WalletSendScreenComponent: Component {
             self.amountField.isUserInteractionEnabled = isAmountInputEnabled
 
             let theme = environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.backgroundColor = theme.list.modalPlainBackgroundColor
 
             let headerButtonSize = CGSize(width: 44.0, height: 44.0)
@@ -2481,7 +2483,7 @@ private final class WalletSendScreenComponent: Component {
                     content: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: emptyHint,
-                            font: Font.regular(15.0),
+                            font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                             textColor: theme.list.itemSecondaryTextColor
                         )),
                         horizontalAlignment: .center,
@@ -2581,7 +2583,7 @@ private final class WalletSendScreenComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Wallet_Send_InsufficientFunds,
-                        font: Font.regular(14.0),
+                        font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                         textColor: theme.list.itemDestructiveColor
                     )),
                     horizontalAlignment: .center,
@@ -2604,7 +2606,7 @@ private final class WalletSendScreenComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: environment.strings.Wallet_Send_DepositFunds,
-                            font: Font.regular(14.0),
+                            font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                             textColor: theme.list.itemAccentColor
                         )),
                         maximumNumberOfLines: 1
@@ -2703,7 +2705,7 @@ private final class WalletSendScreenComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: comment,
-                            font: Font.semibold(16.0),
+                            font: Font.semibold(floor(fontSize * 16.0 / 17.0)),
                             textColor: theme.list.itemSecondaryTextColor
                         )),
                         horizontalAlignment: .natural,
@@ -2777,7 +2779,7 @@ private final class WalletSendScreenComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Wallet_Send_Balance(formattedBalance).string,
-                        font: Font.regular(14.0),
+                        font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                         textColor: theme.list.itemSecondaryTextColor
                     )),
                     horizontalAlignment: .center,
@@ -2829,7 +2831,7 @@ private final class WalletSendScreenComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: feeValue,
-                            font: Font.regular(14.0),
+                            font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                             textColor: feeValueColor
                         )),
                         maximumNumberOfLines: 1
@@ -2848,7 +2850,7 @@ private final class WalletSendScreenComponent: Component {
                             component: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: environment.strings.Wallet_Send_NetworkFee,
-                                    font: Font.regular(14.0),
+                                    font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                                     textColor: theme.list.itemSecondaryTextColor
                                 )),
                                 maximumNumberOfLines: 1

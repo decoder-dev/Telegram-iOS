@@ -595,7 +595,7 @@ private final class SendButtonContentComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.text,
-                        font: Font.regular(11.0),
+                        font: Font.regular(floor(fontSize * 11.0 / 17.0)),
                         textColor: component.color
                     )),
                     maximumNumberOfLines: 1
@@ -691,6 +691,7 @@ private final class CounterpartyRowComponent: CombinedComponent {
         let sendButton = Child(environment: Empty.self)
 
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let sendButton = sendButton.update(
                 component: context.component.sendButton,
                 availableSize: context.availableSize,
@@ -740,14 +741,16 @@ private final class CounterpartyRowComponent: CombinedComponent {
 private final class WalletTransactionKeyUpdateHeaderComponent: Component {
     let theme: PresentationTheme
     let strings: PresentationStrings
+    let fontSize: CGFloat
 
-    init(theme: PresentationTheme, strings: PresentationStrings) {
+    init(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: WalletTransactionKeyUpdateHeaderComponent, rhs: WalletTransactionKeyUpdateHeaderComponent) -> Bool {
-        return lhs.theme === rhs.theme && lhs.strings === rhs.strings
+        return lhs.theme === rhs.theme && lhs.strings === rhs.strings && lhs.fontSize == rhs.fontSize
     }
 
     final class View: UIView {
@@ -781,6 +784,7 @@ private final class WalletTransactionKeyUpdateHeaderComponent: Component {
         }
 
         func update(component: WalletTransactionKeyUpdateHeaderComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.fontSize
             let iconBackgroundFrame = CGRect(
                 x: floorToScreenPixels((availableSize.width - 90.0) / 2.0),
                 y: 76.0 - 90.0 / 2.0,
@@ -800,7 +804,7 @@ private final class WalletTransactionKeyUpdateHeaderComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.strings.Wallet_Transaction_KeyUpdate,
-                        font: Font.semibold(22.0),
+                        font: Font.semibold(floor(fontSize * 22.0 / 17.0)),
                         textColor: component.theme.actionSheet.primaryTextColor,
                         paragraphAlignment: .center
                     )),
@@ -2515,8 +2519,8 @@ private final class WalletTransactionContentComponent: Component {
                 self.isUpdating = false
             }
             let environment = environment[EnvironmentType.self].value
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let previousWalletContext = self.component?.walletContext
-            self.component = component
             self.environment = environment
             self.componentState = state
 
@@ -2552,6 +2556,7 @@ private final class WalletTransactionContentComponent: Component {
             })
 
             let theme = environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let transaction = self.currentTransaction()
             let walletState = self.latestWalletState ?? (self.walletContext ?? component.walletContext)?.stateValue
             let walletAddress: String?
@@ -2703,7 +2708,7 @@ private final class WalletTransactionContentComponent: Component {
             if isKeyChange {
                 let headerSize = self.keyUpdateHeader.update(
                     transition: transition,
-                    component: AnyComponent(WalletTransactionKeyUpdateHeaderComponent(theme: theme, strings: environment.strings)),
+                    component: AnyComponent(WalletTransactionKeyUpdateHeaderComponent(theme: theme, strings: environment.strings, fontSize: fontSize)),
                     environment: {},
                     containerSize: CGSize(width: availableSize.width, height: .greatestFiniteMagnitude)
                 )
@@ -2716,8 +2721,8 @@ private final class WalletTransactionContentComponent: Component {
                 }
                 contentHeight = headerSize.height
             } else if let headerGift {
-                let titleFont = Font.bold(20.0)
-                let numberFont = headerGift.number < 1000 ? titleFont : Font.bold(15.0)
+                let titleFont = Font.bold(floor(fontSize * 20.0 / 17.0))
+                let numberFont = headerGift.number < 1000 ? titleFont : Font.bold(floor(fontSize * 15.0 / 17.0))
                 let titleString = NSMutableAttributedString(string: headerGift.title + " ", font: titleFont, textColor: .white)
                 titleString.append(NSAttributedString(string: "#" + formatCollectibleNumber(headerGift.number, dateTimeFormat: environment.dateTimeFormat), font: numberFont, textColor: giftVibrantColor))
                 let titleSize = self.giftTitle.update(
@@ -2747,7 +2752,7 @@ private final class WalletTransactionContentComponent: Component {
                     let subtitleSize = self.giftSubtitle.update(
                         transition: .immediate,
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(13.0), textColor: giftVibrantColor)),
+                            text: .plain(NSAttributedString(string: subtitleText, font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: giftVibrantColor)),
                             horizontalAlignment: .center,
                             maximumNumberOfLines: 1
                         )),
@@ -2898,7 +2903,7 @@ private final class WalletTransactionContentComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: usdText,
-                            font: Font.regular(15.0),
+                            font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                             textColor: theme.actionSheet.secondaryTextColor
                         )),
                         maximumNumberOfLines: 1
@@ -2913,7 +2918,7 @@ private final class WalletTransactionContentComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: "•",
-                            font: Font.regular(15.0),
+                            font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                             textColor: theme.actionSheet.secondaryTextColor
                         )),
                         maximumNumberOfLines: 1
@@ -2926,7 +2931,7 @@ private final class WalletTransactionContentComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: transaction.status == .failed ? environment.strings.Wallet_Transaction_Failed : environment.strings.Wallet_Transaction_Processing,
-                            font: Font.regular(15.0),
+                            font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                             textColor: transaction.status == .failed
                                 ? theme.list.itemDestructiveColor
                                 : theme.actionSheet.controlAccentColor
@@ -2988,7 +2993,7 @@ private final class WalletTransactionContentComponent: Component {
                 let presentationData = self.currentPresentationData(for: component).initial
                 let commentSize: CGSize
                 if isCommentConcealed {
-                    commentSize = CGSize(width: 120.0, height: ceil(Font.regular(15.0).lineHeight))
+                    commentSize = CGSize(width: 120.0, height: ceil(Font.regular(floor(fontSize * 15.0 / 17.0)).lineHeight))
                     self.commentText.view?.isHidden = true
                     (self.commentText.view as? TransactionCommentComponent.View)?.cancelSelection()
                     self.commentContainerView.textSelectionView = nil
@@ -3001,7 +3006,7 @@ private final class WalletTransactionContentComponent: Component {
                             strings: environment.strings,
                             text: NSAttributedString(
                                 string: displayedComment ?? "",
-                                font: Font.regular(15.0),
+                                font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                                 textColor: theme.actionSheet.primaryTextColor
                             ),
                             controller: environment.controller,
@@ -3117,7 +3122,7 @@ private final class WalletTransactionContentComponent: Component {
                 contentHeight += displaysGramHeader ? 32.0 : (!isKeyChange && transaction.collectible == nil ? 44.0 : 22.0)
             }
 
-            let valueFont = Font.regular(15.0)
+            let valueFont = Font.regular(floor(fontSize * 15.0 / 17.0))
             let valueColor = theme.list.itemPrimaryTextColor
             let secondaryValueColor = theme.list.itemSecondaryTextColor
             let counterpartyTitle: String
@@ -3428,7 +3433,7 @@ private final class WalletTransactionContentComponent: Component {
                     component: AnyComponent(PlainButtonComponent(
                         content: AnyComponent(Text(
                             text: gramInfoTitle,
-                            font: Font.regular(14.0),
+                            font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                             color: theme.actionSheet.controlAccentColor
                         )),
                         minSize: CGSize(width: 44.0, height: 44.0),

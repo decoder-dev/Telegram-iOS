@@ -156,6 +156,7 @@ private final class WalletCollectibleActionComponent: Component {
             transition: ComponentTransition
         ) -> CGSize {
             self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let size = CGSize(width: availableSize.width, height: 58.0)
             self.backgroundView.backgroundColor = component.theme.list.itemModalBlocksBackgroundColor
             transition.setFrame(view: self.backgroundView, frame: CGRect(origin: .zero, size: size))
@@ -188,7 +189,7 @@ private final class WalletCollectibleActionComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.title,
-                        font: Font.medium(11.0),
+                        font: Font.medium(floor(fontSize * 11.0 / 17.0)),
                         textColor: component.theme.list.itemAccentColor
                     )),
                     horizontalAlignment: .center,
@@ -270,7 +271,7 @@ private final class WalletCollectibleHeaderButtonComponent: Component {
         }
 
         func update(component: WalletCollectibleHeaderButtonComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
-            self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let bounds = CGRect(origin: .zero, size: availableSize)
             self.backgroundView.update(size: bounds.size, cornerRadius: 16.0, isDark: true, tintColor: .init(kind: .custom(style: .default, color: component.buttonColor)), isInteractive: true, transition: transition)
             transition.setFrame(view: self.backgroundView, frame: bounds)
@@ -294,7 +295,7 @@ private final class WalletCollectibleHeaderButtonComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(11.0), textColor: .white)),
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(floor(fontSize * 11.0 / 17.0)), textColor: .white)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 1
                 )),
@@ -361,7 +362,7 @@ private final class WalletCollectibleTraitValueComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.value,
-                        font: Font.regular(15.0),
+                        font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                         textColor: component.theme.list.itemPrimaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -374,7 +375,7 @@ private final class WalletCollectibleTraitValueComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.rarity,
-                        font: Font.regular(11.0),
+                        font: Font.regular(floor(fontSize * 11.0 / 17.0)),
                         textColor: component.theme.list.itemAccentColor
                     )),
                     maximumNumberOfLines: 1
@@ -452,9 +453,9 @@ public func makeWalletStyleRestrictionTooltip(context: AccountContext, gifts: [S
         }
     }
     let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
-    let font = Font.regular(14.0)
+    let font = Font.regular(floor(fontSize * 14.0 / 17.0))
     let linkColor = UIColor(rgb: 0x64d2ff)
-    let nameFont = Font.medium(14.0)
+    let nameFont = Font.medium(floor(fontSize * 14.0 / 17.0))
     let available = collections.compactMap { collection -> (String, StarGift.Gift)? in
         return giftsByCollection[collection].flatMap { (collection, $0) }
     }
@@ -1181,7 +1182,7 @@ private final class WalletCollectibleContentComponent: Component {
                     component: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: strings.Gift_Unique_Issued("\(issuedString)/\(totalString)").string,
-                            font: Font.regular(15.0),
+                            font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                             textColor: theme.list.itemPrimaryTextColor
                         )),
                         maximumNumberOfLines: 1
@@ -1215,7 +1216,7 @@ private final class WalletCollectibleContentComponent: Component {
             transition: ComponentTransition
         ) -> CGSize {
             let environment = environment[EnvironmentType.self].value
-            self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.environment = environment
             self.componentState = state
             if self.configuredAddress != component.collectible.address {
@@ -1223,6 +1224,7 @@ private final class WalletCollectibleContentComponent: Component {
             }
 
             let theme = environment.theme
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let headerGift: StarGift.UniqueGift? = component.collectible.kind == .gift ? (component.collectible.nft?.gift ?? self.uniqueGift) : nil
             self.displaysGiftHeader = headerGift != nil
             let giftHeaderButtonHeight: CGFloat = 58.0
@@ -1322,8 +1324,8 @@ private final class WalletCollectibleContentComponent: Component {
                 self.wearButton.view?.isHidden = true
                 self.sellButton.view?.isHidden = true
 
-                let titleFont = Font.bold(20.0)
-                let numberFont = headerGift.number < 1000 ? titleFont : Font.bold(15.0)
+                let titleFont = Font.bold(floor(fontSize * 20.0 / 17.0))
+                let numberFont = headerGift.number < 1000 ? titleFont : Font.bold(floor(fontSize * 15.0 / 17.0))
                 let titleString = NSMutableAttributedString(string: headerGift.title + " ", font: titleFont, textColor: .white)
                 titleString.append(NSAttributedString(string: "#" + formatCollectibleNumber(headerGift.number, dateTimeFormat: environment.dateTimeFormat), font: numberFont, textColor: vibrantColor))
                 let titleSize = self.giftTitle.update(
@@ -1458,7 +1460,7 @@ private final class WalletCollectibleContentComponent: Component {
                         component: AnyComponent(BalancedTextComponent(
                             text: .plain(NSAttributedString(
                                 string: description,
-                                font: Font.regular(15.0),
+                                font: Font.regular(floor(fontSize * 15.0 / 17.0)),
                                 textColor: theme.actionSheet.secondaryTextColor,
                                 paragraphAlignment: .center
                             )),
@@ -1618,7 +1620,7 @@ private final class WalletCollectibleContentComponent: Component {
                                 selected: displayed
                             ))),
                             AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: environment.strings.Wallet_Collectible_AlsoShowInMyGifts, font: Font.regular(15.0), textColor: theme.list.itemPrimaryTextColor))
+                                text: .plain(NSAttributedString(string: environment.strings.Wallet_Collectible_AlsoShowInMyGifts, font: Font.regular(floor(fontSize * 15.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor))
                             )))
                         ], spacing: 10.0)),
                         effectAlignment: .center,
@@ -1860,6 +1862,7 @@ private final class WalletCollectibleSheetComponent: CombinedComponent {
         let sheetExternalState = SheetComponent<EnvironmentType>.ExternalState()
 
         return { context in
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[EnvironmentType.self]
             let controller = environment.controller
             let sheetComponent = sheet.update(

@@ -155,7 +155,9 @@ final class WalletWordSuggestionsComponent: Component {
             }
         }
 
-        private static let itemFont = Font.semibold(14.0)
+        private func itemFont(fontSize: CGFloat) -> UIFont {
+            Font.semibold(floor(fontSize * 14.0 / 17.0))
+        }
 
         private let blurView: BlurredBackgroundView
         private let backgroundLayer = SimpleShapeLayer()
@@ -314,6 +316,7 @@ final class WalletWordSuggestionsComponent: Component {
             environment: Environment<Empty>,
             transition: ComponentTransition
         ) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let resetScrollingPosition = self.component?.words != component.words
             let animatePulse = !component.isInteractive
                 && component.pulseId != 0
@@ -323,7 +326,7 @@ final class WalletWordSuggestionsComponent: Component {
             var itemWidths: [CGFloat] = []
             var contentWidth: CGFloat = 0.0
             for word in component.words {
-                let textWidth = ceil((word as NSString).size(withAttributes: [.font: Self.itemFont]).width)
+                let textWidth = ceil((word as NSString).size(withAttributes: [.font: self.itemFont(fontSize: fontSize)]).width)
                 let itemWidth = max(64.0, textWidth + 32.0)
                 itemWidths.append(itemWidth)
                 contentWidth += itemWidth
@@ -361,7 +364,7 @@ final class WalletWordSuggestionsComponent: Component {
                     isNew = false
                 } else {
                     button = ItemButton(type: .custom)
-                    button.titleLabel?.font = Self.itemFont
+                    button.titleLabel?.font = self.itemFont(fontSize: fontSize)
                     button.addTarget(self, action: #selector(self.itemPressed(_:)), for: .touchUpInside)
                     self.itemButtons[id] = button
                     self.scrollView.addSubview(button)
@@ -371,7 +374,7 @@ final class WalletWordSuggestionsComponent: Component {
                 let title = NSMutableAttributedString(
                     string: word,
                     attributes: [
-                        .font: Self.itemFont,
+                        .font: self.itemFont(fontSize: fontSize),
                         .foregroundColor: UIColor(rgb: 0xb9b9ba),
                     ]
                 )

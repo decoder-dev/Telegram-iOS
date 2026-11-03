@@ -9,14 +9,16 @@ final class WalletTooltipComponent: Component {
 
     let text: String
     let colors: (UIColor, UIColor)
+    let fontSize: CGFloat
 
-    init(text: String, colors: (UIColor, UIColor) = WalletTooltipComponent.defaultColors) {
+    init(text: String, colors: (UIColor, UIColor) = WalletTooltipComponent.defaultColors, fontSize: CGFloat = 17.0) {
         self.text = text
         self.colors = colors
+        self.fontSize = fontSize
     }
 
     static func ==(lhs: WalletTooltipComponent, rhs: WalletTooltipComponent) -> Bool {
-        return lhs.text == rhs.text && lhs.colors.0 == rhs.colors.0 && lhs.colors.1 == rhs.colors.1
+        return lhs.text == rhs.text && lhs.colors.0 == rhs.colors.0 && lhs.colors.1 == rhs.colors.1 && lhs.fontSize == rhs.fontSize
     }
 
     final class View: UIView {
@@ -105,13 +107,14 @@ final class WalletTooltipComponent: Component {
         }
 
         func update(component: WalletTooltipComponent, availableSize: CGSize, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.fontSize
             for layer in [self.backgroundGradientLayer, self.arrowGradientLayer] {
                 layer.colors = [component.colors.0.cgColor, component.colors.1.cgColor]
             }
             let textSize = self.text.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.text, font: Font.medium(11.0), textColor: .white)),
+                    text: .plain(NSAttributedString(string: component.text, font: Font.medium(floor(fontSize * 11.0 / 17.0)), textColor: .white)),
                     horizontalAlignment: .left,
                     maximumNumberOfLines: 0
                 )),

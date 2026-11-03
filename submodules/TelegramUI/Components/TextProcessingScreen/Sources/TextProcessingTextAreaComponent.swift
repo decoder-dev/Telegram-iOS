@@ -203,6 +203,7 @@ final class TextProcessingTextAreaComponent: Component {
             let alphaTransition: ComponentTransition = transition.animation.isImmediate ? .immediate : .easeInOut(duration: 0.2)
             
             self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.state = state
             
             self.titleButton.isUserInteractionEnabled = component.titleAction != nil
@@ -217,14 +218,14 @@ final class TextProcessingTextAreaComponent: Component {
             let titleString = NSMutableAttributedString()
             if let range = component.titleFormat.range(of: "{}") {
                 if range.lowerBound != component.titleFormat.startIndex {
-                    titleString.append(NSAttributedString(string: String(component.titleFormat[component.titleFormat.startIndex ..< range.lowerBound]), font: Font.semibold(13.0), textColor: component.theme.list.itemSecondaryTextColor))
+                    titleString.append(NSAttributedString(string: String(component.titleFormat[component.titleFormat.startIndex ..< range.lowerBound]), font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                 }
-                titleString.append(NSAttributedString(string: component.title, font: Font.semibold(13.0), textColor: component.theme.list.itemAccentColor))
+                titleString.append(NSAttributedString(string: component.title, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemAccentColor))
                 if range.upperBound != component.titleFormat.endIndex {
-                    titleString.append(NSAttributedString(string: String(component.titleFormat[range.upperBound...]), font: Font.semibold(13.0), textColor: component.theme.list.itemSecondaryTextColor))
+                    titleString.append(NSAttributedString(string: String(component.titleFormat[range.upperBound...]), font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                 }
             } else {
-                titleString.append(NSAttributedString(string: component.titleFormat, font: Font.semibold(13.0), textColor: component.theme.list.itemSecondaryTextColor))
+                titleString.append(NSAttributedString(string: component.titleFormat, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
             }
             
             let titleSize = self.title.update(
@@ -313,7 +314,7 @@ final class TextProcessingTextAreaComponent: Component {
                                 selected: emojifyValue.value
                             ))),
                             AnyComponentWithIdentity(id: AnyHashable(1), component: AnyComponent(MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: component.strings.TextProcessing_Emojify, font: Font.semibold(13.0), textColor: component.theme.list.itemSecondaryTextColor))
+                                text: .plain(NSAttributedString(string: component.strings.TextProcessing_Emojify, font: Font.semibold(floor(fontSize * 13.0 / 17.0)), textColor: component.theme.list.itemSecondaryTextColor))
                             )))
                         ], spacing: 7.0)),
                         effectAlignment: .center,

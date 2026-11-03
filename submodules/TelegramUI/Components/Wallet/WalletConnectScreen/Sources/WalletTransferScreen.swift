@@ -424,9 +424,9 @@ private final class WalletTransferSheetContent: Component {
                     transition.setFrame(view: cardView, frame: CGRect(origin: CGPoint(x: cardX, y: contentHeight), size: cardSize))
                 }
                 contentHeight += cardSize.height
-                addText(signingContent.explanation(strings: environment.strings) ?? "", view: self.signingExplanation, font: Font.regular(14.0), topInset: 10.0)
-                addText(presentation.submissionText(strings: environment.strings) ?? "", view: self.signingSubmission, font: Font.regular(14.0), topInset: 16.0)
-                addText(presentation.feeText(strings: environment.strings, dateTimeFormat: environment.dateTimeFormat), view: self.fee, font: Font.regular(14.0), topInset: 20.0)
+                addText(signingContent.explanation(strings: environment.strings) ?? "", view: self.signingExplanation, font: Font.regular(floor(fontSize * 14.0 / 17.0)), topInset: 10.0)
+                addText(presentation.submissionText(strings: environment.strings) ?? "", view: self.signingSubmission, font: Font.regular(floor(fontSize * 14.0 / 17.0)), topInset: 16.0)
+                addText(presentation.feeText(strings: environment.strings, dateTimeFormat: environment.dateTimeFormat), view: self.fee, font: Font.regular(floor(fontSize * 14.0 / 17.0)), topInset: 20.0)
                 return CGSize(width: availableSize.width, height: contentHeight + 16.0 + component.bottomInset)
             }
             self.dataTitle.view?.isHidden = true
@@ -477,7 +477,7 @@ private final class WalletTransferSheetContent: Component {
                 component: AnyComponent(BalancedTextComponent(
                     text: .plain(NSAttributedString(
                         string: environment.strings.Wallet_Sign_ConfirmAction,
-                        font: Font.bold(22.0),
+                        font: Font.bold(floor(fontSize * 22.0 / 17.0)),
                         textColor: primaryTextColor
                     )),
                     horizontalAlignment: .center,
@@ -506,7 +506,7 @@ private final class WalletTransferSheetContent: Component {
                 id: "domain",
                 component: AnyComponent(Text(
                     text: component.request.domain,
-                    font: Font.semibold(15.0),
+                    font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                     color: accentColor
                 ))
             )]
@@ -576,7 +576,7 @@ private final class WalletTransferSheetContent: Component {
                 component: AnyComponent(BalancedTextComponent(
                     text: .plain(NSAttributedString(
                         string: feeText,
-                        font: Font.regular(14.0),
+                        font: Font.regular(floor(fontSize * 14.0 / 17.0)),
                         textColor: secondaryTextColor
                     )),
                     horizontalAlignment: .center,
@@ -684,7 +684,6 @@ private final class WalletTransferActionsComponent: Component {
             availableSize: CGSize,
             transition: ComponentTransition
         ) -> CGSize {
-            self.component = component
 
             let buttonSpacing: CGFloat = 10.0
             let height = min(52.0, availableSize.height)
@@ -998,7 +997,7 @@ private final class WalletTransferSheetComponent: CombinedComponent {
                         id: "domain",
                         component: AnyComponent(Text(
                             text: component.request.domain,
-                            font: Font.regular(13.0),
+                            font: Font.regular(floor(fontSize * 13.0 / 17.0)),
                             color: theme.actionSheet.secondaryTextColor
                         ))
                     )

@@ -244,6 +244,7 @@ private final class WalletImportScreenComponent: Component {
             func update(
                 theme: PresentationTheme,
                 strings: PresentationStrings,
+                fontSize: CGFloat,
                 isInvalid: Bool,
                 displaysPasteButton: Bool,
                 size: CGSize
@@ -319,7 +320,7 @@ private final class WalletImportScreenComponent: Component {
                                 id: AnyHashable("paste"),
                                 component: AnyComponent(Text(
                                     text: strings.Common_Paste,
-                                    font: Font.semibold(15.0),
+                                    font: Font.semibold(floor(fontSize * 15.0 / 17.0)),
                                     color: theme.list.itemAccentColor
                                 ))
                             ),
@@ -1551,6 +1552,7 @@ private final class WalletImportScreenComponent: Component {
             let previousMode = self.component?.mode
             self.environment = environment
             self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.componentState = state
             
             let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
@@ -1589,7 +1591,7 @@ private final class WalletImportScreenComponent: Component {
                 titleText = environment.strings.Wallet_Import_Title
                 bodyContent = .plain(NSAttributedString(
                     string: environment.strings.Wallet_Import_Text,
-                    font: Font.regular(16.0),
+                    font: Font.regular(floor(fontSize * 16.0 / 17.0)),
                     textColor: theme.list.itemPrimaryTextColor
                 ))
                 buttonTitle = environment.strings.Wallet_Import_Action
@@ -1600,9 +1602,9 @@ private final class WalletImportScreenComponent: Component {
                 bodyContent = .markdown(
                     text: environment.strings.Wallet_Import_EnterPhraseText,
                     attributes: MarkdownAttributes(
-                        body: MarkdownAttributeSet(font: Font.regular(16.0), textColor: theme.list.itemPrimaryTextColor),
-                        bold: MarkdownAttributeSet(font: Font.semibold(16.0), textColor: theme.list.itemPrimaryTextColor),
-                        link: MarkdownAttributeSet(font: Font.regular(16.0), textColor: theme.list.itemAccentColor),
+                        body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 16.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor),
+                        bold: MarkdownAttributeSet(font: Font.semibold(floor(fontSize * 16.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor),
+                        link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 16.0 / 17.0)), textColor: theme.list.itemAccentColor),
                         linkAttribute: { _ in ("WalletRecoveryPhraseExplanation", true) }
                     )
                 )
@@ -1613,7 +1615,7 @@ private final class WalletImportScreenComponent: Component {
                 titleText = environment.strings.Wallet_Settings_EnableBackup
                 bodyContent = .plain(NSAttributedString(
                     string: environment.strings.Wallet_Import_EnableBackupText,
-                    font: Font.regular(16.0), textColor: theme.list.itemPrimaryTextColor
+                    font: Font.regular(floor(fontSize * 16.0 / 17.0)), textColor: theme.list.itemPrimaryTextColor
                 ))
                 buttonTitle = environment.strings.Wallet_Settings_EnableBackup
             case .verify:
@@ -1631,15 +1633,15 @@ private final class WalletImportScreenComponent: Component {
                     text: formattedBodyText,
                     attributes: MarkdownAttributes(
                         body: MarkdownAttributeSet(
-                            font: Font.regular(16.0),
+                            font: Font.regular(floor(fontSize * 16.0 / 17.0)),
                             textColor: theme.list.itemPrimaryTextColor
                         ),
                         bold: MarkdownAttributeSet(
-                            font: Font.semibold(16.0),
+                            font: Font.semibold(floor(fontSize * 16.0 / 17.0)),
                             textColor: theme.list.itemPrimaryTextColor
                         ),
                         link: MarkdownAttributeSet(
-                            font: Font.regular(16.0),
+                            font: Font.regular(floor(fontSize * 16.0 / 17.0)),
                             textColor: theme.list.itemPrimaryTextColor
                         ),
                         linkAttribute: { _ in nil }
@@ -1704,7 +1706,7 @@ private final class WalletImportScreenComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: titleText,
-                        font: Font.bold(28.0),
+                        font: Font.bold(floor(fontSize * 28.0 / 17.0)),
                         textColor: theme.rootController.navigationBar.primaryTextColor
                     )),
                     horizontalAlignment: .center,
@@ -1885,6 +1887,7 @@ private final class WalletImportScreenComponent: Component {
                 field.update(
                     theme: theme,
                     strings: environment.strings,
+                    fontSize: fontSize,
                     isInvalid: self.mismatchedWordIndices.contains(index),
                     displaysPasteButton: index == 0 && displaysPasteButton,
                     size: fieldFrame.size
