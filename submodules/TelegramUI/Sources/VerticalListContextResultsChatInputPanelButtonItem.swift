@@ -19,12 +19,14 @@ final class VerticalListContextResultsChatInputPanelButtonItem: ListViewItem {
     fileprivate let theme: PresentationTheme
     fileprivate let style: Style
     fileprivate let title: String
+    fileprivate let titleFontSize: CGFloat
     fileprivate let pressed: () -> Void
     
-    public init(theme: PresentationTheme, style: Style = .regular, title: String, pressed: @escaping () -> Void) {
+    public init(theme: PresentationTheme, style: Style = .regular, title: String, titleFontSize: CGFloat = 17.0, pressed: @escaping () -> Void) {
         self.theme = theme
         self.style = style
         self.title = title
+        self.titleFontSize = titleFontSize
         self.pressed = pressed
     }
     
@@ -141,7 +143,7 @@ final class VerticalListContextResultsChatInputPanelButtonItemNode: ListViewItem
             case .regular:
                 titleFont = Font.regular(15.0)
             case .round:
-                titleFont = Font.regular(17.0)
+                titleFont = Font.regular(item.titleFontSize)
             }
             
             let titleString = NSAttributedString(string: item.title, font: titleFont, textColor: item.theme.chat.inputPanel.panelControlColor)

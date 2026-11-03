@@ -389,7 +389,7 @@ private final class WalletAppsScreenComponent: Component {
                     theme: theme,
                     style: .glass,
                     title: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: environment.strings.Wallet_Apps_DisconnectAll, font: Font.regular(17.0), textColor: theme.list.itemDestructiveColor)),
+                        text: .plain(NSAttributedString(string: environment.strings.Wallet_Apps_DisconnectAll, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemDestructiveColor)),
                         maximumNumberOfLines: 0
                     )),
                     leftIcon: .custom(AnyComponentWithIdentity(id: "icon", component: AnyComponent(BundleIconComponent(name: "Item List/Block", tintColor: theme.list.itemDestructiveColor))), false),
@@ -405,7 +405,7 @@ private final class WalletAppsScreenComponent: Component {
                     style: .glass,
                     title: AnyComponent(VStack<Empty>([
                         AnyComponentWithIdentity(id: "name", component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: manifest.name, font: Font.semibold(17.0), textColor: theme.list.itemPrimaryTextColor)),
+                            text: .plain(NSAttributedString(string: manifest.name, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemPrimaryTextColor)),
                             maximumNumberOfLines: 1
                         ))),
                         AnyComponentWithIdentity(id: "domain", component: AnyComponent(MultilineTextComponent(

@@ -102,10 +102,12 @@ open class TabBarControllerImpl: ViewController, TabBarController {
     
     private var theme: PresentationTheme
     private var strings: PresentationStrings
+    private var contentFontSize: CGFloat
     
-    public init(theme: PresentationTheme, strings: PresentationStrings) {
+    public init(theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
+        self.contentFontSize = contentFontSize
         
         super.init(navigationBarPresentationData: nil)
         
@@ -132,6 +134,15 @@ open class TabBarControllerImpl: ViewController, TabBarController {
             self.theme = theme
             if self.isNodeLoaded {
                 self.tabBarControllerNode.updateTheme(theme)
+            }
+        }
+    }
+    
+    public func updateContentFontSize(_ contentFontSize: CGFloat) {
+        if self.contentFontSize != contentFontSize {
+            self.contentFontSize = contentFontSize
+            if self.isNodeLoaded {
+                self.tabBarControllerNode.updateContentFontSize(contentFontSize)
             }
         }
     }
@@ -166,7 +177,7 @@ open class TabBarControllerImpl: ViewController, TabBarController {
     }
     
     override open func loadDisplayNode() {
-        self.displayNode = TabBarControllerNode(theme: self.theme, strings: self.strings, itemSelected: { [weak self] index, longTap, itemNodes in
+        self.displayNode = TabBarControllerNode(theme: self.theme, strings: self.strings, contentFontSize: self.contentFontSize, itemSelected: { [weak self] index, longTap, itemNodes in
             if let strongSelf = self {
                 if longTap, let controller = strongSelf.controllers[index] as? TabBarContainedController {
                     controller.presentTabBarPreviewingController(sourceNodes: itemNodes)

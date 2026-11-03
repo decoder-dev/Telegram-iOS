@@ -1277,7 +1277,7 @@ private final class WalletPeerSelectionScreenComponent: Component {
                 titleComponent: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: strings.Wallet_Recipient_Title,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                         textColor: theme.rootController.navigationBar.primaryTextColor
                     )),
                     maximumNumberOfLines: 1
@@ -1590,7 +1590,7 @@ private final class WalletPeerSelectionScreenComponent: Component {
                     )
                     searchBarNode.placeholderString = NSAttributedString(
                         string: environment.strings.Wallet_Recipient_Placeholder,
-                        font: Font.regular(17.0),
+                        font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                         textColor: searchBarTheme.placeholder
                     )
                     searchBarNode.autocapitalization = .none
@@ -1901,7 +1901,7 @@ private final class WalletPeerSelectionScreenComponent: Component {
                         component: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.Wallet_Recipient_NoResults,
-                                font: Font.semibold(17.0),
+                                font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                                 textColor: environment.theme.list.itemSecondaryTextColor
                             )),
                             horizontalAlignment: .center
@@ -2046,7 +2046,7 @@ private final class WalletPeerSelectionScreenComponent: Component {
                         component: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: environment.strings.Wallet_Continue,
-                                font: Font.semibold(17.0),
+                                font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                                 textColor: environment.theme.list.itemCheckColors.foregroundColor
                             )),
                             horizontalAlignment: .center,

@@ -16,6 +16,7 @@ final class OptionListItemComponent: Component {
     let title: String
     let hasNext: Bool
     let selected: Bool
+    let fontSize: CGFloat
     let selectionChanged: (Bool) -> Void
     
     init(
@@ -23,12 +24,14 @@ final class OptionListItemComponent: Component {
         title: String,
         hasNext: Bool,
         selected: Bool,
+        fontSize: CGFloat = 17.0,
         selectionChanged: @escaping (Bool) -> Void
     ) {
         self.theme = theme
         self.title = title
         self.hasNext = hasNext
         self.selected = selected
+        self.fontSize = fontSize
         self.selectionChanged = selectionChanged
     }
     
@@ -43,6 +46,9 @@ final class OptionListItemComponent: Component {
             return false
         }
         if lhs.hasNext != rhs.hasNext {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -113,7 +119,7 @@ final class OptionListItemComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.regular(component.fontSize), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - leftInset - rightInset, height: 100.0)

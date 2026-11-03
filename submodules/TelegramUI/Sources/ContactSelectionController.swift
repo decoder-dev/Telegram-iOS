@@ -545,8 +545,6 @@ class ContactSelectionControllerImpl: ViewController, ContactSelectionController
     }
 }
 
-private let searchBarFont = Font.regular(17.0)
-
 final class ContactsSearchNavigationContentNode: NavigationBarContentNode {
     private var presentationData: PresentationData
     
@@ -555,8 +553,9 @@ final class ContactsSearchNavigationContentNode: NavigationBarContentNode {
     init(presentationData: PresentationData, dismissSearch: @escaping () -> Void, updateSearchQuery: @escaping (String) -> Void) {
         self.presentationData = presentationData
         
-        self.searchBar = SearchBarNode(theme: SearchBarNodeTheme(theme: presentationData.theme, hasSeparator: false), presentationTheme: presentationData.theme, strings: presentationData.strings, fieldStyle: .modern)
-        self.searchBar.placeholderString = NSAttributedString(string: presentationData.strings.Common_Search, font: searchBarFont, textColor: presentationData.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+        let contentFontSize = presentationData.listsFontSize.baseDisplaySize
+        self.searchBar = SearchBarNode(theme: SearchBarNodeTheme(theme: presentationData.theme, hasSeparator: false), presentationTheme: presentationData.theme, strings: presentationData.strings, fieldStyle: .modern, contentFontSize: contentFontSize)
+        self.searchBar.placeholderString = NSAttributedString(string: presentationData.strings.Common_Search, font: Font.regular(contentFontSize), textColor: presentationData.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
         
         super.init()
         
@@ -601,7 +600,9 @@ final class ContactsSearchNavigationContentNode: NavigationBarContentNode {
     
     func updatePresentationData(_ presentationData: PresentationData) {
         self.presentationData = presentationData
-        self.searchBar.updateThemeAndStrings(theme: SearchBarNodeTheme(theme: presentationData.theme, hasSeparator: false), presentationTheme: presentationData.theme, strings: presentationData.strings)
+        let contentFontSize = presentationData.listsFontSize.baseDisplaySize
+        self.searchBar.updateThemeAndStrings(theme: SearchBarNodeTheme(theme: presentationData.theme, hasSeparator: false), presentationTheme: presentationData.theme, strings: presentationData.strings, contentFontSize: contentFontSize)
+        self.searchBar.placeholderString = NSAttributedString(string: presentationData.strings.Common_Search, font: Font.regular(contentFontSize), textColor: presentationData.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
     }
 }
 

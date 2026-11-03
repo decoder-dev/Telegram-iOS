@@ -178,7 +178,7 @@ private final class WalletImportScreenComponent: Component {
             var emptyBackspace: ((Int) -> Void)?
             var pastePressed: (() -> Void)?
 
-            init(index: Int, displayNumber: Int, wordCount: Int) {
+            init(index: Int, displayNumber: Int, wordCount: Int, fontSize: CGFloat = 17.0) {
                 self.index = index
                 self.displayNumber = displayNumber
 
@@ -190,7 +190,7 @@ private final class WalletImportScreenComponent: Component {
                 self.layer.addSublayer(self.backgroundLayer)
 
                 self.textField.delegate = self
-                self.textField.font = Font.regular(17.0)
+                self.textField.font = Font.regular(fontSize)
                 self.textField.borderStyle = .none
                 self.textField.backgroundColor = .clear
                 self.textField.keyboardType = .asciiCapable
@@ -502,7 +502,8 @@ private final class WalletImportScreenComponent: Component {
         private func setupWordInputFields(
             displayNumbers: [Int],
             preserving existingWords: [String],
-            preservingFocus: Bool = false
+            preservingFocus: Bool = false,
+            fontSize: CGFloat = 17.0
         ) {
             guard !displayNumbers.isEmpty else {
                 return
@@ -538,7 +539,8 @@ private final class WalletImportScreenComponent: Component {
                 let field = WordFieldView(
                     index: index,
                     displayNumber: displayNumbers[index],
-                    wordCount: count
+                    wordCount: count,
+                    fontSize: fontSize
                 )
                 field.textChanged = { [weak self] index, text in
                     self?.wordTextChanged(index: index, text: text)
@@ -1550,6 +1552,11 @@ private final class WalletImportScreenComponent: Component {
             self.environment = environment
             self.component = component
             self.componentState = state
+            
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            for field in self.wordFields {
+                field.textField.font = Font.regular(listFontSize)
+            }
 
             if previousMode != component.mode {
                 self.didPlayAnimation = false
@@ -1911,7 +1918,7 @@ private final class WalletImportScreenComponent: Component {
                         id: AnyHashable(0),
                         component: AnyComponent(Text(
                             text: buttonTitle,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             color: theme.list.itemCheckColors.foregroundColor
                         ))
                     ),

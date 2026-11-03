@@ -39,7 +39,7 @@ final class DeleteChatInputPanelNode: ChatInputPanelNode {
         if self.presentationInterfaceState != interfaceState {
             self.presentationInterfaceState = interfaceState
             
-            self.button.setAttributedTitle(NSAttributedString(string: interfaceState.strings.GroupInfo_DeleteAndExit, font: Font.regular(17.0), textColor: interfaceState.theme.chat.inputPanel.panelControlDestructiveColor), for: [])
+            self.button.setAttributedTitle(NSAttributedString(string: interfaceState.strings.GroupInfo_DeleteAndExit, font: Font.regular(interfaceState.fontSize.baseDisplaySize), textColor: interfaceState.theme.chat.inputPanel.panelControlDestructiveColor), for: [])
         }
         
         let buttonSize = self.button.measure(CGSize(width: width - leftInset - rightInset - 10.0, height: 100.0))

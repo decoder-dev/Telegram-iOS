@@ -417,7 +417,7 @@ final class TextProcessingTextAreaComponent: Component {
                     transition: expandButtonTransition,
                     component: AnyComponent(PlainButtonComponent(
                         content: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: isExpanded.value ? component.strings.TextProcessing_TextCollapse : component.strings.TextProcessing_TextExpand, font: Font.regular(17.0), textColor: component.theme.list.itemAccentColor))
+                            text: .plain(NSAttributedString(string: isExpanded.value ? component.strings.TextProcessing_TextCollapse : component.strings.TextProcessing_TextExpand, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemAccentColor))
                         )),
                         effectAlignment: .right,
                         action: {

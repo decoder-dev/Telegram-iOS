@@ -836,7 +836,7 @@ final class TextProcessingTranslateContentComponent: Component {
                         insets: UIEdgeInsets(top: topInset, left: 0.0, bottom: bottomInset, right: 0.0),
                         hideKeyboard: false,
                         customInputView: nil,
-                        placeholder: NSAttributedString(string: component.strings.TextProcessing_PromptPlaceholder, font: Font.regular(17.0), textColor: component.theme.list.itemPlaceholderTextColor),
+                        placeholder: NSAttributedString(string: component.strings.TextProcessing_PromptPlaceholder, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: component.theme.list.itemPlaceholderTextColor),
                         placeholderVerticalOffset: 3.0,
                         resetText: nil,
                         isOneLineWhenUnfocused: false,

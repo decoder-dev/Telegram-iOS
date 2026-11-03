@@ -409,7 +409,7 @@ final class ChatReportPeerTitlePanelNode: ChatTitleAccessoryPanelNode {
                     }
                 }
                 view.setTitle(button.title(strings: interfaceState.strings), for: [])
-                view.titleLabel?.font = Font.regular(17.0)
+                view.titleLabel?.font = Font.regular(interfaceState.fontSize.baseDisplaySize)
                 switch button {
                 case .block, .reportSpam, .reportUserSpam:
                     view.setTitleColor(interfaceState.theme.chat.inputPanel.panelControlDestructiveColor, for: [])

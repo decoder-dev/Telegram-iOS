@@ -105,7 +105,7 @@ final class ChatUnblockInputPanelNode: ChatInputPanelNode {
         let titleSize = self.title.update(
             transition: .immediate,
             component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: string, font: Font.regular(17.0), textColor: theme.chat.inputPanel.panelControlColor))
+                text: .plain(NSAttributedString(string: string, font: Font.regular(interfaceState.fontSize.baseDisplaySize), textColor: theme.chat.inputPanel.panelControlColor))
             )),
             environment: {},
             containerSize: CGSize(width: width - leftInset - rightInset, height: 100.0)

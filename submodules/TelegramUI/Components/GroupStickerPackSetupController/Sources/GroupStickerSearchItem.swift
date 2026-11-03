@@ -60,7 +60,7 @@ final class GroupStickerSearchItem: ItemListControllerSearch {
             current.updateTheme(presentationData.theme)
             return current
         } else {
-            return GroupStickerSearchNavigationContentNode(theme: presentationData.theme, strings: presentationData.strings, cancel: self.cancel, updateActivity: { [weak self] value in
+            return GroupStickerSearchNavigationContentNode(theme: presentationData.theme, strings: presentationData.strings, contentFontSize: presentationData.listsFontSize.baseDisplaySize, cancel: self.cancel, updateActivity: { [weak self] value in
                 self?.updateActivity = value
             })
         }

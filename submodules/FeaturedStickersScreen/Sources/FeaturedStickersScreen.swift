@@ -878,7 +878,7 @@ public final class FeaturedStickersScreen: ViewController {
         
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
         
-        let searchNavigationNode = SearchNavigationContentNode(theme: self.presentationData.theme, strings: self.presentationData.strings, placeholder: { strings in return strings.Stickers_Search }, cancel: { [weak self] in
+        let searchNavigationNode = SearchNavigationContentNode(theme: self.presentationData.theme, strings: self.presentationData.strings, contentFontSize: self.presentationData.listsFontSize.baseDisplaySize, placeholder: { strings in return strings.Stickers_Search }, cancel: { [weak self] in
             self?.dismiss()
         })
         self.searchNavigationNode = searchNavigationNode
@@ -929,7 +929,7 @@ public final class FeaturedStickersScreen: ViewController {
         
         self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData), transition: .immediate)
         
-        self.searchNavigationNode?.updatePresentationData(theme: self.presentationData.theme, strings: self.presentationData.strings)
+        self.searchNavigationNode?.updatePresentationData(theme: self.presentationData.theme, strings: self.presentationData.strings, contentFontSize: self.presentationData.listsFontSize.baseDisplaySize)
         
         self.controllerNode.updatePresentationData(presentationData: presentationData)
     }
@@ -973,6 +973,7 @@ public final class FeaturedStickersScreen: ViewController {
 private final class SearchNavigationContentNode: NavigationBarContentNode {
     private var theme: PresentationTheme
     private var strings: PresentationStrings
+    private var contentFontSize: CGFloat
     
     private let cancel: () -> Void
     
@@ -981,18 +982,18 @@ private final class SearchNavigationContentNode: NavigationBarContentNode {
     private var queryUpdated: ((String, String?) -> Void)?
     private var placeholder: ((PresentationStrings) -> String)?
     
-    init(theme: PresentationTheme, strings: PresentationStrings, placeholder: ((PresentationStrings) -> String)? = nil, cancel: @escaping () -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat, placeholder: ((PresentationStrings) -> String)? = nil, cancel: @escaping () -> Void) {
         self.theme = theme
         self.strings = strings
+        self.contentFontSize = contentFontSize
         self.placeholder = placeholder
         
         self.cancel = cancel
         
-        self.searchBar = SearchBarNode(theme: SearchBarNodeTheme(theme: theme), presentationTheme: theme, strings: strings, fieldStyle: .modern, cancelText: strings.Common_Done)
+        self.searchBar = SearchBarNode(theme: SearchBarNodeTheme(theme: theme), presentationTheme: theme, strings: strings, fieldStyle: .modern, cancelText: strings.Common_Done, contentFontSize: contentFontSize)
         let placeholderText = placeholder?(strings) ?? strings.Common_Search
-        let searchBarFont = Font.regular(17.0)
         
-        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: searchBarFont, textColor: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: Font.regular(contentFontSize), textColor: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
         
         super.init()
         
@@ -1008,11 +1009,14 @@ private final class SearchNavigationContentNode: NavigationBarContentNode {
         }
     }
     
-    func updatePresentationData(theme: PresentationTheme, strings: PresentationStrings) {
+    func updatePresentationData(theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat) {
         self.theme = theme
         self.strings = strings
+        self.contentFontSize = contentFontSize
         
-        self.searchBar.updateThemeAndStrings(theme: SearchBarNodeTheme(theme: theme), presentationTheme: theme, strings: strings)
+        self.searchBar.updateThemeAndStrings(theme: SearchBarNodeTheme(theme: theme), presentationTheme: theme, strings: strings, contentFontSize: contentFontSize)
+        let placeholderText = placeholder?(strings) ?? strings.Common_Search
+        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: Font.regular(contentFontSize), textColor: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
     }
     
     func setQueryUpdated(_ f: @escaping (String, String?) -> Void) {

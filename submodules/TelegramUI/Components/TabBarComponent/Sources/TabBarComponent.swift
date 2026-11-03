@@ -22,14 +22,16 @@ public final class NavigationSearchView: UIView {
         let size: CGSize
         let theme: PresentationTheme
         let strings: PresentationStrings
+        let contentFontSize: CGFloat
         let isActive: Bool
         let integrated: Bool
         let isHighlighted: Bool
 
-        init(size: CGSize, theme: PresentationTheme, strings: PresentationStrings, isActive: Bool, integrated: Bool, isHighlighted: Bool) {
+        init(size: CGSize, theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat, isActive: Bool, integrated: Bool, isHighlighted: Bool) {
             self.size = size
             self.theme = theme
             self.strings = strings
+            self.contentFontSize = contentFontSize
             self.isActive = isActive
             self.integrated = integrated
             self.isHighlighted = isHighlighted
@@ -43,6 +45,9 @@ public final class NavigationSearchView: UIView {
                 return false
             }
             if lhs.strings !== rhs.strings {
+                return false
+            }
+            if lhs.contentFontSize != rhs.contentFontSize {
                 return false
             }
             if lhs.integrated != rhs.integrated { return false }
@@ -97,8 +102,8 @@ public final class NavigationSearchView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    public func update(size: CGSize, theme: PresentationTheme, strings: PresentationStrings, isActive: Bool, integrated: Bool = false, isHighlighted: Bool = false, transition: ComponentTransition) {
-        let params = Params(size: size, theme: theme, strings: strings, isActive: isActive, integrated: integrated, isHighlighted: isHighlighted)
+    public func update(size: CGSize, theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat, isActive: Bool, integrated: Bool = false, isHighlighted: Bool = false, transition: ComponentTransition) {
+        let params = Params(size: size, theme: theme, strings: strings, contentFontSize: contentFontSize, isActive: isActive, integrated: integrated, isHighlighted: isHighlighted)
         if self.params == params {
             return
         }
@@ -159,6 +164,23 @@ public final class NavigationSearchView: UIView {
             var searchBarNodeTransition = transition
             if let current = self.searchBarNode {
                 searchBarNode = current
+                searchBarNode.updateThemeAndStrings(
+                    theme: SearchBarNodeTheme(
+                        background: .clear,
+                        separator: .clear,
+                        inputFill: .clear,
+                        primaryText: params.theme.chat.inputPanel.panelControlColor,
+                        placeholder: params.theme.chat.inputPanel.inputPlaceholderColor,
+                        inputIcon: params.theme.chat.inputPanel.inputControlColor,
+                        inputClear: params.theme.chat.inputPanel.panelControlColor,
+                        accent: params.theme.chat.inputPanel.panelControlAccentColor,
+                        keyboard: params.theme.rootController.keyboardColor
+                    ),
+                    presentationTheme: params.theme,
+                    strings: params.strings,
+                    contentFontSize: params.contentFontSize
+                )
+                searchBarNode.placeholderString = NSAttributedString(string: params.strings.Common_Search, font: Font.regular(params.contentFontSize), textColor: params.theme.chat.inputPanel.inputPlaceholderColor)
             } else {
                 searchBarNodeTransition = searchBarNodeTransition.withAnimation(.none)
                 searchBarNode = SearchBarNode(
@@ -179,9 +201,10 @@ public final class NavigationSearchView: UIView {
                     icon: .loupe,
                     forceSeparator: false,
                     displayBackground: false,
-                    cancelText: nil
+                    cancelText: nil,
+                    contentFontSize: params.contentFontSize
                 )
-                searchBarNode.placeholderString = NSAttributedString(string: params.strings.Common_Search, font: Font.regular(17.0), textColor: params.theme.chat.inputPanel.inputPlaceholderColor)
+                searchBarNode.placeholderString = NSAttributedString(string: params.strings.Common_Search, font: Font.regular(params.contentFontSize), textColor: params.theme.chat.inputPanel.inputPlaceholderColor)
                 self.searchBarNode = searchBarNode
                 self.backgroundView.contentView.addSubview(searchBarNode.view)
                 searchBarNode.view.alpha = 0.0
@@ -372,6 +395,7 @@ public final class TabBarComponent: Component {
     public let tintSelectedItem: Bool
     public let isLiftedStateEnabled: Bool
     public let strings: PresentationStrings
+    public let contentFontSize: CGFloat
     public let items: [Item]
     public let search: Search?
     public let selectedId: AnyHashable?
@@ -387,6 +411,7 @@ public final class TabBarComponent: Component {
         tintSelectedItem: Bool = true,
         isLiftedStateEnabled: Bool = true,
         strings: PresentationStrings,
+        contentFontSize: CGFloat = 17.0,
         items: [Item],
         search: Search?,
         selectedId: AnyHashable?,
@@ -399,6 +424,7 @@ public final class TabBarComponent: Component {
         self.tintSelectedItem = tintSelectedItem
         self.isLiftedStateEnabled = isLiftedStateEnabled
         self.strings = strings
+        self.contentFontSize = contentFontSize
         self.items = items
         self.search = search
         self.selectedId = selectedId
@@ -419,6 +445,9 @@ public final class TabBarComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.contentFontSize != rhs.contentFontSize {
             return false
         }
         if lhs.items != rhs.items {
@@ -980,7 +1009,7 @@ public final class TabBarComponent: Component {
                     self.backgroundContainer.contentView.addSubview(searchView)
                     searchView.frame = CGRect(origin: CGPoint(x: availableSize.width + 50.0, y: 0.0), size: searchSize)
                 }
-                searchView.update(size: searchSize, theme: component.theme, strings: component.strings, isActive: search.isActive, integrated: integratedSearch, isHighlighted: integratedSearch && component.tintSelectedItem && self.selectionGestureState?.isOverSearch == true, transition: searchViewTransition)
+                searchView.update(size: searchSize, theme: component.theme, strings: component.strings, contentFontSize: component.contentFontSize, isActive: search.isActive, integrated: integratedSearch, isHighlighted: integratedSearch && component.tintSelectedItem && self.selectionGestureState?.isOverSearch == true, transition: searchViewTransition)
                 transition.setFrame(view: searchView, frame: searchFrame)
             } else {
                 if let searchView = self.searchView {

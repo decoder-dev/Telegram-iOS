@@ -67,6 +67,7 @@ final class StoryItemImageView: UIView {
     }
     
     func update(context: AccountContext, strings: PresentationStrings, peer: EnginePeer, storyId: Int32, media: EngineMedia, size: CGSize, isCaptureProtected: Bool, attemptSynchronous: Bool, transition: ComponentTransition) {
+        let bodyFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         self.backgroundColor = isCaptureProtected ? UIColor(rgb: 0x181818) : nil
         
         var dimensions: CGSize?
@@ -259,7 +260,8 @@ final class StoryItemImageView: UIView {
             let captureProtectedInfoSize = captureProtectedInfo.update(
                 transition: captureProtectedInfoTransition,
                 component: AnyComponent(CaptureProtectedInfoComponent(
-                    strings: strings
+                    strings: strings,
+                    bodyFontSize: bodyFontSize
                 )),
                 environment: {},
                 containerSize: size
@@ -280,13 +282,18 @@ final class StoryItemImageView: UIView {
 
 final class CaptureProtectedInfoComponent: Component {
     let strings: PresentationStrings
+    let bodyFontSize: CGFloat
     
-    init(strings: PresentationStrings) {
+    init(strings: PresentationStrings, bodyFontSize: CGFloat = 17.0) {
         self.strings = strings
+        self.bodyFontSize = bodyFontSize
     }
     
     static func ==(lhs: CaptureProtectedInfoComponent, rhs: CaptureProtectedInfoComponent) -> Bool {
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.bodyFontSize != rhs.bodyFontSize {
             return false
         }
         return true
@@ -329,7 +336,7 @@ final class CaptureProtectedInfoComponent: Component {
             let textSize = self.text.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.strings.Story_ScreenshotBlockedText, font: Font.regular(17.0), textColor: UIColor(white: 1.0, alpha: 0.6))),
+                    text: .plain(NSAttributedString(string: component.strings.Story_ScreenshotBlockedText, font: Font.regular(component.bodyFontSize), textColor: UIColor(white: 1.0, alpha: 0.6))),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 0
                 )),

@@ -79,7 +79,7 @@ final class AttachmentFileSearchItem: ItemListControllerSearch {
                 current.updateTheme(self.presentationData.theme)
                 return current
             } else {
-                return AttachmentFileSearchNavigationContentNode(theme: self.presentationData.theme, strings: self.presentationData.strings, cancel: self.cancel, focus: self.focus, updateActivity: { _ in
+                return AttachmentFileSearchNavigationContentNode(theme: self.presentationData.theme, strings: self.presentationData.strings, contentFontSize: self.presentationData.listsFontSize.baseDisplaySize, cancel: self.cancel, focus: self.focus, updateActivity: { _ in
                 })
             }
         default:
@@ -986,8 +986,6 @@ private func matchStringTokens(_ tokens: [EngineRawValueBoxKey], with other: [En
     return false
 }
 
-private let searchBarFont = Font.regular(17.0)
-
 private final class AttachmentFileSearchNavigationContentNode: NavigationBarContentNode, ItemListControllerSearchNavigationContentNode {
     private struct Params: Equatable {
         let size: CGSize
@@ -1003,6 +1001,7 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
     
     private var theme: PresentationTheme
     private let strings: PresentationStrings
+    private let contentFontSize: CGFloat
     
     private let cancel: () -> Void
     
@@ -1025,9 +1024,10 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
             }
         }
     }
-    init(theme: PresentationTheme, strings: PresentationStrings, cancel: @escaping () -> Void, focus: @escaping () -> Void, updateActivity: @escaping( @escaping (Bool) -> Void) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat, cancel: @escaping () -> Void, focus: @escaping () -> Void, updateActivity: @escaping( @escaping (Bool) -> Void) -> Void) {
         self.theme = theme
         self.strings = strings
+        self.contentFontSize = contentFontSize
         
         self.cancel = cancel
         
@@ -1057,7 +1057,8 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
             fieldStyle: .inlineNavigation,
             forceSeparator: false,
             displayBackground: false,
-            cancelText: nil
+            cancelText: nil,
+            contentFontSize: contentFontSize
         )
         
         super.init()
@@ -1115,7 +1116,7 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
             keyboard: theme.rootController.keyboardColor
         )
         
-        self.searchBar.updateThemeAndStrings(theme: searchBarTheme, presentationTheme: theme, strings: self.strings)
+        self.searchBar.updateThemeAndStrings(theme: searchBarTheme, presentationTheme: theme, strings: self.strings, contentFontSize: self.contentFontSize)
         if let params = self.params {
             let _ = self.updateLayout(size: params.size, leftInset: params.leftInset, rightInset: params.rightInset, transition: .immediate)
         }
@@ -1125,7 +1126,7 @@ private final class AttachmentFileSearchNavigationContentNode: NavigationBarCont
     func updatePlaceholder() {
         let placeholderText: String
         placeholderText = self.strings.Common_Search
-        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: searchBarFont, textColor: self.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: Font.regular(self.contentFontSize), textColor: self.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
     }
     
     override var nominalHeight: CGFloat {

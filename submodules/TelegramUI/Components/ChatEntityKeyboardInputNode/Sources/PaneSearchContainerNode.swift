@@ -106,12 +106,14 @@ public final class PaneSearchContainerNode: ASDisplayNode, EntitySearchContainer
         }
         self.backgroundNode = ASDisplayNode()
 
+        let contentFontSize = self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         self.searchBar = SearchBarNode(
             theme: paneSearchBarTheme(theme),
             presentationTheme: theme,
             strings: strings,
             fieldStyle: .glass,
-            displayBackground: false
+            displayBackground: false,
+            contentFontSize: contentFontSize
         )
 
         super.init()
@@ -207,7 +209,7 @@ public final class PaneSearchContainerNode: ASDisplayNode, EntitySearchContainer
         self.strings = strings
         self.backgroundNode.backgroundColor = theme.chat.inputMediaPanel.stickersBackgroundColor.withAlphaComponent(1.0)
         self.contentNode.updateThemeAndStrings(theme: theme, strings: strings)
-        self.searchBar.updateThemeAndStrings(theme: paneSearchBarTheme(theme), presentationTheme: theme, strings: strings)
+        self.searchBar.updateThemeAndStrings(theme: paneSearchBarTheme(theme), presentationTheme: theme, strings: strings, contentFontSize: self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
 
         let placeholder: String
         switch mode {

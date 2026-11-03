@@ -13,8 +13,6 @@ import ComponentDisplayAdapters
 import AppBundle
 import ActivityIndicator
 
-private let searchBarFont = Font.regular(17.0)
-
 final class GroupStickerSearchNavigationContentNode: NavigationBarContentNode, ItemListControllerSearchNavigationContentNode {
     private struct Params: Equatable {
         let size: CGSize
@@ -30,6 +28,7 @@ final class GroupStickerSearchNavigationContentNode: NavigationBarContentNode, I
     
     private var theme: PresentationTheme
     private let strings: PresentationStrings
+    private let contentFontSize: CGFloat
     
     private let cancel: () -> Void
     
@@ -53,9 +52,10 @@ final class GroupStickerSearchNavigationContentNode: NavigationBarContentNode, I
         }
     }
     
-    init(theme: PresentationTheme, strings: PresentationStrings, cancel: @escaping () -> Void, updateActivity: @escaping(@escaping(Bool)->Void) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat, cancel: @escaping () -> Void, updateActivity: @escaping(@escaping(Bool)->Void) -> Void) {
         self.theme = theme
         self.strings = strings
+        self.contentFontSize = contentFontSize
         
         self.cancel = cancel
         
@@ -85,7 +85,8 @@ final class GroupStickerSearchNavigationContentNode: NavigationBarContentNode, I
             fieldStyle: .inlineNavigation,
             forceSeparator: false,
             displayBackground: false,
-            cancelText: nil
+            cancelText: nil,
+            contentFontSize: contentFontSize
         )
         
         super.init()
@@ -127,12 +128,12 @@ final class GroupStickerSearchNavigationContentNode: NavigationBarContentNode, I
     
     func updateTheme(_ theme: PresentationTheme) {
         self.theme = theme
-        self.searchBar.updateThemeAndStrings(theme: SearchBarNodeTheme(theme: self.theme), presentationTheme: self.theme, strings: self.strings)
+        self.searchBar.updateThemeAndStrings(theme: SearchBarNodeTheme(theme: self.theme), presentationTheme: self.theme, strings: self.strings, contentFontSize: self.contentFontSize)
         self.updatePlaceholder()
     }
     
     func updatePlaceholder() {
-        self.searchBar.placeholderString = NSAttributedString(string: self.strings.Common_Search, font: searchBarFont, textColor: self.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+        self.searchBar.placeholderString = NSAttributedString(string: self.strings.Common_Search, font: Font.regular(self.contentFontSize), textColor: self.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
     }
     
     override var nominalHeight: CGFloat {

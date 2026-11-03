@@ -3022,7 +3022,7 @@ private final class WalletScreenComponent: Component {
                 transition: transition,
                 component: AnyComponent(Text(
                     text: environment.strings.Settings_Money,
-                    font: Font.semibold(17.0),
+                    font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                     color: environment.theme.rootController.navigationBar.primaryTextColor
                 )),
                 environment: {},
@@ -3416,7 +3416,7 @@ private final class WalletScreenComponent: Component {
                         id: "title",
                         component: AnyComponent(Text(
                             text: environment.strings.Wallet_AddFunds,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             color: environment.theme.list.itemCheckColors.foregroundColor
                         ))
                     ),
@@ -3454,7 +3454,7 @@ private final class WalletScreenComponent: Component {
                         id: "title",
                         component: AnyComponent(Text(
                             text: environment.strings.Wallet_Send,
-                            font: Font.semibold(17.0),
+                            font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             color: environment.theme.list.itemCheckColors.foregroundColor
                         ))
                     ),
@@ -3516,7 +3516,7 @@ private final class WalletScreenComponent: Component {
                                 title: AnyComponent(MultilineTextComponent(
                                     text: .plain(NSAttributedString(
                                         string: environment.strings.Wallet_ProtectAccount,
-                                        font: Font.regular(17.0),
+                                        font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                                         textColor: environment.theme.list.itemDestructiveColor
                                     )),
                                     maximumNumberOfLines: 1

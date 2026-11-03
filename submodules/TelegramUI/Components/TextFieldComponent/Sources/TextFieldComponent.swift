@@ -383,11 +383,6 @@ public final class TextFieldComponent: Component {
             self.textView.customDelegate = self
             self.addSubview(self.textView)
             
-            self.textView.typingAttributes = [
-                NSAttributedString.Key.font: Font.regular(17.0),
-                NSAttributedString.Key.foregroundColor: UIColor.white
-            ]
-            
             self.textView.toggleQuoteCollapse = { [weak self] range in
                 guard let self else {
                     return
@@ -1447,6 +1442,13 @@ public final class TextFieldComponent: Component {
             let previousComponent = self.component
             self.component = component
             self.state = state
+            
+            if previousComponent?.fontSize != component.fontSize || previousComponent == nil {
+                self.textView.typingAttributes = [
+                    NSAttributedString.Key.font: Font.regular(component.fontSize),
+                    NSAttributedString.Key.foregroundColor: component.textColor
+                ]
+            }
             
             if previousComponent?.theme !== component.theme {
                 self.textView.keyboardAppearance = component.theme.overallDarkAppearance ? .dark : .light

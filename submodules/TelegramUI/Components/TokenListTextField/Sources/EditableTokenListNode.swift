@@ -169,7 +169,7 @@ private final class TokenNode: ASDisplayNode {
             self.categoryAvatarNode.image = image
         case let .countryFlag(countryId):
             self.addSubnode(self.emojiTextNode)
-            self.emojiTextNode.attributedText = countryFlagAttributedString(countryId: countryId, font: Font.regular(17.0), textColor: .white)
+            self.emojiTextNode.attributedText = countryFlagAttributedString(countryId: countryId, font: Font.regular(context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: .white)
         }
         
         self.updateIsSelected(isSelected, animated: false)

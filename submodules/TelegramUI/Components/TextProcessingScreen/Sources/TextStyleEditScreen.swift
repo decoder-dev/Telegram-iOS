@@ -228,6 +228,8 @@ final class TextStyleEditContentComponent: Component {
             self.environment = environment
             self.state = state
             
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            
             let sideInset: CGFloat = 16.0
             let sectionSpacing: CGFloat = 24.0
             let iconSpacing: CGFloat = 24.0
@@ -438,7 +440,7 @@ final class TextStyleEditContentComponent: Component {
                                 AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                     text: .plain(NSAttributedString(
                                         string: environment.strings.TextProcessing_EditStyle_Delete,
-                                        font: Font.regular(17.0),
+                                        font: Font.regular(listFontSize),
                                         textColor: environment.theme.list.itemDestructiveColor
                                     )),
                                     maximumNumberOfLines: 1
@@ -784,6 +786,8 @@ private final class TextStyleEditSheetComponent: Component {
                 actionButtonTitle = environmentValue.strings.TextProcessing_EditStyle_ActionEdit
             }
 
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+
             let sheetSize = self.sheet.update(
                 transition: transition,
                 component: AnyComponent(ResizableSheetComponent<ViewControllerComponentContainer.Environment>(
@@ -795,7 +799,8 @@ private final class TextStyleEditSheetComponent: Component {
                     )),
                     titleItem: AnyComponent(TitleComponent(
                         theme: theme,
-                        title: titleString
+                        title: titleString,
+                        fontSize: listFontSize
                     )),
                     leftItem: AnyComponent(
                         GlassBarButtonComponent(
@@ -821,7 +826,8 @@ private final class TextStyleEditSheetComponent: Component {
                             strings: environmentValue.strings,
                             actionTitle: actionButtonTitle,
                             displayProgress: self.isActionInProgress,
-                            action: isMainActionEnabled ? performMainAction : nil
+                            action: isMainActionEnabled ? performMainAction : nil,
+                            fontSize: listFontSize
                         )
                     ),
                     backgroundColor: .color(theme.list.blocksBackgroundColor),
@@ -926,13 +932,16 @@ public class TextStyleEditScreen: ViewControllerComponentContainer {
 private final class TitleComponent: Component {
     let theme: PresentationTheme
     let title: String
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
-        title: String
+        title: String,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.title = title
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: TitleComponent, rhs: TitleComponent) -> Bool {
@@ -940,6 +949,9 @@ private final class TitleComponent: Component {
             return false
         }
         if lhs.title != rhs.title {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -966,7 +978,7 @@ private final class TitleComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor))
+                    text: .plain(NSAttributedString(string: component.title, font: Font.semibold(component.fontSize), textColor: component.theme.list.itemPrimaryTextColor))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width, height: 100.0)
@@ -999,23 +1011,29 @@ private final class ActionButtonsComponent: Component {
     let actionTitle: String
     let displayProgress: Bool
     let action: (() -> Void)?
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
         strings: PresentationStrings,
         actionTitle: String,
         displayProgress: Bool,
-        action: (() -> Void)?
+        action: (() -> Void)?,
+        fontSize: CGFloat = 17.0
     ) {
         self.theme = theme
         self.strings = strings
         self.actionTitle = actionTitle
         self.displayProgress = displayProgress
         self.action = action
+        self.fontSize = fontSize
     }
     
     static func ==(lhs: ActionButtonsComponent, rhs: ActionButtonsComponent) -> Bool {
         if lhs.theme !== rhs.theme {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.strings !== rhs.strings {
@@ -1055,7 +1073,7 @@ private final class ActionButtonsComponent: Component {
             
             var actionButtonContents: [AnyComponentWithIdentity<Empty>] = []
             actionButtonContents.append(AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
-                text: .plain(NSAttributedString(string: component.actionTitle, font: Font.semibold(17.0), textColor: component.theme.list.itemCheckColors.foregroundColor))
+                text: .plain(NSAttributedString(string: component.actionTitle, font: Font.semibold(component.fontSize), textColor: component.theme.list.itemCheckColors.foregroundColor))
             ))))
             
             let actionButtonSize = self.actionButton.update(

@@ -283,3 +283,7 @@ ShareInputField, PromptController, TipEdit, 2FA input, PaymentCard, LegacyDataIm
 ## Passport, SearchBar, gallery footer и passcode setup
 
 Passport phone/scan forms, SearchBarNode contentFontSize, AvatarGallery footer, PasscodeSetup labels, JoinLink preview, ItemListSingleLine/Address fonts, InviteLink viewer, external file gallery, Drawing toolbar, ChatImport, Browser address bar, Authorization phone/code fonts, VoiceChat recording/stage, StickerPeek, TextSizeSelection и Tooltip масштабируют 17 pt labels. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Tab bar search, wallet screens и chat input panels
+
+SearchBar contentFontSize wired through Location/Contact/FeaturedStickers/PaneSearch/GroupSticker/AttachmentFile callers; TabBar integrated search takes listsFontSize; Wallet screens, chat unblock/delete/report panels, TextProcessing editors, TextField typingAttributes, Story capture-protected info и OptionListItem масштабируют 17 pt. Branding Liquid: 7 pass. Simulator NOT RUN.

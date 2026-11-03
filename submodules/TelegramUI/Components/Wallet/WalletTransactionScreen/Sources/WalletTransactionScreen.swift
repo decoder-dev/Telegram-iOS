@@ -3486,7 +3486,7 @@ private final class WalletTransactionContentComponent: Component {
                         theme: theme,
                         strings: environment.strings,
                         externalState: self.inputExternalState,
-                        fontSize: 17.0,
+                        fontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                         textColor: theme.actionSheet.inputTextColor,
                         accentColor: theme.actionSheet.controlAccentColor,
                         insets: UIEdgeInsets(top: 10.0, left: 8.0, bottom: 10.0, right: 16.0),
@@ -3494,7 +3494,7 @@ private final class WalletTransactionContentComponent: Component {
                         customInputView: nil,
                         placeholder: NSAttributedString(
                             string: environment.strings.Wallet_OptionalMessage,
-                            font: Font.regular(17.0),
+                            font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                             textColor: theme.actionSheet.inputPlaceholderColor
                         ),
                         resetText: nil,
@@ -3665,7 +3665,7 @@ private final class WalletTransactionContentComponent: Component {
                     ),
                     content: AnyComponentWithIdentity(id: actionTitle, component: AnyComponent(Text(
                         text: actionTitle,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
                         color: theme.list.itemCheckColors.foregroundColor
                     ))),
                     isEnabled: actionIsEnabled,

@@ -150,7 +150,7 @@ final class ChatTranslationPanelNode: ASDisplayNode {
             if self.buttonTextNode.attributedText?.string != buttonText {
                 textUpdated = true
             }
-            self.buttonTextNode.attributedText = NSAttributedString(string: buttonText, font: Font.regular(17.0), textColor: theme.chat.inputPanel.panelControlColor)
+            self.buttonTextNode.attributedText = NSAttributedString(string: buttonText, font: Font.regular(self.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.chat.inputPanel.panelControlColor)
         }
 
         let panelHeight: CGFloat = 40.0

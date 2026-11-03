@@ -123,10 +123,14 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
                 strongSelf.detailsPlaceholderNode?.updatePresentationData(presentationData)
                 
                 let previousTheme = strongSelf.presentationData.theme
+                let previousFontSize = strongSelf.presentationData.listsFontSize.baseDisplaySize
                 strongSelf.presentationData = presentationData
                 if previousTheme !== presentationData.theme {
                     (strongSelf.rootTabController as? TabBarControllerImpl)?.updateTheme(theme: presentationData.theme)
                     strongSelf.rootTabController?.statusBar.statusBarStyle = presentationData.theme.rootController.statusBarStyle.style
+                }
+                if previousFontSize != presentationData.listsFontSize.baseDisplaySize {
+                    (strongSelf.rootTabController as? TabBarControllerImpl)?.updateContentFontSize(presentationData.listsFontSize.baseDisplaySize)
                 }
             }
         })
@@ -215,7 +219,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.currentShowCallsTab = showCallsTab
         self.currentShowNewsTab = showNewsTab
         self.currentShowContactsTab = self.context.sharedContext.immediateForkExtrasSettings.showContactsTab
-        let tabBarController = TabBarControllerImpl(theme: self.presentationData.theme, strings: self.presentationData.strings)
+        let tabBarController = TabBarControllerImpl(theme: self.presentationData.theme, strings: self.presentationData.strings, contentFontSize: self.presentationData.listsFontSize.baseDisplaySize)
         tabBarController.navigationPresentation = .master
         let chatListController = self.context.sharedContext.makeChatListController(context: self.context, location: .chatList(groupId: .root), controlsHistoryPreload: true, hideNetworkActivityStatus: false, previewing: false, enableDebugActions: !GlobalExperimentalSettings.isAppStoreBuild)
         if let sharedContext = self.context.sharedContext as? SharedAccountContextImpl {

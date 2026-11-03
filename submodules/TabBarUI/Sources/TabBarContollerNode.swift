@@ -57,6 +57,7 @@ final class TabBarControllerNode: ASDisplayNode {
     
     private var theme: PresentationTheme
     private var strings: PresentationStrings
+    private var contentFontSize: CGFloat
     private let itemSelected: (Int, Bool, [ASDisplayNode]) -> Void
     private let itemHasDoubleTapAction: (Int) -> Bool
     private let itemDoubleTapped: (Int) -> Void
@@ -121,9 +122,10 @@ final class TabBarControllerNode: ASDisplayNode {
         return nil
     }
     
-    init(theme: PresentationTheme, strings: PresentationStrings, itemSelected: @escaping (Int, Bool, [ASDisplayNode]) -> Void, itemHasDoubleTapAction: @escaping (Int) -> Bool, itemDoubleTapped: @escaping (Int) -> Void, contextAction: @escaping (Int, ContextExtractedContentContainingView, ContextGesture) -> Void, swipeAction: @escaping (Int, TabBarItemSwipeDirection) -> Void, toolbarActionSelected: @escaping (ToolbarActionOption) -> Void, disabledPressed: @escaping () -> Void, activateSearch: @escaping () -> Void, deactivateSearch: @escaping () -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat = 17.0, itemSelected: @escaping (Int, Bool, [ASDisplayNode]) -> Void, itemHasDoubleTapAction: @escaping (Int) -> Bool, itemDoubleTapped: @escaping (Int) -> Void, contextAction: @escaping (Int, ContextExtractedContentContainingView, ContextGesture) -> Void, swipeAction: @escaping (Int, TabBarItemSwipeDirection) -> Void, toolbarActionSelected: @escaping (ToolbarActionOption) -> Void, disabledPressed: @escaping () -> Void, activateSearch: @escaping () -> Void, deactivateSearch: @escaping () -> Void) {
         self.theme = theme
         self.strings = strings
+        self.contentFontSize = contentFontSize
         self.itemSelected = itemSelected
         self.itemHasDoubleTapAction = itemHasDoubleTapAction
         self.itemDoubleTapped = itemDoubleTapped
@@ -181,7 +183,18 @@ final class TabBarControllerNode: ASDisplayNode {
         self.backgroundColor = theme.list.plainBackgroundColor
         
         self.disabledOverlayNode.backgroundColor = theme.rootController.tabBar.backgroundColor.withAlphaComponent(0.5)
-        self.requestUpdate()
+        if self.isNodeLoaded {
+            self.requestUpdate()
+        }
+    }
+    
+    func updateContentFontSize(_ contentFontSize: CGFloat) {
+        if self.contentFontSize != contentFontSize {
+            self.contentFontSize = contentFontSize
+            if self.isNodeLoaded {
+                self.requestUpdate()
+            }
+        }
     }
     
     func updateIsTabBarEnabled(_ value: Bool, transition: ContainedViewLayoutTransition) {
@@ -281,6 +294,7 @@ final class TabBarControllerNode: ASDisplayNode {
             component: AnyComponent(TabBarComponent(
                 theme: self.theme,
                 strings: self.strings,
+                contentFontSize: self.contentFontSize,
                 items: self.tabBarItems.map { item in
                     let itemId = AnyHashable(ObjectIdentifier(item.item))
                     
