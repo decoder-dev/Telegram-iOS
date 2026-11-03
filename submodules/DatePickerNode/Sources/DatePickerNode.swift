@@ -328,6 +328,7 @@ public final class DatePickerNode: ASDisplayNode {
     private let hasValueRow: Bool
     
     private let timeTitleNode: ImmediateTextNode
+    private let listFontSize: CGFloat
     
     private let dayNodes: [ImmediateTextNode]
     private var currentIndex = 0
@@ -423,6 +424,7 @@ public final class DatePickerNode: ASDisplayNode {
         self.strings = strings
         self.dateTimeFormat = dateTimeFormat
         self.hasValueRow = hasValueRow
+        self.listFontSize = listFontSize
         
         self.state = State(minDate: telegramReleaseDate, maxDate: upperLimitDate, date: nil, displayingMonthSelection: false, displayingDateSelection: false, displayingTimeSelection: false, selectedMonth: monthForDate(Date()))
         self.title = title
@@ -812,7 +814,7 @@ public final class DatePickerNode: ASDisplayNode {
         let timePickerSize = CGSize(width: constrainedSize.width, height: 180.0)
         self.timePickerNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - constrainedSize.width) / 2.0), y: timeHeight + 11.0), size: timePickerSize)
         
-        self.monthTextNode.attributedText = NSAttributedString(string: stringForMonth(strings: self.strings, month: components.month.flatMap { Int32($0) - 1 } ?? 0, ofYear: components.year.flatMap { Int32($0) - 1900 } ?? 100), font: controlFont, textColor: self.state.displayingMonthSelection ? self.theme.accentColor : self.theme.textColor)
+        self.monthTextNode.attributedText = NSAttributedString(string: stringForMonth(strings: self.strings, month: components.month.flatMap { Int32($0) - 1 } ?? 0, ofYear: components.year.flatMap { Int32($0) - 1900 } ?? 100), font: Font.semibold(self.listFontSize), textColor: self.state.displayingMonthSelection ? self.theme.accentColor : self.theme.textColor)
         let monthSize = self.monthTextNode.updateLayout(size)
         
         let monthTextFrame = CGRect(x: sideInset, y: self.hasValueRow ? 11.0 + timeHeight : 0.0, width: monthSize.width, height: monthSize.height)
