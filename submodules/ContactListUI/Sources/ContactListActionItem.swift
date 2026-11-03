@@ -208,7 +208,7 @@ class ContactListActionItemNode: ListViewItemNode {
                 updatedTheme = item.presentationData.theme
             }
             
-            var leftInset: CGFloat = 16.0 + params.leftInset
+            var leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             if case .generic = item.icon {
                 leftInset += 49.0
             }
@@ -349,7 +349,7 @@ class ContactListActionItemNode: ListViewItemNode {
                     let stripExcessLeft = max(0.0, params.leftInset - params.rightInset)
                     let stripExcessRight = max(0.0, params.rightInset - params.leftInset)
                     // Glass rows end their separator 16pt short of the edge, as the contact rows below do.
-                    let separatorRightInset: CGFloat = (item.systemStyle == .glass ? 16.0 : 0.0) + stripExcessRight
+                    let separatorRightInset: CGFloat = (item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0) + stripExcessRight
                     strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: params.width - leftInset - separatorRightInset, height: separatorHeight))
                     
                     let titleFrame: CGRect

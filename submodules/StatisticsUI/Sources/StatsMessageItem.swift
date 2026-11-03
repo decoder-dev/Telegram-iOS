@@ -296,8 +296,8 @@ final class StatsMessageItemNode: ListViewItemNode, ItemListItemNode {
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.leftInset
-            let rightInset = 16.0 + params.rightInset
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+            let rightInset = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             var totalLeftInset = leftInset
         
             let titleFont = Font.semibold(item.presentationData.fontSize.itemListBaseFontSize)
@@ -433,7 +433,7 @@ final class StatsMessageItemNode: ListViewItemNode, ItemListItemNode {
                     }
                     
                     let nonExtractedRect = CGRect(origin: CGPoint(), size: CGSize(width: layout.contentSize.width - 16.0, height: layout.contentSize.height))
-                    let extractedRect = CGRect(origin: CGPoint(x: 16.0 + params.leftInset, y: 0.0), size: CGSize(width: layout.contentSize.width - 32.0 - params.leftInset - params.rightInset, height: layout.contentSize.height))
+                    let extractedRect = CGRect(origin: CGPoint(x: PresentationLayoutMetrics.listHorizontalInset + params.leftInset, y: 0.0), size: CGSize(width: layout.contentSize.width - PresentationLayoutMetrics.listHorizontalInset * 2.0 - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     strongSelf.extractedRect = extractedRect
                     strongSelf.nonExtractedRect = nonExtractedRect
                     

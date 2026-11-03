@@ -143,8 +143,8 @@ public class LimitedPermissionItemNode: ListViewItemNode {
         let currentItem = self.item
         
         return { [weak self] item, params, neighbors in
-            let leftInset: CGFloat = 16.0 + params.leftInset
-            let rightInset: CGFloat = 16.0 + params.rightInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+            let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             
             let fontSize = floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0)
             let textFont = Font.regular(fontSize)
@@ -171,7 +171,7 @@ public class LimitedPermissionItemNode: ListViewItemNode {
             let stacksButton = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
             let buttonTextWidth = max(1.0, (stacksButton ? contentWidth : contentWidth * 0.45) - 26.0)
             let (buttonTextLayout, buttonTextApply) = makeButtonTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.Contacts_LimitedAccess_Manage, font: Font.semibold(fontSize), textColor: item.presentationData.theme.list.itemCheckColors.foregroundColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: buttonTextWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
-            let actionButtonSize = CGSize(width: max(buttonTextLayout.size.width + 26.0, 44.0), height: max(44.0, buttonTextLayout.size.height + 16.0))
+            let actionButtonSize = CGSize(width: max(buttonTextLayout.size.width + 26.0, PresentationLayoutMetrics.minimumInteractiveSize), height: max(PresentationLayoutMetrics.minimumInteractiveSize, buttonTextLayout.size.height + 16.0))
             let textWidth = stacksButton ? contentWidth : max(1.0, contentWidth - actionButtonSize.width - 12.0)
             let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: attributedText, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: textWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             let contentHeight = stacksButton ? textLayout.size.height + 12.0 + actionButtonSize.height + 24.0 : max(textLayout.size.height, actionButtonSize.height) + 20.0

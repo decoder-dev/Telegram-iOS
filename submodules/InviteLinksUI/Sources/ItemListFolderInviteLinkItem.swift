@@ -306,8 +306,8 @@ public class ItemListFolderInviteLinkItemNode: ListViewItemNode, ItemListItemNod
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.leftInset
-            let rightInset = 16.0 + params.rightInset
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+            let rightInset = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             
             let titleColor: UIColor
             titleColor = item.presentationData.theme.list.itemInputField.primaryColor

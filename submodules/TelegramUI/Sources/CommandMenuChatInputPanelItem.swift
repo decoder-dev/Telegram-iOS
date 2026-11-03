@@ -110,7 +110,7 @@ let shadowImage = generateImage(CGSize(width: (backgroundCornerRadius + shadowBl
 })?.stretchableImage(withLeftCapWidth: Int(backgroundCornerRadius + shadowBlur), topCapHeight: 0)
 
 final class CommandMenuChatInputPanelItemNode: ListViewItemNode {
-    static let itemHeight: CGFloat = 44.0
+    static var itemHeight: CGFloat { PresentationLayoutMetrics.minimumInteractiveSize }
     
     private var item: CommandMenuChatInputPanelItem?
     private let textNode: TextNode
@@ -198,8 +198,8 @@ final class CommandMenuChatInputPanelItemNode: ListViewItemNode {
             let textFont = Font.regular(floor(item.fontSize.baseDisplaySize))
             let commandFont = Font.regular(floor(item.fontSize.baseDisplaySize * 14.0 / 17.0))
             
-            let leftInset: CGFloat = 16.0 + params.leftInset
-            let rightInset: CGFloat = 16.0 + params.rightInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+            let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             
             let textString: NSAttributedString
             let commandString: NSAttributedString

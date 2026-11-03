@@ -166,10 +166,10 @@ public class ItemListAddressItemNode: ListViewItemNode {
             }
             
             var insets: UIEdgeInsets
-            let leftInset: CGFloat = 16.0 + params.leftInset
+            let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             let rightInset: CGFloat = 8.0 + params.rightInset
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
@@ -287,7 +287,7 @@ public class ItemListAddressItemNode: ListViewItemNode {
                     let leftInset: CGFloat
                     switch item.style {
                         case .plain:
-                            leftInset = 16.0 + params.leftInset + leftOffset
+                            leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset + leftOffset
                             
                             if strongSelf.backgroundNode.supernode != nil {
                                 strongSelf.backgroundNode.removeFromSupernode()
@@ -304,7 +304,7 @@ public class ItemListAddressItemNode: ListViewItemNode {
                         
                             strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: leftInset, y: contentSize.height - separatorHeight), size: CGSize(width: params.width - leftInset, height: separatorHeight))
                         case .blocks:
-                            leftInset = 16.0 + params.leftInset
+                            leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
                             
                             if strongSelf.backgroundNode.supernode == nil {
                                 strongSelf.insertSubnode(strongSelf.backgroundNode, at: 0)
@@ -333,7 +333,7 @@ public class ItemListAddressItemNode: ListViewItemNode {
                             let bottomStripeOffset: CGFloat
                             switch neighbors.bottom {
                                 case .sameSection(false):
-                                    bottomStripeInset = 16.0 + params.leftInset
+                                    bottomStripeInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
                                     bottomStripeOffset = -separatorHeight
                                     strongSelf.bottomStripeNode.isHidden = !item.displayDecorations
                                 default:

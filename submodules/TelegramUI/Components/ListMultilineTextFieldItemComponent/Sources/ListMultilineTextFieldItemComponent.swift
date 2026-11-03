@@ -358,8 +358,12 @@ public final class ListMultilineTextFieldItemComponent: Component {
                 verticalInset = 12.0
             }
             
-            let leftInset: CGFloat = 16.0
-            var rightInset: CGFloat = 16.0
+            let listsFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize
+            let itemListFontSize = listsFontSize.itemListBaseFontSize
+            
+            let horizontalInset = PresentationLayoutMetrics.listHorizontalInset
+            let leftInset: CGFloat = horizontalInset
+            var rightInset: CGFloat = horizontalInset
             let modeSelectorSize = CGSize(width: 32.0, height: 32.0)
             
             if component.inputMode != nil {
@@ -434,7 +438,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
                     theme: component.theme,
                     strings: component.strings,
                     externalState: self.textFieldExternalState,
-                    fontSize: 17.0,
+                    fontSize: itemListFontSize,
                     textColor: component.theme.list.itemPrimaryTextColor,
                     accentColor: component.theme.list.itemPrimaryTextColor,
                     insets: UIEdgeInsets(top: verticalInset, left: leftInset - 8.0, bottom: verticalInset, right: rightInset - 8.0 + measureTextLimitInset),
@@ -443,7 +447,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
                     prefix: component.prefix,
                     suffix: component.suffix,
                     resetText: component.resetText.flatMap { resetText in
-                        return NSAttributedString(string: resetText.value, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor)
+                        return NSAttributedString(string: resetText.value, font: Font.regular(itemListFontSize), textColor: component.theme.list.itemPrimaryTextColor)
                     },
                     isOneLineWhenUnfocused: false,
                     characterLimit: component.characterLimit,
@@ -479,7 +483,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
             let placeholderSize = self.placeholder.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.placeholder.isEmpty ? " " : component.placeholder, font: Font.regular(17.0), textColor: component.theme.list.itemPlaceholderTextColor)),
+                    text: .plain(NSAttributedString(string: component.placeholder.isEmpty ? " " : component.placeholder, font: Font.regular(itemListFontSize), textColor: component.theme.list.itemPlaceholderTextColor)),
                     maximumNumberOfLines: component.placeholderDefinesMinHeight ? 0 : 1
                 )),
                 environment: {},
@@ -523,7 +527,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
                 rightAccessoryTransition.setFrame(view: rightAccessoryView, frame: rightAccessoryFrame)
             }
             
-            self.separatorInset = 16.0
+            self.separatorInset = horizontalInset
             
             if let resetText = component.resetText {
                 component.externalState?.hasText = !resetText.value.isEmpty
@@ -676,7 +680,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
             }
             
             let verticalInset: CGFloat = 12.0
-            let sideInset: CGFloat = 16.0
+            let sideInset = PresentationLayoutMetrics.listHorizontalInset
             
             if !value.isEmpty {
                 let customPlaceholder: ComponentView<Empty>
@@ -692,7 +696,7 @@ public final class ListMultilineTextFieldItemComponent: Component {
                 let placeholderSize = customPlaceholder.update(
                     transition: .immediate,
                     component: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: value.isEmpty ? " " : value, font: Font.regular(17.0), textColor: component.theme.list.itemPlaceholderTextColor))
+                        text: .plain(NSAttributedString(string: value.isEmpty ? " " : value, font: Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.itemListBaseFontSize), textColor: component.theme.list.itemPlaceholderTextColor))
                     )),
                     environment: {},
                     containerSize: CGSize(width: size.width - sideInset * 2.0, height: 100.0)

@@ -255,3 +255,7 @@ Privacy intro и Recent Session sheet масштабируют тексты/CTA 
 ## Sessions, contacts, sticker search и папки
 
 Recent Sessions/Website rows, ContactsPeerItem, ItemListPeerActionItem, Settings search rows, ChatList filter preset/category/title items и sticker/GIF PaneSearchContainer используют PresentationLayoutMetrics и Dynamic Type. Avatar/row floors clamp к minimumInteractiveSize. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Invite links, stats, contacts actions и PeerInfo edit
+
+ItemListAddress, InviteLinks rows, Statistics stars/message/balance, ContactList action/limited permission, BotCheckout tip/price, DatePicker, ChatNewThreadInfo, CommandMenu, ListMessage extracted rects — на PresentationLayoutMetrics. PeerInfo header editing/notes/multiline fields, Group sticker search, Attachment file search, SearchInputPanel и ListMultilineTextField — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.

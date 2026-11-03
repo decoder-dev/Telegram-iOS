@@ -168,8 +168,8 @@ final class MonetizationBalanceItemNode: ListViewItemNode, ItemListItemNode {
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.leftInset
-            let rightInset = 16.0 + params.rightInset
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+            let rightInset = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             let constrainedWidth = params.width - leftInset - rightInset
             
             let integralFont = Font.with(size: 48.0, design: .round, weight: .semibold)
@@ -196,7 +196,7 @@ final class MonetizationBalanceItemNode: ListViewItemNode, ItemListItemNode {
 
             let (balanceLayout, balanceApply) = makeBalanceTextLayout(TextNodeLayoutArguments(attributedString: amountString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: CGSize(width: constrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             
-            let (valueLayout, valueApply) = makeValueTextLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: value, font: Font.regular(17.0), textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: CGSize(width: constrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
+            let (valueLayout, valueApply) = makeValueTextLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: value, font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize), textColor: item.presentationData.theme.list.itemSecondaryTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: CGSize(width: constrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             
             let verticalInset: CGFloat = 13.0
             let buttonHeight: CGFloat = 50.0
@@ -365,7 +365,7 @@ final class MonetizationBalanceItemNode: ListViewItemNode, ItemListItemNode {
             if remainingCooldownSeconds > 0 {
                 content = AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(
                     VStack([
-                        AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(Text(text: actionTitle, font: Font.semibold(17.0), color: item.presentationData.theme.list.itemCheckColors.foregroundColor))),
+                        AnyComponentWithIdentity(id: AnyHashable(1 as Int), component: AnyComponent(Text(text: actionTitle, font: Font.semibold(item.presentationData.fontSize.itemListBaseFontSize), color: item.presentationData.theme.list.itemCheckColors.foregroundColor))),
                         AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(HStack([
                             AnyComponentWithIdentity(id: 1, component: AnyComponent(BundleIconComponent(name: "Chat List/StatusLockIcon", tintColor: item.presentationData.theme.list.itemCheckColors.fillColor.mixedWith(item.presentationData.theme.list.itemCheckColors.foregroundColor, alpha: 0.7)))),
                             AnyComponentWithIdentity(id: 0, component: AnyComponent(Text(text: stringForRemainingTime(remainingCooldownSeconds), font: Font.with(size: 11.0, weight: .medium, traits: [.monospacedNumbers]), color: item.presentationData.theme.list.itemCheckColors.fillColor.mixedWith(item.presentationData.theme.list.itemCheckColors.foregroundColor, alpha: 0.7))))
@@ -373,7 +373,7 @@ final class MonetizationBalanceItemNode: ListViewItemNode, ItemListItemNode {
                     ], spacing: 1.0)
                 ))
             } else {
-                content = AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: actionTitle, font: Font.semibold(17.0), color: item.presentationData.theme.list.itemCheckColors.foregroundColor)))
+                content = AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: actionTitle, font: Font.semibold(item.presentationData.fontSize.itemListBaseFontSize), color: item.presentationData.theme.list.itemCheckColors.foregroundColor)))
             }
                         
             let buttonSize = self.button.update(
@@ -415,7 +415,7 @@ final class MonetizationBalanceItemNode: ListViewItemNode, ItemListItemNode {
                             foreground: item.presentationData.theme.list.itemCheckColors.foregroundColor,
                             pressedColor: item.presentationData.theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.8)
                         ),
-                        content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: item.presentationData.strings.Monetization_BalanceStarsBuyAds, font: Font.semibold(17.0), color: item.presentationData.theme.list.itemCheckColors.foregroundColor))),
+                        content: AnyComponentWithIdentity(id: AnyHashable(0 as Int), component: AnyComponent(Text(text: item.presentationData.strings.Monetization_BalanceStarsBuyAds, font: Font.semibold(item.presentationData.fontSize.itemListBaseFontSize), color: item.presentationData.theme.list.itemCheckColors.foregroundColor))),
                         isEnabled: true,
                         allowActionWhenDisabled: false,
                         displaysProgress: false,

@@ -131,7 +131,7 @@ final class StarsTransactionItemNode: ListViewItemNode, ItemListItemNode {
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.leftInset
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             
             let height: CGFloat = 78.0
 

@@ -529,7 +529,7 @@ class BotCheckoutTipItemNode: ListViewItemNode, UITextFieldDelegate {
         let makeLabelLayout = TextNode.asyncLayout(self.labelNode)
         
         return { [weak self] item, params, neighbors in
-            //let rightInset: CGFloat = 16.0 + params.rightInset
+            //let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
 
             let labelsContentHeight: CGFloat = 34.0
             
@@ -557,8 +557,8 @@ class BotCheckoutTipItemNode: ListViewItemNode, UITextFieldDelegate {
                     let _ = titleApply()
                     let _ = labelApply()
                     
-                    let leftInset: CGFloat = 16.0 + params.leftInset
-                    let rightInset: CGFloat = 16.0 + params.rightInset
+                    let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+                    let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
                     
                     strongSelf.titleNode.frame = CGRect(origin: CGPoint(x: leftInset, y: floor((labelsContentHeight - titleLayout.size.height) / 2.0)), size: titleLayout.size)
                     strongSelf.labelNode.frame = CGRect(origin: CGPoint(x: params.width - rightInset - labelLayout.size.width, y: floor((labelsContentHeight - labelLayout.size.height) / 2.0)), size: labelLayout.size)
@@ -669,8 +669,8 @@ class BotCheckoutTipItemNode: ListViewItemNode, UITextFieldDelegate {
                         index += 1
                     }
 
-                    let sideInset: CGFloat = params.leftInset + 16.0
-                    let rightSideInset: CGFloat = params.rightInset + 16.0
+                    let sideInset: CGFloat = params.leftInset + PresentationLayoutMetrics.listHorizontalInset
+                    let rightSideInset: CGFloat = params.rightInset + PresentationLayoutMetrics.listHorizontalInset
                     var scaleFactor: CGFloat = 1.0
                     let availableWidth = params.width - sideInset - rightSideInset - CGFloat(max(0, item.availableVariants.count - 1)) * 12.0
                     if totalMinWidth < availableWidth {

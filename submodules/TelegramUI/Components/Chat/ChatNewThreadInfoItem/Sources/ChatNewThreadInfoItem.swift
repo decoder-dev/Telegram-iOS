@@ -168,7 +168,7 @@ public final class ChatNewThreadInfoItemNode: ListViewItemNode, ASGestureRecogni
             var backgroundSize = CGSize(width: 240.0, height: 0.0)
             
             let verticalItemInset: CGFloat = 10.0
-            let horizontalInset: CGFloat = 16.0 + params.leftInset
+            let horizontalInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             let horizontalContentInset: CGFloat = 16.0
             let topInset: CGFloat = 15.0
             let bottomInset: CGFloat = 21.0

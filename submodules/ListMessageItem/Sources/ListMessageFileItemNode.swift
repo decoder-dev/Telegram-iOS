@@ -1108,7 +1108,7 @@ public final class ListMessageFileItemNode: ListMessageNode {
                 insets.top += header.height
             }
 
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             var verticalInset: CGFloat = 0.0
             if case .glass = item.systemStyle {
@@ -1139,7 +1139,7 @@ public final class ListMessageFileItemNode: ListMessageNode {
                     strongSelf.restrictionNode.frame = CGRect(origin: CGPoint(), size: nodeLayout.contentSize)
                     
                     let nonExtractedRect = CGRect(origin: CGPoint(), size: CGSize(width: nodeLayout.contentSize.width - 16.0, height: nodeLayout.contentSize.height))
-                    let extractedRect = CGRect(origin: CGPoint(), size: nodeLayout.contentSize).insetBy(dx: 16.0 + params.leftInset, dy: 0.0)
+                    let extractedRect = CGRect(origin: CGPoint(), size: nodeLayout.contentSize).insetBy(dx: PresentationLayoutMetrics.listHorizontalInset + params.leftInset, dy: 0.0)
                     strongSelf.extractedRect = extractedRect
                     strongSelf.nonExtractedRect = nonExtractedRect
                     

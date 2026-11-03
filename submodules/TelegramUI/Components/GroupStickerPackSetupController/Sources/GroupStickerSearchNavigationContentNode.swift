@@ -144,8 +144,10 @@ final class GroupStickerSearchNavigationContentNode: NavigationBarContentNode, I
         
         let transition = ComponentTransition(transition)
         
-        let backgroundFrame = CGRect(origin: CGPoint(x: leftInset + 16.0, y: 6.0), size: CGSize(width: size.width - 16.0 * 2.0 - leftInset - rightInset - 44.0 - 8.0, height: 44.0))
-        let closeFrame = CGRect(origin: CGPoint(x: size.width - 16.0 - rightInset - 44.0, y: backgroundFrame.minY), size: CGSize(width: 44.0, height: 44.0))
+        let sideInset = PresentationLayoutMetrics.listHorizontalInset
+        let controlSize = PresentationLayoutMetrics.minimumInteractiveSize
+        let backgroundFrame = CGRect(origin: CGPoint(x: leftInset + sideInset, y: 6.0), size: CGSize(width: size.width - sideInset * 2.0 - leftInset - rightInset - controlSize - 8.0, height: controlSize))
+        let closeFrame = CGRect(origin: CGPoint(x: size.width - sideInset - rightInset - controlSize, y: backgroundFrame.minY), size: CGSize(width: controlSize, height: controlSize))
         
         transition.setFrame(view: self.backgroundContainer, frame: CGRect(origin: CGPoint(), size: size))
         self.backgroundContainer.update(size: size, isDark: self.theme.overallDarkAppearance, transition: transition)
@@ -187,7 +189,7 @@ final class GroupStickerSearchNavigationContentNode: NavigationBarContentNode, I
         }
         self.iconView.isHidden = self.activity
         
-        let searchBarFrame = CGRect(origin: CGPoint(x: 36.0, y: 0.0), size: CGSize(width: backgroundFrame.width - 36.0 - 4.0, height: 44.0))
+        let searchBarFrame = CGRect(origin: CGPoint(x: 36.0, y: 0.0), size: CGSize(width: backgroundFrame.width - 36.0 - 4.0, height: controlSize))
         transition.setFrame(view: self.searchBar.view, frame: searchBarFrame)
         self.searchBar.updateLayout(boundingSize: searchBarFrame.size, leftInset: 0.0, rightInset: 0.0, transition: transition.containedViewLayoutTransition)
         

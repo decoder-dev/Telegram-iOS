@@ -321,7 +321,7 @@ public class ItemListFolderInviteLinkListItemNode: ItemListRevealOptionsItemNode
             let subtitleAttributedString = NSAttributedString(string: subtitleText, font: subtitleFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor)
             
             let leftInset: CGFloat = 65.0 + params.leftInset
-            let rightInset: CGFloat = 16.0 + params.rightInset
+            let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             var verticalInset: CGFloat = subtitleAttributedString.string.isEmpty ? 14.0 : 8.0
             if case .glass = item.systemStyle {
                 verticalInset += 4.0
@@ -353,7 +353,7 @@ public class ItemListFolderInviteLinkListItemNode: ItemListRevealOptionsItemNode
             
             let contentSize = CGSize(width: params.width, height: max(minHeight, rawHeight))
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             
@@ -374,7 +374,7 @@ public class ItemListFolderInviteLinkListItemNode: ItemListRevealOptionsItemNode
                     strongSelf.containerNode.isGestureEnabled = item.contextAction != nil
                     
                     let nonExtractedRect = CGRect(origin: CGPoint(), size: CGSize(width: layout.contentSize.width - 16.0, height: layout.contentSize.height))
-                    let extractedRect = CGRect(origin: CGPoint(x: 16.0 + params.leftInset, y: 0.0), size: CGSize(width: layout.contentSize.width - 32.0 - params.leftInset - params.rightInset, height: layout.contentSize.height))
+                    let extractedRect = CGRect(origin: CGPoint(x: PresentationLayoutMetrics.listHorizontalInset + params.leftInset, y: 0.0), size: CGSize(width: layout.contentSize.width - PresentationLayoutMetrics.listHorizontalInset * 2.0 - params.leftInset - params.rightInset, height: layout.contentSize.height))
                     strongSelf.extractedRect = extractedRect
                     strongSelf.nonExtractedRect = nonExtractedRect
                     

@@ -95,10 +95,13 @@ final class PeerInfoScreenNoteListItemNode: PeerInfoScreenItemNode {
             characterLimit = Int(value)
         }
         
+        let itemListFontSize = presentationData.listsFontSize.itemListBaseFontSize
+        let textFieldVerticalInset = max(9.0, floor((PresentationLayoutMetrics.minimumInteractiveSize - itemListFontSize) * 0.5))
+        
         self.textField.parentState = self.state
         let textFieldSize = self.textField.update(
             transition: .immediate,
-            component: AnyComponent(TextFieldComponent(context: context, theme: presentationData.theme, strings: presentationData.strings, externalState: self.textFieldExternalState, fontSize: 17.0, textColor: presentationData.theme.list.itemPrimaryTextColor, accentColor: presentationData.theme.list.itemAccentColor, insets: UIEdgeInsets(top: 9.0, left: 8.0, bottom: 10.0, right: 8.0), hideKeyboard: false, customInputView: nil, placeholder: NSAttributedString(string: presentationData.strings.PeerInfo_AddNotesPlaceholder, font: Font.regular(17.0), textColor: presentationData.theme.list.itemPlaceholderTextColor), resetText: resetText, isOneLineWhenUnfocused: false, characterLimit: characterLimit, formatMenuAvailability: .available([.bold, .italic, .underline, .strikethrough, .spoiler]), lockedFormatAction: {}, present: { c in }, paste: { _ in })),
+            component: AnyComponent(TextFieldComponent(context: context, theme: presentationData.theme, strings: presentationData.strings, externalState: self.textFieldExternalState, fontSize: itemListFontSize, textColor: presentationData.theme.list.itemPrimaryTextColor, accentColor: presentationData.theme.list.itemAccentColor, insets: UIEdgeInsets(top: textFieldVerticalInset, left: PresentationLayoutMetrics.listHorizontalInset - 8.0, bottom: textFieldVerticalInset + 1.0, right: PresentationLayoutMetrics.listHorizontalInset - 8.0), hideKeyboard: false, customInputView: nil, placeholder: NSAttributedString(string: presentationData.strings.PeerInfo_AddNotesPlaceholder, font: Font.regular(itemListFontSize), textColor: presentationData.theme.list.itemPlaceholderTextColor), resetText: resetText, isOneLineWhenUnfocused: false, characterLimit: characterLimit, formatMenuAvailability: .available([.bold, .italic, .underline, .strikethrough, .spoiler]), lockedFormatAction: {}, present: { c in }, paste: { _ in })),
             environment: {},
             containerSize: CGSize(width: width - sideInset - sideInsetRight, height: .greatestFiniteMagnitude)
         )

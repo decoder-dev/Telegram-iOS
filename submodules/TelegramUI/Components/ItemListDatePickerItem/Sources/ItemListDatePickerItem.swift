@@ -156,7 +156,7 @@ public class ItemListDatePickerItemNode: ListViewItemNode, ItemListItemNode {
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.leftInset
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
             
             let width = params.width - params.leftInset - params.rightInset
             let constrainedWidth = min(390.0, width)

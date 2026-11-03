@@ -82,7 +82,7 @@ final class PeerInfoHeaderEditingContentNode: ASDisplayNode {
                 self.addSubnode(self.avatarButtonNode)
             }
             let setPhotoTitle = peer?.smallProfileImage != nil ? presentationData.strings.Settings_ChangePhoto : presentationData.strings.Settings_SetPhoto
-            self.avatarTextNode.attributedText = NSAttributedString(string: setPhotoTitle, font: Font.regular(17.0), textColor: presentationData.theme.list.itemAccentColor)
+            self.avatarTextNode.attributedText = NSAttributedString(string: setPhotoTitle, font: Font.regular(presentationData.listsFontSize.itemListBaseFontSize), textColor: presentationData.theme.list.itemAccentColor)
             self.avatarButtonNode.accessibilityLabel = self.avatarTextNode.attributedText?.string
             
             let avatarTextSize = self.avatarTextNode.updateLayout(CGSize(width: width, height: 32.0))

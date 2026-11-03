@@ -28,6 +28,7 @@ public final class SearchInputPanelComponent: Component {
     
     public let theme: PresentationTheme
     public let strings: PresentationStrings
+    public let fontSize: PresentationFontSize
     public let metrics: LayoutMetrics
     public let safeInsets: UIEdgeInsets
     public let placeholder: String?
@@ -39,6 +40,7 @@ public final class SearchInputPanelComponent: Component {
     public init(
         theme: PresentationTheme,
         strings: PresentationStrings,
+        fontSize: PresentationFontSize = .regular,
         metrics: LayoutMetrics,
         safeInsets: UIEdgeInsets,
         placeholder: String? = nil,
@@ -49,6 +51,7 @@ public final class SearchInputPanelComponent: Component {
     ) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         self.metrics = metrics
         self.safeInsets = safeInsets
         self.placeholder = placeholder
@@ -63,6 +66,9 @@ public final class SearchInputPanelComponent: Component {
             return false
         }
         if lhs.strings !== rhs.strings {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         if lhs.metrics != rhs.metrics {
@@ -189,9 +195,10 @@ public final class SearchInputPanelComponent: Component {
             }
             
             let themeUpdated = component.theme !== previousComponent?.theme
+            let fontSizeUpdated = component.fontSize != previousComponent?.fontSize
             
-            if themeUpdated {
-                self.textField.font = Font.regular(17.0)
+            if themeUpdated || fontSizeUpdated {
+                self.textField.font = Font.regular(component.fontSize.baseDisplaySize)
                 self.textField.textColor = component.theme.list.itemPrimaryTextColor
                 self.textField.keyboardAppearance = component.theme.overallDarkAppearance ? .dark : .light
             }
@@ -202,7 +209,7 @@ public final class SearchInputPanelComponent: Component {
             if case .regular = component.metrics.widthClass {
                 edgeInsets.bottom += 18.0
             }
-            let fieldHeight: CGFloat = 48.0
+            let fieldHeight: CGFloat = max(48.0, PresentationLayoutMetrics.minimumInteractiveSize)
             let buttonSpacing: CGFloat = 10.0
             
             let fieldFrame = CGRect(origin: CGPoint(x: edgeInsets.left, y: edgeInsets.top), size: CGSize(width: availableSize.width - edgeInsets.left - edgeInsets.right - fieldHeight - buttonSpacing, height: fieldHeight))
@@ -235,7 +242,7 @@ public final class SearchInputPanelComponent: Component {
             let placeholderSize = self.placeholder.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.placeholder ?? component.strings.Common_Search, font: Font.regular(17.0), textColor: component.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.6)))
+                    text: .plain(NSAttributedString(string: component.placeholder ?? component.strings.Common_Search, font: Font.regular(component.fontSize.baseDisplaySize), textColor: component.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.6)))
                 )),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - fieldSideInset * 2.0 - 30.0, height: 100.0)
@@ -264,7 +271,7 @@ public final class SearchInputPanelComponent: Component {
                         tintColor: component.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.4)
                     )),
                     effectAlignment: .center,
-                    minSize: CGSize(width: 44.0, height: 44.0),
+                    minSize: CGSize(width: PresentationLayoutMetrics.minimumInteractiveSize, height: PresentationLayoutMetrics.minimumInteractiveSize),
                     action: { [weak self] in
                         guard let self else {
                             return
@@ -275,7 +282,7 @@ public final class SearchInputPanelComponent: Component {
                     animateScale: true
                 )),
                 environment: {},
-                containerSize: CGSize(width: 44.0, height: 44.0)
+                containerSize: CGSize(width: PresentationLayoutMetrics.minimumInteractiveSize, height: PresentationLayoutMetrics.minimumInteractiveSize)
             )
             if let clearButtonView = self.clearButton.view {
                 if clearButtonView.superview == nil {

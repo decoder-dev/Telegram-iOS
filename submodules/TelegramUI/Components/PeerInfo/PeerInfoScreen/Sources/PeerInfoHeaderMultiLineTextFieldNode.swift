@@ -86,13 +86,7 @@ final class PeerInfoHeaderMultiLineTextFieldNode: ASDisplayNode, PeerInfoHeaderT
         guard let theme = self.theme else {
             return
         }
-        let font: UIFont
-        if let fontSize = self.fontSize {
-            font = Font.regular(fontSize.itemListBaseFontSize)
-        } else {
-            font = Font.regular(17.0)
-        }
-        let attributedText = NSAttributedString(string: "", font: font, textColor: theme.list.itemPrimaryTextColor)
+        let attributedText = NSAttributedString(string: "", font: self.titleFont(), textColor: theme.list.itemPrimaryTextColor)
         self.textNode.attributedText = attributedText
         self.requestUpdateHeight()
         self.updateClearButtonVisibility()
@@ -183,6 +177,14 @@ final class PeerInfoHeaderMultiLineTextFieldNode: ASDisplayNode, PeerInfoHeaderT
         self.updateClearButtonVisibility()
     }
     
+    private func titleFont() -> UIFont {
+        if let fontSize = self.fontSize {
+            return Font.regular(fontSize.itemListBaseFontSize)
+        } else {
+            return Font.regular(17.0)
+        }
+    }
+    
     private func updateClearButtonVisibility() {
         let isHidden = !self.textNode.isFirstResponder() || self.text.isEmpty
         self.clearIconNode.isHidden = isHidden
@@ -196,7 +198,7 @@ final class PeerInfoHeaderMultiLineTextFieldNode: ASDisplayNode, PeerInfoHeaderT
         }
         let updatedText = (editableTextNode.textView.text as NSString).replacingCharacters(in: range, with: text)
         if updatedText.count > 255 {
-            let attributedText = NSAttributedString(string: String(updatedText[updatedText.startIndex..<updatedText.index(updatedText.startIndex, offsetBy: 255)]), font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor)
+            let attributedText = NSAttributedString(string: String(updatedText[updatedText.startIndex..<updatedText.index(updatedText.startIndex, offsetBy: 255)]), font: self.titleFont(), textColor: theme.list.itemPrimaryTextColor)
             self.textNode.attributedText = attributedText
             self.requestUpdateHeight()
             
@@ -212,7 +214,7 @@ final class PeerInfoHeaderMultiLineTextFieldNode: ASDisplayNode, PeerInfoHeaderT
             if measureText.hasSuffix("\n") || measureText.isEmpty {
                measureText += "|"
             }
-            let attributedMeasureText = NSAttributedString(string: measureText, font: Font.regular(17.0), textColor: .black)
+            let attributedMeasureText = NSAttributedString(string: measureText, font: self.titleFont(), textColor: .black)
             self.measureTextNode.attributedText = attributedMeasureText
             let measureTextSize = self.measureTextNode.updateLayout(CGSize(width: width - (leftInset + rightInset) - 16.0 * 2.0 - 38.0, height: .greatestFiniteMagnitude))
             if let currentMeasuredHeight = self.currentMeasuredHeight, abs(measureTextSize.height - currentMeasuredHeight) > 0.1 {

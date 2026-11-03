@@ -146,7 +146,7 @@ class BotCheckoutPriceItemNode: ListViewItemNode {
         let makeLabelLayout = TextNode.asyncLayout(self.labelNode)
         
         return { [weak self] item, params, neighbors, listNeighbors in
-            let rightInset: CGFloat = 16.0 + params.rightInset
+            let rightInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
 
             let naturalContentHeight: CGFloat
             var verticalOffset: CGFloat = 0.0
@@ -192,7 +192,7 @@ class BotCheckoutPriceItemNode: ListViewItemNode {
                     let _ = titleApply()
                     let _ = labelApply()
                     
-                    let leftInset: CGFloat = 16.0 + params.leftInset
+                    let leftInset: CGFloat = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
 
                     if strongSelf.maskNode.supernode == nil {
                         strongSelf.addSubnode(strongSelf.maskNode)

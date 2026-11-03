@@ -316,13 +316,13 @@ public class ItemListPermanentInviteLinkItemNode: ListViewItemNode, ItemListItem
             let contentSize: CGSize
             let insets: UIEdgeInsets
             let separatorHeight = UIScreenPixel
-            let separatorRightInset: CGFloat = item.systemStyle == .glass ? 16.0 : 0.0
+            let separatorRightInset: CGFloat = item.systemStyle == .glass ? PresentationLayoutMetrics.listHorizontalInset : 0.0
             
             let itemBackgroundColor: UIColor
             let itemSeparatorColor: UIColor
             
-            let leftInset = 16.0 + params.leftInset
-            let rightInset = 16.0 + params.rightInset
+            let leftInset = PresentationLayoutMetrics.listHorizontalInset + params.leftInset
+            let rightInset = PresentationLayoutMetrics.listHorizontalInset + params.rightInset
             
             let titleColor: UIColor
             titleColor = item.presentationData.theme.list.itemInputField.primaryColor
