@@ -1278,7 +1278,6 @@ final class PeerSelectionControllerNode: ASDisplayNode {
 
                 let listFontSize = self.presentationData.listsFontSize.baseDisplaySize
                 let emptyTitleFontSize = floor(listFontSize * 15.0 / 17.0)
-                let requirementsFontSize = floor(listFontSize * 13.0 / 17.0)
                 self.emptyTitleNode.attributedText = NSAttributedString(string: emptyTitle, font: Font.semibold(emptyTitleFontSize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
                 self.emptyTextNode.attributedText = NSAttributedString(string: emptyText, font: Font.regular(emptyTitleFontSize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
 

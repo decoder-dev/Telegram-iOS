@@ -137,7 +137,7 @@ public class ChatReplyCountItemNode: ListViewItemNode {
             
             let textColor = serviceMessageColorComponents(theme: item.presentationData.theme.theme, wallpaper: item.presentationData.theme.wallpaper).primaryText
             
-            let attributedString = NSAttributedString(string: text, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0)), textColor: textColor)
+            let attributedString = NSAttributedString(string: text, font: Font.regular(13.0), textColor: textColor)
             
             let (labelLayout, apply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: attributedString, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - 32.0, height: CGFloat.greatestFiniteMagnitude), alignment: .center, cutout: nil, insets: UIEdgeInsets()))
             

@@ -48,7 +48,7 @@ final class ShareScreenItemsView: UIView, UIScrollViewDelegate {
         let model = component.model
         let theme = environment.theme
         let strings = environment.strings
-        let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+        let listFontSize: CGFloat = 17.0
         self.component = component
         self.environment = environment
         self.visibleBounds = visibleBounds

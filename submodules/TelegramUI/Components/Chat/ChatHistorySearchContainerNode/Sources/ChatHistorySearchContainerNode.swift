@@ -173,7 +173,7 @@ public final class ChatHistorySearchContainerNode: SearchDisplayControllerConten
         }
         
         self.emptyResultsTitleNode = ImmediateTextNode()
-        self.emptyResultsTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.SharedMedia_SearchNoResults, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.freeTextColor)
+        self.emptyResultsTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.SharedMedia_SearchNoResults, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.freeTextColor)
         self.emptyResultsTitleNode.textAlignment = .center
         self.emptyResultsTitleNode.isHidden = true
         
@@ -249,7 +249,7 @@ public final class ChatHistorySearchContainerNode: SearchDisplayControllerConten
             if let strongSelf = self {
                 strongSelf.themeAndStringsPromise.set(.single((presentationData.theme, presentationData.strings, presentationData.dateTimeFormat, presentationData.listsFontSize)))
                 
-                strongSelf.emptyResultsTitleNode.attributedText = NSAttributedString(string: presentationData.strings.SharedMedia_SearchNoResults, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.freeTextColor, paragraphAlignment: .center)
+                strongSelf.emptyResultsTitleNode.attributedText = NSAttributedString(string: presentationData.strings.SharedMedia_SearchNoResults, font: Font.semibold(17.0), textColor: presentationData.theme.list.freeTextColor, paragraphAlignment: .center)
                 
                 if let (layout, navigationBarHeight) = strongSelf.containerLayout {
                     strongSelf.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
@@ -361,7 +361,7 @@ public final class ChatHistorySearchContainerNode: SearchDisplayControllerConten
                         strongSelf.dimNode.isHidden = displayingResults
                         strongSelf.backgroundColor = displayingResults ? strongSelf.presentationData.theme.list.plainBackgroundColor : nil
                         
-                        strongSelf.emptyResultsTextNode.attributedText = NSAttributedString(string: strongSelf.presentationData.strings.SharedMedia_SearchNoResultsDescription(transition.query).string, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0)), textColor: strongSelf.presentationData.theme.list.freeTextColor)
+                        strongSelf.emptyResultsTextNode.attributedText = NSAttributedString(string: strongSelf.presentationData.strings.SharedMedia_SearchNoResultsDescription(transition.query).string, font: Font.regular(15.0), textColor: strongSelf.presentationData.theme.list.freeTextColor)
                         
                         let emptyResults = displayingResults && strongSelf.currentEntries?.isEmpty ?? false
                         strongSelf.emptyResultsTitleNode.isHidden = !emptyResults

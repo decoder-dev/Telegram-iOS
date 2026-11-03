@@ -91,7 +91,7 @@ class CallListHoleItemNode: ListViewItemNode {
         return { [weak self] item, params, first, last in
             let baseWidth = params.width - params.leftInset - params.rightInset
             
-            let (labelLayout, labelApply) = labelNodeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: "", font: titleFont, textColor: item.theme.chatList.messageTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: baseWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (labelLayout, labelApply) = labelNodeLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: "", font: Font.regular(17.0), textColor: item.theme.chatList.messageTextColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: baseWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let insets = UIEdgeInsets()
             let layout = ListViewItemNodeLayout(contentSize: CGSize(width: params.width, height: 68.0), insets: insets)

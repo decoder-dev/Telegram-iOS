@@ -60,7 +60,7 @@ private final class DeleteAllButtonNode: ASDisplayNode {
         self.buttonNode.addSubnode(self.titleNode)
         self.contentNode.contentNode.addSubnode(self.buttonNode)
         
-        self.titleNode.attributedText = NSAttributedString(string: presentationData.strings.CallList_DeleteAll, font: Font.medium(self.presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.chat.inputPanel.panelControlColor)
+        self.titleNode.attributedText = NSAttributedString(string: presentationData.strings.CallList_DeleteAll, font: Font.medium(17.0), textColor: presentationData.theme.chat.inputPanel.panelControlColor)
         
         //self.buttonNode.addTarget(self, action: #selector(self.buttonPressed), forControlEvents: .touchUpInside)
     }

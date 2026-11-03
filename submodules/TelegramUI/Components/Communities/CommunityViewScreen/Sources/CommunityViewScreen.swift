@@ -855,7 +855,7 @@ private final class CommunityViewBottomButtonComponent: Component {
             }
             buttonItems.append(AnyComponentWithIdentity(id: "title", component: AnyComponent(Text(
                 text: component.title,
-                font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize),
+                font: Font.semibold(17.0),
                 color: component.theme.list.itemCheckColors.foregroundColor
             ))))
 
@@ -1596,7 +1596,7 @@ private final class CommunityViewContentComponent: Component {
                     title: AnyComponent(MultilineTextComponent(
                         text: .plain(NSAttributedString(
                             string: presentationData.strings.Community_View_PendingRequests,
-                            font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize),
+                            font: Font.regular(17.0),
                             textColor: theme.list.itemPrimaryTextColor
                         )),
                         maximumNumberOfLines: 1
@@ -1697,7 +1697,7 @@ private final class CommunityViewContentComponent: Component {
                                 title: AnyComponent(MultilineTextComponent(
                                     text: .plain(NSAttributedString(
                                         string: presentationData.strings.Community_View_ShowAsOneChat,
-                                        font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize),
+                                        font: Font.regular(17.0),
                                         textColor: theme.list.itemPrimaryTextColor
                                     )),
                                     maximumNumberOfLines: 1
@@ -2886,7 +2886,7 @@ private final class CommunityViewScreenComponent: Component {
 
             var titleItems: [AnyComponentWithIdentity<Empty>] = [
                 AnyComponentWithIdentity(id: "label", component: AnyComponent(
-                    MultilineTextComponent(text: .plain(NSAttributedString(string: title, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: theme.list.itemPrimaryTextColor)))
+                    MultilineTextComponent(text: .plain(NSAttributedString(string: title, font: Font.semibold(17.0), textColor: theme.list.itemPrimaryTextColor)))
                 ))
             ]
             if component.mode.usesFullscreenPresentation, let community = self.community {
