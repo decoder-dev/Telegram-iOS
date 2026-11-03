@@ -312,7 +312,7 @@ private final class ShutterButtonContentComponent: Component {
                 let labelSize = self.label.update(
                     transition: .immediate,
                     component: AnyComponent(
-                        Text(text: component.strings.Camera_LiveStream_StartLiveStream, font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), color: .white)
+                        Text(text: component.strings.Camera_LiveStream_StartLiveStream, font: Font.semibold(17.0), color: .white)
                     ),
                     environment: {},
                     containerSize: availableSize

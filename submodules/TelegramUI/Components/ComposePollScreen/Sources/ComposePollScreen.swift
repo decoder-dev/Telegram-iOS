@@ -2857,7 +2857,6 @@ final class ComposePollScreenComponent: Component {
                 self.scrollView.verticalScrollIndicatorInsets = scrollInsets
             }
             
-            let listInset = PresentationLayoutMetrics.listHorizontalInset
             let barButtonSize = CGSize(width: PresentationLayoutMetrics.minimumInteractiveSize, height: PresentationLayoutMetrics.minimumInteractiveSize)
             let cancelButtonSize = self.cancelButton.update(
                 transition: transition,

@@ -5825,7 +5825,7 @@ private final class BottomActionsPanelComponent: Component {
                 let itemSize = itemView.update(
                     transition: .immediate,
                     component: AnyComponent(PlainButtonComponent(
-                        content: AnyComponent(Text(text: item.title, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), color: itemColor)),
+                        content: AnyComponent(Text(text: item.title, font: Font.regular(17.0), color: itemColor)),
                         effectAlignment: .center,
                         minSize: CGSize(width: 16.0, height: itemHeight),
                         contentInsets: UIEdgeInsets(top: 0.0, left: 8.0, bottom: 0.0, right: 8.0),

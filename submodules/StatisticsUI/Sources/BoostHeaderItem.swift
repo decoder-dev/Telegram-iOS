@@ -145,8 +145,8 @@ final class BoostHeaderItemNode: ItemListControllerHeaderItemNode {
         self.backgroundNode.updateColor(color: self.item.theme.rootController.navigationBar.blurredBackgroundColor, transition: .immediate)
         self.separatorNode.backgroundColor = self.item.theme.rootController.navigationBar.separatorColor
         
-        self.titleNode.attributedText = NSAttributedString(string: self.item.title, font: titleFont, textColor: self.item.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
-        self.whiteTitleNode.attributedText = NSAttributedString(string: self.item.title, font: titleFont, textColor: .white, paragraphAlignment: .center)
+        self.titleNode.attributedText = NSAttributedString(string: self.item.title, font: Font.regular(17.0), textColor: self.item.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.whiteTitleNode.attributedText = NSAttributedString(string: self.item.title, font: Font.regular(17.0), textColor: .white, paragraphAlignment: .center)
     }
     
     private var contentOffset: CGFloat = 0.0
