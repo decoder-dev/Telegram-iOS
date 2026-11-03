@@ -161,6 +161,7 @@ private final class PaymentCardEntryScreenContentComponent: CombinedComponent {
             
             let scrollEnvironment = context.environment[ScrollChildEnvironment.self].value
             let environment = context.environment[ViewControllerComponentContainer.Environment.self].value
+            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let updateModelKey = context.component.updateModelKey
             
             var size = CGSize(width: context.availableSize.width, height: scrollEnvironment.insets.top)
@@ -207,7 +208,7 @@ private final class PaymentCardEntryScreenContentComponent: CombinedComponent {
                         PrefixSectionGroupComponent.Item(
                             prefix: AnyComponentWithIdentity(
                                 id: "numberLabel",
-                                component: AnyComponent(Text(text: "Number", font: Font.regular(17.0), color: environment.theme.list.itemPrimaryTextColor))
+                                component: AnyComponent(Text(text: "Number", font: Font.regular(fontSize), color: environment.theme.list.itemPrimaryTextColor))
                             ),
                             content: AnyComponentWithIdentity(
                                 id: "numberInput",
@@ -227,7 +228,7 @@ private final class PaymentCardEntryScreenContentComponent: CombinedComponent {
                         PrefixSectionGroupComponent.Item(
                             prefix: AnyComponentWithIdentity(
                                 id: "nameLabel",
-                                component: AnyComponent(Text(text: "Name", font: Font.regular(17.0), color: environment.theme.list.itemPrimaryTextColor))
+                                component: AnyComponent(Text(text: "Name", font: Font.regular(fontSize), color: environment.theme.list.itemPrimaryTextColor))
                             ),
                             content: AnyComponentWithIdentity(
                                 id: "nameInput",
@@ -245,7 +246,7 @@ private final class PaymentCardEntryScreenContentComponent: CombinedComponent {
                         PrefixSectionGroupComponent.Item(
                             prefix: AnyComponentWithIdentity(
                                 id: "expiresLabel",
-                                component: AnyComponent(Text(text: "Expires", font: Font.regular(17.0), color: environment.theme.list.itemPrimaryTextColor))
+                                component: AnyComponent(Text(text: "Expires", font: Font.regular(fontSize), color: environment.theme.list.itemPrimaryTextColor))
                             ),
                             content: AnyComponentWithIdentity(
                                 id: "expiresInput",
@@ -265,7 +266,7 @@ private final class PaymentCardEntryScreenContentComponent: CombinedComponent {
                         PrefixSectionGroupComponent.Item(
                             prefix: AnyComponentWithIdentity(
                                 id: "cvvLabel",
-                                component: AnyComponent(Text(text: "CVV", font: Font.regular(17.0), color: environment.theme.list.itemPrimaryTextColor))
+                                component: AnyComponent(Text(text: "CVV", font: Font.regular(fontSize), color: environment.theme.list.itemPrimaryTextColor))
                             ),
                             content: AnyComponentWithIdentity(
                                 id: "cvvInput",

@@ -19,6 +19,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
     private var characterLimitNode: ASTextNode?
     
     private let characterLimit: Int
+    private var fontSize: CGFloat
     
     var updateHeight: (() -> Void)?
     var complete: (() -> Void)?
@@ -32,7 +33,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
             return self.textInputNode.attributedText?.string ?? ""
         }
         set {
-            self.textInputNode.attributedText = NSAttributedString(string: newValue, font: Font.regular(17.0), textColor: self.theme.actionSheet.inputTextColor)
+            self.textInputNode.attributedText = NSAttributedString(string: newValue, font: Font.regular(self.fontSize), textColor: self.theme.actionSheet.inputTextColor)
             self.placeholderNode.isHidden = !newValue.isEmpty
             self.updateLimitText()
         }
@@ -40,13 +41,14 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
     
     var placeholder: String = "" {
         didSet {
-            self.placeholderNode.attributedText = NSAttributedString(string: self.placeholder, font: Font.regular(17.0), textColor: self.theme.actionSheet.inputPlaceholderColor)
+            self.placeholderNode.attributedText = NSAttributedString(string: self.placeholder, font: Font.regular(self.fontSize), textColor: self.theme.actionSheet.inputPlaceholderColor)
         }
     }
     
-    init(theme: PresentationTheme, placeholder: String, characterLimit: Int, displayCharacterLimit: Bool, isPassword: Bool = false) {
+    init(theme: PresentationTheme, placeholder: String, characterLimit: Int, displayCharacterLimit: Bool, isPassword: Bool = false, fontSize: CGFloat = 17.0) {
         self.theme = theme
         self.characterLimit = characterLimit
+        self.fontSize = fontSize
         
         self.inputInsets = UIEdgeInsets(top: 5.0, left: 12.0, bottom: 5.0, right: 12.0 + (displayCharacterLimit ? 20.0 : 0.0))
         
@@ -57,7 +59,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 12.0, color: theme.actionSheet.inputHollowBackgroundColor, strokeColor: theme.actionSheet.inputBorderColor, strokeWidth: 1.0)
         
         self.textInputNode = EditableTextNode()
-        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(17.0), NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(fontSize), NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
         self.textInputNode.clipsToBounds = true
         self.textInputNode.hitTestSlop = UIEdgeInsets(top: -5.0, left: -5.0, bottom: -5.0, right: -5.0)
         self.textInputNode.textContainerInset = UIEdgeInsets(top: self.inputInsets.top, left: 0.0, bottom: self.inputInsets.bottom, right: 0.0)
@@ -72,7 +74,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         self.placeholderNode = ASTextNode()
         self.placeholderNode.isUserInteractionEnabled = false
         self.placeholderNode.displaysAsynchronously = false
-        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(17.0), textColor: self.theme.actionSheet.inputPlaceholderColor)
+        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(fontSize), textColor: self.theme.actionSheet.inputPlaceholderColor)
         
         if displayCharacterLimit {
             let characterLimitNode = ASTextNode()
@@ -94,12 +96,15 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         }
     }
     
-    func updateTheme(_ theme: PresentationTheme) {
+    func updateTheme(_ theme: PresentationTheme, fontSize: CGFloat? = nil) {
         self.theme = theme
+        if let fontSize {
+            self.fontSize = fontSize
+        }
         
         self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 12.0, color: self.theme.actionSheet.inputHollowBackgroundColor, strokeColor: self.theme.actionSheet.inputBorderColor, strokeWidth: 1.0)
         self.textInputNode.keyboardAppearance = self.theme.rootController.keyboardColor.keyboardAppearance
-        self.placeholderNode.attributedText = NSAttributedString(string: self.placeholderNode.attributedText?.string ?? "", font: Font.regular(17.0), textColor: self.theme.actionSheet.inputPlaceholderColor)
+        self.placeholderNode.attributedText = NSAttributedString(string: self.placeholderNode.attributedText?.string ?? "", font: Font.regular(self.fontSize), textColor: self.theme.actionSheet.inputPlaceholderColor)
         if let characterLimitNode {
             characterLimitNode.attributedText = NSAttributedString(string: characterLimitNode.attributedText?.string ?? "", font: Font.regular(11.0), textColor: self.theme.actionSheet.inputPlaceholderColor)
         }
@@ -159,7 +164,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         if resultText.count > self.characterLimit {
             resultText = String(resultText[resultText.startIndex ..< resultText.index(resultText.startIndex, offsetBy: self.characterLimit)])
             
-            editableTextNode.attributedText = NSAttributedString(string: resultText, font: Font.regular(17.0), textColor: self.theme.actionSheet.inputTextColor)
+            editableTextNode.attributedText = NSAttributedString(string: resultText, font: Font.regular(self.fontSize), textColor: self.theme.actionSheet.inputTextColor)
             return false
         }
         
@@ -329,8 +334,8 @@ private final class AuthAlertContentNode: AlertContentNode {
         self.textNode = ASTextNode()
         self.textNode.maximumNumberOfLines = 2
         
-        self.inputFieldNode = PromptInputFieldNode(theme: ptheme, placeholder: "User Name", characterLimit: 1024, displayCharacterLimit: false)
-        self.passwordFieldNode = PromptInputFieldNode(theme: ptheme, placeholder: "Password", characterLimit: 1024, displayCharacterLimit: false, isPassword: true)
+        self.inputFieldNode = PromptInputFieldNode(theme: ptheme, placeholder: "User Name", characterLimit: 1024, displayCharacterLimit: false, fontSize: theme.baseFontSize)
+        self.passwordFieldNode = PromptInputFieldNode(theme: ptheme, placeholder: "Password", characterLimit: 1024, displayCharacterLimit: false, isPassword: true, fontSize: theme.baseFontSize)
         
         self.actionNodesSeparator = ASDisplayNode()
         self.actionNodesSeparator.isLayerBacked = true
@@ -392,7 +397,7 @@ private final class AuthAlertContentNode: AlertContentNode {
     }
 
     override func updateTheme(_ theme: AlertControllerTheme) {
-        self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.semibold(17.0), textColor: theme.primaryColor, paragraphAlignment: .center)
+        self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.semibold(theme.baseFontSize), textColor: theme.primaryColor, paragraphAlignment: .center)
         self.textNode.attributedText = NSAttributedString(string: self.text, font: Font.regular(13.0), textColor: theme.primaryColor, paragraphAlignment: .center)
 
         self.actionNodesSeparator.backgroundColor = theme.separatorColor
@@ -563,7 +568,8 @@ public func authController(sharedContext: SharedAccountContext, updatedPresentat
     let controller = AlertController(theme: AlertControllerTheme(presentationData: presentationData), contentNode: contentNode)
     let presentationDataDisposable = (updatedPresentationData?.signal ?? sharedContext.presentationData).start(next: { [weak controller, weak contentNode] presentationData in
         controller?.theme = AlertControllerTheme(presentationData: presentationData)
-        contentNode?.inputFieldNode.updateTheme(presentationData.theme)
+        contentNode?.inputFieldNode.updateTheme(presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize)
+        contentNode?.passwordFieldNode.updateTheme(presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize)
     })
     controller.dismissed = { _ in
         presentationDataDisposable.dispose()
@@ -662,7 +668,7 @@ private final class ProgressAlertContentNode: AlertContentNode {
     }
     
     override func updateTheme(_ theme: AlertControllerTheme) {
-        self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.semibold(17.0), textColor: theme.primaryColor, paragraphAlignment: .center)
+        self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.semibold(theme.baseFontSize), textColor: theme.primaryColor, paragraphAlignment: .center)
         self.textNode.attributedText = NSAttributedString(string: self.text, font: Font.regular(13.0), textColor: theme.primaryColor, paragraphAlignment: .center)
 
         self.actionNodesSeparator.backgroundColor = theme.separatorColor

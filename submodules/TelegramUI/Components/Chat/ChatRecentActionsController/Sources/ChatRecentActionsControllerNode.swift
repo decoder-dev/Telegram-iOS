@@ -135,6 +135,7 @@ private final class RecentActionsGlassTextButtonView: UIView {
         let preferClearGlass: Bool
         let size: CGSize
         let title: String
+        let fontSize: CGFloat
 
         static func ==(lhs: Params, rhs: Params) -> Bool {
             if lhs.theme !== rhs.theme {
@@ -147,6 +148,9 @@ private final class RecentActionsGlassTextButtonView: UIView {
                 return false
             }
             if lhs.title != rhs.title {
+                return false
+            }
+            if lhs.fontSize != rhs.fontSize {
                 return false
             }
             return true
@@ -185,11 +189,12 @@ private final class RecentActionsGlassTextButtonView: UIView {
         return true
     }
 
-    func update(theme: PresentationTheme, preferClearGlass: Bool, title: String, size: CGSize, transition: ComponentTransition) {
-        let params = Params(theme: theme, preferClearGlass: preferClearGlass, size: size, title: title)
+    func update(theme: PresentationTheme, preferClearGlass: Bool, title: String, size: CGSize, fontSize: CGFloat = 17.0, transition: ComponentTransition) {
+        let params = Params(theme: theme, preferClearGlass: preferClearGlass, size: size, title: title, fontSize: fontSize)
         if self.params != params {
             self.params = params
             self.titleLabel.text = title
+            self.titleLabel.font = Font.regular(fontSize)
             self.titleLabel.textColor = theme.chat.inputPanel.panelControlColor
             self.accessibilityLabel = title
             self.updateImpl(params: params, transition: transition)
@@ -979,7 +984,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
         let componentTransition = ComponentTransition(transition)
         let preferClearGlass = self.preferredGlassType == .clear
         if !self.panelButtonNode.bounds.isEmpty {
-            self.panelButtonNode.update(theme: self.presentationData.theme, preferClearGlass: preferClearGlass, title: self.presentationData.strings.Channel_AdminLog_Settings, size: self.panelButtonNode.bounds.size, transition: componentTransition)
+            self.panelButtonNode.update(theme: self.presentationData.theme, preferClearGlass: preferClearGlass, title: self.presentationData.strings.Channel_AdminLog_Settings, size: self.panelButtonNode.bounds.size, fontSize: self.presentationData.listsFontSize.baseDisplaySize, transition: componentTransition)
         }
         if !self.panelInfoButtonNode.bounds.isEmpty {
             self.panelInfoButtonNode.update(theme: self.presentationData.theme, preferClearGlass: preferClearGlass, size: self.panelInfoButtonNode.bounds.size, transition: componentTransition)
@@ -1055,12 +1060,12 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
 
         let buttonSize = CGSize(width: 40.0, height: 40.0)
         let panelButtonTitle = self.presentationData.strings.Channel_AdminLog_Settings
-        let panelButtonTitleSize = (panelButtonTitle as NSString).size(withAttributes: [NSAttributedString.Key.font: Font.regular(17.0)])
+        let panelButtonTitleSize = (panelButtonTitle as NSString).size(withAttributes: [NSAttributedString.Key.font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize)])
         let maxPanelButtonWidth = max(80.0, min(width - leftInset * 2.0, width - rightInset * 2.0 - buttonSize.width * 2.0 - 24.0))
         let panelButtonWidth = min(max(120.0, ceil(panelButtonTitleSize.width) + 40.0), maxPanelButtonWidth)
         let panelButtonFrame = CGRect(origin: CGPoint(x: floor((width - panelButtonWidth) * 0.5), y: layout.size.height - panelOffset), size: CGSize(width: panelButtonWidth, height: intrinsicPanelHeight))
         transition.updateFrame(view: self.panelButtonNode, frame: panelButtonFrame)
-        self.panelButtonNode.update(theme: self.presentationData.theme, preferClearGlass: self.preferredGlassType == .clear, title: panelButtonTitle, size: panelButtonFrame.size, transition: ComponentTransition(transition))
+        self.panelButtonNode.update(theme: self.presentationData.theme, preferClearGlass: self.preferredGlassType == .clear, title: panelButtonTitle, size: panelButtonFrame.size, fontSize: self.presentationData.listsFontSize.baseDisplaySize, transition: ComponentTransition(transition))
 
         let infoButtonFrame = CGRect(origin: CGPoint(x: width - rightInset - buttonSize.width, y: layout.size.height - panelOffset), size: buttonSize)
         transition.updateFrame(view: self.panelInfoButtonNode, frame: infoButtonFrame)

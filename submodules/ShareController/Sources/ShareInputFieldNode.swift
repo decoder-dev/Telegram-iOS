@@ -62,17 +62,20 @@ private final class ShareInputCopyComponent: Component {
     let theme: ShareInputFieldNodeTheme
     let strings: PresentationStrings
     let text: String
+    let fontSize: CGFloat
     let action: () -> Void
     
     init(
         theme: ShareInputFieldNodeTheme,
         strings: PresentationStrings,
         text: String,
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void
     ) {
         self.theme = theme
         self.strings = strings
         self.text = text
+        self.fontSize = fontSize
         self.action = action
     }
     
@@ -84,6 +87,9 @@ private final class ShareInputCopyComponent: Component {
             return false
         }
         if lhs.text != rhs.text {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -120,7 +126,7 @@ private final class ShareInputCopyComponent: Component {
             let textSize = self.text.update(
                 transition: textChanged ? .spring(duration: 0.4) : .immediate,
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.regular(17.0),
+                    font: Font.regular(component.fontSize),
                     color: component.theme.textColor,
                     items: textItems,
                     animateScale: false
@@ -144,7 +150,7 @@ private final class ShareInputCopyComponent: Component {
                 transition: .immediate,
                 component: AnyComponent(Button(
                     content: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.strings.Conversation_LinkDialogCopy, font: Font.regular(17.0), textColor: component.theme.accentColor))
+                        text: .plain(NSAttributedString(string: component.strings.Conversation_LinkDialogCopy, font: Font.regular(component.fontSize), textColor: component.theme.accentColor))
                     )),
                     action: { [weak self] in
                         guard let self else {
@@ -197,6 +203,7 @@ private final class ShareInputCopyComponent: Component {
 public final class ShareInputFieldNode: ASDisplayNode, ASEditableTextNodeDelegate {
     private let theme: ShareInputFieldNodeTheme
     private let strings: PresentationStrings
+    private let fontSize: CGFloat
     private let backgroundNode: ASImageNode
     private let textInputNode: EditableTextNode
     private let placeholderNode: ASTextNode
@@ -220,7 +227,7 @@ public final class ShareInputFieldNode: ASDisplayNode, ASEditableTextNodeDelegat
             return self.textInputNode.attributedText?.string ?? ""
         }
         set {
-            self.textInputNode.attributedText = NSAttributedString(string: newValue, font: Font.regular(17.0), textColor: self.theme.textColor)
+            self.textInputNode.attributedText = NSAttributedString(string: newValue, font: Font.regular(self.fontSize), textColor: self.theme.textColor)
             self.placeholderNode.isHidden = !newValue.isEmpty || self.inputCopyText != nil
             self.clearButton.isHidden = newValue.isEmpty
             self.clearButton.isAccessibilityElement = !newValue.isEmpty
@@ -229,14 +236,15 @@ public final class ShareInputFieldNode: ASDisplayNode, ASEditableTextNodeDelegat
     
     public var placeholder: String = "" {
         didSet {
-            self.placeholderNode.attributedText = NSAttributedString(string: self.placeholder, font: Font.regular(17.0), textColor: self.theme.placeholderColor)
+            self.placeholderNode.attributedText = NSAttributedString(string: self.placeholder, font: Font.regular(self.fontSize), textColor: self.theme.placeholderColor)
             self.textInputNode.textView.accessibilityLabel = self.placeholder
         }
     }
     
-    public init(theme: ShareInputFieldNodeTheme, strings: PresentationStrings, placeholder: String) {
+    public init(theme: ShareInputFieldNodeTheme, strings: PresentationStrings, placeholder: String, fontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         
         self.backgroundNode = ASImageNode()
         self.backgroundNode.isLayerBacked = true
@@ -246,7 +254,7 @@ public final class ShareInputFieldNode: ASDisplayNode, ASEditableTextNodeDelegat
         
         self.textInputNode = EditableTextNode()
         let textColor: UIColor = theme.textColor
-        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(17.0), NSAttributedString.Key.foregroundColor.rawValue: textColor]
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(fontSize), NSAttributedString.Key.foregroundColor.rawValue: textColor]
         self.textInputNode.clipsToBounds = true
         self.textInputNode.hitTestSlop = UIEdgeInsets(top: -5.0, left: -5.0, bottom: -5.0, right: -5.0)
         self.textInputNode.textContainerInset = UIEdgeInsets(top: self.inputInsets.top, left: 0.0, bottom: self.inputInsets.bottom, right: 0.0)
@@ -257,7 +265,7 @@ public final class ShareInputFieldNode: ASDisplayNode, ASEditableTextNodeDelegat
         self.placeholderNode = ASTextNode()
         self.placeholderNode.isUserInteractionEnabled = false
         self.placeholderNode.displaysAsynchronously = false
-        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(17.0), textColor: theme.placeholderColor)
+        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(fontSize), textColor: theme.placeholderColor)
         
         self.clearButton = HighlightableButtonNode()
         self.clearButton.imageNode.displaysAsynchronously = false
@@ -326,6 +334,7 @@ public final class ShareInputFieldNode: ASDisplayNode, ASEditableTextNodeDelegat
                     theme: self.theme,
                     strings: self.strings,
                     text: inputCopyText,
+                    fontSize: self.fontSize,
                     action: {
                         self.onInputCopyText?()
                     }

@@ -983,6 +983,7 @@ private func generateTextHiddenImage(color: UIColor, on: Bool) -> UIImage? {
 private final class TwoFactorDataInputTextNode: ASDisplayNode, UITextFieldDelegate {
     private let theme: PresentationTheme
     let mode: TwoFactorDataInputTextNodeType
+    fileprivate let fontSize: CGFloat
     private let focusUpdated: (TwoFactorDataInputTextNode, Bool) -> Void
     private let next: (TwoFactorDataInputTextNode) -> Void
     private let updated: (TwoFactorDataInputTextNode) -> Void
@@ -1053,13 +1054,14 @@ private final class TwoFactorDataInputTextNode: ASDisplayNode, UITextFieldDelega
     
     private var validLayout: CGSize?
     
-    init(theme: PresentationTheme, mode: TwoFactorDataInputTextNodeType, placeholder: String, focusUpdated: @escaping (TwoFactorDataInputTextNode, Bool) -> Void, next: @escaping (TwoFactorDataInputTextNode) -> Void, updated: @escaping (TwoFactorDataInputTextNode) -> Void, toggleTextHidden: @escaping (TwoFactorDataInputTextNode) -> Void) {
+    init(theme: PresentationTheme, mode: TwoFactorDataInputTextNodeType, placeholder: String, fontSize: CGFloat = 17.0, focusUpdated: @escaping (TwoFactorDataInputTextNode, Bool) -> Void, next: @escaping (TwoFactorDataInputTextNode) -> Void, updated: @escaping (TwoFactorDataInputTextNode) -> Void, toggleTextHidden: @escaping (TwoFactorDataInputTextNode) -> Void) {
         self.theme = theme
         self.mode = mode
         self.focusUpdated = focusUpdated
         self.next = next
         self.updated = updated
         self.toggleTextHidden = toggleTextHidden
+        self.fontSize = fontSize
         
         self.backgroundNode = ASImageNode()
         self.backgroundNode.displaysAsynchronously = false
@@ -1067,9 +1069,9 @@ private final class TwoFactorDataInputTextNode: ASDisplayNode, UITextFieldDelega
         self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 52.0, color: theme.list.freePlainInputField.backgroundColor)
         
         self.inputNode = TextFieldNode()
-        self.inputNode.textField.font = Font.regular(17.0)
+        self.inputNode.textField.font = Font.regular(fontSize)
         self.inputNode.textField.textColor = theme.list.freePlainInputField.primaryColor
-        self.inputNode.textField.attributedPlaceholder = NSAttributedString(string: placeholder, font: Font.regular(17.0), textColor: theme.list.freePlainInputField.placeholderColor)
+        self.inputNode.textField.attributedPlaceholder = NSAttributedString(string: placeholder, font: Font.regular(fontSize), textColor: theme.list.freePlainInputField.placeholderColor)
         
         self.hideButtonNode = HighlightableButtonNode()
         
@@ -1086,9 +1088,9 @@ private final class TwoFactorDataInputTextNode: ASDisplayNode, UITextFieldDelega
                 #if DEBUG
                 if !confirmation, let phoneNumber {
                     let shadowInputNode = TextFieldNode()
-                    shadowInputNode.textField.font = Font.regular(17.0)
+                    shadowInputNode.textField.font = Font.regular(fontSize)
                     shadowInputNode.textField.textColor = theme.list.freePlainInputField.primaryColor
-                    shadowInputNode.textField.attributedPlaceholder = NSAttributedString(string: placeholder, font: Font.regular(17.0), textColor: theme.list.freePlainInputField.placeholderColor)
+                    shadowInputNode.textField.attributedPlaceholder = NSAttributedString(string: placeholder, font: Font.regular(fontSize), textColor: theme.list.freePlainInputField.placeholderColor)
                     self.shadowInputNode = shadowInputNode
                     
                     
@@ -1369,7 +1371,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
             changeEmailActionText = ""
             resendCodeActionText = ""
             inputNodes = [
-                TwoFactorDataInputTextNode(theme: presentationData.theme, mode: .password(phoneNumber: phoneNumber, confirmation: false), placeholder: presentationData.strings.TwoFactorSetup_Password_PlaceholderPassword, focusUpdated: { node, focused in
+                TwoFactorDataInputTextNode(theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize, mode: .password(phoneNumber: phoneNumber, confirmation: false), placeholder: presentationData.strings.TwoFactorSetup_Password_PlaceholderPassword, focusUpdated: { node, focused in
                     focusUpdated?(node, focused)
                 }, next: { node in
                     next?(node)
@@ -1378,7 +1380,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
                 }, toggleTextHidden: { node in
                     toggleTextHidden?(node)
                 }),
-                TwoFactorDataInputTextNode(theme: presentationData.theme, mode: .password(phoneNumber: phoneNumber, confirmation: true), placeholder: presentationData.strings.TwoFactorSetup_Password_PlaceholderConfirmPassword, focusUpdated: { node, focused in
+                TwoFactorDataInputTextNode(theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize, mode: .password(phoneNumber: phoneNumber, confirmation: true), placeholder: presentationData.strings.TwoFactorSetup_Password_PlaceholderConfirmPassword, focusUpdated: { node, focused in
                     focusUpdated?(node, focused)
                 }, next: { node in
                     next?(node)
@@ -1396,7 +1398,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
             changeEmailActionText = ""
             resendCodeActionText = ""
             inputNodes = [
-                TwoFactorDataInputTextNode(theme: presentationData.theme, mode: .password(phoneNumber: nil, confirmation: false), placeholder: presentationData.strings.TwoFactorSetup_PasswordRecovery_PlaceholderPassword, focusUpdated: { node, focused in
+                TwoFactorDataInputTextNode(theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize, mode: .password(phoneNumber: nil, confirmation: false), placeholder: presentationData.strings.TwoFactorSetup_PasswordRecovery_PlaceholderPassword, focusUpdated: { node, focused in
                     focusUpdated?(node, focused)
                 }, next: { node in
                     next?(node)
@@ -1405,7 +1407,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
                 }, toggleTextHidden: { node in
                     toggleTextHidden?(node)
                 }),
-                TwoFactorDataInputTextNode(theme: presentationData.theme, mode: .password(phoneNumber: nil, confirmation: true), placeholder: presentationData.strings.TwoFactorSetup_PasswordRecovery_PlaceholderConfirmPassword, focusUpdated: { node, focused in
+                TwoFactorDataInputTextNode(theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize, mode: .password(phoneNumber: nil, confirmation: true), placeholder: presentationData.strings.TwoFactorSetup_PasswordRecovery_PlaceholderConfirmPassword, focusUpdated: { node, focused in
                     focusUpdated?(node, focused)
                 }, next: { node in
                     next?(node)
@@ -1424,7 +1426,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
             changeEmailActionText = ""
             resendCodeActionText = ""
             inputNodes = [
-                TwoFactorDataInputTextNode(theme: presentationData.theme, mode: .email, placeholder: presentationData.strings.TwoFactorSetup_Email_Placeholder, focusUpdated: { node, focused in
+                TwoFactorDataInputTextNode(theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize, mode: .email, placeholder: presentationData.strings.TwoFactorSetup_Email_Placeholder, focusUpdated: { node, focused in
                     focusUpdated?(node, focused)
                 }, next: { node in
                     next?(node)
@@ -1451,7 +1453,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
             changeEmailActionText = presentationData.strings.TwoStepAuth_RecoveryEmailResetNoAccess
             resendCodeActionText = presentationData.strings.TwoFactorSetup_EmailVerification_ResendAction
             inputNodes = [
-                TwoFactorDataInputTextNode(theme: presentationData.theme, mode: .code, placeholder: presentationData.strings.TwoFactorSetup_EmailVerification_Placeholder, focusUpdated: { node, focused in
+                TwoFactorDataInputTextNode(theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize, mode: .code, placeholder: presentationData.strings.TwoFactorSetup_EmailVerification_Placeholder, focusUpdated: { node, focused in
                     focusUpdated?(node, focused)
                 }, next: { node in
                     next?(node)
@@ -1478,7 +1480,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
             changeEmailActionText = presentationData.strings.TwoFactorSetup_EmailVerification_ChangeAction
             resendCodeActionText = presentationData.strings.TwoFactorSetup_EmailVerification_ResendAction
             inputNodes = [
-                TwoFactorDataInputTextNode(theme: presentationData.theme, mode: .code, placeholder: presentationData.strings.TwoFactorSetup_EmailVerification_Placeholder, focusUpdated: { node, focused in
+                TwoFactorDataInputTextNode(theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize, mode: .code, placeholder: presentationData.strings.TwoFactorSetup_EmailVerification_Placeholder, focusUpdated: { node, focused in
                     focusUpdated?(node, focused)
                 }, next: { node in
                     next?(node)
@@ -1498,7 +1500,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
             changeEmailActionText = ""
             resendCodeActionText = ""
             inputNodes = [
-                TwoFactorDataInputTextNode(theme: presentationData.theme, mode: .hint, placeholder: presentationData.strings.TwoFactorSetup_Hint_Placeholder, focusUpdated: { node, focused in
+                TwoFactorDataInputTextNode(theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize, mode: .hint, placeholder: presentationData.strings.TwoFactorSetup_Hint_Placeholder, focusUpdated: { node, focused in
                     focusUpdated?(node, focused)
                 }, next: { node in
                     next?(node)
@@ -1516,7 +1518,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
             changeEmailActionText = ""
             resendCodeActionText = ""
             inputNodes = [
-                TwoFactorDataInputTextNode(theme: presentationData.theme, mode: .password(phoneNumber: nil, confirmation: false), placeholder: presentationData.strings.TwoFactorRemember_Placeholder, focusUpdated: { node, focused in
+                TwoFactorDataInputTextNode(theme: presentationData.theme, fontSize: presentationData.listsFontSize.baseDisplaySize, mode: .password(phoneNumber: nil, confirmation: false), placeholder: presentationData.strings.TwoFactorRemember_Placeholder, focusUpdated: { node, focused in
                     focusUpdated?(node, focused)
                 }, next: { node in
                     next?(node)
@@ -1660,7 +1662,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
                     let maxWidth = strongSelf.inputNodes[1].bounds.width
                     
                     let textNode = ImmediateTextNode()
-                    textNode.attributedText = NSAttributedString(string: strongSelf.inputNodes[1].text, font: Font.regular(17.0), textColor: .black)
+                    textNode.attributedText = NSAttributedString(string: strongSelf.inputNodes[1].text, font: Font.regular(strongSelf.inputNodes[1].fontSize), textColor: .black)
                     let textSize = textNode.updateLayout(CGSize(width: 1000.0, height: 100.0))
 
                     var trackingOffset = textSize.width / maxWidth
@@ -1683,7 +1685,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
                     let maxWidth = strongSelf.inputNodes[0].bounds.width
                     
                     let textNode = ImmediateTextNode()
-                    textNode.attributedText = NSAttributedString(string: strongSelf.inputNodes[0].text, font: Font.regular(17.0), textColor: .black)
+                    textNode.attributedText = NSAttributedString(string: strongSelf.inputNodes[0].text, font: Font.regular(strongSelf.inputNodes[0].fontSize), textColor: .black)
                     let textSize = textNode.updateLayout(CGSize(width: 1000.0, height: 100.0))
 
                     var trackingOffset = textSize.width / maxWidth
@@ -2015,7 +2017,7 @@ private final class TwoFactorDataInputScreenNode: ViewControllerTracingNode, ASS
                     id: AnyHashable("button"),
                     component: AnyComponent(Text(
                         text: self.buttonText,
-                        font: Font.semibold(17.0),
+                        font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize),
                         color: self.presentationData.theme.list.itemCheckColors.foregroundColor
                     ))
                 ),

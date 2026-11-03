@@ -500,7 +500,7 @@ final class ShareControllerNode: ViewControllerTracingNode, ASScrollViewDelegate
             self.startAtTimestampNode = nil
         }
         
-        self.inputFieldNode = ShareInputFieldNode(theme: ShareInputFieldNodeTheme(presentationTheme: self.presentationData.theme), strings: self.presentationData.strings, placeholder: self.presentationData.strings.ShareMenu_Comment)
+        self.inputFieldNode = ShareInputFieldNode(theme: ShareInputFieldNodeTheme(presentationTheme: self.presentationData.theme), strings: self.presentationData.strings, placeholder: self.presentationData.strings.ShareMenu_Comment, fontSize: self.presentationData.listsFontSize.baseDisplaySize)
         self.inputFieldNode.text = presetText ?? ""
         self.inputFieldNode.preselectText()
         self.inputFieldNode.alpha = 0.0

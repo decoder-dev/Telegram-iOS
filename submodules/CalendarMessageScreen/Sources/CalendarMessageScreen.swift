@@ -1291,7 +1291,7 @@ public final class CalendarMessageScreen: ViewController {
                     selectionToolbarNode = currrent
 
                     transition.updateFrame(node: selectionToolbarNode, frame: tabBarFrame)
-                    selectionToolbarNode.updateLayout(size: tabBarFrame.size, leftInset: bottomSideInsets.left, rightInset: bottomSideInsets.right, additionalSideInsets: layout.additionalInsets, bottomInset: bottomInset, toolbar: Toolbar(leftAction: nil, rightAction: nil, middleAction: ToolbarAction(title: toolbarText, isEnabled: true, color: .custom(self.selectionState?.dayRange != nil ? self.presentationData.theme.list.itemDestructiveColor : self.presentationData.theme.list.itemDisabledTextColor))), transition: transition)
+                    selectionToolbarNode.updateLayout(size: tabBarFrame.size, leftInset: bottomSideInsets.left, rightInset: bottomSideInsets.right, additionalSideInsets: layout.additionalInsets, bottomInset: bottomInset, toolbar: Toolbar(leftAction: nil, rightAction: nil, middleAction: ToolbarAction(title: toolbarText, isEnabled: true, color: .custom(self.selectionState?.dayRange != nil ? self.presentationData.theme.list.itemDestructiveColor : self.presentationData.theme.list.itemDisabledTextColor))), transition: transition, fontSize: self.presentationData.listsFontSize.baseDisplaySize)
                 } else {
                     selectionToolbarNode = ToolbarNode(
                         theme: ToolbarTheme(
@@ -1306,7 +1306,7 @@ public final class CalendarMessageScreen: ViewController {
                         }
                     )
                     selectionToolbarNode.frame = tabBarFrame
-                    selectionToolbarNode.updateLayout(size: tabBarFrame.size, leftInset: bottomSideInsets.left, rightInset: bottomSideInsets.right, additionalSideInsets: layout.additionalInsets, bottomInset: bottomInset, toolbar: Toolbar(leftAction: nil, rightAction: nil, middleAction: ToolbarAction(title: toolbarText, isEnabled: true, color: .custom(self.selectionState?.dayRange != nil ? self.presentationData.theme.list.itemDestructiveColor : self.presentationData.theme.list.itemDisabledTextColor))), transition: .immediate)
+                    selectionToolbarNode.updateLayout(size: tabBarFrame.size, leftInset: bottomSideInsets.left, rightInset: bottomSideInsets.right, additionalSideInsets: layout.additionalInsets, bottomInset: bottomInset, toolbar: Toolbar(leftAction: nil, rightAction: nil, middleAction: ToolbarAction(title: toolbarText, isEnabled: true, color: .custom(self.selectionState?.dayRange != nil ? self.presentationData.theme.list.itemDestructiveColor : self.presentationData.theme.list.itemDisabledTextColor))), transition: .immediate, fontSize: self.presentationData.listsFontSize.baseDisplaySize)
                     self.addSubnode(selectionToolbarNode)
                     self.selectionToolbarNode = selectionToolbarNode
                     transition.animatePositionAdditive(node: selectionToolbarNode, offset: CGPoint(x: 0.0, y: tabBarFrame.height))

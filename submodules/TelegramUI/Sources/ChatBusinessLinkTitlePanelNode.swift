@@ -71,6 +71,7 @@ private final class ChatBusinessLinkTitlePanelComponent: Component {
         
         func update(component: ChatBusinessLinkTitlePanelComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
             self.component = component
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let size = CGSize(width: availableSize.width, height: 40.0)
             
@@ -78,7 +79,7 @@ private final class ChatBusinessLinkTitlePanelComponent: Component {
                 transition: transition,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.strings.GroupInfo_InviteLink_CopyLink, font: Font.regular(17.0), textColor: component.theme.rootController.navigationBar.accentTextColor))
+                        text: .plain(NSAttributedString(string: component.strings.GroupInfo_InviteLink_CopyLink, font: Font.regular(fontSize), textColor: component.theme.rootController.navigationBar.accentTextColor))
                     )),
                     effectAlignment: .center,
                     minSize: CGSize(width: floor(availableSize.width * 0.5), height: size.height),
@@ -107,7 +108,7 @@ private final class ChatBusinessLinkTitlePanelComponent: Component {
                 transition: transition,
                 component: AnyComponent(PlainButtonComponent(
                     content: AnyComponent(MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: component.strings.GroupInfo_InviteLink_ShareLink, font: Font.regular(17.0), textColor: component.theme.rootController.navigationBar.accentTextColor))
+                        text: .plain(NSAttributedString(string: component.strings.GroupInfo_InviteLink_ShareLink, font: Font.regular(fontSize), textColor: component.theme.rootController.navigationBar.accentTextColor))
                     )),
                     effectAlignment: .center,
                     minSize: CGSize(width: floor(availableSize.width * 0.5), height: size.height),

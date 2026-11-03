@@ -141,8 +141,10 @@ class ChatScheduleTimeControllerNode: ViewControllerTracingNode, ASScrollViewDel
             }
         }
         
+        let titleFontSize = self.presentationData.listsFontSize.baseDisplaySize
+        
         self.titleNode = ASTextNode()
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.bold(17.0), textColor: textColor)
+        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.bold(titleFontSize), textColor: textColor)
         self.titleNode.accessibilityLabel = title
         self.titleNode.accessibilityTraits = [.staticText]
         
@@ -173,7 +175,7 @@ class ChatScheduleTimeControllerNode: ViewControllerTracingNode, ASScrollViewDel
         }
         
         self.cancelButton = HighlightableButtonNode()
-        self.cancelButton.setTitle(self.presentationData.strings.Common_Cancel, with: Font.regular(17.0), with: accentColor, for: .normal)
+        self.cancelButton.setTitle(self.presentationData.strings.Common_Cancel, with: Font.regular(titleFontSize), with: accentColor, for: .normal)
         self.cancelButton.accessibilityLabel = self.presentationData.strings.Common_Cancel
         self.cancelButton.accessibilityTraits = [.button]
         
@@ -307,14 +309,15 @@ class ChatScheduleTimeControllerNode: ViewControllerTracingNode, ASScrollViewDel
         }
         
         self.contentBackgroundNode.backgroundColor = self.presentationData.theme.actionSheet.itemBackgroundColor
-        self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.bold(17.0), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
+        let titleFontSize = self.presentationData.listsFontSize.baseDisplaySize
+        self.titleNode.attributedText = NSAttributedString(string: self.titleNode.attributedText?.string ?? "", font: Font.bold(titleFontSize), textColor: self.presentationData.theme.actionSheet.primaryTextColor)
         
         if previousTheme !== presentationData.theme, let (layout, navigationBarHeight) = self.containerLayout {
             self.setupPickerView()
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
         }
         
-        self.cancelButton.setTitle(self.presentationData.strings.Common_Cancel, with: Font.regular(17.0), with: self.presentationData.theme.actionSheet.controlAccentColor, for: .normal)
+        self.cancelButton.setTitle(self.presentationData.strings.Common_Cancel, with: Font.regular(titleFontSize), with: self.presentationData.theme.actionSheet.controlAccentColor, for: .normal)
         self.doneButton.updateTheme(SolidRoundedButtonTheme(theme: self.presentationData.theme))
         self.onlineButton.updateTheme(SolidRoundedButtonTheme(backgroundColor: self.presentationData.theme.actionSheet.opaqueItemBackgroundColor, foregroundColor: self.presentationData.theme.actionSheet.controlAccentColor))
     }

@@ -260,6 +260,7 @@ public final class AlertMultilineInputFieldComponent: Component {
             self.state = state
             
             let environment = environment[AlertComponentEnvironment.self]
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let maxHeight = component.maxHeight.map { max(0.0, $0) }
             let topInset: CGFloat = min(15.0, maxHeight ?? 15.0)
@@ -362,7 +363,7 @@ public final class AlertMultilineInputFieldComponent: Component {
                 component: AnyComponent(
                     MultilineTextComponent(text: .plain(NSAttributedString(
                         string: component.placeholder,
-                        font: Font.regular(17.0),
+                        font: Font.regular(fontSize),
                         textColor: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.4)
                     )))
                 ),

@@ -19,6 +19,7 @@ public protocol LegacyDataImportSplash: WindowCoveringView {
 private final class LegacyDataImportSplashImpl: WindowCoveringView, LegacyDataImportSplash {
     private let theme: PresentationTheme?
     private let strings: PresentationStrings?
+    private let fontSize: CGFloat
     
     public var progress: (AccountImportProgressType, Float) = (.generic, 0.0) {
         didSet {
@@ -26,11 +27,11 @@ private final class LegacyDataImportSplashImpl: WindowCoveringView, LegacyDataIm
                 if let size = self.validSize {
                     switch self.progress.0 {
                         case .generic:
-                            self.textNode.attributedText = NSAttributedString(string: self.strings?.AppUpgrade_Running ?? "Optimizing...", font: Font.regular(17.0), textColor: self.theme?.list.itemPrimaryTextColor ?? .black)
+                            self.textNode.attributedText = NSAttributedString(string: self.strings?.AppUpgrade_Running ?? "Optimizing...", font: Font.regular(self.fontSize), textColor: self.theme?.list.itemPrimaryTextColor ?? .black)
                         case .media:
-                            self.textNode.attributedText = NSAttributedString(string: "Optimizing cache", font: Font.regular(17.0), textColor: self.theme?.list.itemPrimaryTextColor ?? .black)
+                            self.textNode.attributedText = NSAttributedString(string: "Optimizing cache", font: Font.regular(self.fontSize), textColor: self.theme?.list.itemPrimaryTextColor ?? .black)
                         case .messages:
-                            self.textNode.attributedText = NSAttributedString(string: "Optimizing database", font: Font.regular(17.0), textColor: self.theme?.list.itemPrimaryTextColor ?? .black)
+                            self.textNode.attributedText = NSAttributedString(string: "Optimizing database", font: Font.regular(self.fontSize), textColor: self.theme?.list.itemPrimaryTextColor ?? .black)
                     }
                     self.updateLayout(size)
                 }
@@ -46,15 +47,16 @@ private final class LegacyDataImportSplashImpl: WindowCoveringView, LegacyDataIm
     
     private var validSize: CGSize?
     
-    public init(theme: PresentationTheme?, strings: PresentationStrings?) {
+    public init(theme: PresentationTheme?, strings: PresentationStrings?, fontSize: CGFloat = 17.0) {
         self.theme = theme
         self.strings = strings
+        self.fontSize = fontSize
         
         self.progressNode = RadialStatusNode(backgroundNodeColor: theme?.list.plainBackgroundColor ?? .white)
         self.textNode = ImmediateTextNode()
         self.textNode.maximumNumberOfLines = 0
         self.textNode.textAlignment = .center
-        self.textNode.attributedText = NSAttributedString(string: self.strings?.AppUpgrade_Running ?? "Optimizing...", font: Font.regular(17.0), textColor: self.theme?.list.itemPrimaryTextColor ?? .black)
+        self.textNode.attributedText = NSAttributedString(string: self.strings?.AppUpgrade_Running ?? "Optimizing...", font: Font.regular(self.fontSize), textColor: self.theme?.list.itemPrimaryTextColor ?? .black)
         
         super.init(frame: CGRect())
         
@@ -91,6 +93,6 @@ private final class LegacyDataImportSplashImpl: WindowCoveringView, LegacyDataIm
     }
 }
 
-public func makeLegacyDataImportSplash(theme: PresentationTheme?, strings: PresentationStrings?) -> LegacyDataImportSplash {
-    return LegacyDataImportSplashImpl(theme: theme, strings: strings)
+public func makeLegacyDataImportSplash(theme: PresentationTheme?, strings: PresentationStrings?, fontSize: CGFloat = 17.0) -> LegacyDataImportSplash {
+    return LegacyDataImportSplashImpl(theme: theme, strings: strings, fontSize: fontSize)
 }

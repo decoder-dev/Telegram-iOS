@@ -368,7 +368,7 @@ public final class GiftStoreContentComponent: Component {
                     PlainButtonComponent(
                         content: AnyComponent(
                             MultilineTextComponent(
-                                text: .plain(NSAttributedString(string: component.strings.Gift_Store_ClearFilters, font: Font.regular(17.0), textColor: component.theme.list.itemAccentColor)),
+                                text: .plain(NSAttributedString(string: component.strings.Gift_Store_ClearFilters, font: Font.regular(fontSize), textColor: component.theme.list.itemAccentColor)),
                                 horizontalAlignment: .center,
                                 maximumNumberOfLines: 0
                             )
@@ -414,7 +414,7 @@ public final class GiftStoreContentComponent: Component {
                     transition: .immediate,
                     component: AnyComponent(
                         MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: component.strings.Gift_Store_EmptyResults, font: Font.semibold(17.0), textColor: component.theme.list.itemPrimaryTextColor)),
+                            text: .plain(NSAttributedString(string: component.strings.Gift_Store_EmptyResults, font: Font.semibold(fontSize), textColor: component.theme.list.itemPrimaryTextColor)),
                             horizontalAlignment: .center
                         )
                     ),
@@ -903,6 +903,7 @@ public final class GiftStoreContentComponent: Component {
         }
         
         func update(component: GiftStoreContentComponent, availableSize: CGSize, state: State, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.isUpdating = true
             defer {
                 self.isUpdating = false
@@ -1337,6 +1338,7 @@ final class GiftStoreScreenComponent: Component {
         }
                 
         func update(component: GiftStoreScreenComponent, availableSize: CGSize, state: State, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.isUpdating = true
             defer {
                 self.isUpdating = false
@@ -1422,7 +1424,7 @@ final class GiftStoreScreenComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: component.gift.title ?? "Gift", font: Font.semibold(17.0), textColor: theme.rootController.navigationBar.primaryTextColor)),
+                    text: .plain(NSAttributedString(string: component.gift.title ?? "Gift", font: Font.semibold(fontSize), textColor: theme.rootController.navigationBar.primaryTextColor)),
                     horizontalAlignment: .center
                 )),
                 environment: {},

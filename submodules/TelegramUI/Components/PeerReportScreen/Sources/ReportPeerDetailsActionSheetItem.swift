@@ -41,7 +41,7 @@ private final class ReportPeerDetailsActionSheetItemNode: ActionSheetItemNode {
     init(theme: ActionSheetControllerTheme, presentationTheme: PresentationTheme, strings: PresentationStrings, context: AccountContext, placeholderText: String, textUpdated: @escaping (String) -> Void) {
         self.theme = theme
         
-        self.inputFieldNode = ShareInputFieldNode(theme: ShareInputFieldNodeTheme(presentationTheme: presentationTheme), strings: strings, placeholder: placeholderText)
+        self.inputFieldNode = ShareInputFieldNode(theme: ShareInputFieldNodeTheme(presentationTheme: presentationTheme), strings: strings, placeholder: placeholderText, fontSize: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
         
         self.accessibilityArea = AccessibilityAreaNode()
             

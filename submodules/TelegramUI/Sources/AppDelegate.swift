@@ -1190,7 +1190,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }, displayUpgradeProgress: { progress in
                 if let progress = progress {
                     if self.dataImportSplash == nil {
-                        self.dataImportSplash = makeLegacyDataImportSplash(theme: initialPresentationDataAndSettings.presentationData.theme, strings: initialPresentationDataAndSettings.presentationData.strings)
+                        self.dataImportSplash = makeLegacyDataImportSplash(theme: initialPresentationDataAndSettings.presentationData.theme, strings: initialPresentationDataAndSettings.presentationData.strings, fontSize: initialPresentationDataAndSettings.presentationData.listsFontSize.baseDisplaySize)
                         self.dataImportSplash?.serviceAction = {
                             self.debugPressed()
                         }

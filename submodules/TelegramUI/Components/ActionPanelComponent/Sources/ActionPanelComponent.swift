@@ -18,6 +18,7 @@ public final class ActionPanelComponent: Component {
     /// Insets the title and the dismiss button keep from the panel's sides (iPhone Duo's side strip); the background
     /// spans the whole width.
     public let sideInsets: UIEdgeInsets
+    public let fontSize: CGFloat
     public let action: () -> Void
     public let dismissAction: () -> Void
     
@@ -26,6 +27,7 @@ public final class ActionPanelComponent: Component {
         title: String,
         color: Color,
         sideInsets: UIEdgeInsets = UIEdgeInsets(),
+        fontSize: CGFloat = 17.0,
         action: @escaping () -> Void,
         dismissAction: @escaping () -> Void
     ) {
@@ -33,6 +35,7 @@ public final class ActionPanelComponent: Component {
         self.title = title
         self.color = color
         self.sideInsets = sideInsets
+        self.fontSize = fontSize
         self.action = action
         self.dismissAction = dismissAction
     }
@@ -48,6 +51,9 @@ public final class ActionPanelComponent: Component {
             return false
         }
         if lhs.sideInsets != rhs.sideInsets {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -165,7 +171,7 @@ public final class ActionPanelComponent: Component {
             
             let titleSize = self.title.update(
                 transition: .immediate,
-                component: AnyComponent(Text(text: component.title, font: Font.regular(17.0), color: resolvedColor)),
+                component: AnyComponent(Text(text: component.title, font: Font.regular(component.fontSize), color: resolvedColor)),
                 environment: {},
                 containerSize: CGSize(width: availableSize.width - component.sideInsets.left - component.sideInsets.right - rightInset, height: availableSize.height)
             )

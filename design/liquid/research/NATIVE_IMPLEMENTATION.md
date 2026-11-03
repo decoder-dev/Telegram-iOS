@@ -275,3 +275,7 @@ MessageInputPanel, NavigationSearch, Stars withdrawal/transactions, WallpaperCol
 ## Share, passkeys, media editor и context menu
 
 ShareWithPeers/Share panels, PeerSelection, Passkeys, BusinessMessage setup, MiniApp list, MediaRecording/MediaEditor/CreateLink, ListTextField, Emoji search bar/header, ContextMenu action fonts (через Controllers arguments), Wallet send/transfer и slowmode placeholder масштабируются от listsFontSize. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Share input, prompts, payments, polls bubble и QrStudio
+
+ShareInputField, PromptController, TipEdit, 2FA input, PaymentCard, LegacyDataImportSplash, ChatMessageReport panel, poll bubble labels, ChatScheduleTime node, Toolbar, ActionPanel, Alert input fields, Undo overlay, QrStudio buttons, Gift store/demo/options, JoinAffiliate, LocationMapHeader, AuthConfirmation и related panels масштабируют 17 pt labels. Branding Liquid: 7 pass. Simulator NOT RUN.

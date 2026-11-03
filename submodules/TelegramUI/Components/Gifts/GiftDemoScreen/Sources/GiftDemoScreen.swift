@@ -72,8 +72,8 @@ final class PageComponent<ChildEnvironment: Equatable>: CombinedComponent {
             let textSideInset: CGFloat = 24.0
             
             let textColor = component.textColor
-            let textFont = Font.regular(17.0)
-            let boldTextFont = Font.semibold(17.0)
+            let textFont = Font.regular(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
+            let boldTextFont = Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
             
             let content = children["main"].update(
                 component: component.content,

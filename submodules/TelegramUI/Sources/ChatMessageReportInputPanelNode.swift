@@ -49,13 +49,13 @@ final class ChatMessageReportInputPanelNode: ChatInputPanelNode {
         self.reportButton.addTarget(self, action: #selector(self.reportButtonPressed), forControlEvents: .touchUpInside)
     }
     
-    func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings) {
+    func updateThemeAndStrings(theme: PresentationTheme, strings: PresentationStrings, fontSize: CGFloat = 17.0) {
         if self.theme !== theme || self.strings !== strings {
             self.theme = theme
             self.strings = strings
             
-            self.reportButton.setAttributedTitle(NSAttributedString(string: self.reportButton.attributedTitle(for: [])?.string ?? "", font: Font.regular(17.0), textColor: theme.chat.inputPanel.panelControlAccentColor), for: [])
-            self.reportButton.setAttributedTitle(NSAttributedString(string: self.reportButton.attributedTitle(for: [])?.string ?? "", font: Font.regular(17.0), textColor: theme.chat.inputPanel.panelControlDisabledColor), for: .disabled)
+            self.reportButton.setAttributedTitle(NSAttributedString(string: self.reportButton.attributedTitle(for: [])?.string ?? "", font: Font.regular(fontSize), textColor: theme.chat.inputPanel.panelControlAccentColor), for: [])
+            self.reportButton.setAttributedTitle(NSAttributedString(string: self.reportButton.attributedTitle(for: [])?.string ?? "", font: Font.regular(fontSize), textColor: theme.chat.inputPanel.panelControlDisabledColor), for: .disabled)
         }
     }
     
@@ -72,10 +72,11 @@ final class ChatMessageReportInputPanelNode: ChatInputPanelNode {
     }
     
     override func updateLayout(width: CGFloat, leftInset: CGFloat, rightInset: CGFloat, bottomInset: CGFloat, additionalSideInsets: UIEdgeInsets, maxHeight: CGFloat, maxOverlayHeight: CGFloat, isSecondary: Bool, transition: ContainedViewLayoutTransition, interfaceState: ChatPresentationInterfaceState, metrics: LayoutMetrics, deviceMetrics: DeviceMetrics, isMediaInputExpanded: Bool) -> CGFloat {
+        let fontSize = interfaceState.fontSize.baseDisplaySize
         if self.presentationInterfaceState != interfaceState {
             self.presentationInterfaceState = interfaceState
             
-            let string = NSAttributedString(string: self.strings.Conversation_ReportMessages, font: Font.regular(17.0), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
+            let string = NSAttributedString(string: self.strings.Conversation_ReportMessages, font: Font.regular(fontSize), textColor: self.theme.chat.inputPanel.panelControlAccentColor)
             let updated: Bool
             if let current = self.reportButton.attributedTitle(for: []) {
                 updated = !current.isEqual(to: string)
@@ -84,7 +85,7 @@ final class ChatMessageReportInputPanelNode: ChatInputPanelNode {
             }
             if updated {
                 self.reportButton.setAttributedTitle(string, for: [])
-                self.reportButton.setAttributedTitle(NSAttributedString(string: self.reportButton.attributedTitle(for: [])?.string ?? "", font: Font.regular(17.0), textColor: self.theme.chat.inputPanel.panelControlDisabledColor), for: .disabled)
+                self.reportButton.setAttributedTitle(NSAttributedString(string: self.reportButton.attributedTitle(for: [])?.string ?? "", font: Font.regular(fontSize), textColor: self.theme.chat.inputPanel.panelControlDisabledColor), for: .disabled)
             }
             self.reportButton.isEnabled = self.selectedMessages.count != 0
         }

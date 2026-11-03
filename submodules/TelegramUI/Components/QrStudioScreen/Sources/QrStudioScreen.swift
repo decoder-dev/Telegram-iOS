@@ -2183,7 +2183,7 @@ final class QrStudioScreenComponent: Component {
             controller.push(QrCodeScanScreen(context: component.context, subject: .peer))
         }
 
-        private func updateGlassButton(_ button: QrStudioGlassButtonView, icon: String? = nil, title: String? = nil, isDark: Bool, glassTint: GlassBackgroundView.TintColor, frame: CGRect, transition: ComponentTransition, action: @escaping () -> Void) {
+        private func updateGlassButton(_ button: QrStudioGlassButtonView, icon: String? = nil, title: String? = nil, isDark: Bool, glassTint: GlassBackgroundView.TintColor, frame: CGRect, fontSize: CGFloat, transition: ComponentTransition, action: @escaping () -> Void) {
             if button.superview == nil {
                 self.presentationContainer.addSubview(button)
                 button.action = { _ in
@@ -2191,7 +2191,7 @@ final class QrStudioScreenComponent: Component {
                 }
             }
             transition.setFrame(view: button, frame: frame)
-            button.update(size: frame.size, isDark: isDark, glassTint: glassTint, icon: icon, title: title, transition: transition)
+            button.update(size: frame.size, isDark: isDark, glassTint: glassTint, icon: icon, title: title, fontSize: fontSize, transition: transition)
         }
 
         func update(component: QrStudioScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
@@ -2204,6 +2204,7 @@ final class QrStudioScreenComponent: Component {
             self.component = component
             self.state = state
             self.environment = environment
+            let listFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.presentationContainer.bounds = CGRect(origin: CGPoint(), size: availableSize)
             if let expansionBackgroundView = self.expansionBackgroundView {
                 expansionBackgroundView.backgroundColor = self.look.backdrop.baseColor.uiColor
@@ -2341,6 +2342,7 @@ final class QrStudioScreenComponent: Component {
                 isDark: isDark,
                 glassTint: glassTint,
                 frame: closeFrame,
+                fontSize: listFontSize,
                 transition: transition,
                 action: { [weak self] in
                     self?.dismiss()
@@ -2348,13 +2350,14 @@ final class QrStudioScreenComponent: Component {
             )
 
             let scanTitle = environment.strings.PeerInfo_QRCode_Scan
-            let scanWidth = QrStudioGlassButtonView.width(title: scanTitle, height: buttonSide)
+            let scanWidth = QrStudioGlassButtonView.width(title: scanTitle, height: buttonSide, fontSize: listFontSize)
             self.updateGlassButton(
                 self.scanButton,
                 title: scanTitle,
                 isDark: isDark,
                 glassTint: glassTint,
                 frame: CGRect(x: availableSize.width - 16.5 - environment.safeInsets.right - environment.navigationBarTrailingButtonsInset - scanWidth, y: closeTop, width: scanWidth, height: buttonSide),
+                fontSize: listFontSize,
                 transition: transition,
                 action: { [weak self] in
                     self?.scan()
@@ -2382,6 +2385,7 @@ final class QrStudioScreenComponent: Component {
                 isDark: isDark,
                 glassTint: glassTint,
                 frame: CGRect(x: availableSize.width - sideInset - bottomSideInsets.right - buttonSide, y: bottomRowY, width: buttonSide, height: buttonSide),
+                fontSize: listFontSize,
                 transition: transition,
                 action: { [weak self] in
                     self?.saveImage()

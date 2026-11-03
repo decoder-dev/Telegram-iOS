@@ -152,7 +152,7 @@ public final class LocationMapHeaderNode: ASDisplayNode {
         self.placesBackgroundNode.isUserInteractionEnabled = true
 
         self.placesButtonNode = HighlightTrackingButtonNode()
-        self.placesButtonNode.setTitle(presentationData.strings.Map_PlacesInThisArea, with: Font.medium(17.0), with: self.glass ? presentationData.theme.rootController.navigationBar.primaryTextColor : buttonColor, for: .normal)
+        self.placesButtonNode.setTitle(presentationData.strings.Map_PlacesInThisArea, with: Font.medium(presentationData.listsFontSize.baseDisplaySize), with: self.glass ? presentationData.theme.rootController.navigationBar.primaryTextColor : buttonColor, for: .normal)
 
         self.weatherButton = HighlightTrackingButton()
 
@@ -489,6 +489,7 @@ public final class LocationMapHeaderNode: ASDisplayNode {
                         trackingMode: self.mapNode.trackingMode,
                         showMapModes: self.infoButtonNode.isSelected,
                         proximityNotification: self.proximityNotification,
+                        fontSize: self.presentationData.listsFontSize.baseDisplaySize,
                         updateMapMode: { [weak self] mode in
                             guard let self else {
                                 return
@@ -614,6 +615,7 @@ final class LocationOptionsComponent: Component {
     let goToUserLocation: () -> Void
     let requestedMapModes: () -> Void
     let setupProximityNotification: (Bool) -> Void
+    let fontSize: CGFloat
     
     init(
         theme: PresentationTheme,
@@ -623,6 +625,7 @@ final class LocationOptionsComponent: Component {
         trackingMode: LocationTrackingMode,
         showMapModes: Bool,
         proximityNotification: Bool?,
+        fontSize: CGFloat = 17.0,
         updateMapMode: @escaping (LocationMapMode) -> Void,
         goToUserLocation: @escaping () -> Void,
         requestedMapModes: @escaping () -> Void,
@@ -635,6 +638,7 @@ final class LocationOptionsComponent: Component {
         self.trackingMode = trackingMode
         self.showMapModes = showMapModes
         self.proximityNotification = proximityNotification
+        self.fontSize = fontSize
         self.updateMapMode = updateMapMode
         self.goToUserLocation = goToUserLocation
         self.requestedMapModes = requestedMapModes
@@ -661,6 +665,9 @@ final class LocationOptionsComponent: Component {
             return false
         }
         if lhs.proximityNotification != rhs.proximityNotification {
+            return false
+        }
+        if lhs.fontSize != rhs.fontSize {
             return false
         }
         return true
@@ -734,7 +741,7 @@ final class LocationOptionsComponent: Component {
                 component: AnyComponent(
                     PlainButtonComponent(
                         content: AnyComponent(
-                            MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Map_Map, font: Font.regular(17.0), textColor: component.theme.rootController.navigationBar.primaryTextColor)))
+                            MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Map_Map, font: Font.regular(component.fontSize), textColor: component.theme.rootController.navigationBar.primaryTextColor)))
                         ),
                         action: { [weak self] in
                             guard let self, let component = self.component else {
@@ -754,7 +761,7 @@ final class LocationOptionsComponent: Component {
                 component: AnyComponent(
                     PlainButtonComponent(
                         content: AnyComponent(
-                            MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Map_Satellite, font: Font.regular(17.0), textColor: component.theme.rootController.navigationBar.primaryTextColor)))
+                            MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Map_Satellite, font: Font.regular(component.fontSize), textColor: component.theme.rootController.navigationBar.primaryTextColor)))
                         ),
                         action: { [weak self] in
                             guard let self, let component = self.component else {
@@ -774,7 +781,7 @@ final class LocationOptionsComponent: Component {
                 component: AnyComponent(
                     PlainButtonComponent(
                         content: AnyComponent(
-                            MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Map_Hybrid, font: Font.regular(17.0), textColor: component.theme.rootController.navigationBar.primaryTextColor)))
+                            MultilineTextComponent(text: .plain(NSAttributedString(string: component.strings.Map_Hybrid, font: Font.regular(component.fontSize), textColor: component.theme.rootController.navigationBar.primaryTextColor)))
                         ),
                         action: { [weak self] in
                             guard let self, let component = self.component else {

@@ -417,6 +417,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
             let titleFont = Font.bold(24.0)
             let textFont = Font.regular(15.0)
             let boldTextFont = Font.semibold(15.0)
+            let listFontSize = presentationData.listsFontSize.baseDisplaySize
         
             var contentHeight: CGFloat = 32.0
             
@@ -621,7 +622,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                             title: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: strings.AuthConfirmation_Device,
-                                    font: Font.regular(17.0),
+                                    font: Font.regular(listFontSize),
                                     textColor: theme.list.itemPrimaryTextColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -669,7 +670,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                             title: AnyComponent(MultilineTextComponent(
                                 text: .plain(NSAttributedString(
                                     string: strings.AuthConfirmation_IpAddress,
-                                    font: Font.regular(17.0),
+                                    font: Font.regular(listFontSize),
                                     textColor: theme.list.itemPrimaryTextColor
                                 )),
                                 maximumNumberOfLines: 1
@@ -805,7 +806,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.AuthConfirmation_Cancel, font: Font.semibold(17.0), textColor: theme.list.itemPrimaryTextColor, paragraphAlignment: .center))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.AuthConfirmation_Cancel, font: Font.semibold(listFontSize), textColor: theme.list.itemPrimaryTextColor, paragraphAlignment: .center))))
                     ),
                     action: { [weak state] in
                         guard let state else {
@@ -837,7 +838,7 @@ private final class AuthConfirmationSheetContent: CombinedComponent {
                     ),
                     content: AnyComponentWithIdentity(
                         id: AnyHashable(0),
-                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.AuthConfirmation_LogIn, font: Font.semibold(17.0), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
+                        component: AnyComponent(MultilineTextComponent(text: .plain(NSMutableAttributedString(string: strings.AuthConfirmation_LogIn, font: Font.semibold(listFontSize), textColor: theme.list.itemCheckColors.foregroundColor, paragraphAlignment: .center))))
                     ),
                     displaysProgress: state.inProgress,
                     action: { [weak state] in

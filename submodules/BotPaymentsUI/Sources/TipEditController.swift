@@ -9,6 +9,7 @@ import AccountContext
 
 private final class TipEditInputFieldNode: ASDisplayNode, ASEditableTextNodeDelegate {
     private var theme: PresentationTheme
+    private let fontSize: CGFloat
     private let backgroundNode: ASImageNode
     private let textInputNode: EditableTextNode
     private let placeholderNode: ASTextNode
@@ -26,7 +27,7 @@ private final class TipEditInputFieldNode: ASDisplayNode, ASEditableTextNodeDele
             return self.textInputNode.attributedText?.string ?? ""
         }
         set {
-            self.textInputNode.attributedText = NSAttributedString(string: newValue, font: Font.regular(17.0), textColor: self.theme.actionSheet.inputTextColor)
+            self.textInputNode.attributedText = NSAttributedString(string: newValue, font: Font.regular(self.fontSize), textColor: self.theme.actionSheet.inputTextColor)
             self.placeholderNode.isHidden = !newValue.isEmpty
             self.clearButton.isHidden = newValue.isEmpty
         }
@@ -34,12 +35,13 @@ private final class TipEditInputFieldNode: ASDisplayNode, ASEditableTextNodeDele
     
     var placeholder: String = "" {
         didSet {
-            self.placeholderNode.attributedText = NSAttributedString(string: self.placeholder, font: Font.regular(17.0), textColor: self.theme.actionSheet.inputPlaceholderColor)
+            self.placeholderNode.attributedText = NSAttributedString(string: self.placeholder, font: Font.regular(self.fontSize), textColor: self.theme.actionSheet.inputPlaceholderColor)
         }
     }
     
-    init(theme: PresentationTheme, placeholder: String) {
+    init(theme: PresentationTheme, placeholder: String, fontSize: CGFloat = 17.0) {
         self.theme = theme
+        self.fontSize = fontSize
         
         self.backgroundNode = ASImageNode()
         self.backgroundNode.isLayerBacked = true
@@ -48,7 +50,7 @@ private final class TipEditInputFieldNode: ASDisplayNode, ASEditableTextNodeDele
         self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 12.0, color: theme.actionSheet.inputHollowBackgroundColor, strokeColor: theme.actionSheet.inputBorderColor, strokeWidth: 1.0)
         
         self.textInputNode = EditableTextNode()
-        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(17.0), NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(fontSize), NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
         self.textInputNode.clipsToBounds = true
         self.textInputNode.hitTestSlop = UIEdgeInsets(top: -5.0, left: -5.0, bottom: -5.0, right: -5.0)
         self.textInputNode.textContainerInset = UIEdgeInsets(top: self.inputInsets.top, left: 0.0, bottom: self.inputInsets.bottom, right: 0.0)
@@ -62,7 +64,7 @@ private final class TipEditInputFieldNode: ASDisplayNode, ASEditableTextNodeDele
         self.placeholderNode = ASTextNode()
         self.placeholderNode.isUserInteractionEnabled = false
         self.placeholderNode.displaysAsynchronously = false
-        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(17.0), textColor: self.theme.actionSheet.inputPlaceholderColor)
+        self.placeholderNode.attributedText = NSAttributedString(string: placeholder, font: Font.regular(fontSize), textColor: self.theme.actionSheet.inputPlaceholderColor)
         
         self.clearButton = HighlightableButtonNode()
         self.clearButton.imageNode.displaysAsynchronously = false
@@ -88,7 +90,7 @@ private final class TipEditInputFieldNode: ASDisplayNode, ASEditableTextNodeDele
         
         self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 12.0, color: self.theme.actionSheet.inputHollowBackgroundColor, strokeColor: self.theme.actionSheet.inputBorderColor, strokeWidth: 1.0)
         self.textInputNode.keyboardAppearance = self.theme.rootController.keyboardColor.keyboardAppearance
-        self.placeholderNode.attributedText = NSAttributedString(string: self.placeholderNode.attributedText?.string ?? "", font: Font.regular(17.0), textColor: self.theme.actionSheet.inputPlaceholderColor)
+        self.placeholderNode.attributedText = NSAttributedString(string: self.placeholderNode.attributedText?.string ?? "", font: Font.regular(self.fontSize), textColor: self.theme.actionSheet.inputPlaceholderColor)
         self.textInputNode.tintColor = self.theme.actionSheet.controlAccentColor
         self.clearButton.setImage(generateTintedImage(image: UIImage(bundleImageName: "Components/Search Bar/Clear"), color: theme.actionSheet.inputClearButtonColor), for: [])
     }
@@ -212,7 +214,7 @@ private final class TipEditAlertContentNode: AlertContentNode {
         self.textNode = ASTextNode()
         self.textNode.maximumNumberOfLines = 8
         
-        self.inputFieldNode = TipEditInputFieldNode(theme: ptheme, placeholder: placeholder)
+        self.inputFieldNode = TipEditInputFieldNode(theme: ptheme, fontSize: theme.baseFontSize, placeholder: placeholder)
         self.inputFieldNode.text = value ?? ""
         
         self.actionNodesSeparator = ASDisplayNode()
@@ -269,7 +271,7 @@ private final class TipEditAlertContentNode: AlertContentNode {
     }
 
     override func updateTheme(_ theme: AlertControllerTheme) {
-        self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.bold(17.0), textColor: theme.primaryColor, paragraphAlignment: .center)
+        self.titleNode.attributedText = NSAttributedString(string: self.title, font: Font.bold(theme.baseFontSize), textColor: theme.primaryColor, paragraphAlignment: .center)
         self.textNode.attributedText = NSAttributedString(string: self.text, font: Font.regular(13.0), textColor: theme.primaryColor, paragraphAlignment: .center)
 
         self.actionNodesSeparator.backgroundColor = theme.separatorColor

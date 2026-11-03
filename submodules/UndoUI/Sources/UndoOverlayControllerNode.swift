@@ -1574,7 +1574,7 @@ final class UndoOverlayControllerNode: ViewControllerTracingNode {
         
         self.undoButtonTextNode = ImmediateTextNode()
         self.undoButtonTextNode.displaysAsynchronously = false
-        self.undoButtonTextNode.attributedText = NSAttributedString(string: undoText, font: Font.regular(17.0), textColor: undoTextColor)
+        self.undoButtonTextNode.attributedText = NSAttributedString(string: undoText, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: undoTextColor)
         
         self.undoButtonNode = HighlightTrackingButtonNode()
         

@@ -1013,6 +1013,7 @@ final class GiftOptionsScreenComponent: Component {
         }
         
         func update(component: GiftOptionsScreenComponent, availableSize: CGSize, state: State, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.isUpdating = true
             defer {
                 self.isUpdating = false
@@ -1217,7 +1218,7 @@ final class GiftOptionsScreenComponent: Component {
                         PlainButtonComponent(
                             content: AnyComponent(
                                 MultilineTextComponent(
-                                    text: .plain(NSAttributedString(string: strings.Common_Cancel, font: Font.regular(17.0), textColor: theme.rootController.navigationBar.accentTextColor)),
+                                    text: .plain(NSAttributedString(string: strings.Common_Cancel, font: Font.regular(fontSize), textColor: theme.rootController.navigationBar.accentTextColor)),
                                     horizontalAlignment: .center
                                 )
                             ),

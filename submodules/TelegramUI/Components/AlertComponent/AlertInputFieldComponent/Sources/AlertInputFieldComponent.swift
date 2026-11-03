@@ -224,6 +224,7 @@ public final class AlertInputFieldComponent: Component {
             self.state = state
             
             let environment = environment[AlertComponentEnvironment.self]
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             
             let topInset: CGFloat = 15.0
             
@@ -249,7 +250,7 @@ public final class AlertInputFieldComponent: Component {
                 self.textField.text = resetText
             }
             
-            self.textField.font = Font.regular(17.0)
+            self.textField.font = Font.regular(fontSize)
             self.textField.textColor = environment.theme.actionSheet.primaryTextColor
             self.textField.tintColor = environment.theme.actionSheet.controlAccentColor
             self.textField.sideInset = 16.0
@@ -282,7 +283,7 @@ public final class AlertInputFieldComponent: Component {
                 component: AnyComponent(
                     MultilineTextComponent(text: .plain(NSAttributedString(
                         string: component.placeholder,
-                        font: Font.regular(17.0),
+                        font: Font.regular(fontSize),
                         textColor: environment.theme.actionSheet.primaryTextColor.withMultipliedAlpha(0.4)
                     )))
                 ),

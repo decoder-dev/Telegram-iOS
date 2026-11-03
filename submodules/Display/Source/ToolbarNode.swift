@@ -24,6 +24,7 @@ public final class ToolbarTheme {
 
 public final class ToolbarNode: ASDisplayNode {
     private var theme: ToolbarTheme
+    private var fontSize: CGFloat
     private let displaySeparator: Bool
     public var left: () -> Void
     public var right: () -> Void
@@ -38,8 +39,9 @@ public final class ToolbarNode: ASDisplayNode {
     private let middleTitle: ImmediateTextNode
     private let middleButton: HighlightTrackingButtonNode
     
-    public init(theme: ToolbarTheme, displaySeparator: Bool = false, left: @escaping () -> Void = {}, right: @escaping () -> Void = {}, middle: @escaping () -> Void = {}) {
+    public init(theme: ToolbarTheme, displaySeparator: Bool = false, fontSize: CGFloat = 17.0, left: @escaping () -> Void = {}, right: @escaping () -> Void = {}, middle: @escaping () -> Void = {}) {
         self.theme = theme
+        self.fontSize = fontSize
         self.displaySeparator = displaySeparator
         self.left = left
         self.right = right
@@ -125,17 +127,20 @@ public final class ToolbarNode: ASDisplayNode {
         self.backgroundNode.updateColor(color: theme.barBackgroundColor, transition: .immediate)
     }
     
-    public func updateLayout(size: CGSize, leftInset: CGFloat, rightInset: CGFloat, additionalSideInsets: UIEdgeInsets, bottomInset: CGFloat, toolbar: Toolbar, transition: ContainedViewLayoutTransition) {
+    public func updateLayout(size: CGSize, leftInset: CGFloat, rightInset: CGFloat, additionalSideInsets: UIEdgeInsets, bottomInset: CGFloat, toolbar: Toolbar, transition: ContainedViewLayoutTransition, fontSize: CGFloat? = nil) {
+        if let fontSize {
+            self.fontSize = fontSize
+        }
         transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(), size: size))
         self.backgroundNode.update(size: size, transition: transition)
         transition.updateFrame(node: self.separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: size.width, height: UIScreenPixel)))
         
         var sideInset: CGFloat = 16.0 + 8.0
         
-        self.leftTitle.attributedText = NSAttributedString(string: toolbar.leftAction?.title ?? "", font: Font.regular(17.0), textColor: (toolbar.leftAction?.isEnabled ?? false) ? self.theme.barSelectedTextColor : self.theme.barTextColor)
+        self.leftTitle.attributedText = NSAttributedString(string: toolbar.leftAction?.title ?? "", font: Font.regular(self.fontSize), textColor: (toolbar.leftAction?.isEnabled ?? false) ? self.theme.barSelectedTextColor : self.theme.barTextColor)
         self.leftButton.accessibilityLabel = toolbar.leftAction?.title
         
-        self.rightTitle.attributedText = NSAttributedString(string: toolbar.rightAction?.title ?? "", font: Font.regular(17.0), textColor: (toolbar.rightAction?.isEnabled ?? false) ? self.theme.barSelectedTextColor : self.theme.barTextColor)
+        self.rightTitle.attributedText = NSAttributedString(string: toolbar.rightAction?.title ?? "", font: Font.regular(self.fontSize), textColor: (toolbar.rightAction?.isEnabled ?? false) ? self.theme.barSelectedTextColor : self.theme.barTextColor)
         self.rightButton.accessibilityLabel = toolbar.rightAction?.title
 
         let middleColor: UIColor
@@ -153,7 +158,7 @@ public final class ToolbarNode: ASDisplayNode {
         } else {
             middleColor = self.theme.barTextColor
         }
-        self.middleTitle.attributedText = NSAttributedString(string: toolbar.middleAction?.title ?? "", font: Font.regular(17.0), textColor: middleColor)
+        self.middleTitle.attributedText = NSAttributedString(string: toolbar.middleAction?.title ?? "", font: Font.regular(self.fontSize), textColor: middleColor)
         self.middleButton.accessibilityLabel = toolbar.middleAction?.title
         
         var size = size

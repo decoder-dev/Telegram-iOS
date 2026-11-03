@@ -87,15 +87,17 @@ final class QrStudioGlassButtonView: UIView {
         self.action?(self.glass)
     }
 
-    static let titleFont = Font.regular(17.0)
+    static func titleFont(fontSize: CGFloat = 17.0) -> UIFont {
+        return Font.regular(fontSize)
+    }
     static let titleInset: CGFloat = 12.0
 
-    static func width(title: String, height: CGFloat) -> CGFloat {
-        let textWidth = ceil((title as NSString).size(withAttributes: [.font: QrStudioGlassButtonView.titleFont]).width)
+    static func width(title: String, height: CGFloat, fontSize: CGFloat = 17.0) -> CGFloat {
+        let textWidth = ceil((title as NSString).size(withAttributes: [.font: QrStudioGlassButtonView.titleFont(fontSize: fontSize)]).width)
         return max(height, textWidth + QrStudioGlassButtonView.titleInset * 2.0)
     }
 
-    func update(size: CGSize, isDark: Bool, glassTint: GlassBackgroundView.TintColor, icon: String? = nil, title: String? = nil, transition: ComponentTransition) {
+    func update(size: CGSize, isDark: Bool, glassTint: GlassBackgroundView.TintColor, icon: String? = nil, title: String? = nil, fontSize: CGFloat = 17.0, transition: ComponentTransition) {
         if self.icon != icon || self.title != title || self.isDark != isDark {
             if self.isDark != nil && self.isDark != isDark && !transition.animation.isImmediate {
                 qrStudioCrossfadeGlass(self.glass)
@@ -110,7 +112,7 @@ final class QrStudioGlassButtonView: UIView {
                 }
                 return generateTintedImage(image: UIImage(bundleImageName: name), color: color)
             }
-            self.titleLabel.attributedText = title.flatMap { NSAttributedString(string: $0, font: QrStudioGlassButtonView.titleFont, textColor: color) }
+            self.titleLabel.attributedText = title.flatMap { NSAttributedString(string: $0, font: QrStudioGlassButtonView.titleFont(fontSize: fontSize), textColor: color) }
         }
         transition.setFrame(view: self.glass, frame: CGRect(origin: CGPoint(), size: size))
         self.glass.nativeBlurRadius = QrStudioGlass.blurRadius(glassTint)

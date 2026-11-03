@@ -237,6 +237,7 @@ final class NewContactScreenComponent: Component {
         }
                 
         func update(component: NewContactScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<EnvironmentType>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.isUpdating = true
             defer {
                 self.isUpdating = false
@@ -431,7 +432,7 @@ final class NewContactScreenComponent: Component {
                             style: .glass,
                             title: AnyComponent(VStack([
                                 AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "mobile", font: Font.regular(14.0), textColor: theme.list.itemPrimaryTextColor))))),
-                                AnyComponentWithIdentity(id: "value", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: formatPhoneNumber(context: component.context, number: phone), font: Font.regular(17.0), textColor: theme.list.itemAccentColor)))))
+                                AnyComponentWithIdentity(id: "value", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: formatPhoneNumber(context: component.context, number: phone), font: Font.regular(fontSize), textColor: theme.list.itemAccentColor)))))
                             ], alignment: .left, spacing: 4.0)),
                             contentInsets: UIEdgeInsets(top: 15.0, left: 0.0, bottom: 15.0, right: 0.0),
                             accessory: nil,
@@ -445,7 +446,7 @@ final class NewContactScreenComponent: Component {
                             style: .glass,
                             title: AnyComponent(VStack([
                                 AnyComponentWithIdentity(id: "title", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: "mobile", font: Font.regular(14.0), textColor: theme.list.itemPrimaryTextColor))))),
-                                AnyComponentWithIdentity(id: "value", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.ContactInfo_PhoneNumberHidden, font: Font.regular(17.0), textColor: theme.list.itemAccentColor)))))
+                                AnyComponentWithIdentity(id: "value", component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(string: strings.ContactInfo_PhoneNumberHidden, font: Font.regular(fontSize), textColor: theme.list.itemAccentColor)))))
                             ], alignment: .left, spacing: 4.0)),
                             contentInsets: UIEdgeInsets(top: 15.0, left: 0.0, bottom: 15.0, right: 0.0),
                             accessory: nil,
@@ -722,7 +723,7 @@ final class NewContactScreenComponent: Component {
                                 context: component.context,
                                 theme: theme,
                                 strings: strings,
-                                placeholder: NSAttributedString(string: strings.AddContact_NotePlaceholder, font: Font.regular(17.0), textColor: theme.list.itemPlaceholderTextColor),
+                                placeholder: NSAttributedString(string: strings.AddContact_NotePlaceholder, font: Font.regular(fontSize), textColor: theme.list.itemPlaceholderTextColor),
                                 characterLimit: characterLimit,
                                 emptyLineHandling: .allowed,
                                 returnKeyAction: nil,
@@ -875,7 +876,7 @@ final class NewContactScreenComponent: Component {
                         text: .plain(
                             NSAttributedString(
                                 string: strings.AddContact_Title,
-                                font: Font.semibold(17.0),
+                                font: Font.semibold(fontSize),
                                 textColor: environment.theme.rootController.navigationBar.primaryTextColor
                             )
                         )

@@ -462,6 +462,7 @@ private final class JoinAffiliateProgramScreenComponent: Component {
         }
         
         func update(component: JoinAffiliateProgramScreenComponent, availableSize: CGSize, state: EmptyComponentState, environment: Environment<ViewControllerComponentContainer.Environment>, transition: ComponentTransition) -> CGSize {
+            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             self.isUpdating = true
             defer {
                 self.isUpdating = false
@@ -1144,7 +1145,7 @@ private final class JoinAffiliateProgramScreenComponent: Component {
                     transition: transition,
                     component: AnyComponent(PlainButtonComponent(
                         content: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: cleanLink, font: Font.regular(17.0), textColor: environment.theme.list.itemInputField.primaryColor)),
+                            text: .plain(NSAttributedString(string: cleanLink, font: Font.regular(fontSize), textColor: environment.theme.list.itemInputField.primaryColor)),
                             truncationType: .middle
                         )),
                         background: AnyComponent(FilledRoundedRectangleComponent(
