@@ -86,8 +86,10 @@ final class VideoChatExpandedSpeakingToastComponent: Component {
             let avatarWidth: CGFloat = 32.0
             
             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
-            let bodyAttributes = MarkdownAttributeSet(font: Font.regular(15.0), textColor: .white, additionalAttributes: [:])
-            let boldAttributes = MarkdownAttributeSet(font: Font.semibold(15.0), textColor: .white, additionalAttributes: [:])
+            let toastFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0))
+            let toastBoldFont = Font.semibold(floor(presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0))
+            let bodyAttributes = MarkdownAttributeSet(font: toastFont, textColor: .white, additionalAttributes: [:])
+            let boldAttributes = MarkdownAttributeSet(font: toastBoldFont, textColor: .white, additionalAttributes: [:])
             let titleText = addAttributesToStringWithRanges(component.strings.VoiceChat_ParticipantIsSpeaking(component.peer.displayTitle(strings: component.strings, displayOrder: presentationData.nameDisplayOrder))._tuple, body: bodyAttributes, argumentAttributes: [0: boldAttributes])
 
             let titleSize = self.title.update(

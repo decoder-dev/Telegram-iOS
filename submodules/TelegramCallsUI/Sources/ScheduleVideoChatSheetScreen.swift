@@ -222,17 +222,19 @@ private final class ScheduleVideoChatSheetContentComponent: Component {
             let text: String = isGroup ? environment.strings.ScheduleVoiceChat_GroupText(intervalString).string : environment.strings.ScheduleLiveStream_ChannelText(intervalString).string
             
             let mainText = NSMutableAttributedString()
+            let scheduleFont = Font.regular(floor(environment.presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0))
+            let scheduleBoldFont = Font.semibold(floor(environment.presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0))
             mainText.append(parseMarkdownIntoAttributedString(text, attributes: MarkdownAttributes(
                 body: MarkdownAttributeSet(
-                    font: Font.regular(14.0),
+                    font: scheduleFont,
                     textColor: UIColor(rgb: 0x8e8e93)
                 ),
                 bold: MarkdownAttributeSet(
-                    font: Font.semibold(14.0),
+                    font: scheduleBoldFont,
                     textColor: UIColor(rgb: 0x8e8e93)
                 ),
                 link: MarkdownAttributeSet(
-                    font: Font.regular(14.0),
+                    font: scheduleFont,
                     textColor: environment.theme.list.itemAccentColor,
                     additionalAttributes: [:]
                 ),

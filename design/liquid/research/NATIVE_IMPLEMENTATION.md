@@ -319,3 +319,7 @@ Notification category rows stacking label при крупном тексте; Re
 ## Passcode, calls и storage chrome
 
 PasscodeSetup titles/subtitles на listsFontSize; PasscodeEntry title/subtitle Dynamic Type + Face/Touch ID через SF Symbols с bundle fallback и 44 pt hit; CallController/Legacy call button labels и KeyPreview info fonts масштабируются; RecentSession subtitle, ChangePhone headers, Autodownload/EnergyUsage/KeepMedia/DataUsage/MaximumCache/CalculatingCache/StorageUsage/BubbleRadius labels, Vertical context results, Overlay audio subtitle, Premium-required panel — metrics. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Auth sequence и invite/join panels
+
+SignUp/Password/Recovery/Email/Code/Phone/AwaitingReset fields и secondary labels берут listFontSize; VoiceChat join sheet titles/actions и ChatInviteRequests panel — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.

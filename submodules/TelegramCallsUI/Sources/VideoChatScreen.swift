@@ -3288,7 +3288,8 @@ final class VideoChatScreenComponent: Component {
                         strings: environment.strings,
                         content: videoControlButtonContent,
                         microphoneState: actionButtonMicrophoneState,
-                        isCollapsed: areButtonsActuallyCollapsed || buttonsOnTheSide
+                        isCollapsed: areButtonsActuallyCollapsed || buttonsOnTheSide,
+                        titleFontSize: floor(component.initialCall.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)
                     )),
                     effectAlignment: .center,
                     action: { [weak self] in
@@ -3335,7 +3336,8 @@ final class VideoChatScreenComponent: Component {
                             strings: environment.strings,
                             content: videoButtonContent,
                             microphoneState: actionButtonMicrophoneState,
-                            isCollapsed: areButtonsActuallyCollapsed || buttonsOnTheSide
+                            isCollapsed: areButtonsActuallyCollapsed || buttonsOnTheSide,
+                        titleFontSize: floor(component.initialCall.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)
                         )),
                         effectAlignment: .center,
                         action: { [weak self] in
@@ -3395,7 +3397,8 @@ final class VideoChatScreenComponent: Component {
                             strings: environment.strings,
                             content: messageButtonContent,
                             microphoneState: actionButtonMicrophoneState,
-                            isCollapsed: areButtonsActuallyCollapsed || buttonsOnTheSide
+                            isCollapsed: areButtonsActuallyCollapsed || buttonsOnTheSide,
+                        titleFontSize: floor(component.initialCall.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)
                         )),
                         effectAlignment: .center,
                         action: { [weak self] in
@@ -3437,7 +3440,8 @@ final class VideoChatScreenComponent: Component {
                         strings: environment.strings,
                         content: .leave,
                         microphoneState: actionButtonMicrophoneState,
-                        isCollapsed: areButtonsActuallyCollapsed || buttonsOnTheSide
+                        isCollapsed: areButtonsActuallyCollapsed || buttonsOnTheSide,
+                        titleFontSize: floor(component.initialCall.accountContext.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 13.0 / 17.0)
                     )),
                     effectAlignment: .center,
                     action: { [weak self] in

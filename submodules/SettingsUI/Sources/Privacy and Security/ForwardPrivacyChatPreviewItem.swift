@@ -174,7 +174,7 @@ class ForwardPrivacyChatPreviewItemNode: ListViewItemNode {
             let layout = ListViewItemNodeLayout(contentSize: contentSize, insets: insets)
             let layoutSize = layout.size
             
-            let attributedMeasureText = NSAttributedString(string: item.peerName, font: Font.regular(13.0), textColor: .black)
+            let attributedMeasureText = NSAttributedString(string: item.peerName, font: Font.regular(floor(item.fontSize.baseDisplaySize * 13.0 / 17.0)), textColor: .black)
             let (authorNameLayout, _) = makeTextLayout(TextNodeLayoutArguments(attributedString: attributedMeasureText, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, lineSpacing: 0.0, cutout: nil, insets: UIEdgeInsets()))
             
             let authorNameWidth = authorNameLayout.size.width
@@ -272,7 +272,7 @@ class ForwardPrivacyChatPreviewItemNode: ListViewItemNode {
                     strongSelf.topStripeNode.frame = CGRect(origin: CGPoint(x: 0.0, y: -min(insets.top, separatorHeight)), size: CGSize(width: layoutSize.width, height: separatorHeight))
                     strongSelf.bottomStripeNode.frame = CGRect(origin: CGPoint(x: bottomStripeInset, y: contentSize.height + bottomStripeOffset), size: CGSize(width: layoutSize.width - bottomStripeInset, height: separatorHeight))
                     
-                    strongSelf.textNode.attributedText = NSAttributedString(string: item.tooltipText, font: Font.regular(14.0), textColor: .white, paragraphAlignment: .center)
+                    strongSelf.textNode.attributedText = NSAttributedString(string: item.tooltipText, font: Font.regular(floor(item.fontSize.baseDisplaySize * 14.0 / 17.0)), textColor: .white, paragraphAlignment: .center)
                     
                     var textSize = strongSelf.textNode.updateLayout(CGSize(width: params.width, height: CGFloat.greatestFiniteMagnitude))
                     textSize.width = ceil(textSize.width / 2.0) * 2.0

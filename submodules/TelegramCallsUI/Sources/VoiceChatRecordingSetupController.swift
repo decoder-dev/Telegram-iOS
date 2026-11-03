@@ -228,14 +228,15 @@ private class VoiceChatRecordingSetupControllerNode: ViewControllerTracingNode, 
         self.portraitButton.cornerRadius = 11.0
         self.portraitIconNode = PreviewIconNode()
         self.portraitTitleNode = ImmediateTextNode()
-        self.portraitTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordPortrait, font: Font.semibold(15.0), textColor: UIColor(rgb: 0x8e8e93), paragraphAlignment: .left)
+        let modeTitleFont = Font.semibold(floor(self.presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0))
+        self.portraitTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordPortrait, font: modeTitleFont, textColor: UIColor(rgb: 0x8e8e93), paragraphAlignment: .left)
         
         self.landscapeButton = HighlightTrackingButtonNode()
         self.landscapeButton.backgroundColor = UIColor(rgb: 0x303032)
         self.landscapeButton.cornerRadius = 11.0
         self.landscapeIconNode = PreviewIconNode()
         self.landscapeTitleNode = ImmediateTextNode()
-        self.landscapeTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordLandscape, font: Font.semibold(15.0), textColor: UIColor(rgb: 0x8e8e93), paragraphAlignment: .left)
+        self.landscapeTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordLandscape, font: modeTitleFont, textColor: UIColor(rgb: 0x8e8e93), paragraphAlignment: .left)
         
         self.selectionNode = ASImageNode()
         self.selectionNode.displaysAsynchronously = false
@@ -540,8 +541,9 @@ private class VoiceChatRecordingSetupControllerNode: ViewControllerTracingNode, 
         
         transition.updateAlpha(node: self.selectionNode, alpha: buttonsAlpha)
         
-        self.portraitTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordPortrait, font: Font.semibold(15.0), textColor: self.videoMode == .portrait ? UIColor(rgb: 0xb56df4) : UIColor(rgb: 0x8e8e93), paragraphAlignment: .left)
-        self.landscapeTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordLandscape, font: Font.semibold(15.0), textColor: self.videoMode == .landscape ? UIColor(rgb: 0xb56df4) : UIColor(rgb: 0x8e8e93), paragraphAlignment: .left)
+        let modeTitleFont = Font.semibold(floor(self.presentationData.listsFontSize.baseDisplaySize * 15.0 / 17.0))
+        self.portraitTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordPortrait, font: modeTitleFont, textColor: self.videoMode == .portrait ? UIColor(rgb: 0xb56df4) : UIColor(rgb: 0x8e8e93), paragraphAlignment: .left)
+        self.landscapeTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordLandscape, font: modeTitleFont, textColor: self.videoMode == .landscape ? UIColor(rgb: 0xb56df4) : UIColor(rgb: 0x8e8e93), paragraphAlignment: .left)
         
         let buttonWidth = floorToScreenPixels((rowWidth - 11.0) / 2.0)
         let portraitButtonFrame = CGRect(x: leftInset, y: 56.0 + itemHeight * 2.0 + 25.0, width: buttonWidth, height: 140.0)

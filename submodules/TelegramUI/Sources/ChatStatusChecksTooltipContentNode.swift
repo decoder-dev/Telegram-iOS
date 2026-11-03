@@ -181,8 +181,9 @@ class ChatStatusChecksTooltipContentNode: ASDisplayNode, TooltipControllerCustom
         self.readChecksNode = ChecksNode(color: .white)
         self.readTextNode = ImmediateTextNode()
         
-        self.deliveredTextNode.attributedText = NSAttributedString(string: presentationData.strings.Conversation_ChecksTooltip_Delivered, font: Font.regular(14.0), textColor: UIColor.white)
-        self.readTextNode.attributedText = NSAttributedString(string: presentationData.strings.Conversation_ChecksTooltip_Read, font: Font.regular(14.0), textColor: UIColor.white)
+        let tooltipFont = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 14.0 / 17.0))
+        self.deliveredTextNode.attributedText = NSAttributedString(string: presentationData.strings.Conversation_ChecksTooltip_Delivered, font: tooltipFont, textColor: UIColor.white)
+        self.readTextNode.attributedText = NSAttributedString(string: presentationData.strings.Conversation_ChecksTooltip_Read, font: tooltipFont, textColor: UIColor.white)
         
         super.init()
         

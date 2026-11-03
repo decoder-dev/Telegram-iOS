@@ -79,7 +79,7 @@ final class ChatMessageActionSheetControllerNode: ViewControllerTracingNode {
     private let feedback = HapticFeedback()
     private var validLayout: ContainerViewLayout?
     
-    init(theme: PresentationTheme, actions: [ChatMessageContextMenuSheetAction], dismissed: @escaping () -> Void, associatedController: ViewController?) {
+    init(theme: PresentationTheme, actions: [ChatMessageContextMenuSheetAction], dismissed: @escaping () -> Void, associatedController: ViewController?, contentFontSize: CGFloat = 17.0) {
         self.theme = theme
         self.actions = actions
         self.dismissed = dismissed
@@ -105,9 +105,10 @@ final class ChatMessageActionSheetControllerNode: ViewControllerTracingNode {
         self.itemsContainerNode.cornerRadius = 16.0
         self.itemsContainerNode.clipsToBounds = true
         
+        let actionFont = Font.regular(floor(contentFontSize * 20.0 / 17.0))
         self.actionNodes = actions.map { action in
             let node = MessageActionButtonNode(theme: theme)
-            node.setAttributedTitle(NSAttributedString(string: action.title, font: Font.regular(20.0), textColor: action.color == .destructive ? theme.actionSheet.destructiveActionTextColor : theme.actionSheet.controlAccentColor), for: [])
+            node.setAttributedTitle(NSAttributedString(string: action.title, font: actionFont, textColor: action.color == .destructive ? theme.actionSheet.destructiveActionTextColor : theme.actionSheet.controlAccentColor), for: [])
             return node
         }
         

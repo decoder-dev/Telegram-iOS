@@ -86,17 +86,20 @@ final class VideoChatActionButtonComponent: Component {
     let content: Content
     let microphoneState: MicrophoneState
     let isCollapsed: Bool
+    let titleFontSize: CGFloat
 
     init(
         strings: PresentationStrings,
         content: Content,
         microphoneState: MicrophoneState,
-        isCollapsed: Bool
+        isCollapsed: Bool,
+        titleFontSize: CGFloat = 13.0
     ) {
         self.strings = strings
         self.content = content
         self.microphoneState = microphoneState
         self.isCollapsed = isCollapsed
+        self.titleFontSize = titleFontSize
     }
 
     static func ==(lhs: VideoChatActionButtonComponent, rhs: VideoChatActionButtonComponent) -> Bool {
@@ -110,6 +113,9 @@ final class VideoChatActionButtonComponent: Component {
             return false
         }
         if lhs.isCollapsed != rhs.isCollapsed {
+            return false
+        }
+        if lhs.titleFontSize != rhs.titleFontSize {
             return false
         }
         return true
@@ -272,7 +278,7 @@ final class VideoChatActionButtonComponent: Component {
             let titleSize = self.title.update(
                 transition: .immediate,
                 component: AnyComponent(MultilineTextComponent(
-                    text: .plain(NSAttributedString(string: titleText, font: Font.regular(13.0), textColor: .white)),
+                    text: .plain(NSAttributedString(string: titleText, font: Font.regular(component.titleFontSize), textColor: .white)),
                     horizontalAlignment: .center,
                     maximumNumberOfLines: 2
                 )),
