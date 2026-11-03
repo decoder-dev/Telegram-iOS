@@ -212,8 +212,9 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
             self.textNode.textField.tintColor = item.presentationData.theme.list.itemAccentColor
             self.textNode.textField.accessibilityHint = item.placeholder
         } else {
-            self.textNode.textField.typingAttributes = [NSAttributedString.Key.font: Font.regular(17.0)]
-            self.textNode.textField.font = Font.regular(17.0)
+            let fontSize = UIFont.preferredFont(forTextStyle: .body).pointSize
+            self.textNode.textField.typingAttributes = [NSAttributedString.Key.font: Font.regular(fontSize)]
+            self.textNode.textField.font = Font.regular(fontSize)
         }
         
         self.textNode.clipsToBounds = true

@@ -93,7 +93,8 @@ final class PasscodeSetupControllerNode: ASDisplayNode {
         self.inputFieldNode = PasscodeInputFieldNode(color: self.presentationData.theme.list.itemPrimaryTextColor, accentColor: self.presentationData.theme.list.itemAccentColor, fieldType: passcodeType, keyboardAppearance: self.presentationData.theme.rootController.keyboardColor.keyboardAppearance, useCustomNumpad: self.useCustomNumericKeyboard && passcodeType != .alphanumeric, fieldBackgroundColor: self.presentationData.theme.list.itemBlocksBackgroundColor)
         
         self.modeButtonNode = HighlightableButtonNode()
-        self.modeButtonNode.setTitle(self.presentationData.strings.PasscodeSettings_PasscodeOptions, with: Font.regular(17.0), with: self.presentationData.theme.list.itemAccentColor, for: .normal)
+        let labelFontSize = self.presentationData.listsFontSize.baseDisplaySize
+        self.modeButtonNode.setTitle(self.presentationData.strings.PasscodeSettings_PasscodeOptions, with: Font.regular(labelFontSize), with: self.presentationData.theme.list.itemAccentColor, for: .normal)
       
         super.init()
         
@@ -124,7 +125,7 @@ final class PasscodeSetupControllerNode: ASDisplayNode {
                     text = self.presentationData.strings.EnterPasscode_EnterNewPasscodeNew
                 }
         }
-        self.titleNode.attributedText = NSAttributedString(string: text, font: Font.regular(17.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: text, font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
         
         self.inputFieldNode.complete = { [weak self] passcode in
             guard let self, self.currentPasscode == passcode else { return }

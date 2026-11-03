@@ -215,6 +215,7 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
         self.scrollingContainer = ASDisplayNode()
         
         let theme = sharedContext.currentPresentationData.with { $0 }.theme
+        let baseDisplayFontSize = sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         
         func svgPath(_ path: StaticString, scale: CGPoint = CGPoint(x: 1.0, y: 1.0), offset: CGPoint = CGPoint()) throws -> UIBezierPath {
             var index: UnsafePointer<UInt8> = path.utf8Start
@@ -337,7 +338,7 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
             if #available(iOS 13.0, *) {
                 self.backgroundContainerNode.layer.cornerCurve = .continuous
             }
-            fontSize = 17.0
+            fontSize = baseDisplayFontSize
             
             self.arrowContainer.addSubnode(self.arrowGradientNode!)
             
@@ -473,7 +474,7 @@ private final class TooltipScreenNode: ViewControllerTracingNode {
             let actionColor = theme.list.itemAccentColor.withMultiplied(hue: 1.0, saturation: 0.64, brightness: 1.08)
             let actionButtonNode = HighlightableButtonNode()
             actionButtonNode.hitTestSlop = UIEdgeInsets(top: -16.0, left: -16.0, bottom: -16.0, right: -16.0)
-            actionButtonNode.setAttributedTitle(NSAttributedString(string: action.title, font: Font.regular(17.0), textColor: actionColor), for: .normal)
+            actionButtonNode.setAttributedTitle(NSAttributedString(string: action.title, font: Font.regular(fontSize), textColor: actionColor), for: .normal)
             self.containerNode.addSubnode(actionButtonNode)
             self.actionButtonNode = actionButtonNode
         }

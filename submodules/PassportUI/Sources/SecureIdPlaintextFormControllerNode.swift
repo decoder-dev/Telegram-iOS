@@ -24,13 +24,15 @@ private func cleanPhoneNumber(_ text: String?) -> String {
 }
 
 public final class SecureIdPlaintextFormParams {
+    fileprivate let listsFontSize: PresentationFontSize
     fileprivate let openCountrySelection: () -> Void
     fileprivate let updateTextField: (SecureIdPlaintextFormTextField, String) -> Void
     fileprivate let usePhone: (String) -> Void
     fileprivate let useEmailAddress: (String) -> Void
     fileprivate let save: () -> Void
     
-    fileprivate init(openCountrySelection: @escaping () -> Void, updateTextField: @escaping (SecureIdPlaintextFormTextField, String) -> Void, usePhone: @escaping (String) -> Void, useEmailAddress: @escaping (String) -> Void, save: @escaping () -> Void) {
+    fileprivate init(listsFontSize: PresentationFontSize, openCountrySelection: @escaping () -> Void, updateTextField: @escaping (SecureIdPlaintextFormTextField, String) -> Void, usePhone: @escaping (String) -> Void, useEmailAddress: @escaping (String) -> Void, save: @escaping () -> Void) {
+        self.listsFontSize = listsFontSize
         self.openCountrySelection = openCountrySelection
         self.updateTextField = updateTextField
         self.usePhone = usePhone
@@ -570,7 +572,7 @@ public enum SecureIdPlaintextFormEntry: FormControllerEntry {
                 if let codeNumber = Int(countryCode), let codeId = AuthorizationSequenceCountrySelectionController.lookupCountryIdByCode(codeNumber) {
                     countryName = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(codeId, strings: strings) ?? ""
                 }
-                return SecureIdValueFormPhoneItem(countryCode: countryCode, number: number, countryName: countryName, openCountrySelection: {
+                return SecureIdValueFormPhoneItem(countryCode: countryCode, number: number, countryName: countryName, textFontSize: params.listsFontSize.itemListBaseFontSize, openCountrySelection: {
                     params.openCountrySelection()
                 }, updateCountryCode: { value in
                     params.updateTextField(.countryCode, value)
@@ -654,7 +656,7 @@ public final class SecureIdPlaintextFormControllerNode: FormControllerNode<Secur
         
         super.init(initParams: initParams, presentationData: presentationData)
         
-        self._itemParams = SecureIdPlaintextFormParams(openCountrySelection: { [weak self] in
+        self._itemParams = SecureIdPlaintextFormParams(listsFontSize: presentationData.listsFontSize, openCountrySelection: { [weak self] in
             guard let strongSelf = self else {
                 return
             }

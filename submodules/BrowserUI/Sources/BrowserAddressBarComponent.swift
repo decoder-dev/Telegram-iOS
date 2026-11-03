@@ -24,6 +24,7 @@ final class AddressBarContentComponent: Component {
     let isExpanded: Bool
     let readingProgress: CGFloat
     let loadingProgress: Double?
+    let contentFontSize: CGFloat
     let performAction: ActionSlot<BrowserScreen.Action>
     
     init(
@@ -35,6 +36,7 @@ final class AddressBarContentComponent: Component {
         isExpanded: Bool,
         readingProgress: CGFloat,
         loadingProgress: Double?,
+        contentFontSize: CGFloat = 17.0,
         performAction: ActionSlot<BrowserScreen.Action>
     ) {
         self.theme = theme
@@ -45,6 +47,7 @@ final class AddressBarContentComponent: Component {
         self.isExpanded = isExpanded
         self.readingProgress = readingProgress
         self.loadingProgress = loadingProgress
+        self.contentFontSize = contentFontSize
         self.performAction = performAction
     }
     
@@ -71,6 +74,9 @@ final class AddressBarContentComponent: Component {
             return false
         }
         if lhs.loadingProgress != rhs.loadingProgress {
+            return false
+        }
+        if lhs.contentFontSize != rhs.contentFontSize {
             return false
         }
         return true
@@ -355,7 +361,7 @@ final class AddressBarContentComponent: Component {
                 transition: transition,
                 component: AnyComponent(
                     MultilineTextComponent(
-                        text: .plain(NSAttributedString(string: title, font: Font.regular(17.0), textColor: theme.rootController.navigationSearchBar.inputTextColor)),
+                        text: .plain(NSAttributedString(string: title, font: Font.regular(component.contentFontSize), textColor: theme.rootController.navigationSearchBar.inputTextColor)),
                         horizontalAlignment: .center,
                         truncationType: .start,
                         maximumNumberOfLines: 1
@@ -411,7 +417,7 @@ final class AddressBarContentComponent: Component {
             let placeholderSize = self.placeholderContent.update(
                 transition: transition,
                 component: AnyComponent(
-                    Text(text: strings.WebBrowser_AddressPlaceholder, font: Font.regular(17.0), color: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+                    Text(text: strings.WebBrowser_AddressPlaceholder, font: Font.regular(component.contentFontSize), color: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
                 ),
                 environment: {},
                 containerSize: size

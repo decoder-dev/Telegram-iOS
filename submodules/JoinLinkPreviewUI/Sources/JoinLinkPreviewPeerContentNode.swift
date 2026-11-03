@@ -120,6 +120,7 @@ final class JoinLinkPreviewPeerContentNode: ASDisplayNode, ShareContentContainer
         self.theme = theme
         self.strings = strings
         
+        let aboutFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         self.avatarNode = AvatarNode(font: avatarFont)
         self.titleNode = ImmediateTextNode()
         self.titleNode.maximumNumberOfLines = 2
@@ -199,12 +200,12 @@ final class JoinLinkPreviewPeerContentNode: ASDisplayNode, ShareContentContainer
         switch content {
         case let .invite(_, _, _, about, _, _):
             if let about = about, !about.isEmpty {
-                self.aboutNode.attributedText = NSAttributedString(string: about, font: Font.regular(17.0), textColor: theme.actionSheet.primaryTextColor, paragraphAlignment: .center)
+                self.aboutNode.attributedText = NSAttributedString(string: about, font: Font.regular(aboutFontSize), textColor: theme.actionSheet.primaryTextColor, paragraphAlignment: .center)
                 self.addSubnode(self.aboutNode)
             }
         case let .request(isGroup, _, _, about, _, _, _, _):
             if let about = about, !about.isEmpty {
-                self.aboutNode.attributedText = NSAttributedString(string: about, font: Font.regular(17.0), textColor: theme.actionSheet.primaryTextColor, paragraphAlignment: .center)
+                self.aboutNode.attributedText = NSAttributedString(string: about, font: Font.regular(aboutFontSize), textColor: theme.actionSheet.primaryTextColor, paragraphAlignment: .center)
                 self.addSubnode(self.aboutNode)
             }
             

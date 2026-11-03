@@ -553,24 +553,25 @@ public final class ChatImportActivityScreen: ViewController {
             // insets are equal and the band is the whole width, as before.
             let bandInsets: (left: CGFloat, right: CGFloat) = layout.safeInsets.left != layout.safeInsets.right ? (layout.safeInsets.left, layout.safeInsets.right) : (0.0, 0.0)
             let bandWidth = layout.size.width - bandInsets.left - bandInsets.right
+            let labelFontSize = self.presentationData.listsFontSize.baseDisplaySize
             
             self.radialStatusText.attributedText = NSAttributedString(string: "\(Int(effectiveProgress * 100.0))%", font: Font.with(size: floor(36.0 * maxK), design: .round, weight: .semibold), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
             let radialStatusTextSize = self.radialStatusText.updateLayout(CGSize(width: 200.0, height: .greatestFiniteMagnitude))
             
-            self.progressText.attributedText = NSAttributedString(string: "\(dataSizeString(Int(effectiveProgress * CGFloat(self.totalBytes)), formatting: DataSizeStringFormatting(presentationData: self.presentationData))) of \(dataSizeString(Int(1.0 * CGFloat(self.totalBytes)), formatting: DataSizeStringFormatting(presentationData: self.presentationData)))", font: Font.semibold(17.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
+            self.progressText.attributedText = NSAttributedString(string: "\(dataSizeString(Int(effectiveProgress * CGFloat(self.totalBytes)), formatting: DataSizeStringFormatting(presentationData: self.presentationData))) of \(dataSizeString(Int(1.0 * CGFloat(self.totalBytes)), formatting: DataSizeStringFormatting(presentationData: self.presentationData)))", font: Font.semibold(labelFontSize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
             let progressTextSize = self.progressText.updateLayout(CGSize(width: bandWidth - 16.0 * 2.0, height: .greatestFiniteMagnitude))
             
             switch self.state {
             case .progress, .done:
-                self.statusButtonText.attributedText = NSAttributedString(string: self.presentationData.strings.Common_Done, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.itemAccentColor)
+                self.statusButtonText.attributedText = NSAttributedString(string: self.presentationData.strings.Common_Done, font: Font.semibold(labelFontSize), textColor: self.presentationData.theme.list.itemAccentColor)
             case .error:
-                self.statusButtonText.attributedText = NSAttributedString(string: self.presentationData.strings.ChatImportActivity_Retry, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.itemAccentColor)
+                self.statusButtonText.attributedText = NSAttributedString(string: self.presentationData.strings.ChatImportActivity_Retry, font: Font.semibold(labelFontSize), textColor: self.presentationData.theme.list.itemAccentColor)
             }
             let statusButtonTextSize = self.statusButtonText.updateLayout(CGSize(width: bandWidth - 16.0 * 2.0, height: .greatestFiniteMagnitude))
             
             switch self.state {
             case .progress:
-                self.statusText.attributedText = NSAttributedString(string: self.presentationData.strings.ChatImportActivity_InProgress, font: Font.regular(17.0), textColor: self.presentationData.theme.list.itemSecondaryTextColor)
+                self.statusText.attributedText = NSAttributedString(string: self.presentationData.strings.ChatImportActivity_InProgress, font: Font.regular(labelFontSize), textColor: self.presentationData.theme.list.itemSecondaryTextColor)
             case let .error(error):
                 let errorText: String
                 switch error {
@@ -585,9 +586,9 @@ public final class ChatImportActivityScreen: ViewController {
                 case .limitExceeded:
                     errorText = self.presentationData.strings.ChatImportActivity_ErrorLimitExceeded
                 }
-                self.statusText.attributedText = NSAttributedString(string: errorText, font: Font.regular(17.0), textColor: self.presentationData.theme.list.itemDestructiveColor)
+                self.statusText.attributedText = NSAttributedString(string: errorText, font: Font.regular(labelFontSize), textColor: self.presentationData.theme.list.itemDestructiveColor)
             case .done:
-                self.statusText.attributedText = NSAttributedString(string: self.presentationData.strings.ChatImportActivity_Success, font: Font.semibold(17.0), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
+                self.statusText.attributedText = NSAttributedString(string: self.presentationData.strings.ChatImportActivity_Success, font: Font.semibold(labelFontSize), textColor: self.presentationData.theme.list.itemPrimaryTextColor)
             }
             
             let statusTextSize = self.statusText.updateLayout(CGSize(width: bandWidth - 16.0 * 2.0, height: .greatestFiniteMagnitude))

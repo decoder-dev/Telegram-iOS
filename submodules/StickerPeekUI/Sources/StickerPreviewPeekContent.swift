@@ -112,7 +112,7 @@ public final class StickerPreviewPeekContent: PeekControllerContent {
             return EmojiStickerAccessoryNode(context: self.context, theme: self.theme, recommendedEmoji: self.recommendedEmoji, selectedEmoji: self.selectedEmoji, selectedEmojiUpdated: self.selectedEmojiUpdated)
         }
         if self.isLocked {
-            return PremiumStickerPackAccessoryNode(theme: self.theme, strings: self.strings, isEmoji: self.item.file?.isCustomEmoji ?? false, proceed: self.openPremiumIntro)
+            return PremiumStickerPackAccessoryNode(context: self.context, theme: self.theme, strings: self.strings, isEmoji: self.item.file?.isCustomEmoji ?? false, proceed: self.openPremiumIntro)
         } else {
             return nil
         }
@@ -348,14 +348,16 @@ final class PremiumStickerPackAccessoryNode: SparseNode, PeekControllerAccessory
     let proceedButton: SolidRoundedButtonNode
     let cancelButton: HighlightableButtonNode
     
-    init(theme: PresentationTheme, strings: PresentationStrings, isEmoji: Bool, proceed: @escaping () -> Void) {
+    init(context: AccountContext, theme: PresentationTheme, strings: PresentationStrings, isEmoji: Bool, proceed: @escaping () -> Void) {
         self.proceed = proceed
+        
+        let labelFontSize = context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
         
         self.textNode = ImmediateTextNode()
         self.textNode.displaysAsynchronously = false
         self.textNode.textAlignment = .center
         self.textNode.maximumNumberOfLines = 0
-        self.textNode.attributedText = NSAttributedString(string: isEmoji ? strings.Premium_Emoji_Description : strings.Premium_Stickers_Description, font: Font.regular(17.0), textColor: theme.actionSheet.secondaryTextColor)
+        self.textNode.attributedText = NSAttributedString(string: isEmoji ? strings.Premium_Emoji_Description : strings.Premium_Stickers_Description, font: Font.regular(labelFontSize), textColor: theme.actionSheet.secondaryTextColor)
         self.textNode.lineSpacing = 0.1
         
         self.proceedButton = SolidRoundedButtonNode(title: isEmoji ? strings.Premium_Emoji_Proceed: strings.Premium_Stickers_Proceed, theme: SolidRoundedButtonTheme(
@@ -371,7 +373,7 @@ final class PremiumStickerPackAccessoryNode: SparseNode, PeekControllerAccessory
         self.proceedButton.animation = "premium_unlock"
         
         self.cancelButton = HighlightableButtonNode()
-        self.cancelButton.setTitle(strings.Common_Cancel, with: Font.regular(17.0), with: theme.list.itemAccentColor, for: .normal)
+        self.cancelButton.setTitle(strings.Common_Cancel, with: Font.regular(labelFontSize), with: theme.list.itemAccentColor, for: .normal)
         
         super.init()
         

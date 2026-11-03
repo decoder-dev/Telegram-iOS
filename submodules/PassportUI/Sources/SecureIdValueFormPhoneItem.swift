@@ -6,8 +6,6 @@ import TelegramCore
 import TelegramPresentationData
 import PhoneInputNode
 
-private let textFont = Font.regular(17.0)
-
 private func countryButtonBackground(color: UIColor, separatorColor: UIColor) -> UIImage? {
     return generateImage(CGSize(width: 45.0, height: 44.0 + 6.0), rotatedContext: { size, context in
         let arrowSize: CGFloat = 6.0
@@ -61,11 +59,13 @@ final class SecureIdValueFormPhoneItem: FormControllerItem {
     fileprivate let openCountrySelection: () -> Void
     fileprivate let updateCountryCode: (String) -> Void
     fileprivate let updateNumber: (String) -> Void
+    fileprivate let textFontSize: CGFloat
     
-    init(countryCode: String, number: String, countryName: String, openCountrySelection: @escaping () -> Void, updateCountryCode: @escaping (String) -> Void, updateNumber: @escaping (String) -> Void) {
+    init(countryCode: String, number: String, countryName: String, textFontSize: CGFloat = 17.0, openCountrySelection: @escaping () -> Void, updateCountryCode: @escaping (String) -> Void, updateNumber: @escaping (String) -> Void) {
         self.countryCode = countryCode
         self.number = number
         self.countryName = countryName
+        self.textFontSize = textFontSize
         self.openCountrySelection = openCountrySelection
         self.updateCountryCode = updateCountryCode
         self.updateNumber = updateNumber
@@ -136,17 +136,18 @@ final class SecureIdValueFormPhoneItemNode: FormBlockItemNode<SecureIdValueFormP
             transition.updateFrame(node: self.countryButton, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: width, height: 44.0 + 6.0)))
             
             let buttonTitle: NSAttributedString
+            let labelFont = Font.regular(item.textFontSize)
             if item.countryName.isEmpty {
-                buttonTitle = NSAttributedString(string: strings.Login_CountryCode, font: Font.regular(17.0), textColor: theme.list.itemSecondaryTextColor)
+                buttonTitle = NSAttributedString(string: strings.Login_CountryCode, font: labelFont, textColor: theme.list.itemSecondaryTextColor)
             } else {
-                buttonTitle = NSAttributedString(string: item.countryName, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor)
+                buttonTitle = NSAttributedString(string: item.countryName, font: labelFont, textColor: theme.list.itemPrimaryTextColor)
             }
             self.countryButton.setAttributedTitle(buttonTitle, for: [])
             
             self.countryButton.contentEdgeInsets = UIEdgeInsets(top: 0.0, left: 15.0, bottom: 10.0, right: 0.0)
             self.countryButton.contentHorizontalAlignment = .left
             
-            self.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(17.0), textColor: theme.list.itemSecondaryTextColor)
+            self.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: labelFont, textColor: theme.list.itemSecondaryTextColor)
             
             let countryCodeFrame = CGRect(origin: CGPoint(x: 12.0, y: 44.0 + 1.0), size: CGSize(width: 45.0, height: 44.0))
             let numberFrame = CGRect(origin: CGPoint(x: 70.0, y: 44.0 + 1.0), size: CGSize(width: width - 70.0 - 8.0, height: 44.0))

@@ -134,6 +134,7 @@ private final class BrowserScreenComponent: CombinedComponent {
                                 isExpanded: context.component.presentationState.addressFocused,
                                 readingProgress: context.component.contentState?.readingProgress ?? 0.0,
                                 loadingProgress: context.component.contentState?.estimatedProgress,
+                                contentFontSize: context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize,
                                 performAction: performAction
                             )
                         )

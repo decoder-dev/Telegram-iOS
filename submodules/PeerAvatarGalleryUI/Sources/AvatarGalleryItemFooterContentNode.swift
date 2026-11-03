@@ -100,8 +100,8 @@ final class AvatarGalleryItemFooterContentNode: GalleryFooterContentNode {
         if self.currentTypeText != typeText {
             self.currentTypeText = typeText
             
-            self.mainNode.attributedText = NSAttributedString(string: typeText ?? "", font: Font.regular(17.0), textColor: UIColor(rgb: 0x808080))
-            self.setMainButton.setAttributedTitle(NSAttributedString(string: buttonText ?? "", font: Font.regular(17.0), textColor: .white), for: .normal)
+            self.mainNode.attributedText = NSAttributedString(string: typeText ?? "", font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: UIColor(rgb: 0x808080))
+            self.setMainButton.setAttributedTitle(NSAttributedString(string: buttonText ?? "", font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: .white), for: .normal)
             
             if let validLayout = self.validLayout {
                 let _ = self.updateLayout(size: validLayout.0, metrics: validLayout.1, leftInset: validLayout.2, rightInset: validLayout.3, bottomInset: validLayout.4, contentInset: validLayout.5, transition: .immediate)

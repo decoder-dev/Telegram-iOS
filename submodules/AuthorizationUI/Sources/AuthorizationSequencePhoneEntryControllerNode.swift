@@ -274,7 +274,7 @@ private final class ContactSyncNode: ASDisplayNode {
         self.strings = strings
         self.titleNode = ImmediateTextNode()
         self.titleNode.maximumNumberOfLines = 0
-        self.titleNode.attributedText = NSAttributedString(string: strings.Privacy_ContactsSync, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: strings.Privacy_ContactsSync, font: Font.regular(UIFont.preferredFont(forTextStyle: .body).pointSize), textColor: theme.list.itemPrimaryTextColor)
         self.switchNode = SwitchNode()
         self.switchNode.frameColor = theme.list.itemSwitchColors.frameColor
         self.switchNode.contentColor = theme.list.itemSwitchColors.contentColor
@@ -431,7 +431,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.noticeActivateAreaNode = AccessibilityAreaNode()
         self.noticeActivateAreaNode.accessibilityTraits = .staticText
         
-        self.noticeNode.attributedText = NSAttributedString(string: account == nil ? strings.ChangePhoneNumberNumber_Help : strings.Login_PhoneAndCountryHelp, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.noticeNode.attributedText = NSAttributedString(string: account == nil ? strings.ChangePhoneNumberNumber_Help : strings.Login_PhoneAndCountryHelp, font: Font.regular(self.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize), textColor: theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
         
         self.contactSyncNode = ContactSyncNode(theme: theme, strings: strings)
         
@@ -919,7 +919,7 @@ final class PhoneConfirmationController: ViewController {
             
             self.textNode = ImmediateTextNode()
             self.textNode.displaysAsynchronously = false
-            self.textNode.attributedText = NSAttributedString(string: strings.Login_PhoneNumberConfirmation, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor)
+            self.textNode.attributedText = NSAttributedString(string: strings.Login_PhoneNumberConfirmation, font: Font.regular(UIFont.preferredFont(forTextStyle: .body).pointSize), textColor: theme.list.itemPrimaryTextColor)
             self.textNode.textAlignment = .center
             
             self.textActivateAreaNode = AccessibilityAreaNode()

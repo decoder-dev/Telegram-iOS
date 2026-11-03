@@ -1105,6 +1105,7 @@ private final class DrawingScreenComponent: CombinedComponent {
             let controller = environment.controller
             
             let strings = environment.strings
+            let toolbarFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                         
             let previewBrushSize = component.previewBrushSize
             let performAction = component.performAction
@@ -1754,7 +1755,7 @@ private final class DrawingScreenComponent: CombinedComponent {
                                     Image(image: state.image(.zoomOut), size: CGSize(width: 24.0, height: 24.0))
                                 )),
                                 AnyComponentWithIdentity(id: "label", component: AnyComponent(
-                                    Text(text: environment.strings.Paint_ZoomOut, font: Font.regular(17.0), color: .white)
+                                    Text(text: environment.strings.Paint_ZoomOut, font: Font.regular(toolbarFontSize), color: .white)
                                 )),
                             ], spacing: 2.0)
                         ), insets: UIEdgeInsets(top: 0.0, left: 10.0, bottom: 0.0, right: 12.0)),
@@ -1882,7 +1883,7 @@ private final class DrawingScreenComponent: CombinedComponent {
                     component: AnyComponentWithIdentity(
                         id: "label",
                         component: AnyComponent(MultilineTextComponent(
-                            text: .plain(NSAttributedString(string: strings.Paint_Clear, font: Font.regular(17.0), textColor: .white))
+                            text: .plain(NSAttributedString(string: strings.Paint_Clear, font: Font.regular(toolbarFontSize), textColor: .white))
                         ))
                     ),
                     action: { _ in

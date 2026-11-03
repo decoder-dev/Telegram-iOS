@@ -1018,10 +1018,11 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
     private var preferClearGlass: Bool
     private var strings: PresentationStrings?
     private let cancelText: String?
+    private var contentFontSize: CGFloat
     
     private var isAnimatingOut: Bool = false
     
-    public init(theme: SearchBarNodeTheme, presentationTheme: PresentationTheme, preferClearGlass: Bool = false, strings: PresentationStrings, fieldStyle: SearchBarStyle = .legacy, icon: Icon = .loupe, forceSeparator: Bool = false, displayBackground: Bool = true, cancelText: String? = nil, hasOwnGlassContainer: Bool = true) {
+    public init(theme: SearchBarNodeTheme, presentationTheme: PresentationTheme, preferClearGlass: Bool = false, strings: PresentationStrings, fieldStyle: SearchBarStyle = .legacy, icon: Icon = .loupe, forceSeparator: Bool = false, displayBackground: Bool = true, cancelText: String? = nil, hasOwnGlassContainer: Bool = true, contentFontSize: CGFloat = 17.0) {
         self.presentationTheme = presentationTheme
         self.preferClearGlass = preferClearGlass
         
@@ -1029,6 +1030,7 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
         self.forceSeparator = forceSeparator
         self.cancelText = cancelText
         self.icon = icon
+        self.contentFontSize = contentFontSize
         
         self.inlineSearchPlaceholder = SearchBarPlaceholderNode(fieldStyle: .glass, hasOwnGlassContainer: hasOwnGlassContainer)
                 
@@ -1053,7 +1055,7 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
         self.textField.accessibilityTraits = .searchField
         self.textField.autocorrectionType = .no
         self.textField.returnKeyType = .search
-        self.textField.font = self.fieldStyle.font
+        self.textField.font = Font.regular(self.contentFontSize)
         
         self.clearButton = HighlightableButtonNode(pointerStyle: .lift)
         self.clearButton.imageNode.displaysAsynchronously = false
@@ -1114,11 +1116,17 @@ public class SearchBarNode: ASDisplayNode, UITextFieldDelegate {
         self.updateIsEmpty(animated: false)
     }
         
-    public func updateThemeAndStrings(theme: SearchBarNodeTheme, presentationTheme: PresentationTheme, preferClearGlass: Bool = false, strings: PresentationStrings) {
+    public func updateThemeAndStrings(theme: SearchBarNodeTheme, presentationTheme: PresentationTheme, preferClearGlass: Bool = false, strings: PresentationStrings, contentFontSize: CGFloat? = nil) {
+        if let contentFontSize {
+            self.contentFontSize = contentFontSize
+            self.textField.font = Font.regular(contentFontSize)
+        }
         if self.theme != theme || self.strings !== strings {
             self.clearButton.accessibilityLabel = strings.WebSearch_RecentSectionClear
             self.cancelButton.accessibilityLabel = self.cancelText ?? strings.Common_Cancel
-            self.cancelButton.setAttributedTitle(NSAttributedString(string: self.cancelText ?? strings.Common_Cancel, font: self.cancelText != nil ? Font.semibold(17.0) : Font.regular(17.0), textColor: theme.accent), for: [])
+            self.cancelButton.setAttributedTitle(NSAttributedString(string: self.cancelText ?? strings.Common_Cancel, font: self.cancelText != nil ? Font.semibold(self.contentFontSize) : Font.regular(self.contentFontSize), textColor: theme.accent), for: [])
+        } else if contentFontSize != nil {
+            self.cancelButton.setAttributedTitle(NSAttributedString(string: self.cancelText ?? strings.Common_Cancel, font: self.cancelText != nil ? Font.semibold(self.contentFontSize) : Font.regular(self.contentFontSize), textColor: theme.accent), for: [])
         }
         if self.theme != theme {
             self.backgroundNode.updateColor(color: theme.background, transition: .immediate) 

@@ -310,7 +310,7 @@ private enum InviteLinkViewEntry: Comparable, Identifiable {
                 let label: ItemListPeerItemLabel
                 if let pricing {
                     let text = NSMutableAttributedString()
-                    text.append(NSAttributedString(string: "⭐️\(pricing.amount)\n", font: Font.semibold(17.0), textColor: presentationData.theme.list.itemPrimaryTextColor))
+                    text.append(NSAttributedString(string: "⭐️\(pricing.amount)\n", font: Font.semibold(presentationData.listsFontSize.itemListBaseFontSize), textColor: presentationData.theme.list.itemPrimaryTextColor))
                     text.append(NSAttributedString(string: presentationData.strings.InviteLink_PerMonth, font: Font.regular(13.0), textColor: presentationData.theme.list.itemSecondaryTextColor))
                     if let range = text.string.range(of: "⭐️") {
                         text.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: false)), range: NSRange(range, in: text.string))
@@ -551,7 +551,7 @@ public final class InviteLinkViewController: ViewController {
             let accentColor = presentationData.theme.actionSheet.controlAccentColor
             
             self.editButton = HighlightableButtonNode()
-            self.editButton.setTitle(self.presentationData.strings.Common_Edit, with: Font.regular(17.0), with: accentColor, for: .normal)
+            self.editButton.setTitle(self.presentationData.strings.Common_Edit, with: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), with: accentColor, for: .normal)
             
             self.doneButton = HighlightableButtonNode()
             self.doneButton.setTitle(self.presentationData.strings.Common_Done, with: Font.bold(17.0), with: accentColor, for: .normal)
@@ -1050,7 +1050,7 @@ public final class InviteLinkViewController: ViewController {
             self.subtitleNode.attributedText = NSAttributedString(string: self.subtitleNode.attributedText?.string ?? "", font: subtitleFont, textColor: self.presentationData.theme.list.itemSecondaryTextColor)
             
             let accentColor = self.presentationData.theme.actionSheet.controlAccentColor
-            self.editButton.setTitle(self.presentationData.strings.Common_Edit, with: Font.regular(17.0), with: accentColor, for: .normal)
+            self.editButton.setTitle(self.presentationData.strings.Common_Edit, with: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), with: accentColor, for: .normal)
             self.doneButton.setTitle(self.presentationData.strings.Common_Done, with: Font.bold(17.0), with: accentColor, for: .normal)
         }
         

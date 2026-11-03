@@ -2480,7 +2480,7 @@ final class SecureIdDocumentFormControllerNode: FormControllerNode<SecureIdDocum
             }
         }, scanPassport: { [weak self] in
             if let strongSelf = self {
-                let controller = secureIdScanController(theme: strongSelf.theme, strings: strongSelf.strings, finished: { recognizedData in
+                let controller = secureIdScanController(theme: strongSelf.theme, strings: strongSelf.strings, contentFontSize: strongSelf.presentationData.listsFontSize.baseDisplaySize, finished: { recognizedData in
                     if let strongSelf = self, let recognizedData = recognizedData, var innerState = strongSelf.innerState {
                         innerState.documentState.updateWithRecognizedData(recognizedData)
                         strongSelf.updateInnerState(transition: .immediate, with: innerState)

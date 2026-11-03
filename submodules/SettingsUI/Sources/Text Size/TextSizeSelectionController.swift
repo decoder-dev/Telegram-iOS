@@ -813,8 +813,8 @@ private final class TextSelectionToolbarNode: ASDisplayNode {
         self.separatorNode.backgroundColor = presentationData.theme.rootController.tabBar.separatorColor
         self.topSeparatorNode.backgroundColor = presentationData.theme.rootController.tabBar.separatorColor
         
-        self.cancelButton.setTitle(presentationData.strings.Common_Cancel, with: Font.regular(17.0), with: presentationData.theme.list.itemPrimaryTextColor, for: [])
-        self.doneButton.setTitle(presentationData.strings.Wallpaper_Set, with: Font.regular(17.0), with: presentationData.theme.list.itemPrimaryTextColor, for: [])
+        self.cancelButton.setTitle(presentationData.strings.Common_Cancel, with: Font.regular(presentationData.listsFontSize.baseDisplaySize), with: presentationData.theme.list.itemPrimaryTextColor, for: [])
+        self.doneButton.setTitle(presentationData.strings.Wallpaper_Set, with: Font.regular(presentationData.listsFontSize.baseDisplaySize), with: presentationData.theme.list.itemPrimaryTextColor, for: [])
         
         self.cancelButton.accessibilityLabel = presentationData.strings.Common_Cancel
         self.doneButton.accessibilityLabel = presentationData.strings.Wallpaper_Set

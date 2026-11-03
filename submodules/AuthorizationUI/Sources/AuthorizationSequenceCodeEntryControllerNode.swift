@@ -443,13 +443,13 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.currentOptionNode.attributedText = authorizationCurrentOptionText(codeType, phoneNumber: self.phoneNumber, email: self.email, strings: self.strings, primaryColor: self.theme.list.itemPrimaryTextColor, accentColor: self.theme.list.itemAccentColor, fontSize: UIFont.preferredFont(forTextStyle: .body).pointSize)
         self.currentOptionActivateAreaNode.accessibilityLabel = self.currentOptionNode.attributedText?.string ?? ""
         if case .missedCall = codeType {
-            self.currentOptionInfoNode.attributedText = NSAttributedString(string: self.strings.Login_CodePhonePatternInfoText, font: Font.regular(17.0), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+            self.currentOptionInfoNode.attributedText = NSAttributedString(string: self.strings.Login_CodePhonePatternInfoText, font: Font.regular(UIFont.preferredFont(forTextStyle: .body).pointSize), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
             self.currentOptionInfoActivateAreaNode.accessibilityLabel = self.currentOptionInfoNode.attributedText?.string ?? ""
             if self.currentOptionInfoActivateAreaNode.supernode == nil {
                 self.formNode.addSubnode(self.currentOptionInfoActivateAreaNode)
             }
         } else {
-            self.currentOptionInfoNode.attributedText = NSAttributedString(string: "", font: Font.regular(17.0), textColor: self.theme.list.itemPrimaryTextColor)
+            self.currentOptionInfoNode.attributedText = NSAttributedString(string: "", font: Font.regular(UIFont.preferredFont(forTextStyle: .body).pointSize), textColor: self.theme.list.itemPrimaryTextColor)
             if self.currentOptionInfoActivateAreaNode.supernode != nil {
                 self.currentOptionInfoActivateAreaNode.removeFromSupernode()
             }

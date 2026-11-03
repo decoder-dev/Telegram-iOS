@@ -279,3 +279,7 @@ ShareWithPeers/Share panels, PeerSelection, Passkeys, BusinessMessage setup, Min
 ## Share input, prompts, payments, polls bubble и QrStudio
 
 ShareInputField, PromptController, TipEdit, 2FA input, PaymentCard, LegacyDataImportSplash, ChatMessageReport panel, poll bubble labels, ChatScheduleTime node, Toolbar, ActionPanel, Alert input fields, Undo overlay, QrStudio buttons, Gift store/demo/options, JoinAffiliate, LocationMapHeader, AuthConfirmation и related panels масштабируют 17 pt labels. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Passport, SearchBar, gallery footer и passcode setup
+
+Passport phone/scan forms, SearchBarNode contentFontSize, AvatarGallery footer, PasscodeSetup labels, JoinLink preview, ItemListSingleLine/Address fonts, InviteLink viewer, external file gallery, Drawing toolbar, ChatImport, Browser address bar, Authorization phone/code fonts, VoiceChat recording/stage, StickerPeek, TextSizeSelection и Tooltip масштабируют 17 pt labels. Branding Liquid: 7 pass. Simulator NOT RUN.

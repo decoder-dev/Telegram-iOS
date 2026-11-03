@@ -181,6 +181,7 @@ private final class SecureIdScanPreviewView: UIView, AVCaptureVideoDataOutputSam
 private final class SecureIdScanControllerNode: ViewControllerTracingNode {
     private let theme: PresentationTheme
     private let strings: PresentationStrings
+    private let contentFontSize: CGFloat
     private let finished: (SecureIdRecognizedDocumentData?) -> Void
 
     private let titleLabel = UILabel()
@@ -191,9 +192,10 @@ private final class SecureIdScanControllerNode: ViewControllerTracingNode {
     private let scanView = SecureIdScanPreviewView()
     private var validLayout: ContainerViewLayout?
 
-    init(theme: PresentationTheme, strings: PresentationStrings, finished: @escaping (SecureIdRecognizedDocumentData?) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat = 17.0, finished: @escaping (SecureIdRecognizedDocumentData?) -> Void) {
         self.theme = theme
         self.strings = strings
+        self.contentFontSize = contentFontSize
         self.finished = finished
         super.init()
 
@@ -209,7 +211,7 @@ private final class SecureIdScanControllerNode: ViewControllerTracingNode {
         self.view.addSubview(self.titleLabel)
 
         self.descriptionLabel.backgroundColor = .clear
-        self.descriptionLabel.font = Font.regular(17.0)
+        self.descriptionLabel.font = Font.regular(self.contentFontSize)
         self.descriptionLabel.numberOfLines = 0
         self.descriptionLabel.lineBreakMode = .byWordWrapping
         self.descriptionLabel.textColor = theme.list.itemPrimaryTextColor
@@ -266,7 +268,7 @@ private final class SecureIdScanControllerNode: ViewControllerTracingNode {
 
     private func finish(with mrz: SecureIdMRZ) {
         let label = UILabel()
-        label.font = Font.regular(17.0)
+        label.font = Font.regular(self.contentFontSize)
         label.textColor = .white
         label.numberOfLines = 3
         label.text = mrz.mrz
@@ -296,14 +298,16 @@ private final class SecureIdScanControllerNode: ViewControllerTracingNode {
 private final class SecureIdScanController: ViewController {
     private let theme: PresentationTheme
     private let strings: PresentationStrings
+    private let contentFontSize: CGFloat
     private let finished: (SecureIdRecognizedDocumentData?) -> Void
     private var controllerNode: SecureIdScanControllerNode {
         return self.displayNode as! SecureIdScanControllerNode
     }
 
-    init(theme: PresentationTheme, strings: PresentationStrings, finished: @escaping (SecureIdRecognizedDocumentData?) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat = 17.0, finished: @escaping (SecureIdRecognizedDocumentData?) -> Void) {
         self.theme = theme
         self.strings = strings
+        self.contentFontSize = contentFontSize
         self.finished = finished
         super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: NavigationBarTheme(rootControllerTheme: theme), strings: NavigationBarStrings(presentationStrings: strings)))
         self.statusBar.statusBarStyle = theme.rootController.statusBarStyle.style
@@ -316,7 +320,7 @@ private final class SecureIdScanController: ViewController {
     }
 
     override func loadDisplayNode() {
-        self.displayNode = SecureIdScanControllerNode(theme: self.theme, strings: self.strings, finished: { [weak self] data in
+        self.displayNode = SecureIdScanControllerNode(theme: self.theme, strings: self.strings, contentFontSize: self.contentFontSize, finished: { [weak self] data in
             self?.finished(data)
             self?.dismiss()
         })
@@ -344,6 +348,6 @@ private final class SecureIdScanController: ViewController {
     }
 }
 
-func secureIdScanController(theme: PresentationTheme, strings: PresentationStrings, finished: @escaping (SecureIdRecognizedDocumentData?) -> Void) -> ViewController {
-    return SecureIdScanController(theme: theme, strings: strings, finished: finished)
+func secureIdScanController(theme: PresentationTheme, strings: PresentationStrings, contentFontSize: CGFloat = 17.0, finished: @escaping (SecureIdRecognizedDocumentData?) -> Void) -> ViewController {
+    return SecureIdScanController(theme: theme, strings: strings, contentFontSize: contentFontSize, finished: finished)
 }

@@ -20,13 +20,14 @@ public final class ItemListAddressItem: ListViewItem, ItemListItem {
     public let sectionId: ItemListSectionId
     let style: ItemListStyle
     let displayDecorations: Bool
+    let textFontSize: CGFloat
     let action: (() -> Void)?
     let longTapAction: ((ASDisplayNode, String) -> Void)?
     let linkItemAction: ((TextLinkItemActionType, TextLinkItem) -> Void)?
     
     public let tag: Any?
     
-    public init(theme: PresentationTheme, systemStyle: ItemListSystemStyle = .legacy, label: String, text: String, imageSignal: Signal<(TransformImageArguments) -> DrawingContext?, NoError>?, selected: Bool? = nil, sectionId: ItemListSectionId, style: ItemListStyle, displayDecorations: Bool = true, action: (() -> Void)?, longTapAction: ((ASDisplayNode, String) -> Void)? = nil, linkItemAction: ((TextLinkItemActionType, TextLinkItem) -> Void)? = nil, tag: Any? = nil) {
+    public init(theme: PresentationTheme, systemStyle: ItemListSystemStyle = .legacy, label: String, text: String, imageSignal: Signal<(TransformImageArguments) -> DrawingContext?, NoError>?, selected: Bool? = nil, sectionId: ItemListSectionId, style: ItemListStyle, displayDecorations: Bool = true, textFontSize: CGFloat = 17.0, action: (() -> Void)?, longTapAction: ((ASDisplayNode, String) -> Void)? = nil, linkItemAction: ((TextLinkItemActionType, TextLinkItem) -> Void)? = nil, tag: Any? = nil) {
         self.theme = theme
         self.systemStyle = systemStyle
         self.label = label
@@ -36,6 +37,7 @@ public final class ItemListAddressItem: ListViewItem, ItemListItem {
         self.sectionId = sectionId
         self.style = style
         self.displayDecorations = displayDecorations
+        self.textFontSize = textFontSize
         self.action = action
         self.longTapAction = longTapAction
         self.linkItemAction = linkItemAction
@@ -86,11 +88,6 @@ public final class ItemListAddressItem: ListViewItem, ItemListItem {
 }
 
 private let labelFont = Font.regular(14.0)
-private let textFont = Font.regular(17.0)
-private let textBoldFont = Font.medium(17.0)
-private let textItalicFont = Font.italic(17.0)
-private let textBoldItalicFont = Font.semiboldItalic(17.0)
-private let textFixedFont = Font.regular(17.0)
 
 public class ItemListAddressItemNode: ListViewItemNode {
     let labelNode: TextNode
@@ -200,6 +197,11 @@ public class ItemListAddressItemNode: ListViewItemNode {
             let (labelLayout, labelApply) = makeLabelLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.label, font: labelFont, textColor: labelColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: params.width - leftOffset - leftInset - rightInset, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             let baseColor = item.theme.list.itemPrimaryTextColor
+            let textFont = Font.regular(item.textFontSize)
+            let textBoldFont = Font.medium(item.textFontSize)
+            let textItalicFont = Font.italic(item.textFontSize)
+            let textBoldItalicFont = Font.semiboldItalic(item.textFontSize)
+            let textFixedFont = Font.regular(item.textFontSize)
             let string = stringWithAppliedEntities(item.text, entities: [], baseColor: baseColor, linkColor: item.theme.list.itemAccentColor, baseFont: textFont, linkFont: textFont, boldFont: textBoldFont, italicFont: textItalicFont, boldItalicFont: textBoldItalicFont, fixedFont: textFixedFont, blockQuoteFont: textFont, message: nil)
             
             let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: string, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - leftOffset - leftInset - rightInset - 98.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))

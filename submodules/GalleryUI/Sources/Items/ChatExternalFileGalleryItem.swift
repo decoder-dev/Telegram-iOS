@@ -93,7 +93,7 @@ class ChatExternalFileGalleryItemNode: GalleryItemNode {
         self.containerNode.addSubnode(self.fileNameNode)
         
         self.actionTitleNode = ImmediateTextNode()
-        self.actionTitleNode.attributedText = NSAttributedString(string: presentationData.strings.Conversation_LinkDialogOpen, font: Font.regular(17.0), textColor: presentationData.theme.list.itemAccentColor)
+        self.actionTitleNode.attributedText = NSAttributedString(string: presentationData.strings.Conversation_LinkDialogOpen, font: Font.regular(presentationData.listsFontSize.baseDisplaySize), textColor: presentationData.theme.list.itemAccentColor)
         self.containerNode.addSubnode(self.actionTitleNode)
         
         self.actionButtonNode = HighlightableButtonNode()
@@ -176,7 +176,7 @@ class ChatExternalFileGalleryItemNode: GalleryItemNode {
         let updateFile = self.contextAndFile?.1.media != fileReference.media
         self.contextAndFile = (context, fileReference)
         if updateFile {
-            self.fileNameNode.attributedText = NSAttributedString(string: fileReference.media.fileName ?? " ", font: Font.regular(17.0), textColor: .black)
+            self.fileNameNode.attributedText = NSAttributedString(string: fileReference.media.fileName ?? " ", font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), textColor: .black)
             self.setupStatus(context: context, resource: fileReference.media.resource)
         }
     }

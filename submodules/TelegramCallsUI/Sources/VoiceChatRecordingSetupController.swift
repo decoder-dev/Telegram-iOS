@@ -210,14 +210,15 @@ private class VoiceChatRecordingSetupControllerNode: ViewControllerTracingNode, 
         
         self.videoAudioButton = HighlightTrackingButtonNode()
         self.videoAudioTitleNode = ImmediateTextNode()
-        self.videoAudioTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordVideoAndAudio, font: Font.regular(17.0), textColor: .white, paragraphAlignment: .left)
+        let labelFontSize = self.presentationData.listsFontSize.baseDisplaySize
+        self.videoAudioTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordVideoAndAudio, font: Font.regular(labelFontSize), textColor: .white, paragraphAlignment: .left)
         self.videoAudioCheckNode = ASImageNode()
         self.videoAudioCheckNode.displaysAsynchronously = false
         self.videoAudioCheckNode.image = UIImage(bundleImageName: "Call/Check")
         
         self.audioButton = HighlightTrackingButtonNode()
         self.audioTitleNode = ImmediateTextNode()
-        self.audioTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordOnlyAudio, font: Font.regular(17.0), textColor: .white, paragraphAlignment: .left)
+        self.audioTitleNode.attributedText = NSAttributedString(string: self.presentationData.strings.VoiceChat_RecordOnlyAudio, font: Font.regular(labelFontSize), textColor: .white, paragraphAlignment: .left)
         self.audioCheckNode = ASImageNode()
         self.audioCheckNode.displaysAsynchronously = false
         self.audioCheckNode.image = UIImage(bundleImageName: "Call/Check")
