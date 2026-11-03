@@ -874,7 +874,7 @@ class VoiceChatParticipantItemNode: ItemListRevealOptionsItemNode {
             let constrainedWidth = params.width - leftInset - 12.0 - rightInset - 30.0 - titleIconsWidth
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: titleAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: constrainedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
-            let listsFontBaseSize = item.presentationData.listsFontSize.baseDisplaySize
+            let listsFontBaseSize = 17.0
             self?.statusNode.listsFontBaseSize = listsFontBaseSize
             self?.expandedStatusNode.listsFontBaseSize = listsFontBaseSize
             
