@@ -47,10 +47,18 @@ swift_library(
     ],
 )
 
+config_setting(
+    name = "liquid_theme_tests_ios27",
+    values = {"define": "liquidThemeTestsOSVersion=27.0"},
+)
+
 ios_test_runner(
     name = "LiquidThemeTestRunner",
     device_type = "iPhone 17",
-    os_version = "26.5",
+    os_version = select({
+        ":liquid_theme_tests_ios27": "27.0",
+        "//conditions:default": "26.5",
+    }),
 )
 
 ios_unit_test(

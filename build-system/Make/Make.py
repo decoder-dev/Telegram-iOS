@@ -303,6 +303,8 @@ class BazelCommandLine:
 
     def get_additional_build_arguments(self):
         combined_arguments = []
+        if self.additional_args:
+            combined_arguments += self.additional_args
         if self.split_submodules:
             combined_arguments += [
                 # https://github.com/bazelbuild/rules_swift
@@ -595,7 +597,6 @@ def generate_project(bazel, arguments):
         override_xcode_version=arguments.overrideXcodeVersion,
         bazel_user_root=arguments.bazelUserRoot
     )
-
     if arguments.cacheDir is not None:
         bazel_command_line.add_cache_dir(arguments.cacheDir)
     elif arguments.cacheHost is not None:
@@ -795,6 +796,7 @@ def test(bazel, arguments):
         override_xcode_version=arguments.overrideXcodeVersion,
         bazel_user_root=arguments.bazelUserRoot
     )
+    bazel_command_line.additional_args = shlex.split(arguments.bazelArguments or '')
 
     if arguments.cacheDir is not None:
         bazel_command_line.add_cache_dir(arguments.cacheDir)
