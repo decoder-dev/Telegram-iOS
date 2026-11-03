@@ -206,8 +206,8 @@ private final class StarsPurchaseScreenContentComponent: CombinedComponent {
             let textColor = theme.list.itemPrimaryTextColor
             let accentColor = theme.list.itemAccentColor
             
-            let textFont = Font.regular(floor(fontSize * 15.0 / 17.0))
-            let boldTextFont = Font.semibold(floor(fontSize * 15.0 / 17.0))
+            let textFont = Font.regular(15.0)
+            let boldTextFont = Font.semibold(15.0)
             
             let textString: String
             switch context.component.purpose {
@@ -456,7 +456,7 @@ private final class StarsPurchaseScreenContentComponent: CombinedComponent {
             size.height += 23.0
 
             
-            let termsFont = Font.regular(floor(fontSize * 13.0 / 17.0))
+            let termsFont = Font.regular(13.0)
             let termsTextColor = environment.theme.list.freeTextColor
             let termsMarkdownAttributes = MarkdownAttributes(body: MarkdownAttributeSet(font: termsFont, textColor: termsTextColor), bold: MarkdownAttributeSet(font: termsFont, textColor: termsTextColor), link: MarkdownAttributeSet(font: termsFont, textColor: environment.theme.list.itemAccentColor), linkAttribute: { contents in
                 return (TelegramTextAttributes.URL, contents)

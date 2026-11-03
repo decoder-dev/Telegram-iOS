@@ -316,7 +316,7 @@ final class WalletWordSuggestionsComponent: Component {
             environment: Environment<Empty>,
             transition: ComponentTransition
         ) -> CGSize {
-            let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
+            let fontSize: CGFloat = 17.0
             let resetScrollingPosition = self.component?.words != component.words
             let animatePulse = !component.isInteractive
                 && component.pulseId != 0

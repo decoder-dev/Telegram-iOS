@@ -173,7 +173,7 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
         if self.arguments.displayAppLock {
             self.addSubnode(self.iconNode)
         } else {
-            self.titleNode.setAttributedText(NSAttributedString(string: self.strings.EnterPasscode_EnterPasscode, font: titleFont, textColor: .white), animation: .none)
+            self.titleNode.setAttributedText(NSAttributedString(string: self.strings.EnterPasscode_EnterPasscode, font: self.titleFont, textColor: .white), animation: .none)
         }
         self.addSubnode(self.titleNode)
         self.addSubnode(self.inputFieldNode)
@@ -250,7 +250,7 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
         
         self.deleteButtonNode.setTitle(self.strings.Common_Delete, with: Font.regular(self.presentationData.listsFontSize.baseDisplaySize), with: .white, for: .normal)
         if !self.arguments.displayAppLock {
-            self.titleNode.setAttributedText(NSAttributedString(string: self.strings.EnterPasscode_EnterPasscode, font: titleFont, textColor: .white), animation: .none)
+            self.titleNode.setAttributedText(NSAttributedString(string: self.strings.EnterPasscode_EnterPasscode, font: self.titleFont, textColor: .white), animation: .none)
         }
         self.updateSubtitle()
         if let validLayout = self.validLayout {
@@ -432,7 +432,7 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
                 }
             }
         }
-        self.titleNode.setAttributedText(NSAttributedString(string: self.strings.EnterPasscode_EnterPasscode, font: titleFont, textColor: .white), animation: .none)
+        self.titleNode.setAttributedText(NSAttributedString(string: self.strings.EnterPasscode_EnterPasscode, font: self.titleFont, textColor: .white), animation: .none)
     }
     
     func animateIn(iconFrame: CGRect, completion: @escaping () -> Void = {}) {
@@ -479,7 +479,7 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
         let title = self.arguments.displayAppLock
             ? self.strings.Passcode_AppLockedAlert.replacingOccurrences(of: "\n", with: " ")
             : self.strings.EnterPasscode_EnterPasscode
-        self.titleNode.setAttributedText(NSAttributedString(string: title, font: titleFont, textColor: .white), animation: self.arguments.displayAppLock ? .slideIn : .none, completion: {
+        self.titleNode.setAttributedText(NSAttributedString(string: title, font: self.titleFont, textColor: .white), animation: self.arguments.displayAppLock ? .slideIn : .none, completion: {
             self.subtitleNode.isHidden = false
             self.inputFieldNode.isHidden = false
             self.keyboardNode.isHidden = false
@@ -507,7 +507,7 @@ final class PasscodeEntryControllerNode: ASDisplayNode {
             
             if self.arguments.displayAppLock {
                 Queue.mainQueue().after(1.5, {
-                    self.titleNode.setAttributedText(NSAttributedString(string: self.strings.EnterPasscode_EnterPasscode, font: titleFont, textColor: .white), animation: .crossFade)
+                    self.titleNode.setAttributedText(NSAttributedString(string: self.strings.EnterPasscode_EnterPasscode, font: self.titleFont, textColor: .white), animation: .crossFade)
                     if let validLayout = self.validLayout {
                         self.containerLayoutUpdated(validLayout, navigationBarHeight: 0.0, transition: .animated(duration: 0.5, curve: .easeInOut))
                     }

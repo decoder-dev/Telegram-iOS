@@ -695,8 +695,9 @@ private final class CreateBotSheetComponent: Component {
                     }
                 })
             }, error: { [weak self] error in
-                Task { @MainActor in
-                    guard let self, let environment = self.environment, let component = self.component else {
+                let environment = self?.environment
+                    Task { @MainActor in
+                    guard let self, let environment, let component = self.component else {
                         return
                     }
                     
@@ -719,9 +720,9 @@ private final class CreateBotSheetComponent: Component {
                         text = environment.strings.CreateBot_UsernameStatus_LimitExceeded(Int32(limits.maxBotsCreated))
                     case .suffixNotAllowed:
                         text = parseMarkdownIntoAttributedString(createBotUsernameHint(endings: endings, strings: environment.strings), attributes: MarkdownAttributes(
-                            body: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .black),
-                            bold: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .black),
-                            link: MarkdownAttributeSet(font: Font.regular(floor(fontSize * 13.0 / 17.0)), textColor: .black),
+                            body: MarkdownAttributeSet(font: Font.regular(13.0), textColor: .black),
+                            bold: MarkdownAttributeSet(font: Font.regular(13.0), textColor: .black),
+                            link: MarkdownAttributeSet(font: Font.regular(13.0), textColor: .black),
                             linkAttribute: { _ in
                                 return nil
                             }

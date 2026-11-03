@@ -668,7 +668,7 @@ private final class AdsInfoSheetComponent: CombinedComponent {
                                 component: AnyComponent(
                                     Text(
                                         text: environment.strings.AdsInfo_Understood,
-                                        font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
+                                        font: Font.semibold(17.0),
                                         color: theme.list.itemCheckColors.foregroundColor
                                     )
                                 )

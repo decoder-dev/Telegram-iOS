@@ -57,7 +57,7 @@ public final class WalletConnectAppIconComponent: Component {
             self.backgroundColor = UIColor(rgb: 0x2aabee)
             self.imageView.contentMode = .scaleAspectFill
             self.fallbackLabel.textAlignment = .center
-            self.fallbackLabel.font = Font.bold(floor(fontSize * 40.0 / 17.0))
+            self.fallbackLabel.font = Font.bold(40.0)
             self.fallbackLabel.textColor = .white
             self.addSubview(self.fallbackLabel)
             self.addSubview(self.imageView)

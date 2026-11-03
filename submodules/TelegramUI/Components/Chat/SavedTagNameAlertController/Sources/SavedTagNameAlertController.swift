@@ -62,7 +62,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         self.backgroundNode.image = generateStretchableFilledCircleImage(diameter: 16.0, color: theme.actionSheet.inputHollowBackgroundColor, strokeColor: theme.actionSheet.inputBorderColor, strokeWidth: 1.0)
         
         self.textInputNode = EditableTextNode()
-        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: self.inputFont, NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(floor(baseFontSize * 13.0 / 17.0)), NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
         self.textInputNode.clipsToBounds = true
         self.textInputNode.hitTestSlop = UIEdgeInsets(top: -5.0, left: -5.0, bottom: -5.0, right: -5.0)
         self.textInputNode.textContainerInset = UIEdgeInsets(top: self.inputInsets.top, left: self.inputInsets.left, bottom: self.inputInsets.bottom, right: self.inputInsets.right)
@@ -94,7 +94,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
         self.textInputNode.keyboardAppearance = self.theme.rootController.keyboardColor.keyboardAppearance
         self.placeholderNode.attributedText = NSAttributedString(string: self.placeholderNode.attributedText?.string ?? "", font: self.inputFont, textColor: self.theme.actionSheet.inputPlaceholderColor)
         self.textInputNode.tintColor = self.theme.actionSheet.controlAccentColor
-        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: self.inputFont, NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(floor(baseFontSize * 13.0 / 17.0)), NSAttributedString.Key.foregroundColor.rawValue: theme.actionSheet.inputTextColor]
     }
     
     func updateBaseFontSize(_ baseFontSize: CGFloat) {
@@ -103,7 +103,7 @@ private final class PromptInputFieldNode: ASDisplayNode, ASEditableTextNodeDeleg
             self.textInputNode.attributedText = NSAttributedString(string: text, font: self.inputFont, textColor: self.theme.actionSheet.inputTextColor)
         }
         self.placeholderNode.attributedText = NSAttributedString(string: self.placeholder, font: self.inputFont, textColor: self.theme.actionSheet.inputPlaceholderColor)
-        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: self.inputFont, NSAttributedString.Key.foregroundColor.rawValue: self.theme.actionSheet.inputTextColor]
+        self.textInputNode.typingAttributes = [NSAttributedString.Key.font.rawValue: Font.regular(floor(baseFontSize * 13.0 / 17.0)), NSAttributedString.Key.foregroundColor.rawValue: self.theme.actionSheet.inputTextColor]
     }
     
     func updateLayout(width: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {

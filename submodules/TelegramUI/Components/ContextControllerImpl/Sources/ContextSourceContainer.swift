@@ -891,7 +891,7 @@ private final class CloseButtonComponent: CombinedComponent {
             let text = text.update(
                 component: Text(
                     text: "\(context.component.text)",
-                    font: Font.regular(self.presentationData.listsFontSize.baseDisplaySize),
+                    font: Font.regular(17.0),
                     color: .white
                 ),
                 availableSize: CGSize(width: 200.0, height: 100.0),

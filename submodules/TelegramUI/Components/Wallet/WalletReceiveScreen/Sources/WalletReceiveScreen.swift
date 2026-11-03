@@ -1281,7 +1281,7 @@ private final class WalletReceiveSheetContent: Component {
                     id: "showQr",
                     component: AnyComponent(Text(
                         text: component.isOwnWallet ? environment.strings.Wallet_Receive_ShowQR : environment.strings.Wallet_Receive_PeerShowQR,
-                        font: Font.semibold(floor(fontSize * 14.0 / 17.0)),
+                        font: Font.semibold(14.0),
                         color: UIColor(rgb: 0x087cff)
                     ))
                 )
@@ -1303,7 +1303,7 @@ private final class WalletReceiveSheetContent: Component {
                             id: "title",
                             component: AnyComponent(Text(
                                 text: component.isOwnWallet ? environment.strings.Wallet_Receive_CopyAddress : environment.strings.Wallet_CopyAddress,
-                                font: Font.semibold(floor(fontSize * 14.0 / 17.0)),
+                                font: Font.semibold(14.0),
                                 color: UIColor(rgb: 0x087cff)
                             ))
                         )
@@ -1340,7 +1340,7 @@ private final class WalletReceiveSheetContent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.isOwnWallet ? environment.strings.Wallet_Receive_Text : environment.strings.Wallet_Receive_PeerText,
-                        font: Font.regular(floor(fontSize * 15.0 / 17.0)),
+                        font: Font.regular(15.0),
                         textColor: .white
                     )),
                     horizontalAlignment: .center,
@@ -1366,7 +1366,7 @@ private final class WalletReceiveSheetContent: Component {
                         id: "title",
                         component: AnyComponent(MultilineTextComponent(text: .plain(NSAttributedString(
                             string: availableWidth < 390.0 ? environment.strings.Wallet_Receive_BuyShort : environment.strings.Wallet_Receive_Buy,
-                            font: Font.semibold(presentationData.listsFontSize.baseDisplaySize),
+                            font: Font.semibold(17.0),
                             textColor: UIColor(rgb: 0x087cff)
                         ))))
                     )
@@ -1462,7 +1462,7 @@ private final class WalletReceiveSheetContent: Component {
                             id: "check",
                             component: AnyComponent(Text(
                                 text: "✓",
-                                font: Font.semibold(floor(fontSize * 14.0 / 17.0)),
+                                font: Font.semibold(14.0),
                                 color: UIColor(rgb: 0x087cff)
                             ))
                         ),
@@ -1470,7 +1470,7 @@ private final class WalletReceiveSheetContent: Component {
                             id: "title",
                             component: AnyComponent(Text(
                                 text: environment.strings.Wallet_AddressCopied,
-                                font: Font.semibold(floor(fontSize * 14.0 / 17.0)),
+                                font: Font.semibold(14.0),
                                 color: UIColor(rgb: 0x087cff)
                             ))
                         )
@@ -1873,7 +1873,6 @@ private final class WalletReceiveSheetComponent: CombinedComponent {
         let sheetExternalState = SheetComponent<EnvironmentType>.ExternalState()
 
         return { context in
-            let fontSize = context.component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
             let environment = context.environment[EnvironmentType.self]
             let controller = environment.controller
             let componentState = context.state

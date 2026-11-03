@@ -205,6 +205,7 @@ final class PasscodeSetupControllerNode: ASDisplayNode {
                 mode: .numeric,
                 deleteTitle: self.presentationData.strings.Common_Delete,
                 isEnabled: isEnabled,
+                fontSize: 17.0,
                 action: { [weak self] action in
                     guard let self, self.displaysCustomKeyboard, self.authenticationInputEnabled, self.isCustomInputActive, self.view.isUserInteractionEnabled else { return }
                     self.hapticFeedback.impact(.light)

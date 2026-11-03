@@ -277,7 +277,7 @@ public class ChatMessageShareButton: ASDisplayNode {
                 countString = "\(replyCount)"
             }
             
-            textNode.attributedText = NSAttributedString(string: countString, font: Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 11.0 / 17.0)), textColor: textColor)
+            textNode.attributedText = NSAttributedString(string: countString, font: Font.regular(11.0), textColor: textColor)
             let textSize = textNode.updateLayout(CGSize(width: 100.0, height: 100.0))
             size.height += textSize.height - 1.0
             textNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((size.width - textSize.width) / 2.0), y: size.height - textSize.height - 4.0), size: textSize)

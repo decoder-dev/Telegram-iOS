@@ -269,7 +269,7 @@ private final class WalletTransferPreviewCommentComponent: Component {
                 component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
                         string: component.text,
-                        font: Font.regular(floor(fontSize * 15.0 / 17.0)),
+                        font: Font.regular(15.0),
                         textColor: component.textColor
                     )),
                     maximumNumberOfLines: 0
@@ -406,7 +406,7 @@ final class WalletTransferPreviewComponent: Component {
             return AnyComponent(HStack<Empty>([
                 AnyComponentWithIdentity(
                     id: "amount",
-                    component: self.text(amountText, font: Font.semibold(floor(fontSize * 15.0 / 17.0)), color: color)
+                    component: self.text(amountText, font: Font.semibold(15.0), color: color)
                 ),
                 AnyComponentWithIdentity(
                     id: "icon",
@@ -483,9 +483,9 @@ final class WalletTransferPreviewComponent: Component {
 
             return WalletTransactionItemComponent.Content(
                 avatar: AnyComponent(WalletTransferPreviewIconComponent(kind: iconKind)),
-                title: self.text(title, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: theme.list.itemPrimaryTextColor),
+                title: self.text(title, font: Font.semibold(17.0), color: theme.list.itemPrimaryTextColor),
                 subtitle: subtitle.map {
-                    self.text($0, font: Font.regular(floor(fontSize * 15.0 / 17.0)), color: item.succeeded ? theme.list.itemPrimaryTextColor : theme.list.itemDestructiveColor)
+                    self.text($0, font: Font.regular(15.0), color: item.succeeded ? theme.list.itemPrimaryTextColor : theme.list.itemDestructiveColor)
                 },
                 trailingContent: self.trailingContent(
                     item: item,
@@ -550,7 +550,7 @@ final class WalletTransferPreviewComponent: Component {
             let transfers = component.request.messages.map { message in
                 let transferContent = WalletTransactionItemComponent.Content(
                     avatar: AnyComponent(WalletTransferPreviewIconComponent(kind: .transfer)),
-                    title: self.text(formatTonConnectNanograms(message.amountNanograms, strings: environment.strings, dateTimeFormat: environment.dateTimeFormat), font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), color: theme.list.itemPrimaryTextColor, maximumNumberOfLines: 0),
+                    title: self.text(formatTonConnectNanograms(message.amountNanograms, strings: environment.strings, dateTimeFormat: environment.dateTimeFormat), font: Font.semibold(17.0), color: theme.list.itemPrimaryTextColor, maximumNumberOfLines: 0),
                     subtitle: self.text(
                         environment.strings.Wallet_Transfer_ToAddress(walletTransferShortAddress(WalletContext.transferAddress(from: message.destination) ?? message.destination)).string,
                         font: Font.regular(floor(fontSize * 15.0 / 17.0)),

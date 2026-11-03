@@ -228,7 +228,7 @@ private final class ChatMessageActionButtonNode: ASDisplayNode {
         let titleLayout = TextNode.asyncLayout(maybeNode?.titleNode)
         
         return { context, theme, bubbleCorners, strings, backgroundNode, message, button, customInfo, constrainedWidth, position in
-            let titleFont = actionButtonTitleFont(fontSize: context.sharedContext.currentPresentationData.with { $0 }.fontSize.baseDisplaySize)
+            let titleFont = actionButtonTitleFont(fontSize: context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)
             let incoming = message.effectivelyIncoming(context.account.peerId)
             let graphics = PresentationResourcesChat.additionalGraphics(theme.theme, wallpaper: theme.wallpaper, bubbleCorners: bubbleCorners)
             

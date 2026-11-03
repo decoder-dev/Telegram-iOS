@@ -1893,7 +1893,7 @@ final class ShareWithPeersScreenComponent: Component {
                                     AnyComponentWithIdentity(id: AnyHashable(0), component: AnyComponent(MultilineTextComponent(
                                         text: .plain(NSAttributedString(
                                             string: environment.strings.Stories_Post_Album,
-                                            font: Font.regular(listFontSize),
+                                            font: Font.regular(17.0),
                                             textColor: environment.theme.list.itemPrimaryTextColor
                                         )),
                                         maximumNumberOfLines: 1
@@ -1902,7 +1902,7 @@ final class ShareWithPeersScreenComponent: Component {
                                 accessory: .custom(ListActionItemComponent.CustomAccessory(component: AnyComponentWithIdentity(id: 0, component: AnyComponent(AlbumLabelComponent(
                                     theme: environment.theme,
                                     title: foldersText,
-                                    fontSize: listFontSize,
+                                    fontSize: 17.0,
                                     action: { [weak self] sourceView in
                                         guard let self else {
                                             return
@@ -2341,7 +2341,6 @@ final class ShareWithPeersScreenComponent: Component {
             
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             let listsFontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize
-            let listFontSize = listsFontSize.itemListBaseFontSize
             let baseDisplaySize = listsFontSize.baseDisplaySize
             let themeUpdated = self.environment?.theme !== environment.theme
             

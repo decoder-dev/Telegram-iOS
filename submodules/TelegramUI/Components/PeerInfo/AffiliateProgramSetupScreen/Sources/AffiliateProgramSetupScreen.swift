@@ -267,7 +267,6 @@ final class AffiliateProgramSetupScreenComponent: Component {
                 return
             }
             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
-            let fontSize = presentationData.listsFontSize.baseDisplaySize
             self.environment?.controller()?.present(textAlertController(
                 context: component.context,
                 title: environment.strings.AffiliateSetup_AlertTerminate_Title,
@@ -342,7 +341,6 @@ final class AffiliateProgramSetupScreenComponent: Component {
                 self.isApplying = false
                 
                 let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
-            let fontSize = presentationData.listsFontSize.baseDisplaySize
                 
                 if let navigationController = controller.navigationController, let index = navigationController.viewControllers.firstIndex(where: { $0 === controller }), index != 0 {
                     if let previousController = navigationController.viewControllers[index - 1] as? ViewController {
@@ -436,7 +434,6 @@ final class AffiliateProgramSetupScreenComponent: Component {
                             }
                             UIPasteboard.general.string = bot.url
                             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
-            let fontSize = presentationData.listsFontSize.baseDisplaySize
                             self.environment?.controller()?.present(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: presentationData.strings.AffiliateProgram_ToastLinkCopied_Title, text: presentationData.strings.AffiliateProgram_ToastLinkCopied_Text(formatPermille(bot.commissionPermille), bot.peer.compactDisplayTitle).string), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
                         }
                     ))
@@ -499,7 +496,6 @@ final class AffiliateProgramSetupScreenComponent: Component {
             }
             
             let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
-            let fontSize = presentationData.listsFontSize.baseDisplaySize
             let contextController = makeContextController(presentationData: presentationData, source: .reference(HeaderContextReferenceContentSource(controller: controller, sourceView: sourceView, actionsOnTop: false)), items: .single(ContextController.Items(id: AnyHashable(0), content: .list(items))), gesture: nil)
             controller.presentInGlobalOverlay(contextController)
         }
@@ -1280,7 +1276,6 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                     return
                                 }
                                 let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
-            let fontSize = presentationData.listsFontSize.baseDisplaySize
                                 
                                 var itemList: [ContextMenuItem] = []
                                 
@@ -1335,7 +1330,6 @@ final class AffiliateProgramSetupScreenComponent: Component {
                                     }
                                     
                                     let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 })
-            let fontSize = presentationData.listsFontSize.baseDisplaySize
                                     
                                     UIPasteboard.general.string = item.url
                                     environment.controller()?.present(UndoOverlayController(presentationData: presentationData, content: .linkCopied(title: environment.strings.AffiliateProgram_ToastLinkCopied_Title, text: environment.strings.AffiliateProgram_ToastLinkCopied_Text(formatPermille(item.commissionPermille), item.peer.compactDisplayTitle ).string), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)

@@ -297,7 +297,7 @@ public final class ChatUserInfoItemNode: ListViewItemNode, ASGestureRecognizerDe
             let primaryTextColor = serviceMessageColorComponents(theme: item.presentationData.theme.theme, wallpaper: item.presentationData.theme.wallpaper).primaryText
             let subtitleColor = primaryTextColor.withAlphaComponent(item.presentationData.theme.theme.overallDarkAppearance ? 0.7 : 0.8)
             
-            let fontSize = item.presentationData.listsFontSize.baseDisplaySize
+            let fontSize: CGFloat = 17.0
             let regular13 = Font.regular(floor(fontSize * 13.0 / 17.0))
             let semibold13 = Font.semibold(floor(fontSize * 13.0 / 17.0))
             let semibold15 = Font.semibold(floor(fontSize * 15.0 / 17.0))

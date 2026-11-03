@@ -274,7 +274,7 @@ private final class WalletWordsScreenComponent: Component {
                         component: AnyComponent(MultilineTextComponent(
                             text: .plain(NSAttributedString(
                                 string: component.words[wordIndex],
-                                font: Font.medium(context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
+                                font: Font.medium(17.0),
                                 textColor: theme.list.itemPrimaryTextColor
                             )),
                             maximumNumberOfLines: 0
@@ -471,7 +471,7 @@ private final class WalletWordsSheetComponent: CombinedComponent {
                             id: AnyHashable(0),
                             component: AnyComponent(Text(
                                 text: buttonTitle,
-                                font: Font.semibold(context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
+                                font: Font.semibold(17.0),
                                 color: theme.list.itemCheckColors.foregroundColor
                             ))
                         ),

@@ -93,7 +93,7 @@ final class ChatFeePanelNode: ASDisplayNode {
             self.removeTextNode.attributedText = NSAttributedString(string: strings.Chat_PaidMessageFee_RemoveFee, font: Font.regular(listFontSize), textColor: theme.chat.inputPanel.panelControlColor)
         }
         
-        let attributedText = NSMutableAttributedString(string: strings.Chat_PaidMessageFee_Text(info.peer.compactDisplayTitle, "⭐️\(info.value)").string, font: Font.regular(floor(listFontSize * 12.0 / 17.0)), textColor: theme.rootController.navigationBar.secondaryTextColor)
+        let attributedText = NSMutableAttributedString(string: strings.Chat_PaidMessageFee_Text(info.peer.compactDisplayTitle, "⭐️\(info.value)").string, font: Font.regular(12.0), textColor: theme.rootController.navigationBar.secondaryTextColor)
         let range = (attributedText.string as NSString).range(of: "⭐️")
         if range.location != NSNotFound {
             attributedText.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: true)), range: range)
