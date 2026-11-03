@@ -2986,15 +2986,16 @@ private final class WalletScreenComponent: Component {
                 component: AnyComponent(NavigationBarComponent(
                     theme: NavigationBarTheme(rootControllerTheme: environment.theme),
                     strings: NavigationBarStrings(presentationStrings: environment.strings),
-                    leftInset: 16.0 + environment.safeInsets.left,
-                    rightInset: 16.0 + environment.safeInsets.right,
+                    leftInset: PresentationLayoutMetrics.listHorizontalInset + environment.safeInsets.left,
+                    rightInset: PresentationLayoutMetrics.listHorizontalInset + environment.safeInsets.right,
                     trailingButtonsInset: environment.navigationBarTrailingButtonsInset,
                     primaryContent: primaryContent,
                     secondaryContent: nil,
-                    secondaryTransition: 0.0
+                    secondaryTransition: 0.0,
+                    titleFontSize: component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
                 )),
                 environment: {},
-                containerSize: CGSize(width: availableSize.width, height: 44.0)
+                containerSize: CGSize(width: availableSize.width, height: PresentationLayoutMetrics.minimumInteractiveSize)
             )
             let headerOriginY: CGFloat
             if environment.metrics.widthClass == .regular {
