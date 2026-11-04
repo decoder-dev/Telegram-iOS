@@ -533,7 +533,6 @@ final class WalletTransferPreviewComponent: Component {
         ) -> CGSize {
             let environment = environment[EnvironmentType.self].value
             let fontSize = component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize
-            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
             let theme = environment.theme.withModalBlocksBackground()
             transition.setBackgroundColor(view: self, color: environment.theme.list.modalBlocksBackgroundColor)
             let safeWidth = max(

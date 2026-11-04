@@ -308,7 +308,6 @@ private final class ButtonEditorSheetContent: Component {
             let environment = environment[ViewControllerComponentContainer.Environment.self].value
             let theme = environment.theme
             let strings = environment.strings
-            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
 
             let sideInset: CGFloat = 16.0
             var contentSize = CGSize(width: availableSize.width, height: 0.0)

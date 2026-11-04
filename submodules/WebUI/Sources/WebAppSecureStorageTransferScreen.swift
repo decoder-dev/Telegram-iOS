@@ -167,7 +167,6 @@ private final class SheetContent: CombinedComponent {
             contentSize.height += text.size.height
             contentSize.height += 29.0
             
-            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
             
             var items: [AnyComponentWithIdentity<Empty>] = []
             for key in component.existingKeys {

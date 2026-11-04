@@ -323,7 +323,6 @@ private final class FormulaEditorSheetContent: Component {
 
             let environment = environment[EnvironmentType.self].value
             let theme = environment.theme.withModalBlocksBackground()
-            let presentationData = component.context.sharedContext.currentPresentationData.with { $0 }
 
             let sideInset: CGFloat = 16.0
             var contentSize = CGSize(width: availableSize.width, height: 38.0)
