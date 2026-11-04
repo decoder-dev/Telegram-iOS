@@ -4551,91 +4551,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 self.chatDisplayNode.dismissInput()
                 let f: () -> Void = { [weak self] in
                     Task { @MainActor in
-                        guard let self else {
-                            return
-                        }
-                        
-                        let accountManager = self.context.sharedContext.accountManager
-                        let sharedDataEntries = await accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.translationSettings]).get()
-                        let translationSettings: TranslationSettings
-                        if let value = sharedDataEntries.entries[ApplicationSpecificSharedDataKeys.translationSettings], let parsedValue = value.get(TranslationSettings.self) {
-                            translationSettings = parsedValue
-                        } else {
-                            translationSettings = .defaultSettings
-                        }
-                        
-                        var showTranslateIfTopical = false
-                        if let peer = self.presentationInterfaceState.renderedPeer?.chatMainPeer as? TelegramChannel, !(peer.addressName ?? "").isEmpty {
-                            showTranslateIfTopical = true
-                        }
-                        
-                        let (_, language) = canTranslateText(context: context, text: text.string, showTranslate: translationSettings.showTranslate, showTranslateIfTopical: showTranslateIfTopical, ignoredLanguages: translationSettings.ignoredLanguages)
-                        
-                        let _ = ApplicationSpecificNotice.incrementTranslationSuggestion(accountManager: context.sharedContext.accountManager, timestamp: Int32(Date().timeIntervalSince1970)).startStandalone()
-                        
-                        let translationConfiguration = TranslationConfiguration.with(appConfiguration: self.context.currentAppConfiguration.with { $0 })
-                        var useSystemTranslation = false
-                        switch translationConfiguration.manual {
-                        case .system:
-                            if #available(iOS 18.0, *) {
-                                useSystemTranslation = true
-                            }
-                        default:
-                            break
-                        }
-                        // "Apple" as the translation backend has to work whatever the server's translation config says.
-                        if !useSystemTranslation, self.context.sharedContext.immediateForkExtrasSettings.translationBackend == .system, #available(iOS 18.0, *) {
-                            useSystemTranslation = true
-                        }
-                        
-                        if useSystemTranslation {
-                            presentTranslateScreen(
-                                context: context,
-                                text: text.string,
-                                entities: entities ?? [],
-                                canCopy: canCopy,
-                                fromLanguage: language,
-                                ignoredLanguages: translationSettings.ignoredLanguages,
-                                translateChat: { [weak self] _, toLang in
-                                    self?.interfaceInteraction?.changeTranslationLanguage(toLang)
-                                    self?.interfaceInteraction?.toggleTranslation(.translated)
-                                },
-                                pushController: { [weak self] c in
-                                    self?.effectiveNavigationController?._keepModalDismissProgress = true
-                                    self?.push(c)
-                                },
-                                presentController: { [weak self] c in
-                                    self?.present(c, in: .window(.root))
-                                },
-                                display: { [weak self] c in
-                                    self?.push(c)
-                                }
-                            )
-                        } else {
-                            self.push(await TextProcessingScreen(
-                                context: self.context,
-                                mode: .translate(fromLanguage: language, applyResult: nil),
-                                inputText: .plain(text: text.string, entities: entities ?? []),
-                                copyResult: canCopy ? { [weak self] text in
-                                    guard let self else {
-                                        return
-                                    }
-                                    storeComposedRichMessageInPasteboard(text)
-
-                                    let infoText = self.presentationData.strings.Conversation_TextCopied
-                                    self.present(UndoOverlayController(presentationData: self.presentationData, content: .copy(text: infoText), elevatedLayout: false, animateInAsReplacement: false, action: { _ in
-                                            return true
-                                    }), in: .current)
-                                } : nil,
-                                translateChat: { [weak self] toLang in
-                                    guard let self else {
-                                        return
-                                    }
-                                    self.interfaceInteraction?.changeTranslationLanguage(toLang)
-                                    self.interfaceInteraction?.toggleTranslation(.translated)
-                                }
-                            ))
-                        }
+                        await self?.performTranslateTextSelection(text: text, entities: entities, canCopy: canCopy)
                     }
                 }
                 if let currentContextController = self.currentContextController {
@@ -7197,6 +7113,92 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         fatalError("init(coder:) has not been implemented")
     }
     
+    @MainActor
+    private func performTranslateTextSelection(text: NSAttributedString, entities: [MessageTextEntity]?, canCopy: Bool) async {
+        let context = self.context
+        let accountManager = self.context.sharedContext.accountManager
+        let sharedDataEntries = await accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.translationSettings]).get()
+        let translationSettings: TranslationSettings
+        if let value = sharedDataEntries.entries[ApplicationSpecificSharedDataKeys.translationSettings], let parsedValue = value.get(TranslationSettings.self) {
+            translationSettings = parsedValue
+        } else {
+            translationSettings = .defaultSettings
+        }
+
+        var showTranslateIfTopical = false
+        if let peer = self.presentationInterfaceState.renderedPeer?.chatMainPeer as? TelegramChannel, !(peer.addressName ?? "").isEmpty {
+            showTranslateIfTopical = true
+        }
+
+        let (_, language) = canTranslateText(context: context, text: text.string, showTranslate: translationSettings.showTranslate, showTranslateIfTopical: showTranslateIfTopical, ignoredLanguages: translationSettings.ignoredLanguages)
+
+        let _ = ApplicationSpecificNotice.incrementTranslationSuggestion(accountManager: context.sharedContext.accountManager, timestamp: Int32(Date().timeIntervalSince1970)).startStandalone()
+
+        let translationConfiguration = TranslationConfiguration.with(appConfiguration: self.context.currentAppConfiguration.with { $0 })
+        var useSystemTranslation = false
+        switch translationConfiguration.manual {
+        case .system:
+            if #available(iOS 18.0, *) {
+                useSystemTranslation = true
+            }
+        default:
+            break
+        }
+        // "Apple" as the translation backend has to work whatever the server's translation config says.
+        if !useSystemTranslation, self.context.sharedContext.immediateForkExtrasSettings.translationBackend == .system, #available(iOS 18.0, *) {
+            useSystemTranslation = true
+        }
+
+        if useSystemTranslation {
+            presentTranslateScreen(
+                context: context,
+                text: text.string,
+                entities: entities ?? [],
+                canCopy: canCopy,
+                fromLanguage: language,
+                ignoredLanguages: translationSettings.ignoredLanguages,
+                translateChat: { [weak self] _, toLang in
+                    self?.interfaceInteraction?.changeTranslationLanguage(toLang)
+                    self?.interfaceInteraction?.toggleTranslation(.translated)
+                },
+                pushController: { [weak self] c in
+                    self?.effectiveNavigationController?._keepModalDismissProgress = true
+                    self?.push(c)
+                },
+                presentController: { [weak self] c in
+                    self?.present(c, in: .window(.root))
+                },
+                display: { [weak self] c in
+                    self?.push(c)
+                }
+            )
+        } else {
+            self.push(await TextProcessingScreen(
+                context: self.context,
+                mode: .translate(fromLanguage: language, applyResult: nil),
+                inputText: .plain(text: text.string, entities: entities ?? []),
+                copyResult: canCopy ? { [weak self] text in
+                    guard let self else {
+                        return
+                    }
+                    storeComposedRichMessageInPasteboard(text)
+
+                    let infoText = self.presentationData.strings.Conversation_TextCopied
+                    self.present(UndoOverlayController(presentationData: self.presentationData, content: .copy(text: infoText), elevatedLayout: false, animateInAsReplacement: false, action: { _ in
+                            return true
+                    }), in: .current)
+                } : nil,
+                translateChat: { [weak self] toLang in
+                    guard let self else {
+                        return
+                    }
+                    self.interfaceInteraction?.changeTranslationLanguage(toLang)
+                    self.interfaceInteraction?.toggleTranslation(.translated)
+                }
+            ))
+        }
+    }
+
     private func flushRichTextCheckboxEdit(messageId: MessageId) {
         self.richTextCheckboxDebounceTimers.removeValue(forKey: messageId)?.invalidate()
         guard let page = self.richTextCheckboxAccumulators[messageId] else {
