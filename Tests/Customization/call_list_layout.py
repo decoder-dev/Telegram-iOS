@@ -5,6 +5,8 @@ import tempfile
 
 root = pathlib.Path(__file__).resolve().parents[2]
 source = (root / 'submodules/CallListUI/Sources/CallListEmptyStateLayout.swift').read_text()
+# The harness compiles a standalone subset; strip module imports that cannot resolve here.
+source = '\n'.join(line for line in source.split('\n') if not line.startswith('import '))
 metrics = (root / 'submodules/TelegramPresentationData/Sources/PresentationLayoutMetrics.swift').read_text()
 checks = '''
 var cases = 0
