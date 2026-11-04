@@ -4623,8 +4623,11 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         innerSubject: nil
                     )
                     if canSendMessagesToChat(self.presentationInterfaceState) {
+                        let applyReplySubject: (ChatInterfaceState) -> ChatInterfaceState = { interfaceState in
+                            interfaceState.withUpdatedReplyMessageSubject(replySubject)
+                        }
                         let _ = self.presentVoiceMessageDiscardAlert(action: {
-                            self.updateChatPresentationInterfaceState(animated: true, interactive: true, { $0.updatedInterfaceState({ $0.withUpdatedReplyMessageSubject(replySubject) }).updatedSearch(nil).updatedShowCommands(false) }, completion: completion)
+                            self.updateChatPresentationInterfaceState(animated: true, interactive: true, { $0.updatedInterfaceState(applyReplySubject).updatedSearch(nil).updatedShowCommands(false) }, completion: completion)
                             self.updateItemNodesSearchTextHighlightStates()
                             self.chatDisplayNode.ensureInputViewFocused()
                         }, alertAction: {
@@ -4635,7 +4638,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                         completion(nil)
                     }
                 } else {
-                    self.updateChatPresentationInterfaceState(animated: true, interactive: true, { $0.updatedInterfaceState({ $0.withUpdatedReplyMessageSubject(nil).withUpdatedSendMessageEffect(nil).withUpdatedPostSuggestionState(nil) }) }, completion: completion)
+                    let clearInterfaceState: (ChatInterfaceState) -> ChatInterfaceState = { interfaceState in
+                        interfaceState.withUpdatedReplyMessageSubject(nil).withUpdatedSendMessageEffect(nil).withUpdatedPostSuggestionState(nil)
+                    }
+                    self.updateChatPresentationInterfaceState(animated: true, interactive: true, { $0.updatedInterfaceState(clearInterfaceState) }, completion: completion)
                 }
             }
         }, displayImportedMessageTooltip: { [weak self] _ in
