@@ -5621,7 +5621,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             self.openStickerEditor()
         }
 
-        let openAgeRestrictedMessageMediaClosure: (EngineRawMessage, () -> Void) -> Void = { [weak self] message, reveal in
+        let openAgeRestrictedMessageMediaClosure: (EngineRawMessage, @escaping () -> Void) -> Void = { [weak self] message, reveal in
             guard let self else {
                 return
             }
