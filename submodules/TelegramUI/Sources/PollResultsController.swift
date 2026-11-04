@@ -229,7 +229,7 @@ private enum PollResultsEntry: ItemListNodeEntry {
             //TODO:release
             return ItemListMultilineTextItem(presentationData: presentationData, text: text, enabledEntityTypes: [], sectionId: self.section, style: .blocks)
         case let .optionPeer(optionId, _, peer, timestamp, optionText, optionTextEntities, optionAdditionalText, optionCount, optionExpanded, opaqueIdentifier, shimmeringAlternation, isFirstInOption):
-            let font = Font.regular(floor(presentationData.listsFontSize.baseDisplaySize * 13.0 / 17.0))
+            let font = Font.regular(floor(presentationData.fontSize.baseDisplaySize * 13.0 / 17.0))
             var entityFiles: [EngineMedia.Id: TelegramMediaFile] = [:]
             for (id, media) in arguments.message.associatedMedia {
                 if let file = media as? TelegramMediaFile {

@@ -112,7 +112,7 @@ final class ChatRestrictedInputPanelNode: ChatInputPanelNode {
         let regular15 = Font.regular(floor(fontSize * 15.0 / 17.0))
         let semibold15 = Font.semibold(floor(fontSize * 15.0 / 17.0))
         var textFont = regular15
-        var subtitleFont = regular13
+        let subtitleFont = regular13
         
         if let channel = interfaceState.renderedPeer?.chatMainPeer as? TelegramChannel, channel.isMonoForum {
             self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Chat_PanelForumModeReplyText, font: regular15, textColor: interfaceState.theme.chat.inputPanel.secondaryTextColor)

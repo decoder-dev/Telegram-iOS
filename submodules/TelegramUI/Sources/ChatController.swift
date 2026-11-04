@@ -4555,7 +4555,8 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                             return
                         }
                         
-                        let sharedDataEntries = await self.context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.translationSettings]).get()
+                        let accountManager = self.context.sharedContext.accountManager
+                        let sharedDataEntries = await accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.translationSettings]).get()
                         let translationSettings: TranslationSettings
                         if let value = sharedDataEntries.entries[ApplicationSpecificSharedDataKeys.translationSettings], let parsedValue = value.get(TranslationSettings.self) {
                             translationSettings = parsedValue
@@ -6160,7 +6161,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         controllerInteraction.enableFullTranslucency = context.sharedContext.energyUsageSettings.fullTranslucency
         
         self.controllerInteraction = controllerInteraction
-        controllerInteraction.canSetupEditMessage = { [weak self] messageId in
+        controllerInteraction.canSetupEditMessage = { [weak self] (messageId: EngineMessage.Id) in
             guard let self, let message = self.chatDisplayNode.historyNode.messageInCurrentHistoryView(messageId)?._asMessage() else {
                 return false
             }
