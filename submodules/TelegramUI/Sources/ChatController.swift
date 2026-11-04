@@ -85,6 +85,12 @@ import ChatTimerScreen
 import MediaPasteboardUI
 import ChatListHeaderComponent
 import ChatControllerInteraction
+
+private typealias OpenPeerSource = ChatControllerInteraction.OpenPeerSource
+private typealias OpenUrl = ChatControllerInteraction.OpenUrl
+private typealias OpenInstantPage = ChatControllerInteraction.OpenInstantPage
+private typealias LongTapParams = ChatControllerInteraction.LongTapParams
+private typealias PollMediaSubject = ChatControllerInteraction.PollMediaSubject
 import FeaturedStickersScreen
 import ChatEntityKeyboardInputNode
 import StorageUsageScreen
@@ -5191,7 +5197,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 let theme = AlertControllerTheme(presentationData: strongSelf.presentationData)
                 if case .user = peerType {
                     attributedTitle = nil
-                    attributedText = NSAttributedString(string: strongSelf.presentationData.strings.RequestPeer_SelectionConfirmationTitle(peerName, botName).string, font: Font.medium(self.presentationData.listsFontSize.baseDisplaySize), textColor: theme.primaryColor, paragraphAlignment: .center)
+                    attributedText = NSAttributedString(string: strongSelf.presentationData.strings.RequestPeer_SelectionConfirmationTitle(peerName, botName).string, font: Font.medium(17.0), textColor: theme.primaryColor, paragraphAlignment: .center)
                 } else {
                     attributedTitle = NSAttributedString(string: strongSelf.presentationData.strings.RequestPeer_SelectionConfirmationTitle(peerName, botName).string, font: Font.semibold(self.presentationData.listsFontSize.baseDisplaySize), textColor: theme.primaryColor, paragraphAlignment: .center)
                     
