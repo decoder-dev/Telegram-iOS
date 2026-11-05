@@ -27,4 +27,7 @@ port with the WebSocket transport and its direct fallback off, so no connection 
 the made-up account would log it out. The chat list therefore shows the connecting state in its title.
 
 Later launches use `--ui-test --ui-test-keep-data`; `--ui-test-screen <chats|archive|saved|settings|contacts>` opens a
-screen after launch. `--ui-test-login <phone>` (a real test-DC sign-in) is kept for when test numbers work again.
+screen after launch. `--ui-test-theme <day|night|cream|graphite>` selects the theme (the fork does not follow the
+system appearance), and `--ui-test-language ru` shows the fork's own strings in Russian; Telegram's strings stay English,
+since they need a downloaded language pack. `--ui-test-login <phone>` (a real test-DC sign-in) is kept for when test
+numbers work again. The run keeps the app's log files in `app-logs/`.

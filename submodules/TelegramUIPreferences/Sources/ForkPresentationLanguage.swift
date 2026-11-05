@@ -29,10 +29,22 @@ public enum ForkPresentationLanguage {
         }
     }
 
+    /// Simulator QA only (`--ui-test --ui-test-language <code>`): the fork's strings in that language, whatever the
+    /// app's own language is. Telegram's strings need a downloaded language pack, which the offline QA account has not.
+    private static let uiTestValue = Atomic<String?>(value: nil)
+    public static var uiTestLanguageCode: String? {
+        get {
+            return self.uiTestValue.with { $0 }
+        }
+        set {
+            let _ = self.uiTestValue.swap(newValue.map { String($0.prefix(2)).lowercased() })
+        }
+    }
+
     /// True when the app is presenting in a language that should get the fork's Russian strings.
     /// Falls back to the device language while the override is still nil.
     public static var prefersRussianStrings: Bool {
-        let code = self.languageCode ?? String((Locale.preferredLanguages.first ?? "en").prefix(2)).lowercased()
+        let code = self.uiTestLanguageCode ?? self.languageCode ?? String((Locale.preferredLanguages.first ?? "en").prefix(2)).lowercased()
         switch code {
         case "ru", "uk", "be":
             return true

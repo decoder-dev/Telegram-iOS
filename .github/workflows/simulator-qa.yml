@@ -259,6 +259,21 @@ jobs:
               xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
             done
           done
+          # The fork's own screens once more with their Russian strings, which run longer than the English ones and are
+          # where text overflows first (Telegram's own strings stay English: they need a downloaded language pack).
+          xcrun simctl ui "$UDID" appearance light
+          for entry in "${SCREENS[@]}"; do
+            target="${entry#* }"
+            case "$target" in
+              extras*|archive-settings|banana-security|accounts|chats|url:tg://settings/data/proxy) ;;
+              *) continue ;;
+            esac
+            name="$(echo "$target" | sed -E 's#^url:##; s#^tg://##; s#[^A-Za-z0-9]+#-#g; s#-+$##')"
+            xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme day --ui-test-language ru --ui-test-screen "$target" > /dev/null
+            sleep 12
+            xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/ru-$name.png" > /dev/null 2>&1 || echo "screenshot failed: ru-$name"
+            xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          done
           ls qa-artifacts/screens | wc -l
           # The app's own Logger files, so a screen stuck loading can be read from what the app did.
           mkdir -p qa-artifacts/app-logs

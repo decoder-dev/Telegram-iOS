@@ -20,6 +20,9 @@ func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext
     let screen = arguments[index + 1]
     let context = applicationContext.context
     let rootController = applicationContext.rootController
+    if let languageIndex = arguments.firstIndex(of: "--ui-test-language"), languageIndex + 1 < arguments.count {
+        ForkPresentationLanguage.uiTestLanguageCode = arguments[languageIndex + 1]
+    }
     // The fork does not follow the system appearance (one selected theme, no automatic switching), so a dark
     // screenshot needs the dark theme selected: `--ui-test-theme <day|night|cream|graphite>`.
     if let themeIndex = arguments.firstIndex(of: "--ui-test-theme"), themeIndex + 1 < arguments.count {
