@@ -494,7 +494,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.integratedTabSearch = false
         self.tabSearchOnLeft = false
         self.bottomChatFoldersEnabled = false
-        self.avatarGlowEnabled = true
+        // Off by default: a coloured glow around avatars is decoration, not system chrome (Apple HIG).
+        self.avatarGlowEnabled = false
         self.snowEnabled = false
         self.showChannelForwardCount = false
         self.reactionGlowEnabled = false
@@ -731,7 +732,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.stayAtLatestMessageAfterRefresh = try container.decodeIfPresent(Bool.self, forKey: "stayAtLatestMessageAfterRefresh") ?? false
         let decodedVideoQuality = try container.decodeIfPresent(Int32.self, forKey: "defaultVideoQuality") ?? 0
         self.defaultVideoQuality = (0 ... 2).contains(decodedVideoQuality) ? decodedVideoQuality : 0
-        self.avatarGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? true
+        // As with the banana island: every install stored the old default (true), so the stored value is read only
+        // once the off-by-default migration has run.
+        let glowDefaultOff = try container.decodeIfPresent(Bool.self, forKey: "glowDefaultOff") ?? false
+        let avatarGlowStoredValue = try container.decodeIfPresent(Bool.self, forKey: "avatarGlowEnabled") ?? false
+        self.avatarGlowEnabled = glowDefaultOff ? avatarGlowStoredValue : false
         self.snowEnabled = try container.decodeIfPresent(Bool.self, forKey: "snowEnabled") ?? false
         self.showChannelForwardCount = try container.decodeIfPresent(Bool.self, forKey: "showChannelForwardCount") ?? false
         self.reactionGlowEnabled = try container.decodeIfPresent(Bool.self, forKey: "reactionGlowEnabled") ?? false
@@ -938,6 +943,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.stayAtLatestMessageAfterRefresh, forKey: "stayAtLatestMessageAfterRefresh")
         try container.encode(self.defaultVideoQuality, forKey: "defaultVideoQuality")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
+        try container.encode(true, forKey: "glowDefaultOff")
         try container.encode(self.snowEnabled, forKey: "snowEnabled")
         try container.encode(self.showChannelForwardCount, forKey: "showChannelForwardCount")
         try container.encode(self.reactionGlowEnabled, forKey: "reactionGlowEnabled")
