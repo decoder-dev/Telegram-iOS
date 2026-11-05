@@ -262,7 +262,7 @@ jobs:
             "app url:tg://settings/premium"
           )
           # One launch per screen: `capture <appearance> <theme> <target> [language]` saves qa-artifacts/screens/<appearance>-<name>.png
-          # unless that screenshot already exists. 8 s covers the launch, the 3 s before the screen opens, and its push.
+          # unless that screenshot already exists. 12 s covers the launch, the 3 s before the screen opens, and its push (8 s left pushed screens mid-animation, or not yet open).
           capture() {
             local appearance="$1" theme="$2" target="$3" language="${4:-}"
             local name
@@ -273,7 +273,7 @@ jobs:
             else
               xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme "$theme" --ui-test-screen "$target" > /dev/null
             fi
-            sleep 8
+            sleep 12
             xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/$appearance-$name.png" > /dev/null 2>&1 || echo "screenshot failed: $appearance-$name"
             xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
           }
