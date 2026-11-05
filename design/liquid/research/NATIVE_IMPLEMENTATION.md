@@ -396,3 +396,7 @@ WalletWords/Send keyboard/recipient/collectible, ContextController actions stack
 
 Иконки — SF Symbols на цветных плашках через новый `renderSettingsSymbolIcon(systemName:color:)` (`PresentationResourcesSettings`), с тем же кэшем и перекраской тем BananaGram. Linux: archive/security regression scripts pass, остальные падения совпадают с базой. Simulator NOT RUN.
 
+## Сцена 37: корень BananaGram
+
+Корень `forkExtrasController(focus: .top)` сгруппирован как в макете: карточка «Дополнительные функции · Тонкая настройка клиента», «Разделы» (Ниндзя, Невидимка, Приватность, Безопасность, Сообщения и ввод, Звонки и звук, Профиль и эффекты, Сеть), «Интерфейс» (Список чатов и папки, Панель вкладок, Порядок аккаунтов, Оформление) и прежняя подпись. Все пункты и их переходы прежние; новые секции `hubCard`/`hubInterface`, порядок задан `positionOverrides`. `Tests/ClientAdditions/menu_layout.py` (компилирует настоящую фабрику) ждёт новый порядок и проходит. Simulator NOT RUN.
+

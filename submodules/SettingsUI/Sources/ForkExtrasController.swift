@@ -665,6 +665,9 @@ private enum ForkExtrasSection: Int32 {
     case developer
     case archive
     case backgroundConnection
+    // The Extras hub (scene 37): the header card, then "Sections", then "Interface" (which is `hub`'s second half).
+    case hubCard
+    case hubInterface
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
@@ -765,6 +768,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case hubMedia
     case hubProfile
     case hubNetwork
+    case hubCard
+    case hubSectionsHeader
+    case hubInterfaceHeader
     case ghostModeMaster(Bool)
     case ghostReadOnInteract(Bool)
     case ghostScheduleMessages(Bool)
@@ -802,12 +808,17 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case let .destination(_, _, destination):
             switch destination {
             case .proxy: return ForkExtrasSection.proxy.rawValue
-            case .security, .accountOrder: return ForkExtrasSection.hub.rawValue
+            case .security: return ForkExtrasSection.hub.rawValue
+            case .accountOrder: return ForkExtrasSection.hubInterface.rawValue
             }
         case .audioHeader, .musicPolicy: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
-        case .hubAppearance, .hubNinja, .hubGhost, .hubPrivacy, .hubChatList, .hubTabBar, .hubMessages, .hubMedia, .hubProfile, .hubNetwork:
+        case .hubSectionsHeader, .hubNinja, .hubGhost, .hubPrivacy, .hubMessages, .hubMedia, .hubProfile, .hubNetwork:
             return ForkExtrasSection.hub.rawValue
+        case .hubInterfaceHeader, .hubAppearance, .hubChatList, .hubTabBar:
+            return ForkExtrasSection.hubInterface.rawValue
+        case .hubCard:
+            return ForkExtrasSection.hubCard.rawValue
         case .ghostModeMaster, .ghostReadOnInteract, .ghostScheduleMessages:
             return ForkExtrasSection.ghost.rawValue
         case .accentSaturation:
@@ -851,6 +862,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hubMedia: return 8
         case .hubProfile: return 23
         case .hubNetwork: return 5
+        case .hubCard: return 1996
+        case .hubSectionsHeader: return 1997
+        case .hubInterfaceHeader: return 1998
         case .ghostModeMaster: return 9
         case .ghostReadOnInteract: return 16
         case .ghostScheduleMessages: return 20
@@ -874,15 +888,20 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     /// The list diff merges sorted lists, so `<` has to agree with the display order or rows that appear and
     /// disappear (the regex filter rows) get inserted next to stale copies and are drawn twice.
     private static let positionOverrides: [Int32: Double] = [
+        // The Extras hub (scene 37): card, Sections (Ninja ... Network), Interface (Chat list ... Appearance), footer.
+        1996: -2.0,    // The header card.
+        1997: -1.0,    // "Sections".
         1995: 2.5,     // Security follows Privacy on the Extras hub.
-        2100: 2.7,
+        1998: 5.2,     // "Interface" follows Network.
+        3: 5.3,        // Chat list and folders opens Interface.
+        2100: 5.5,     // Account order.
         2105: 137.5,
         2103: 144.3,
         2104: 144.5,
-        7: 3.3,        // Tab bar follows Chat list and folders.
+        7: 5.4,        // Tab bar follows Chat list and folders.
         8: 4.3,        // Calls and audio follows Messages and composer.
         23: 4.6,       // Profile and effects follows Calls and audio.
-        1540: 4.7,     // Appearance follows Profile and effects on the Extras hub.
+        1540: 5.6,     // Appearance closes Interface on the Extras hub.
         // 146 now belongs to Network; its original stable order is appropriate there.
         147: 133.3,     // Show 18+ Content, after Hide Blocked Messages
         148: 133.6,
@@ -1014,6 +1033,13 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.myProfile, title: ForkExtrasLocalizedString.hubProfile, label: ForkExtrasLocalizedString.hubProfileLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.profile)
             }, tag: BananaSettingsItemTag(id: self.stableId))
+        case .hubCard:
+            let russian = ForkPresentationLanguage.prefersRussianStrings
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: renderSettingsSymbolIcon(systemName: "sparkles", color: UIColor(rgb: 0xE9B53D)), title: russian ? "Дополнительные функции" : "Extra Features", titleFont: .bold, label: "", additionalDetailLabel: russian ? "Тонкая настройка клиента" : "Fine-tune the client", sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil, tag: BananaSettingsItemTag(id: self.stableId))
+        case .hubSectionsHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ForkPresentationLanguage.prefersRussianStrings ? "РАЗДЕЛЫ" : "SECTIONS", sectionId: self.section)
+        case .hubInterfaceHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ForkPresentationLanguage.prefersRussianStrings ? "ИНТЕРФЕЙС" : "INTERFACE", sectionId: self.section)
         case .hubNetwork:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.proxy, title: ForkExtrasLocalizedString.hubNetwork, label: ForkExtrasLocalizedString.hubNetworkLabel, sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.network)
@@ -1210,21 +1236,25 @@ private func forkIntChoiceLabel(_ options: [(String, Int32)], _ value: Int32) ->
 private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, mediaInputSettings: MediaInputSettings, focus: ForkExtrasControllerFocus, accountPeerId: Int64? = nil, accountRecordId: Int64? = nil) -> [ForkExtrasEntry] {
     let category = focus.resolvedCategory
     if category == .top {
+        // Scene 37: the header card, the feature sections, then the ones that change the interface.
         return [
+            .hubCard,
+            .hubSectionsHeader,
             .hubNinja,
             .hubGhost,
             .hubPrivacy,
             // Security: switches against the ways accounts are stolen (BananaSecurityController).
             .destination(1995, BananaSecurityStrings.title, .security),
-            .destination(2100, ForkPresentationLanguage.prefersRussianStrings ? "Порядок аккаунтов" : "Account Order", .accountOrder),
-            .hubChatList,
-            .hubTabBar,
             .hubMessages,
             .hubMedia,
             .hubProfile,
-            .hubAppearance,
             .hubNetwork,
-            .settingFooter(6, .hub, ForkExtrasLocalizedString.hubFooter),
+            .hubInterfaceHeader,
+            .hubChatList,
+            .hubTabBar,
+            .destination(2100, ForkPresentationLanguage.prefersRussianStrings ? "Порядок аккаунтов" : "Account Order", .accountOrder),
+            .hubAppearance,
+            .settingFooter(6, .hubInterface, ForkExtrasLocalizedString.hubFooter),
         ]
     }
 
