@@ -60,10 +60,6 @@ public enum BananaSecurityStrings {
         ru ? "Чат с непроверенным аккаунтом по имени «Telegram», «Безопасность», «Поддержка» и т. п. откроется с предупреждением."
            : "A chat with an unverified account named \"Telegram\", \"Security\", \"Support\" and the like opens with a warning."
     }
-    /// Under the switches, since the rows carry short titles only (scene 41): what each one does.
-    static var protectionsDetails: String {
-        return [blockQrLoginText, guardLoginCodesText, blockPhoneSharingText, warnMiniAppsText, confirmExternalLinksText, flagFakeSupportText].map { "• " + $0 }.joined(separator: "\n")
-    }
     static var protectionsFooter: String {
         ru ? "Telegram никогда не просит код, пароль или номер в чате, на сайте или в боте. Любая такая просьба — попытка угона."
            : "Telegram never asks for a code, a password or your number in a chat, on a site or in a bot. Any such request is a takeover attempt."
@@ -257,7 +253,7 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
             return ItemListTextItem(presentationData: presentationData, text: .plain(BananaSecurityStrings.statusFooter), sectionId: self.section)
         case .protectionsHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: BananaSecurityStrings.protectionsHeader, sectionId: self.section)
-        case let .toggle(id, title, _, value, keyPath):
+        case let .toggle(id, title, text, value, keyPath):
             let icon: UIImage?
             switch id {
             case 0: icon = bananaSecurityIcon("qrcode", .systemOrange)
@@ -267,11 +263,11 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
             case 4: icon = bananaSecurityIcon("globe", .systemBlue)
             default: icon = bananaSecurityIcon("checkmark.shield.fill", .systemGreen)
             }
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, text: text, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.update(keyPath, value)
             })
         case .protectionsFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain(BananaSecurityStrings.protectionsDetails + "\n\n" + BananaSecurityStrings.protectionsFooter), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain(BananaSecurityStrings.protectionsFooter), sectionId: self.section)
         }
     }
 }

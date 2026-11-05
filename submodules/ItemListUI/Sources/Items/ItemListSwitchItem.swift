@@ -8,6 +8,18 @@ import SwitchNode
 import AppBundle
 import ComponentFlow
 
+
+/// The width a switch row keeps clear for its switch, from the title's trailing edge: the switch, its 15 pt trailing
+/// margin and an 8 pt gap. The iOS 26 switch is 63 pt wide where the old one was 51, so the old fixed 64 pt let a long
+/// title run under the switch ("Show Data Center & Registration Dat…" in Extras, measured on the iOS 26 simulator).
+public let itemListSwitchReservedWidth: CGFloat = {
+    if #available(iOS 26.0, *) {
+        return 63.0 + 15.0 + 8.0
+    } else {
+        return 64.0
+    }
+}()
+
 public enum ItemListSwitchItemNodeType {
     case regular
     case icon
@@ -349,7 +361,7 @@ public class ItemListSwitchItemNode: ListViewItemNode, ItemListItemNode {
             } else {
                 maximumTitleLines = item.maximumNumberOfLines
             }
-            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: maximumTitleLines, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - 64.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+            let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: maximumTitleLines, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - itemListSwitchReservedWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             contentSize.height = max(contentSize.height, titleLayout.size.height + topInset * 2.0)
             
@@ -363,7 +375,7 @@ public class ItemListSwitchItemNode: ListViewItemNode, ItemListItemNode {
                 case .accent:
                     textColor = item.presentationData.theme.list.itemAccentColor
                 }
-                let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: text, font: textFont, textColor: textColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - 84.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+                let (textLayout, textApply) = makeTextLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: text, font: textFont, textColor: textColor), backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - max(84.0, itemListSwitchReservedWidth), height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
                 contentSize.height += -1.0 + textLayout.size.height
                 textLayoutAndApply = (textLayout, textApply)
             }
