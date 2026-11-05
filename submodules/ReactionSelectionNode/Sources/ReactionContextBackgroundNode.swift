@@ -70,6 +70,8 @@ final class ReactionContextBackgroundNode: ASDisplayNode {
     private let smallCircleShadowLayer: SimpleLayer
     
     private let glass: GlassParams?
+    /// Half the height of the tallest collapsed bar: 10 + 32 + 10 (Tapbacks).
+    private static let maximumCapsuleRadius: CGFloat = 26.0
     private var theme: PresentationTheme?
     
     init(glass: GlassParams?, largeCircleSize: CGFloat, smallCircleSize: CGFloat, maskNode: ASDisplayNode) {
@@ -214,9 +216,12 @@ final class ReactionContextBackgroundNode: ASDisplayNode {
         // Fully capsule when the bubble-tail is hidden (iMessage Tapbacks look). Resolve the radius
         // first and apply it once: setting it twice makes an animated resize start its corner-radius
         // animation from the intermediate value the layer never actually had.
+        // The capsule radius is capped at the tallest one-row bar (the 52pt Tapbacks pill): an expanded
+        // picker grows to several hundred points, and half of that height drew it as an oval, with
+        // the emoji grid and the pack row spilling outside its corners (video chat, story viewer).
         let backgroundCornerRadius = displayTail
             ? min(46.0 / 2.0, backgroundFrame.height / 2.0)
-            : backgroundFrame.height / 2.0
+            : min(Self.maximumCapsuleRadius, backgroundFrame.height / 2.0)
         transition.updateCornerRadius(layer: self.backgroundClippingLayer, cornerRadius: backgroundCornerRadius)
         
         let largeCircleFrame: CGRect
@@ -273,7 +278,7 @@ final class ReactionContextBackgroundNode: ASDisplayNode {
                 glassTintColor = .init(kind: .panel)
             }
             glassBackgroundView.container.update(size: glassBackgroundFrame.size, isDark: glass.isDark, transition: ComponentTransition(transition))
-            let glassCornerRadius = displayTail ? min(23.0, glassBackgroundFrame.height / 2.0) : (glassBackgroundFrame.height / 2.0)
+            let glassCornerRadius = displayTail ? min(23.0, glassBackgroundFrame.height / 2.0) : min(Self.maximumCapsuleRadius, glassBackgroundFrame.height / 2.0)
             // Same appearance as the container above it — hardcoding dark glass leaves the Tapbacks
             // pill rendering as a dark capsule on the Day theme.
             glassBackgroundView.view.update(size: glassBackgroundFrame.size, cornerRadius: glassCornerRadius, isDark: glass.isDark, tintColor: glassTintColor, transition: ComponentTransition(transition))
