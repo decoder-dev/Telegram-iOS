@@ -668,6 +668,8 @@ private enum ForkExtrasSection: Int32 {
     // The Extras hub (scene 37): the header card, then "Sections", then "Interface" (which is `hub`'s second half).
     case hubCard
     case hubInterface
+    // The Network page's connection card (scene 40).
+    case connectionStatus
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
@@ -771,6 +773,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case hubCard
     case hubSectionsHeader
     case hubInterfaceHeader
+    /// Network page (scene 40): how the app connects right now. `detail` is the proxy's kind and host, never a secret.
+    case connectionStatus(title: String, detail: String, viaProxy: Bool)
     case ghostModeMaster(Bool)
     case ghostReadOnInteract(Bool)
     case ghostScheduleMessages(Bool)
@@ -819,6 +823,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.hubInterface.rawValue
         case .hubCard:
             return ForkExtrasSection.hubCard.rawValue
+        case .connectionStatus:
+            return ForkExtrasSection.connectionStatus.rawValue
         case .ghostModeMaster, .ghostReadOnInteract, .ghostScheduleMessages:
             return ForkExtrasSection.ghost.rawValue
         case .accentSaturation:
@@ -863,6 +869,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hubProfile: return 23
         case .hubNetwork: return 5
         case .hubCard: return 1996
+        case .connectionStatus: return 2110
         case .hubSectionsHeader: return 1997
         case .hubInterfaceHeader: return 1998
         case .ghostModeMaster: return 9
@@ -895,6 +902,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         1998: 5.2,     // "Interface" follows Network.
         3: 5.3,        // Chat list and folders opens Interface.
         2100: 5.5,     // Account order.
+        2110: 137.0,   // The Network page's connection card opens the page.
         2105: 137.5,
         2103: 144.3,
         2104: 144.5,
@@ -1036,6 +1044,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hubCard:
             let russian = ForkPresentationLanguage.prefersRussianStrings
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: renderSettingsSymbolIcon(systemName: "sparkles", color: .systemYellow), title: russian ? "Дополнительные функции" : "Extra Features", titleFont: .bold, label: "", additionalDetailLabel: russian ? "Тонкая настройка клиента" : "Fine-tune the client", sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil, tag: BananaSettingsItemTag(id: self.stableId))
+        case let .connectionStatus(title, detail, viaProxy):
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: renderSettingsSymbolIcon(systemName: viaProxy ? "shield.fill" : "wifi", color: viaProxy ? .systemGreen : .systemBlue), title: title, titleFont: .bold, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, action: {
+                arguments.openDestination(.proxy)
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubSectionsHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ForkPresentationLanguage.prefersRussianStrings ? "РАЗДЕЛЫ" : "SECTIONS", sectionId: self.section)
         case .hubInterfaceHeader:
@@ -1233,7 +1245,7 @@ private func forkIntChoiceLabel(_ options: [(String, Int32)], _ value: Int32) ->
     return options.first(where: { $0.1 == value })?.0 ?? ""
 }
 
-private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, mediaInputSettings: MediaInputSettings, focus: ForkExtrasControllerFocus, accountPeerId: Int64? = nil, accountRecordId: Int64? = nil) -> [ForkExtrasEntry] {
+private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetchPublicMtProxy: Bool, showCallsTab: Bool, mediaInputSettings: MediaInputSettings, focus: ForkExtrasControllerFocus, accountPeerId: Int64? = nil, accountRecordId: Int64? = nil, connectionSummary: (viaProxy: Bool, detail: String)? = nil) -> [ForkExtrasEntry] {
     let category = focus.resolvedCategory
     if category == .top {
         // Scene 37: the header card, the feature sections, then the ones that change the interface.
@@ -1563,7 +1575,15 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         }
         entries.append(.regexFiltersFooter(settings.regexMessageFiltersEnabled ? ForkRegexMessageFilters.unusablePatternCount(settings.regexMessageFilterPatterns) : 0))
     case .network:
-        entries = [
+        entries = []
+        if let connectionSummary {
+            entries.append(.connectionStatus(
+                title: connectionSummary.viaProxy ? (russian ? "Подключение через прокси" : "Connected through a proxy") : (russian ? "Прямое подключение" : "Direct connection"),
+                detail: connectionSummary.detail,
+                viaProxy: connectionSummary.viaProxy
+            ))
+        }
+        entries += [
             .settingToggle(2105, .proxy, russian ? "Скрыть спонсора прокси" : "Hide proxy sponsor", settings.hideProxySponsor, \.hideProxySponsor),
             .destination(138, ForkPresentationLanguage.prefersRussianStrings ? "Прокси и подключение" : "Proxies and connection", .proxy),
 
@@ -2028,7 +2048,25 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
     |> deliverOnMainQueue
     |> map { presentationData, settings, sharedData -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let proxySettings = sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
-        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy, showCallsTab: (sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? .defaultSettings).showTab, mediaInputSettings: sharedData.entries[ApplicationSpecificSharedDataKeys.mediaInputSettings]?.get(MediaInputSettings.self) ?? .defaultSettings, focus: focus, accountPeerId: context.account.peerId.toInt64(), accountRecordId: context.account.id.int64)
+        // The Network page shows how the app connects: the active proxy's kind and host (no secret, no password).
+        let connectionSummary: (viaProxy: Bool, detail: String)
+        if let server = proxySettings.effectiveActiveServer {
+            let kind: String
+            switch server.connection {
+            case .socks5:
+                kind = "SOCKS5"
+            case .mtp:
+                kind = "MTProto"
+            case .web:
+                kind = "WEB"
+            case .vless:
+                kind = "VLESS"
+            }
+            connectionSummary = (true, "\(kind) · \(server.host)")
+        } else {
+            connectionSummary = (false, ForkPresentationLanguage.prefersRussianStrings ? "Без прокси" : "No proxy")
+        }
+        let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: proxySettings.autoFetchPublicMtProxy, showCallsTab: (sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? .defaultSettings).showTab, mediaInputSettings: sharedData.entries[ApplicationSpecificSharedDataKeys.mediaInputSettings]?.get(MediaInputSettings.self) ?? .defaultSettings, focus: focus, accountPeerId: context.account.peerId.toInt64(), accountRecordId: context.account.id.int64, connectionSummary: connectionSummary)
         let focusedSection: ItemListSectionId?
         switch focus {
         case .messageSaving:
