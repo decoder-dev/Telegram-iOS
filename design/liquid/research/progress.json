@@ -17,7 +17,7 @@
   "38_extras_messages": "NATIVE_IMPLEMENTED_BUILD_PENDING",
   "39_extras_media": "NATIVE_IMPLEMENTED_BUILD_PENDING",
   "25_proxies": "NATIVE_PARTIAL_BUILD_PENDING",
-  "45_proxy_connection": "NATIVE_PARTIAL_BUILD_PENDING",
+  "45_proxy_connection": "NATIVE_IMPLEMENTED_BUILD_PENDING",
   "47_sessions": "NATIVE_EXISTING_MATCHES",
   "33_notifications": "NATIVE_EXISTING_MATCHES",
   "48_chat_style": "NATIVE_EXISTING_MATCHES",
