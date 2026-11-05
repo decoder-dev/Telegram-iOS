@@ -397,6 +397,27 @@ final class ContextSourceContainer: ASDisplayNode {
     var overlayWantsToBeBelowKeyboard: Bool {
         return self.activeSource?.presentationNode.wantsDisplayBelowKeyboard() ?? false
     }
+
+    /// The keyboard window sits at level 1e7 + 1, above anything the app can make (app windows are clamped to 1e7).
+    private var isHostedInKeyboardWindow: Bool {
+        guard self.isNodeLoaded, let window = self.view.window else {
+            return false
+        }
+        return window.windowLevel.rawValue > 10_000_000.0
+    }
+
+    private var lastHostedInKeyboardWindow = false
+
+    override func didEnterHierarchy() {
+        super.didEnterHierarchy()
+        // The overlay is moved between the app window and the keyboard window as the keyboard comes and goes; the
+        // background depends on which one it is in.
+        let hosted = self.isHostedInKeyboardWindow
+        if hosted != self.lastHostedInKeyboardWindow {
+            self.lastHostedInKeyboardWindow = hosted
+            self.update(transition: .immediate)
+        }
+    }
     
     init(controller: ContextControllerImpl, configuration: ContextController.Configuration, context: AccountContext?) {
         self.controller = controller
@@ -639,7 +660,8 @@ final class ContextSourceContainer: ASDisplayNode {
     ) {
         self.presentationData = presentationData
         self.validLayout = layout
-        
+        self.lastHostedInKeyboardWindow = self.isHostedInKeyboardWindow
+
         var layout = layout
         if self.sources.count > 1 {
             var intrinsicInsets = layout.intrinsicInsets
@@ -666,7 +688,18 @@ final class ContextSourceContainer: ASDisplayNode {
                     transition: .immediate
                 )
             case .controller:
-                if case .regular = layout.metrics.widthClass {
+                if self.isHostedInKeyboardWindow {
+                    // While the keyboard is up the menu is parented into the keyboard window (NavigationController's
+                    // global overlay), whose blur samples only the keyboard: the screen behind went black, with the
+                    // blurred Search key the only thing showing (chat-list search, long press on a recent chat). A
+                    // plain dim lets the app's own window show through, dimmed as the blur's tint would have been.
+                    self.backgroundNode.updateColor(
+                        color: presentationData.theme.overallDarkAppearance ? UIColor(white: 0.0, alpha: 0.6) : UIColor(white: 0.0, alpha: 0.4),
+                        enableBlur: false,
+                        forceKeepBlur: false,
+                        transition: .immediate
+                    )
+                } else if case .regular = layout.metrics.widthClass {
                     self.backgroundNode.updateColor(
                         color: UIColor(white: 0.0, alpha: 0.4),
                         enableBlur: false,
