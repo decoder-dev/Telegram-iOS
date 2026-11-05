@@ -7419,7 +7419,7 @@ private final class ChatListLocationContext {
             }
             self.settingsButton = NavigationBarComponent.Button(id: "lockArchive",
                 content: .image(lockImage),
-                overflow: NavigationBarComponent.OverflowInfo(id: "lockArchive", title: ArchiveLockLocalizedString.lockNow, iconName: nil, image: lockImage, action: lockNow),
+                overflow: NavigationBarComponent.OverflowInfo(title: ArchiveLockLocalizedString.lockNow, iconName: nil, priority: nil, image: lockImage),
                 action: lockNow
             )
         }
