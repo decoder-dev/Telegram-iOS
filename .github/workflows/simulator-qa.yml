@@ -76,6 +76,27 @@ jobs:
         with:
           toolchain: ${{ inputs.toolchain }}
 
+      # A cold simulator build filled the runner's disk before the app could be installed ("No space left on
+      # device", 2026-11-05). The build workflow's cleanup, plus toolchains this job never uses; the Xcode the
+      # toolchain step selected and the simulator runtimes stay.
+      - name: Free disk space
+        run: |
+          set -euo pipefail
+          df -h /
+          sudo rm -rf \
+            /Users/runner/Library/Developer/CoreSimulator/Caches \
+            /Users/runner/.cargo \
+            /Users/runner/.rustup \
+            /Users/runner/.dotnet \
+            /usr/local/lib/android \
+            /Users/runner/Library/Android \
+            /usr/local/share/powershell || true
+          SELECTED="$(xcode-select -p | sed -E 's#(/Applications/[^/]+\.app).*#\1#')"
+          for app in /Applications/Xcode_1*.app /Applications/Xcode_2[0-5]*.app; do
+            [ -e "$app" ] && [ "$app" != "$SELECTED" ] && sudo rm -rf "$app" || true
+          done
+          df -h /
+
       - name: Restore Bazel simulator cache
         id: bazel-cache
         uses: actions/cache/restore@v4
