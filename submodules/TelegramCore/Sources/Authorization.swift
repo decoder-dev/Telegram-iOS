@@ -1613,6 +1613,63 @@ public func test_loginAndDeleteAccount(
     phoneNumber: String,
     phoneCode: String
 ) -> Signal<Never, TestLoginAndDeleteAccountError> {
+    return test_signIn(rootPath: rootPath, accountManager: accountManager, networkArguments: networkArguments, encryptionParameters: encryptionParameters, phoneNumber: phoneNumber, phoneCode: phoneCode)
+    |> mapToSignal { account, checkCodeResult -> Signal<Never, TestLoginAndDeleteAccountError> in
+        switch checkCodeResult {
+        case .signUp:
+            return .complete()
+        case .loggedIn:
+            return account.network.request(Api.functions.account.deleteAccount(
+                flags: 0,
+                reason: "",
+                password: nil
+            ))
+            |> mapError { _ -> TestLoginAndDeleteAccountError in
+                return .generic
+            }
+            |> mapToSignal { _ -> Signal<Never, TestLoginAndDeleteAccountError> in
+                return .complete()
+            }
+        }
+    }
+}
+
+/// Simulator QA (`--ui-test-login`): signs a test-environment number (`99966XYYYY`, code X×5) in and keeps the account,
+/// registering it first when the number is new. Test environment only; the app calls it only under `--ui-test`.
+public func test_loginAccount(
+    rootPath: String,
+    accountManager: AccountManager<TelegramAccountManagerTypes>,
+    networkArguments: NetworkInitializationArguments,
+    encryptionParameters: ValueBoxEncryptionParameters,
+    phoneNumber: String,
+    phoneCode: String,
+    firstName: String,
+    lastName: String
+) -> Signal<Never, TestLoginAndDeleteAccountError> {
+    return test_signIn(rootPath: rootPath, accountManager: accountManager, networkArguments: networkArguments, encryptionParameters: encryptionParameters, phoneNumber: phoneNumber, phoneCode: phoneCode)
+    |> mapToSignal { account, checkCodeResult -> Signal<Never, TestLoginAndDeleteAccountError> in
+        switch checkCodeResult {
+        case .signUp:
+            return signUpWithName(accountManager: accountManager, account: account, firstName: firstName, lastName: lastName, avatarData: nil, avatarVideo: nil, videoStartTimestamp: nil, forcedPasswordSetupNotice: { _ in nil })
+            |> mapError { error -> TestLoginAndDeleteAccountError in
+                NSLog("[UITestLogin] signUp error: \(error)")
+                return .generic
+            }
+            |> ignoreValues
+        case .loggedIn:
+            return .complete()
+        }
+    }
+}
+
+private func test_signIn(
+    rootPath: String,
+    accountManager: AccountManager<TelegramAccountManagerTypes>,
+    networkArguments: NetworkInitializationArguments,
+    encryptionParameters: ValueBoxEncryptionParameters,
+    phoneNumber: String,
+    phoneCode: String
+) -> Signal<(UnauthorizedAccount, AuthorizeWithCodeResult), TestLoginAndDeleteAccountError> {
     Logger.shared.logToConsole = true
 
     return accountManager.transaction{ transaction -> AccountRecordId? in
@@ -1724,24 +1781,6 @@ public func test_loginAndDeleteAccount(
             }
         default:
             preconditionFailure("Unexpected account state: \(state)")
-        }
-    }
-    |> mapToSignal { account, checkCodeResult -> Signal<Never, TestLoginAndDeleteAccountError> in
-        switch checkCodeResult {
-        case .signUp:
-            return .complete()
-        case .loggedIn:
-            return account.network.request(Api.functions.account.deleteAccount(
-                flags: 0,
-                reason: "",
-                password: nil
-            ))
-            |> mapError { _ -> TestLoginAndDeleteAccountError in
-                return .generic
-            }
-            |> mapToSignal { _ -> Signal<Never, TestLoginAndDeleteAccountError> in
-                return .complete()
-            }
         }
     }
 }

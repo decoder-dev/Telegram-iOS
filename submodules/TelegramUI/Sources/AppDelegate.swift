@@ -745,7 +745,11 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         let rootPath: String
         if isUITest {
             let testDataPath = appGroupUrl.path + "/telegram-ui-tests-data"
-            let _ = try? FileManager.default.removeItem(atPath: testDataPath)
+            // Simulator QA: a run that signs in (`--ui-test-login`) is followed by launches that must find the same
+            // account, so `--ui-test-keep-data` leaves the test data where the previous launch put it.
+            if !CommandLine.arguments.contains("--ui-test-keep-data") {
+                let _ = try? FileManager.default.removeItem(atPath: testDataPath)
+            }
             rootPath = rootPathForBasePath(testDataPath)
         } else {
             rootPath = rootPathForBasePath(appGroupUrl.path)
@@ -1147,6 +1151,43 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             return true
         }
 
+        if isUITest,
+           let loginIdx = CommandLine.arguments.firstIndex(of: "--ui-test-login"),
+           loginIdx + 1 < CommandLine.arguments.count
+        {
+            // Simulator QA: sign a test-environment number in and keep the account, then leave a marker in Documents so
+            // the workflow knows it may relaunch with `--ui-test --ui-test-keep-data` and capture the signed-in screens.
+            let phone = CommandLine.arguments[loginIdx + 1]
+            let digits = phone.hasPrefix("+") ? String(phone.dropFirst()) : phone
+            guard digits.count == 10, digits.hasPrefix("99966") else {
+                preconditionFailure("--ui-test-login phone must match 99966XYYYY")
+            }
+            let dcDigit = digits[digits.index(digits.startIndex, offsetBy: 5)]
+            let phoneCode = String(repeating: dcDigit, count: 5)
+            let markerUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("ui-test-login.done")
+            let _ = try? FileManager.default.removeItem(at: markerUrl)
+
+            NSLog("[UITestLogin] starting for +\(digits)")
+            let _ = test_loginAccount(
+                rootPath: rootPath,
+                accountManager: accountManager,
+                networkArguments: networkArguments,
+                encryptionParameters: encryptionParameters,
+                phoneNumber: "+\(digits)",
+                phoneCode: phoneCode,
+                firstName: "Анна",
+                lastName: "Смирнова"
+            ).start(error: { error in
+                NSLog("[UITestLogin] error: \(error)")
+                preconditionFailure("test_loginAccount failed")
+            }, completed: {
+                NSLog("[UITestLogin] completed")
+                let _ = try? Data("ok".utf8).write(to: markerUrl)
+            })
+
+            return true
+        }
+
         let pushRegistry = PKPushRegistry(queue: .main)
         if #available(iOS 9.0, *) {
             pushRegistry.desiredPushTypes = Set([.voIP])
@@ -1457,6 +1498,10 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
             
             Logger.shared.log("App \(self.episodeId)", "received context \(String(describing: context)) account \(String(describing: context?.context.account.id)) network \(String(describing: network))")
+            if let context {
+                runUITestSeedIfRequested(context: context.context)
+                runUITestScreenIfRequested(applicationContext: context)
+            }
             
             let firstTime = self.contextValue == nil
             if let contextValue = self.contextValue {
