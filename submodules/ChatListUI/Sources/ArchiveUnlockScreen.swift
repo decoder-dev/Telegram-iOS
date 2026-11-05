@@ -240,13 +240,21 @@ final class ArchiveUnlockScreen: UIViewController, UITextFieldDelegate {
 
         let safeArea = self.view.safeAreaLayoutGuide
         let readable = self.view.readableContentGuide
+        // Centred while it fits; a long title (large text, a long translation) gives way and truncates instead of running
+        // under the Close button or off the screen.
+        let titleCenter = self.navigationTitleLabel.centerXAnchor.constraint(equalTo: self.view.centerXAnchor)
+        titleCenter.priority = .defaultHigh
+        self.navigationTitleLabel.lineBreakMode = .byTruncatingTail
+        self.navigationTitleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        self.closeButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         NSLayoutConstraint.activate([
             self.closeButton.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 16.0),
             self.closeButton.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: 6.0),
             self.closeButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 44.0),
-            self.navigationTitleLabel.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
+            titleCenter,
             self.navigationTitleLabel.centerYAnchor.constraint(equalTo: self.closeButton.centerYAnchor),
             self.navigationTitleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: self.closeButton.trailingAnchor, constant: 8.0),
+            self.navigationTitleLabel.trailingAnchor.constraint(lessThanOrEqualTo: safeArea.trailingAnchor, constant: -16.0),
 
             self.scrollView.topAnchor.constraint(equalTo: self.closeButton.bottomAnchor, constant: 4.0),
             self.scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
