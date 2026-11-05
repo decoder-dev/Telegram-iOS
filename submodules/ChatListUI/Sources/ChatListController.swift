@@ -7410,6 +7410,19 @@ private final class ChatListLocationContext {
                 }
             )
         }
+        // Scene 12: an open protected Archive offers Lock Now in its bar. Relocking closes the Archive list through
+        // `relockedSignal`, as Lock Now in Archive settings does.
+        if case .chatList(.archive) = self.location, !stateAndFilterId.state.editing, ArchiveLockSession.shared.isUnlocked(accountPeerId: self.context.account.peerId), let lockImage = UIImage(systemName: "lock.fill")?.withRenderingMode(.alwaysTemplate) {
+            let lockNow: (UIView) -> Void = { _ in
+                ArchiveLockSession.shared.relock()
+                HiddenAccountsSession.shared.relock()
+            }
+            self.settingsButton = NavigationBarComponent.Button(id: "lockArchive",
+                content: .image(lockImage),
+                overflow: NavigationBarComponent.OverflowInfo(id: "lockArchive", title: ArchiveLockLocalizedString.lockNow, iconName: nil, image: lockImage, action: lockNow),
+                action: lockNow
+            )
+        }
         let defaultTitle: String
         switch location {
         case let .chatList(groupId):
