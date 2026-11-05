@@ -237,13 +237,20 @@ jobs:
             "app url:tg://settings/language" "app url:tg://settings/power-saving" "app url:tg://settings/calls"
             "app url:tg://settings/premium"
           )
-          for appearance in light dark; do
-            xcrun simctl ui "$UDID" appearance "$appearance"
+          # The app keeps its own theme (no system switching), so each pass selects one: Classic White, Classic Black
+          # and the fork's BananaGram Cream.
+          for appearance in light dark cream; do
+            case "$appearance" in
+              light) theme=day; system=light ;;
+              dark) theme=night; system=dark ;;
+              cream) theme=cream; system=light ;;
+            esac
+            xcrun simctl ui "$UDID" appearance "$system"
             for entry in "${SCREENS[@]}"; do
               kind="${entry%% *}"
               target="${entry#* }"
               name="$(echo "$target" | sed -E 's#^url:##; s#^tg://##; s#[^A-Za-z0-9]+#-#g; s#-+$##')"
-              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-screen "$target" > /dev/null
+              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme "$theme" --ui-test-screen "$target" > /dev/null
               sleep 12
               xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/$appearance-$name.png" > /dev/null 2>&1 || echo "screenshot failed: $name"
               xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
@@ -257,7 +264,7 @@ jobs:
           python3 - <<'PY' || true
           import glob, os
           from PIL import Image, ImageDraw
-          for appearance in ("light", "dark"):
+          for appearance in ("light", "dark", "cream"):
               files = sorted(glob.glob(f"qa-artifacts/screens/{appearance}-*.png"))
               if not files:
                   continue

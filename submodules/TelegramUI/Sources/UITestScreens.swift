@@ -5,6 +5,7 @@ import TelegramCore
 import AccountContext
 import ChatListUI
 import SettingsUI
+import TelegramUIPreferences
 
 private var uiTestScreenStarted = false
 
@@ -19,6 +20,23 @@ func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext
     let screen = arguments[index + 1]
     let context = applicationContext.context
     let rootController = applicationContext.rootController
+    // The fork does not follow the system appearance (one selected theme, no automatic switching), so a dark
+    // screenshot needs the dark theme selected: `--ui-test-theme <day|night|cream|graphite>`.
+    if let themeIndex = arguments.firstIndex(of: "--ui-test-theme"), themeIndex + 1 < arguments.count {
+        let builtin: PresentationBuiltinThemeReference?
+        switch arguments[themeIndex + 1] {
+        case "day": builtin = .dayClassic
+        case "night": builtin = .night
+        case "cream": builtin = .bananaGramCream
+        case "graphite": builtin = .bananaGramGraphite
+        default: builtin = nil
+        }
+        if let builtin {
+            let _ = updatePresentationThemeSettingsInteractively(accountManager: context.sharedContext.accountManager, { settings in
+                return settings.withUpdatedTheme(.builtin(builtin))
+            }).startStandalone()
+        }
+    }
     Queue.mainQueue().after(3.0) {
         // `url:<tg link>` opens one of the app's own links in place (`simctl openurl` stops at a system confirmation).
         if screen.hasPrefix("url:"), let url = URL(string: String(screen.dropFirst(4))) {
