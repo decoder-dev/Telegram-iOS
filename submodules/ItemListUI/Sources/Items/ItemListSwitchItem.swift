@@ -341,7 +341,14 @@ public class ItemListSwitchItemNode: ListViewItemNode, ItemListItemNode {
             }
             
             let usesLargeTextLayout = item.presentationData.fontSize.itemListBaseFontSize >= PresentationLayoutMetrics.multilineTextThreshold
-            let maximumTitleLines = usesLargeTextLayout && item.maximumNumberOfLines == 1 ? 0 : item.maximumNumberOfLines
+            // A long title (Russian Extras toggles run past the width) takes a second line rather than an ellipsis; at large
+            // text sizes it takes as many as it needs. The row height and the switch follow the measured title.
+            let maximumTitleLines: Int
+            if item.maximumNumberOfLines == 1 {
+                maximumTitleLines = usesLargeTextLayout ? 0 : 2
+            } else {
+                maximumTitleLines = item.maximumNumberOfLines
+            }
             let (titleLayout, titleApply) = makeTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.title, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor), backgroundColor: nil, maximumNumberOfLines: maximumTitleLines, truncationType: .end, constrainedSize: CGSize(width: params.width - leftInset - params.rightInset - 64.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
             contentSize.height = max(contentSize.height, titleLayout.size.height + topInset * 2.0)
