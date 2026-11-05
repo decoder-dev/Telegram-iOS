@@ -93,7 +93,7 @@ for russian in [false,true] {
    settings.regexMessageFiltersEnabled=filters; settings.hideTabBar=true
    for mask in 0..<8 {
     let media=MediaInputSettings(enableRaiseToSpeak: false,pauseMusicOnRecording: mask & 1 != 0,pauseMusicOnVoiceRecording: mask & 2 != 0,pauseMusicOnVoicePlayback: mask & 4 != 0)
-    for category in [ForkExtrasControllerFocus.top,.appearance,.ninja,.ghost,.privacy,.chatList,.tabBar,.messages,.messageSending,.messageActions,.media,.profile,.network,.messageSaving,.messageFilters] {
+    for category in [ForkExtrasControllerFocus.top,.appearance,.ninja,.ghost,.privacy,.chatList,.tabBar,.messages,.messageSending,.messageActions,.voiceAndRound,.media,.profile,.network,.messageSaving,.messageFilters] {
      let entries=forkExtrasControllerEntries(settings: settings,autoFetchPublicMtProxy: false,showCallsTab: true,mediaInputSettings: media,focus: category)
      let ids=entries.map { $0.stableId }
      precondition(Set(ids).count == ids.count,"Duplicate IDs")
@@ -111,6 +111,8 @@ for russian in [false,true] {
      }
      if category == .messages { precondition(ids.contains(1521) && ids.contains(85) && !ids.contains(63) && ids.contains(2200) && ids.contains(2201)) }
      if category == .messageSending { precondition(ids.contains(1850) && ids.contains(81) && ids.contains(98)) }
+     if category == .voiceAndRound { precondition(ids.contains(2110) && ids.contains(1559) && ids.contains(1612)) }
+     if category == .media { precondition(ids.contains(2202) && !ids.contains(2110)) }
      if category == .messageActions { precondition(ids.contains(1802) && ids.contains(92) && ids.contains(1911)) }
      if category == .tabBar { precondition(ids.contains(63) == (idiom == .phone) && ids.contains(1507)) }
      if category == .profile { precondition(ids.contains(140) && ids.contains(55) && ids.contains(1500)) }

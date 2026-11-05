@@ -571,6 +571,7 @@ private enum ForkExtrasDestination: Equatable {
     /// The two pages split off Messages and composer, so that screen shows what a chat looks like and links to the rest.
     case messageSending
     case messageActions
+    case voiceAndRound
 }
 
 private final class ForkExtrasControllerArguments {
@@ -742,8 +743,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [96, 97],
             [1910, 1911]
         ]),
-        (.media, [
+        (.voiceAndRound, [
             [1609, 2110, 2111, 2112, 2113, 2114, 2115, 1515, 1516, 1544, 1545, 1559, 1612],
+        ]),
+        (.media, [
+            [2202],
             [1608, 80, 84],
             [83],
             [1613, 1554, 1555, 1556, 1614, 1982],
@@ -826,7 +830,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             case .security: return ForkExtrasSection.hub.rawValue
             case .accountOrder: return ForkExtrasSection.hubLook.rawValue
             case .connectionCheck: return ForkExtrasSection.proxy.rawValue
-            case .messageSending, .messageActions: return ForkExtrasSection.appearance.rawValue
+            case .messageSending, .messageActions, .voiceAndRound: return ForkExtrasSection.appearance.rawValue
             }
         case .audioHeader, .musicPolicy: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
@@ -980,6 +984,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             case .connectionCheck: icon = renderSettingsSymbolIcon(systemName: "speedometer", color: .systemGreen); detail = nil
             case .messageSending: icon = renderSettingsSymbolIcon(systemName: "paperplane.fill", color: .systemBlue); detail = nil
             case .messageActions: icon = renderSettingsSymbolIcon(systemName: "hand.tap.fill", color: .systemOrange); detail = nil
+            case .voiceAndRound: icon = renderSettingsSymbolIcon(systemName: "video.circle.fill", color: .systemPurple); detail = nil
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, action: {
                 arguments.openDestination(destination)
@@ -1482,29 +1487,17 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ]
     case .media:
         entries = [
+            .destination(2202, russian ? "Голосовые и кружки" : "Voice and Round Videos", .voiceAndRound),
             .designHeader(1608, russian ? "Звонки" : "Calls"),
             .settingToggle(80, .calls, ForkExtrasLocalizedString.confirmBeforeCall, settings.confirmBeforeCall, \.confirmBeforeCall),
             .settingFooter(84, .calls, ForkExtrasLocalizedString.forceBuiltInMicFooter + "\n\n" + ForkExtrasLocalizedString.callsFooter),
             .settingToggle(83, .calls, ForkExtrasLocalizedString.forceBuiltInMic, settings.forceBuiltInMic, \.forceBuiltInMic),
-            .designHeader(1609, russian ? "Голосовые и кружки" : "Voice and round videos"),
-            .appearanceToggle(2110, russian ? "Отсчёт перед записью кружка" : "Round video countdown", settings.roundVideoCountdown, \.roundVideoCountdown),
-            .appearanceToggle(2111, russian ? "Записывать кружки в 60 FPS" : "Record round videos at 60 FPS", settings.roundVideoRecordAt60FPS, \.roundVideoRecordAt60FPS),
-            .appearanceToggle(2112, russian ? "Максимальное качество кружков" : "Maximum round video quality", settings.roundVideoMaximumQuality, \.roundVideoMaximumQuality),
-            .appearanceToggle(2113, russian ? "Фокус кружка по нажатию" : "Tap to focus round videos", settings.roundVideoFocusOnTap, \.roundVideoFocusOnTap),
-            .appearanceToggle(2114, russian ? "Сбрасывать зум после жеста" : "Reset zoom after pinching", settings.roundVideoAlwaysResetZoom, \.roundVideoAlwaysResetZoom),
-            .designFooter(2115, russian ? "Для 60 FPS нужна поддерживаемая камера, съёмка двумя камерами сразу отключается. Максимальное качество — до 640p, длинные записи сжимаются. Изменения применятся при следующем открытии камеры." : "60 FPS needs a supported camera and turns off recording with both cameras at once. Maximum quality is up to 640p; long recordings are compressed. Changes apply the next time you open the camera."),
-            .appearanceToggle(1515, russian ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
-            .appearanceToggle(1516, russian ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
             .designHeader(1613, russian ? "Ссылки TikTok и Shorts" : "TikTok and Shorts links"),
             .appearanceToggle(1554, russian ? "Скачивать TikTok" : "Download TikTok", settings.downloadTikTok, \.downloadTikTok),
             .designFooter(1982, russian ? "Если TikTok откажет в загрузке, запрос пойдёт через tikwm.com. Сервис увидит ссылку на пост без параметров шаринга и ваш IP." : "If TikTok refuses the download, the request goes through tikwm.com. The service sees the post link without sharing parameters and your IP address."),
             .appearanceToggle(1555, russian ? "Скачивать YouTube Shorts" : "Download YouTube Shorts", settings.downloadYouTubeShorts, \.downloadYouTubeShorts),
             .appearanceToggle(1556, russian ? "Подпись «Скачано с…»" : "“Downloaded from…” caption", settings.signDownloadedMedia, \.signDownloadedMedia),
-            .appearanceToggle(1559, russian ? "Подтверждать отправку голосовых и кружков" : "Confirm before sending voice and round video", settings.confirmVoiceSend, \.confirmVoiceSend),
             .designFooter(1614, russian ? "Сообщение, в котором только ссылка, уходит видео или фото вместо ссылки. Если скачать не удалось, отправляется сама ссылка." : "A message that is only a link goes out as the video or photos instead. If the download fails, the link itself is sent."),
-            .appearanceToggle(1544, russian ? "Кружок: задняя камера" : "Round video: rear camera", settings.roundVideoStartsWithRear, \.roundVideoStartsWithRear),
-            .appearanceToggle(1545, russian ? "Кружок: помнить камеру" : "Round video: remember camera", settings.roundVideoRemembersCamera, \.roundVideoRemembersCamera),
-            .designFooter(1612, russian ? "Музыка как голосовое: откройте меню трека в разделе «Вложения → Музыка»." : "To send music as a voice message, open the track's menu in Attach → Music."),
             .designHeader(1750, russian ? "Стикеры и воспроизведение" : "Stickers and playback"),
             .appearanceToggle(1751, russian ? "Только добавленные стикеры" : "Only added stickers", settings.onlyAddedStickers, \.onlyAddedStickers),
             .appearanceToggle(1752, russian ? "Без лимита недавних стикеров" : "Unlimited recent stickers", settings.infiniteRecentStickers, \.infiniteRecentStickers),
@@ -1529,6 +1522,22 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1912, russian ? "Энергосбережение" : "Power saving"),
             .appearanceToggle(1913, russian ? "Режим энергосбережения всегда" : "Always use power saving", settings.powerSaving, \.powerSaving),
             .designFooter(1914, russian ? "Энергосбережение Telegram включено при любом заряде: без автовоспроизведения, зацикленной анимации, полупрозрачности и фоновых загрузок. Отдельные пункты — в «Данные и память → Энергосбережение»." : "Telegram's power saving stays on at any battery level: no autoplay, looping animations, translucency or background downloads. Fine-tune it in Data and Storage → Power Saving."),
+        ]
+    case .voiceAndRound:
+        entries = [
+            .designHeader(1609, russian ? "Голосовые и кружки" : "Voice and round videos"),
+            .appearanceToggle(2110, russian ? "Отсчёт перед записью кружка" : "Round video countdown", settings.roundVideoCountdown, \.roundVideoCountdown),
+            .appearanceToggle(2111, russian ? "Записывать кружки в 60 FPS" : "Record round videos at 60 FPS", settings.roundVideoRecordAt60FPS, \.roundVideoRecordAt60FPS),
+            .appearanceToggle(2112, russian ? "Максимальное качество кружков" : "Maximum round video quality", settings.roundVideoMaximumQuality, \.roundVideoMaximumQuality),
+            .appearanceToggle(2113, russian ? "Фокус кружка по нажатию" : "Tap to focus round videos", settings.roundVideoFocusOnTap, \.roundVideoFocusOnTap),
+            .appearanceToggle(2114, russian ? "Сбрасывать зум после жеста" : "Reset zoom after pinching", settings.roundVideoAlwaysResetZoom, \.roundVideoAlwaysResetZoom),
+            .designFooter(2115, russian ? "Для 60 FPS нужна поддерживаемая камера, съёмка двумя камерами сразу отключается. Максимальное качество — до 640p, длинные записи сжимаются. Изменения применятся при следующем открытии камеры." : "60 FPS needs a supported camera and turns off recording with both cameras at once. Maximum quality is up to 640p; long recordings are compressed. Changes apply the next time you open the camera."),
+            .appearanceToggle(1515, russian ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
+            .appearanceToggle(1516, russian ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
+            .appearanceToggle(1559, russian ? "Подтверждать отправку голосовых и кружков" : "Confirm before sending voice and round video", settings.confirmVoiceSend, \.confirmVoiceSend),
+            .appearanceToggle(1544, russian ? "Кружок: задняя камера" : "Round video: rear camera", settings.roundVideoStartsWithRear, \.roundVideoStartsWithRear),
+            .appearanceToggle(1545, russian ? "Кружок: помнить камеру" : "Round video: remember camera", settings.roundVideoRemembersCamera, \.roundVideoRemembersCamera),
+            .designFooter(1612, russian ? "Музыка как голосовое: откройте меню трека в разделе «Вложения → Музыка»." : "To send music as a voice message, open the track's menu in Attach → Music."),
         ]
     case .profile:
         entries = [
@@ -1638,6 +1647,7 @@ public enum ForkExtrasControllerFocus {
     case messages
     case messageSending
     case messageActions
+    case voiceAndRound
     case media
     case profile
     case network
@@ -1673,6 +1683,8 @@ public enum ForkExtrasControllerFocus {
             return ForkPresentationLanguage.prefersRussianStrings ? "Ввод и отправка" : "Input and Sending"
         case .messageActions:
             return ForkPresentationLanguage.prefersRussianStrings ? "Действия с сообщениями" : "Message Actions"
+        case .voiceAndRound:
+            return ForkPresentationLanguage.prefersRussianStrings ? "Голосовые и кружки" : "Voice and Round Videos"
         case .media:
             return ForkExtrasLocalizedString.hubMedia
         case .profile:
@@ -1689,7 +1701,7 @@ public enum ForkExtrasControllerFocus {
 func forkExtrasSearchableRows(strings: PresentationStrings) -> [(id: Int32, title: String, focus: ForkExtrasControllerFocus)] {
     var result: [(id: Int32, title: String, focus: ForkExtrasControllerFocus)] = []
     var seen = Set<Int32>()
-    let categories: [ForkExtrasControllerFocus] = [.ninja, .ghost, .privacy, .appearance, .chatList, .tabBar, .messages, .messageSending, .messageActions, .media, .profile, .network]
+    let categories: [ForkExtrasControllerFocus] = [.ninja, .ghost, .privacy, .appearance, .chatList, .tabBar, .messages, .messageSending, .messageActions, .voiceAndRound, .media, .profile, .network]
     for focus in categories {
         let entries = forkExtrasControllerEntries(settings: .defaultSettings, autoFetchPublicMtProxy: false, showCallsTab: true, mediaInputSettings: .defaultSettings, focus: focus)
         for entry in entries {
@@ -1917,6 +1929,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             case .accountOrder: pushControllerImpl?(accountOrderController(context: context))
             case .messageSending: pushControllerImpl?(forkExtrasController(context: context, focus: .messageSending))
             case .messageActions: pushControllerImpl?(forkExtrasController(context: context, focus: .messageActions))
+            case .voiceAndRound: pushControllerImpl?(forkExtrasController(context: context, focus: .voiceAndRound))
             case .connectionCheck:
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                 let proxySettings: Signal<ProxySettings, NoError> = context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings])

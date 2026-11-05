@@ -29,6 +29,7 @@ func bananaSettingsLinkTarget(_ path: String) -> (ForkExtrasControllerFocus, Int
     case "chats", "messages": focus = .messages
     case "sending": focus = .messageSending
     case "actions": focus = .messageActions
+    case "voice": focus = .voiceAndRound
     case "media": focus = .media
     case "profile": focus = .profile
     case "network": focus = .network
@@ -53,6 +54,7 @@ func bananaSettingsPage(_ focus: ForkExtrasControllerFocus) -> String {
     case .messages: return "messages"
     case .messageSending: return "sending"
     case .messageActions: return "actions"
+    case .voiceAndRound: return "voice"
     case .media: return "media"
     case .profile: return "profile"
     case .network: return "network"

@@ -227,7 +227,7 @@ jobs:
             "app chat:user:1001" "app chat:user:1002" "app chat:channel:2001" "app chat:channel:2004"
             "app url:tg://user?id=1001" "app url:tg://settings/edit" "app url:tg://settings/my-profile"
             "app extras" "app extras:appearance" "app extras:ninja" "app extras:ghost" "app extras:privacy"
-            "app extras:chatList" "app extras:tabBar" "app extras:messages" "app extras:sending" "app extras:actions" "app extras:media" "app extras:profile"
+            "app extras:chatList" "app extras:tabBar" "app extras:messages" "app extras:sending" "app extras:actions" "app extras:media" "app extras:voice" "app extras:profile"
             "app extras:network" "app archive-settings" "app banana-security" "app accounts"
             "app url:tg://settings/appearance" "app url:tg://settings/appearance/themes" "app url:tg://settings/appearance/text-size"
             "app url:tg://settings/appearance/message-corners" "app url:tg://settings/appearance/app-icon"

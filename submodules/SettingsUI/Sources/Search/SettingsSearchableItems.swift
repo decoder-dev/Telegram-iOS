@@ -4384,6 +4384,7 @@ func settingsSearchableItems(
             ("bananagram/sending", ForkPresentationLanguage.prefersRussianStrings ? "Ввод и отправка" : "Input and Sending", .messageSending),
             ("bananagram/actions", ForkPresentationLanguage.prefersRussianStrings ? "Действия с сообщениями" : "Message Actions", .messageActions),
             ("bananagram/media", ForkPresentationLanguage.prefersRussianStrings ? "Звонки и звук" : "Calls and audio", .media),
+            ("bananagram/voice", ForkPresentationLanguage.prefersRussianStrings ? "Голосовые и кружки" : "Voice and Round Videos", .voiceAndRound),
             ("bananagram/profile", ForkPresentationLanguage.prefersRussianStrings ? "Профиль и эффекты" : "Profile and effects", .profile),
             ("bananagram/network", ForkPresentationLanguage.prefersRussianStrings ? "Сеть и загрузки" : "Network and downloads", .network)
         ]
