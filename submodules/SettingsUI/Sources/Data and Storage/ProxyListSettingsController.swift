@@ -84,6 +84,9 @@ public enum ProxySettingsEntryTag: ItemListItemTag, Equatable {
 }
 
 private enum ProxySettingsControllerEntry: ItemListNodeEntry {
+    /// Scene 25: how the app connects right now, from the network's own state. `detail` is the proxy's kind and
+    /// host, never a secret, a password or a link.
+    case statusCard(PresentationTheme, String, String, Bool)
     case enabled(PresentationTheme, String, Bool, Bool)
     case serversHeader(PresentationTheme, String)
     case addProxy(PresentationTheme, String, Bool)
@@ -102,7 +105,7 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     
     var section: ItemListSectionId {
         switch self {
-            case .enabled:
+            case .statusCard, .enabled:
                 return ProxySettingsControllerSection.enabled.rawValue
             case .serversHeader, .addProxy, .server:
                 return ProxySettingsControllerSection.servers.rawValue
@@ -117,6 +120,8 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     
     var stableId: ProxySettingsControllerEntryId {
         switch self {
+            case .statusCard:
+                return .index(20)
             case .enabled:
                 return .index(0)
             case .serversHeader:
@@ -158,6 +163,12 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     
     static func ==(lhs: ProxySettingsControllerEntry, rhs: ProxySettingsControllerEntry) -> Bool {
         switch lhs {
+            case let .statusCard(lhsTheme, lhsTitle, lhsDetail, lhsConnected):
+                if case let .statusCard(rhsTheme, rhsTitle, rhsDetail, rhsConnected) = rhs, lhsTheme === rhsTheme, lhsTitle == rhsTitle, lhsDetail == rhsDetail, lhsConnected == rhsConnected {
+                    return true
+                } else {
+                    return false
+                }
             case let .enabled(lhsTheme, lhsText, lhsValue, lhsCreatesNew):
                 if case let .enabled(rhsTheme, rhsText, rhsValue, rhsCreatesNew) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue, lhsCreatesNew == rhsCreatesNew {
                     return true
@@ -257,6 +268,7 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     /// showed them twice.
     private var sortRank: Int {
         switch self {
+            case .statusCard: return -1
             case .enabled: return 0
             case .serversHeader: return 1
             case .addProxy: return 2
@@ -285,6 +297,8 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ProxySettingsControllerArguments
         switch self {
+            case let .statusCard(_, title, detail, connected):
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: renderSettingsSymbolIcon(systemName: connected ? "checkmark.shield.fill" : "network", color: connected ? .systemGreen : .systemGray), title: title, titleFont: .bold, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
             case let .enabled(_, text, value, createsNew):
                 return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, enableInteractiveChanges: !createsNew, enabled: true, sectionId: self.section, style: .blocks, updated: { value in
                     if createsNew {
@@ -350,6 +364,38 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
 private func proxySettingsControllerEntries(theme: PresentationTheme, strings: PresentationStrings, state: ProxySettingsControllerState, proxySettings: ProxySettings, statuses: [ProxyServerSettings: ProxyServerStatus], connectionStatus: ConnectionStatus) -> [ProxySettingsControllerEntry] {
     var entries: [ProxySettingsControllerEntry] = []
 
+    do {
+        let russian = ForkPresentationLanguage.prefersRussianStrings
+        let title: String
+        var connected = false
+        switch connectionStatus {
+        case .waitingForNetwork:
+            title = strings.State_WaitingForNetwork
+        case .connecting, .updating:
+            title = russian ? "Подключение…" : "Connecting…"
+        case .online:
+            title = russian ? "Подключено" : "Connected"
+            connected = true
+        }
+        let detail: String
+        if proxySettings.enabled, let server = proxySettings.effectiveActiveServer {
+            let kind: String
+            switch server.connection {
+            case .socks5:
+                kind = "SOCKS5"
+            case .mtp:
+                kind = "MTProto"
+            case .web:
+                kind = "WEB"
+            case .vless:
+                kind = "VLESS"
+            }
+            detail = "\(kind) · \(server.host)"
+        } else {
+            detail = russian ? "Без прокси" : "No proxy"
+        }
+        entries.append(.statusCard(theme, title, detail, connected))
+    }
     entries.append(.enabled(theme, strings.ChatSettings_ConnectionType_UseProxy, proxySettings.enabled, proxySettings.servers.isEmpty && !proxySettings.autoFetchPublicMtProxy))
     entries.append(.serversHeader(theme, strings.SocksProxySetup_SavedProxies))
     entries.append(.addProxy(theme, strings.SocksProxySetup_AddProxy, state.editing))
