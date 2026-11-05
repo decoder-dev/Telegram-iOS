@@ -566,6 +566,8 @@ private enum ForkExtrasDestination: Equatable {
     case proxy
     case security
     case accountOrder
+    /// Scene 40/45: the connection status screen (route, state, the selected server's last response).
+    case connectionCheck
 }
 
 private final class ForkExtrasControllerArguments {
@@ -815,6 +817,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             case .proxy: return ForkExtrasSection.proxy.rawValue
             case .security: return ForkExtrasSection.hub.rawValue
             case .accountOrder: return ForkExtrasSection.hubLook.rawValue
+            case .connectionCheck: return ForkExtrasSection.proxy.rawValue
             }
         case .audioHeader, .musicPolicy: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
@@ -963,6 +966,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             case .proxy: icon = PresentationResourcesSettings.proxy
             case .security: icon = PresentationResourcesSettings.security
             case .accountOrder: icon = PresentationResourcesSettings.security
+            case .connectionCheck: icon = renderSettingsSymbolIcon(systemName: "speedometer", color: .systemGreen)
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openDestination(destination)
@@ -1587,6 +1591,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         entries += [
             .settingToggle(2105, .proxy, russian ? "Скрыть спонсора прокси" : "Hide proxy sponsor", settings.hideProxySponsor, \.hideProxySponsor),
             .destination(138, ForkPresentationLanguage.prefersRussianStrings ? "Прокси и подключение" : "Proxies and connection", .proxy),
+            .destination(139, russian ? "Проверка подключения" : "Connection check", .connectionCheck),
 
             .settingToggle(144, .downloads, ForkExtrasLocalizedString.downloadSpeedBoost, settings.downloadSpeedBoost, \.downloadSpeedBoost),
             .settingToggle(2103, .downloads, russian ? "Параллельные загрузки" : "Parallel downloads", settings.parallelDownloads, \.parallelDownloads),
@@ -1883,6 +1888,23 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             case .proxy: pushControllerImpl?(context.sharedContext.makeProxySettingsController(context: context))
             case .security: pushControllerImpl?(bananaSecurityController(context: context))
             case .accountOrder: pushControllerImpl?(accountOrderController(context: context))
+            case .connectionCheck:
+                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                let proxySettings: Signal<ProxySettings, NoError> = context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
+                |> map { sharedData -> ProxySettings in
+                    return sharedData.entries[SharedDataKeys.proxySettings]?.get(ProxySettings.self) ?? .defaultSettings
+                }
+                // The screen's own checker, kept alive by its signal: pings the saved servers as the proxy list does.
+                let statusesContext = ProxyServersStatuses(network: context.account.network, servers: proxySettings
+                |> map { proxySettings -> [ProxyServerSettings] in
+                    return proxySettings.servers.filter { !proxySettings.automaticServers.contains($0) }
+                })
+                let statuses = statusesContext.statuses()
+                |> map { value -> [ProxyServerSettings: ProxyServerStatus] in
+                    let _ = statusesContext
+                    return value
+                }
+                pushControllerImpl?(proxyConnectionStatusController(presentationData: presentationData, updatedPresentationData: context.sharedContext.presentationData, proxySettings: proxySettings, statuses: statuses, connectionStatus: context.account.network.connectionStatus))
             }
         },
         updateMusicPolicy: { id, value in
