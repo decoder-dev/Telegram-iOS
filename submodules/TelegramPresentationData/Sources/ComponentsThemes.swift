@@ -49,15 +49,9 @@ public extension NavigationBarTheme {
     convenience init(rootControllerTheme: PresentationTheme, hideBadge: Bool = false, edgeEffectColor: UIColor? = nil, glassStyle: NavigationBar.GlassStyle = .default) {
         let theme = rootControllerTheme.rootController.navigationBar
         // The system bar in every theme (Apple HIG, iOS 26 Liquid Glass): the capsules are clear glass, never washed
-        // with a theme's accent, and their glyphs and titles are monochrome in the primary text color. The accent is
-        // kept for the one prominent action (`accentButtonColor`, a capsule of its own) and for content. Before iOS 26
-        // bar items keep the theme's tint, as UIKit's own bars do there.
-        let buttonColor: UIColor
-        if #available(iOS 26.0, *) {
-            buttonColor = theme.primaryTextColor
-        } else {
-            buttonColor = theme.buttonColor
-        }
+        // with a theme's accent. Glyphs keep the theme's button color, a role of its own beside the title's
+        // (LiquidThemeTests pins the two apart), as an app's tint colors UIKit's bar items.
+        let buttonColor = theme.buttonColor
         let glassTintColor: UIColor? = nil
         self.init(overallDarkAppearance: rootControllerTheme.overallDarkAppearance, buttonColor: buttonColor, disabledButtonColor: theme.disabledButtonColor, primaryTextColor: theme.primaryTextColor, badgeBackgroundColor: hideBadge ? .clear : theme.badgeBackgroundColor, badgeTextColor: hideBadge ? .clear : theme.badgeTextColor, edgeEffectColor: edgeEffectColor ?? rootControllerTheme.list.plainBackgroundColor, accentButtonColor: rootControllerTheme.list.itemCheckColors.fillColor, accentDisabledButtonColor: rootControllerTheme.chat.inputPanel.panelControlDisabledColor, accentForegroundColor: rootControllerTheme.list.itemCheckColors.foregroundColor, glassStyle: glassStyle, glassTintColor: glassTintColor)
     }
