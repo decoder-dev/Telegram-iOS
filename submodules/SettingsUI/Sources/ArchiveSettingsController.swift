@@ -65,16 +65,17 @@ private final class ArchiveSettingsControllerArguments {
     }
 }
 
-/// The icon colours of the scenes: one hue per kind of action, the glyph an SF Symbol.
+/// The icon colours of the scenes: one system colour per kind of action (Apple HIG: system colours adapt to Dark Mode
+/// and Increase Contrast), the glyph an SF Symbol.
 private enum ArchiveSettingsIcon {
-    static let amber = UIColor(rgb: 0xF2A43A)
-    static let purple = UIColor(rgb: 0x9C7BE6)
-    static let indigo = UIColor(rgb: 0x6F7BD9)
-    static let teal = UIColor(rgb: 0x3AA58F)
-    static let orange = UIColor(rgb: 0xEE7B4B)
-    static let blue = UIColor(rgb: 0x5B8BE0)
-    static let cyan = UIColor(rgb: 0x4BB3C9)
-    static let gray = UIColor(rgb: 0x8E8E93)
+    static var amber: UIColor { .systemOrange }
+    static var purple: UIColor { .systemPurple }
+    static var indigo: UIColor { .systemIndigo }
+    static var teal: UIColor { .systemGreen }
+    static var orange: UIColor { .systemRed }
+    static var blue: UIColor { .systemBlue }
+    static var cyan: UIColor { .systemTeal }
+    static var gray: UIColor { .systemGray }
 
     static func image(_ systemName: String, _ color: UIColor) -> UIImage? {
         return renderSettingsSymbolIcon(systemName: systemName, color: color)
