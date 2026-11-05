@@ -13,6 +13,15 @@ import ChatListUI
 import LocalAuth
 import ItemListPeerItem
 
+/// The three screens of the protected Archive (BananaGram iOS 27 handoff, scenes 42, 43 and 26): the Archive itself
+/// (status, settings, quick actions), what the password protects, and the accounts it hides. They share one state and
+/// one set of actions; the two inner pages are pushed from the first.
+enum ArchiveSettingsPage {
+    case main
+    case scope
+    case hiddenAccounts
+}
+
 private final class ArchiveSettingsControllerArguments {
     let updateUnmuted: (Bool) -> Void
     let updateFolders: (Bool) -> Void
@@ -24,6 +33,8 @@ private final class ArchiveSettingsControllerArguments {
     let toggleHiddenAccount: (Int64, Bool) -> Void
     let updateLockTargets: (Bool, Bool) -> Void
     let hiddenAccountContext: (Int64) -> AccountContext?
+    let openPage: (ArchiveSettingsPage) -> Void
+    let openArchive: () -> Void
 
     init(
         updateUnmuted: @escaping (Bool) -> Void,
@@ -35,7 +46,9 @@ private final class ArchiveSettingsControllerArguments {
         lockNow: @escaping () -> Void,
         toggleHiddenAccount: @escaping (Int64, Bool) -> Void,
         updateLockTargets: @escaping (Bool, Bool) -> Void,
-        hiddenAccountContext: @escaping (Int64) -> AccountContext?
+        hiddenAccountContext: @escaping (Int64) -> AccountContext?,
+        openPage: @escaping (ArchiveSettingsPage) -> Void,
+        openArchive: @escaping () -> Void
     ) {
         self.updateUnmuted = updateUnmuted
         self.updateFolders = updateFolders
@@ -47,108 +60,145 @@ private final class ArchiveSettingsControllerArguments {
         self.toggleHiddenAccount = toggleHiddenAccount
         self.updateLockTargets = updateLockTargets
         self.hiddenAccountContext = hiddenAccountContext
+        self.openPage = openPage
+        self.openArchive = openArchive
+    }
+}
+
+/// The icon colours of the scenes: one hue per kind of action, the glyph an SF Symbol.
+private enum ArchiveSettingsIcon {
+    static let amber = UIColor(rgb: 0xF2A43A)
+    static let purple = UIColor(rgb: 0x9C7BE6)
+    static let indigo = UIColor(rgb: 0x6F7BD9)
+    static let teal = UIColor(rgb: 0x3AA58F)
+    static let orange = UIColor(rgb: 0xEE7B4B)
+    static let blue = UIColor(rgb: 0x5B8BE0)
+    static let cyan = UIColor(rgb: 0x4BB3C9)
+    static let gray = UIColor(rgb: 0x8E8E93)
+
+    static func image(_ systemName: String, _ color: UIColor) -> UIImage? {
+        return renderSettingsSymbolIcon(systemName: systemName, color: color)
     }
 }
 
 private enum ArchiveSettingsSection: Int32 {
+    case status
+    case settings
+    case quick
+    case password
+    case scopeIntro
+    case scope
+    case scopeConfirm
+    case hiddenIntro
+    case hiddenAccounts
+    case hiddenProtection
     case unmuted
     case folders
     case unknown
-    case password
-    case lockTargets
-    case hideAccount
 }
 
 private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
-    case unmutedHeader
-    case unmutedValue(Bool)
-    case unmutedFooter
-    
-    case foldersHeader
-    case foldersValue(Bool)
-    case foldersFooter
-    
-    case unknownHeader
-    case unknownValue(isOn: Bool, isLocked: Bool)
-    case unknownFooter
-    
-    case passwordHeader
-    case passwordValue(Bool)
+    // Scene 42: the Archive.
+    case status(title: String, text: String, isOn: Bool)
+    case settingsHeader
+    case scopeRow(label: String)
+    case hiddenAccountsRow(label: String)
     case biometricsValue(isOn: Bool, isFaceId: Bool)
     case changePassword
-    case passwordLockNow
-    case passwordFooter
-    case lockTargetsHeader
+    case openArchive
+    case quickHeader
+    case lockNow
+    case quickFooter
+    case setPassword
+    case passwordOffFooter
+    case removePassword
+
+    // Scene 43: what the password protects.
+    case scopeIntro
+    case scopeHeader
     case lockTargetArchive(isOn: Bool, savedMessagesOn: Bool)
     case lockTargetSavedMessages(isOn: Bool, archiveOn: Bool)
-    case lockTargetsFooter
+    case scopeConfirm
+
+    // Scene 26: the accounts it hides.
+    case hiddenIntro
     case hiddenAccountsHeader
     case hiddenAccount(index: Int32, row: ArchiveHiddenAccountRow)
     case hiddenAccountsFooter
+    case protectionHeader
+    case changeArchivePassword
+    case protectionLockNow
+
+    // Telegram's own Archive settings, kept under the lock on the first page.
+    case unmutedHeader
+    case unmutedValue(Bool)
+    case unmutedFooter
+    case unknownHeader
+    case unknownValue(isOn: Bool, isLocked: Bool)
+    case unknownFooter
 
     var section: ItemListSectionId {
         switch self {
+        case .status:
+            return ArchiveSettingsSection.status.rawValue
+        case .settingsHeader, .scopeRow, .hiddenAccountsRow, .biometricsValue, .changePassword, .openArchive, .setPassword, .passwordOffFooter:
+            return ArchiveSettingsSection.settings.rawValue
+        case .quickHeader, .lockNow, .quickFooter:
+            return ArchiveSettingsSection.quick.rawValue
+        case .removePassword:
+            return ArchiveSettingsSection.password.rawValue
+        case .scopeIntro:
+            return ArchiveSettingsSection.scopeIntro.rawValue
+        case .scopeHeader, .lockTargetArchive, .lockTargetSavedMessages:
+            return ArchiveSettingsSection.scope.rawValue
+        case .scopeConfirm:
+            return ArchiveSettingsSection.scopeConfirm.rawValue
+        case .hiddenIntro:
+            return ArchiveSettingsSection.hiddenIntro.rawValue
+        case .hiddenAccountsHeader, .hiddenAccount:
+            return ArchiveSettingsSection.hiddenAccounts.rawValue
+        case .protectionHeader, .changeArchivePassword, .protectionLockNow, .hiddenAccountsFooter:
+            return ArchiveSettingsSection.hiddenProtection.rawValue
         case .unmutedHeader, .unmutedValue, .unmutedFooter:
             return ArchiveSettingsSection.unmuted.rawValue
-        case .foldersHeader, .foldersValue, .foldersFooter:
-            return ArchiveSettingsSection.folders.rawValue
         case .unknownHeader, .unknownValue, .unknownFooter:
             return ArchiveSettingsSection.unknown.rawValue
-        case .passwordHeader, .passwordValue, .biometricsValue, .changePassword, .passwordLockNow, .passwordFooter:
-            return ArchiveSettingsSection.password.rawValue
-        case .lockTargetsHeader, .lockTargetArchive, .lockTargetSavedMessages, .lockTargetsFooter:
-            return ArchiveSettingsSection.lockTargets.rawValue
-        case .hiddenAccountsHeader, .hiddenAccount, .hiddenAccountsFooter:
-            return ArchiveSettingsSection.hideAccount.rawValue
         }
     }
 
     var stableId: Int32 {
         switch self {
-        case .unmutedHeader:
-            return 0
-        case .unmutedValue:
-            return 1
-        case .unmutedFooter:
-            return 2
-        case .foldersHeader:
-            return 3
-        case .foldersValue:
-            return 4
-        case .foldersFooter:
-            return 5
-        case .unknownHeader:
-            return 6
-        case .unknownValue:
-            return 7
-        case .unknownFooter:
-            return 8
-        case .passwordHeader:
-            return 9
-        case .passwordValue:
-            return 10
-        case .biometricsValue:
-            return 11
-        case .changePassword:
-            return 12
-        case .passwordLockNow:
-            return 13
-        case .passwordFooter:
-            return 14
-        case .lockTargetsHeader:
-            return 20
-        case .lockTargetArchive:
-            return 21
-        case .lockTargetSavedMessages:
-            return 22
-        case .lockTargetsFooter:
-            return 23
-        case .hiddenAccountsHeader:
-            return 30
-        case let .hiddenAccount(index, _):
-            return 100 + index
-        case .hiddenAccountsFooter:
-            return 10000
+        case .status: return 0
+        case .settingsHeader: return 10
+        case .scopeRow: return 11
+        case .hiddenAccountsRow: return 12
+        case .biometricsValue: return 13
+        case .changePassword: return 14
+        case .openArchive: return 15
+        case .setPassword: return 16
+        case .passwordOffFooter: return 17
+        case .quickHeader: return 20
+        case .lockNow: return 21
+        case .quickFooter: return 22
+        case .removePassword: return 30
+        case .scopeIntro: return 40
+        case .scopeHeader: return 41
+        case .lockTargetArchive: return 42
+        case .lockTargetSavedMessages: return 43
+        case .scopeConfirm: return 44
+        case .hiddenIntro: return 50
+        case .hiddenAccountsHeader: return 51
+        case let .hiddenAccount(index, _): return 100 + index
+        case .protectionHeader: return 5000
+        case .changeArchivePassword: return 5001
+        case .protectionLockNow: return 5002
+        case .hiddenAccountsFooter: return 5003
+        case .unmutedHeader: return 6000
+        case .unmutedValue: return 6001
+        case .unmutedFooter: return 6002
+        case .unknownHeader: return 6010
+        case .unknownValue: return 6011
+        case .unknownFooter: return 6012
         }
     }
         
@@ -159,67 +209,67 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ArchiveSettingsControllerArguments
         switch self {
-        case .unmutedHeader:
-            return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_UnmutedChatsHeader, sectionId: self.section)
-        case let .unmutedValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_KeepArchived, value: value, enableInteractiveChanges: false, enabled: false, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateUnmuted(value)
+        case let .status(title, text, isOn):
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image(isOn ? "lock.fill" : "lock.open.fill", isOn ? ArchiveSettingsIcon.blue : ArchiveSettingsIcon.gray), title: title, titleFont: .bold, label: "", additionalDetailLabel: text, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
+        case .settingsHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.settingsHeader, sectionId: self.section)
+        case let .scopeRow(label):
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("shield.fill", ArchiveSettingsIcon.amber), title: ArchiveLockLocalizedString.scopeRow, label: label, sectionId: self.section, style: .blocks, action: {
+                arguments.openPage(.scope)
             })
-        case .unmutedFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.keepArchivedPolicy), sectionId: self.section)
-        case .foldersHeader:
-            return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_FolderChatsHeader, sectionId: self.section)
-        case let .foldersValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_KeepArchived, value: value, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateFolders(value)
-            })
-        case .foldersFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .markdown(presentationData.strings.ArchiveSettings_FolderChatsFooter), sectionId: self.section)
-        case .unknownHeader:
-            return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_UnknownChatsHeader, sectionId: self.section)
-        case let .unknownValue(isOn, isLocked):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_AutomaticallyArchive, value: isOn, enableInteractiveChanges: !isLocked, enabled: true, displayLocked: isLocked, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateUnknown(value)
-            }, activatedWhileDisabled: {
-                arguments.updateUnknown(nil)
-            })
-        case .unknownFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .markdown(presentationData.strings.ArchiveSettings_UnknownChatsFooter), sectionId: self.section)
-        case .passwordHeader:
-            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.passwordSection, sectionId: self.section)
-        case let .passwordValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockArchive, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.togglePassword(value)
+        case let .hiddenAccountsRow(label):
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("person.2.fill", ArchiveSettingsIcon.purple), title: ArchiveLockLocalizedString.hiddenAccountsRow, label: label, sectionId: self.section, style: .blocks, action: {
+                arguments.openPage(.hiddenAccounts)
             })
         case let .biometricsValue(isOn, isFaceId):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: isFaceId ? ArchiveLockLocalizedString.useFaceId : ArchiveLockLocalizedString.useTouchId, value: isOn, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image(isFaceId ? "faceid" : "touchid", ArchiveSettingsIcon.cyan), title: isFaceId ? ArchiveLockLocalizedString.useFaceId : ArchiveLockLocalizedString.useTouchId, value: isOn, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.toggleBiometrics(value)
             })
         case .changePassword:
-            return ItemListActionItem(presentationData: presentationData, title: ArchiveLockLocalizedString.changePassword, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("lock.fill", ArchiveSettingsIcon.indigo), title: ArchiveLockLocalizedString.changePassword, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.changePassword()
             })
-        case .passwordLockNow:
-            return ItemListActionItem(presentationData: presentationData, title: ArchiveLockLocalizedString.lockNow, kind: .generic, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+        case .openArchive:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("archivebox.fill", ArchiveSettingsIcon.teal), title: ArchiveLockLocalizedString.openArchive, label: "", sectionId: self.section, style: .blocks, action: {
+                arguments.openArchive()
+            })
+        case .quickHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.quickHeader, sectionId: self.section)
+        case .lockNow:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("lock.fill", ArchiveSettingsIcon.orange), title: ArchiveLockLocalizedString.lockNow, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.lockNow()
             })
-        case .passwordFooter:
+        case .quickFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.quickFooter), sectionId: self.section)
+        case .setPassword:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("lock.fill", ArchiveSettingsIcon.indigo), title: ArchiveLockLocalizedString.setPassword, label: "", sectionId: self.section, style: .blocks, action: {
+                arguments.togglePassword(true)
+            })
+        case .passwordOffFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.footer), sectionId: self.section)
-        case .lockTargetsHeader:
-            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.lockTargetsHeader, sectionId: self.section)
+        case .removePassword:
+            return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.removePassword, kind: .destructive, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                arguments.togglePassword(false)
+            })
+        case .scopeIntro:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.scopeIntro), sectionId: self.section)
+        case .scopeHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.scopeHeader, sectionId: self.section)
         case let .lockTargetArchive(isOn, savedMessagesOn):
             // The last thing still locked cannot be switched off: turn the other one on first.
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockTargetArchive, value: isOn, enabled: !isOn || savedMessagesOn, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("archivebox.fill", ArchiveSettingsIcon.blue), title: ArchiveLockLocalizedString.scopeArchive, value: isOn, enabled: !isOn || savedMessagesOn, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateLockTargets(value, savedMessagesOn)
             })
         case let .lockTargetSavedMessages(isOn, archiveOn):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockTargetSavedMessages, value: isOn, enabled: !isOn || archiveOn, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("bookmark.fill", ArchiveSettingsIcon.cyan), title: ArchiveLockLocalizedString.lockTargetSavedMessages, value: isOn, enabled: !isOn || archiveOn, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateLockTargets(archiveOn, value)
             })
-        case .lockTargetsFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.lockTargetsFooter), sectionId: self.section)
+        case .scopeConfirm:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("checkmark.shield.fill", ArchiveSettingsIcon.teal), title: ArchiveLockLocalizedString.scopeConfirmTitle, titleFont: .bold, label: "", additionalDetailLabel: ArchiveLockLocalizedString.scopeConfirmText, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
+        case .hiddenIntro:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.hiddenIntro), sectionId: self.section)
         case .hiddenAccountsHeader:
-            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.hiddenAccountsHeader, sectionId: self.section)
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.hiddenAccountsListHeader, sectionId: self.section)
         case let .hiddenAccount(_, row):
             guard let accountContext = arguments.hiddenAccountContext(row.accountId) else {
                 return ItemListTextItem(presentationData: presentationData, text: .plain(""), sectionId: self.section)
@@ -230,6 +280,34 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             })
         case .hiddenAccountsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.hiddenAccountsFooter), sectionId: self.section)
+        case .protectionHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.protectionHeader, sectionId: self.section)
+        case .changeArchivePassword:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("lock.fill", ArchiveSettingsIcon.purple), title: ArchiveLockLocalizedString.changeArchivePassword, label: "", sectionId: self.section, style: .blocks, action: {
+                arguments.changePassword()
+            })
+        case .protectionLockNow:
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("shield.fill", ArchiveSettingsIcon.amber), title: ArchiveLockLocalizedString.lockNow, label: "", sectionId: self.section, style: .blocks, action: {
+                arguments.lockNow()
+            })
+        case .unmutedHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_UnmutedChatsHeader, sectionId: self.section)
+        case let .unmutedValue(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_KeepArchived, value: value, enableInteractiveChanges: false, enabled: false, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateUnmuted(value)
+            })
+        case .unmutedFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.keepArchivedPolicy), sectionId: self.section)
+        case .unknownHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_UnknownChatsHeader, sectionId: self.section)
+        case let .unknownValue(isOn, isLocked):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_AutomaticallyArchive, value: isOn, enableInteractiveChanges: !isLocked, enabled: true, displayLocked: isLocked, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.updateUnknown(value)
+            }, activatedWhileDisabled: {
+                arguments.updateUnknown(nil)
+            })
+        case .unknownFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .markdown(presentationData.strings.ArchiveSettings_UnknownChatsFooter), sectionId: self.section)
         }
     }
 }
@@ -248,11 +326,10 @@ struct ArchiveHiddenAccountRow: Equatable {
 }
 
 private func archiveSettingsControllerEntries(
-    presentationData: PresentationData,
+    page: ArchiveSettingsPage,
     settings: GlobalPrivacySettings,
     isPasswordProtected: Bool,
     passwordLockOverride: Bool?,
-    sessionUnlocked: Bool,
     isPremium: Bool,
     isPremiumEnabled: Bool,
     biometricAuthentication: LocalAuthBiometricAuthentication?,
@@ -261,51 +338,88 @@ private func archiveSettingsControllerEntries(
     hiddenAccountRows: [ArchiveHiddenAccountRow]
 ) -> [ArchiveSettingsControllerEntry] {
     var entries: [ArchiveSettingsControllerEntry] = []
-
-    entries.append(.unmutedHeader)
-    // Force-mute policy: keep archived even if manually unmuted later.
-    entries.append(.unmutedValue(true))
-    entries.append(.unmutedFooter)
-
-    if isPremium || isPremiumEnabled {
-        entries.append(.unknownHeader)
-        entries.append(.unknownValue(isOn: isPremium && settings.automaticallyArchiveAndMuteNonContacts, isLocked: !isPremium))
-        entries.append(.unknownFooter)
-    }
-
     let passwordOn = passwordLockOverride ?? isPasswordProtected
-    entries.append(.passwordHeader)
-    entries.append(.passwordValue(passwordOn))
-    if passwordOn {
-        if let biometricAuthentication {
-            let isFaceId: Bool
-            if case .faceId = biometricAuthentication {
-                isFaceId = true
-            } else {
-                isFaceId = false
-            }
-            entries.append(.biometricsValue(isOn: useBiometrics, isFaceId: isFaceId))
-        }
-        entries.append(.changePassword)
-        if sessionUnlocked {
-            entries.append(.passwordLockNow)
-        }
-    }
-    entries.append(.passwordFooter)
 
-    if passwordOn {
-        entries.append(.lockTargetsHeader)
+    switch page {
+    case .main:
+        if passwordOn {
+            let statusText: String
+            if lockTargets.archive && lockTargets.savedMessages {
+                statusText = ArchiveLockLocalizedString.statusOnBoth
+            } else if lockTargets.archive {
+                statusText = ArchiveLockLocalizedString.statusOnArchive
+            } else {
+                statusText = ArchiveLockLocalizedString.statusOnSaved
+            }
+            entries.append(.status(title: ArchiveLockLocalizedString.statusOnTitle, text: statusText, isOn: true))
+
+            entries.append(.settingsHeader)
+            let scopeLabel: String
+            if lockTargets.archive && lockTargets.savedMessages {
+                scopeLabel = ArchiveLockLocalizedString.scopeCountBoth
+            } else if lockTargets.archive {
+                scopeLabel = ArchiveLockLocalizedString.lockTargetArchive
+            } else {
+                scopeLabel = ArchiveLockLocalizedString.lockTargetSavedMessages
+            }
+            entries.append(.scopeRow(label: scopeLabel))
+            // Hiding needs another signed-in account; a hidden account hides nobody (the rows are empty then).
+            if !hiddenAccountRows.isEmpty {
+                let hiddenCount = hiddenAccountRows.filter { $0.isHidden }.count
+                entries.append(.hiddenAccountsRow(label: hiddenCount == 0 ? ArchiveLockLocalizedString.hiddenAccountsNone : "\(hiddenCount)"))
+            }
+            if let biometricAuthentication {
+                let isFaceId: Bool
+                if case .faceId = biometricAuthentication {
+                    isFaceId = true
+                } else {
+                    isFaceId = false
+                }
+                entries.append(.biometricsValue(isOn: useBiometrics, isFaceId: isFaceId))
+            }
+            entries.append(.changePassword)
+            if lockTargets.archive {
+                entries.append(.openArchive)
+            }
+
+            entries.append(.quickHeader)
+            entries.append(.lockNow)
+            entries.append(.quickFooter)
+
+            entries.append(.removePassword)
+        } else {
+            entries.append(.status(title: ArchiveLockLocalizedString.statusOffTitle, text: ArchiveLockLocalizedString.statusOffText, isOn: false))
+            entries.append(.setPassword)
+            entries.append(.passwordOffFooter)
+        }
+
+        entries.append(.unmutedHeader)
+        // Force-mute policy: keep archived even if manually unmuted later.
+        entries.append(.unmutedValue(true))
+        entries.append(.unmutedFooter)
+
+        if isPremium || isPremiumEnabled {
+            entries.append(.unknownHeader)
+            entries.append(.unknownValue(isOn: isPremium && settings.automaticallyArchiveAndMuteNonContacts, isLocked: !isPremium))
+            entries.append(.unknownFooter)
+        }
+    case .scope:
+        entries.append(.scopeIntro)
+        entries.append(.scopeHeader)
         entries.append(.lockTargetArchive(isOn: lockTargets.archive, savedMessagesOn: lockTargets.savedMessages))
         entries.append(.lockTargetSavedMessages(isOn: lockTargets.savedMessages, archiveOn: lockTargets.archive))
-        entries.append(.lockTargetsFooter)
-    }
-
-    // The other signed-in accounts this password can hide.
-    if passwordOn, !hiddenAccountRows.isEmpty {
-        entries.append(.hiddenAccountsHeader)
-        for (index, row) in hiddenAccountRows.enumerated() {
-            entries.append(.hiddenAccount(index: Int32(index), row: row))
+        entries.append(.scopeConfirm)
+    case .hiddenAccounts:
+        entries.append(.hiddenIntro)
+        if !hiddenAccountRows.isEmpty {
+            entries.append(.hiddenAccountsHeader)
+            for (index, row) in hiddenAccountRows.enumerated() {
+                entries.append(.hiddenAccount(index: Int32(index), row: row))
+            }
         }
+        entries.append(.protectionHeader)
+        entries.append(.changeArchivePassword)
+        entries.append(.protectionLockNow)
         entries.append(.hiddenAccountsFooter)
     }
 
@@ -313,6 +427,10 @@ private func archiveSettingsControllerEntries(
 }
 
 public func archiveSettingsController(context: AccountContext) -> ViewController {
+    return archiveSettingsController(context: context, page: .main)
+}
+
+func archiveSettingsController(context: AccountContext, page: ArchiveSettingsPage) -> ViewController {
     let updateDisposable = MetaDisposable()
     
     updateDisposable.set(context.engine.privacy.requestAccountPrivacySettings().start())
@@ -321,6 +439,7 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
     var presentPremiumImpl: (() -> Void)?
     var presentControllerImpl: ((ViewController) -> Void)?
     var navigationControllerImpl: (() -> NavigationController?)?
+    var pushControllerImpl: ((ViewController) -> Void)?
     
     // Overrides the switch while a set/remove password sheet is in flight,
     // so cancel snaps the UI back instead of leaving an optimistic ON state.
@@ -441,6 +560,25 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         },
         hiddenAccountContext: { accountId in
             return otherAccountContexts[accountId]
+        },
+        openPage: { page in
+            pushControllerImpl?(archiveSettingsController(context: context, page: page))
+        },
+        openArchive: {
+            // The password first (or nothing, when the Archive is not locked), then the Archive itself, as the
+            // chat list opens it.
+            ensureArchiveUnlocked(context: context, present: { controller in
+                presentControllerImpl?(controller)
+            }, completion: { result in
+                switch result {
+                case .cancelled:
+                    return
+                case .unlocked, .notProtected:
+                    let chatListController = ChatListControllerImpl(context: context, location: .chatList(groupId: .archive), controlsHistoryPreload: false, enableDebugActions: false)
+                    chatListController.navigationPresentation = .master
+                    pushControllerImpl?(chatListController)
+                }
+            })
         }
     )
 
@@ -496,11 +634,21 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
         lockTargetsOverride.get()
     )
     |> deliverOnMainQueue
-    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference, passwordOverride, sessionUnlocked, hiddenAccountRows, lockTargetsOverride -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, settings, appConfiguration, accountPeer, archiveSettingsPreference, passwordOverride, _, hiddenAccountRows, lockTargetsOverride -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var presentationData = presentationData
 
         let updatedTheme = presentationData.theme.withModalBlocksBackground()
         presentationData = presentationData.withUpdated(theme: updatedTheme)
+
+        let title: String
+        switch page {
+        case .main:
+            title = ArchiveLockLocalizedString.screenTitle
+        case .scope:
+            title = ArchiveLockLocalizedString.scopeTitle
+        case .hiddenAccounts:
+            title = ArchiveLockLocalizedString.hiddenAccountsRow
+        }
         
         let isPremium = accountPeer?.isPremium ?? false
         let isPremiumDisabled = PremiumConfiguration.with(appConfiguration: appConfiguration).isPremiumDisabled
@@ -514,13 +662,12 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
             }.startStandalone()
         }
 
-        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(presentationData.strings.ArchiveSettings_Title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
+        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: archiveSettingsControllerEntries(
-            presentationData: presentationData,
+            page: page,
             settings: settings,
             isPasswordProtected: isPasswordProtected,
             passwordLockOverride: passwordOverride,
-            sessionUnlocked: sessionUnlocked,
             isPremium: isPremium,
             isPremiumEnabled: !isPremiumDisabled,
             biometricAuthentication: LocalAuth.biometricAuthentication,
@@ -533,7 +680,9 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
     }
     
     let controller = ItemListController(context: context, state: signal)
-    controller.navigationPresentation = .modal
+    if case .main = page {
+        controller.navigationPresentation = .modal
+    }
     
     presentUndoImpl = { [weak controller] content in
         guard let controller else {
@@ -557,8 +706,13 @@ public func archiveSettingsController(context: AccountContext) -> ViewController
     navigationControllerImpl = { [weak controller] in
         return controller?.navigationController as? NavigationController
     }
+    pushControllerImpl = { [weak controller] pushed in
+        (controller?.navigationController as? NavigationController)?.pushViewController(pushed)
+    }
     
-    muteAllArchivedChatsIfNeeded(context: context)
+    if case .main = page {
+        muteAllArchivedChatsIfNeeded(context: context)
+    }
     
     return controller
 }

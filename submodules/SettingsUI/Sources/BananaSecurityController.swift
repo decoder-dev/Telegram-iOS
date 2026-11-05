@@ -19,45 +19,50 @@ public enum BananaSecurityStrings {
 
     static var title: String { ru ? "Безопасность" : "Security" }
     static var hubLabel: String { ru ? "Защита от угона" : "Takeover protection" }
-    static var statusHeader: String { ru ? "СОСТОЯНИЕ АККАУНТА" : "ACCOUNT STATUS" }
+    static var screenTitle: String { ru ? "Защита BananaGram" : "BananaGram Protection" }
+    static var statusHeader: String { ru ? "АККАУНТ" : "ACCOUNT" }
     static var twoStep: String { ru ? "Двухэтапная проверка" : "Two-Step Verification" }
     static var twoStepOn: String { ru ? "Включена" : "On" }
     static var twoStepOff: String { ru ? "Выключена" : "Off" }
-    static var sessions: String { ru ? "Активные сеансы" : "Active Sessions" }
+    static var sessions: String { ru ? "Активные сессии" : "Active Sessions" }
     static var statusFooter: String {
         ru ? "Без облачного пароля один украденный код отдаёт аккаунт целиком, и угонщик ставит свой пароль. Включите его и проверяйте список сеансов: незнакомый сеанс завершайте сразу."
            : "Without a cloud password one stolen code gives the whole account away, and the thief sets a password of their own. Turn it on and check your sessions: end any you do not recognise at once."
     }
-    static var protectionsHeader: String { ru ? "ЗАЩИТА" : "PROTECTION" }
-    static var blockQrLogin: String { ru ? "Запретить вход по QR-коду" : "Block QR Code Login" }
+    static var protectionsHeader: String { ru ? "ЗАЩИТА ОТ ОБМАНА" : "SCAM PROTECTION" }
+    static var blockQrLogin: String { ru ? "Запретить QR-вход" : "Block QR Login" }
     static var blockQrLoginText: String {
         ru ? "Сканер «Подключить устройство» не впускает другие устройства. Так угоняют через «голосования», «проверки» и QR в домовых чатах."
            : "The Link Device scanner signs no other device in. Fake \"votes\", \"checks\" and posters in house chats steal accounts this way."
     }
-    static var guardLoginCodes: String { ru ? "Не отправлять код входа" : "Never Send the Login Code" }
+    static var guardLoginCodes: String { ru ? "Защитить код входа" : "Protect Login Code" }
     static var guardLoginCodesText: String {
         ru ? "Сообщение с кодом, который Telegram прислал за последние 15 минут, никуда не отправится. Код — это ключ от аккаунта."
            : "A message with a code Telegram sent in the last 15 minutes is not sent anywhere. The code is the key to the account."
     }
-    static var blockPhoneSharing: String { ru ? "Не отправлять свой номер" : "Never Share My Number" }
+    static var blockPhoneSharing: String { ru ? "Не передавать мой номер" : "Don't Share My Number" }
     static var blockPhoneSharingText: String {
         ru ? "Боты, мини-приложения и чаты не получат ваш номер по кнопке «Поделиться номером»: с номера начинается вход."
            : "Bots, mini apps and chats do not get your number from a Share My Number button: a login starts with the number."
     }
-    static var warnMiniApps: String { ru ? "Предупреждать в мини-приложениях" : "Warn in Mini Apps" }
+    static var warnMiniApps: String { ru ? "Предупреждать в Mini Apps" : "Warn in Mini Apps" }
     static var warnMiniAppsText: String {
         ru ? "При первом открытии каждого мини-приложения: никогда не вводите там код из Telegram или пароль."
            : "The first time each mini app opens: never enter a Telegram code or password there."
     }
-    static var confirmExternalLinks: String { ru ? "Подтверждать ссылки на сайты" : "Confirm Website Links" }
+    static var confirmExternalLinks: String { ru ? "Подтверждать ссылки" : "Confirm Links" }
     static var confirmExternalLinksText: String {
         ru ? "Перед открытием сайта из сообщения показывается его настоящий адрес."
            : "Before a website opens from a message, its real address is shown."
     }
-    static var flagFakeSupport: String { ru ? "Предупреждать о фейковой поддержке" : "Warn About Fake Support" }
+    static var flagFakeSupport: String { ru ? "Предупреждать о поддержке" : "Warn About Fake Support" }
     static var flagFakeSupportText: String {
         ru ? "Чат с непроверенным аккаунтом по имени «Telegram», «Безопасность», «Поддержка» и т. п. откроется с предупреждением."
            : "A chat with an unverified account named \"Telegram\", \"Security\", \"Support\" and the like opens with a warning."
+    }
+    /// Under the switches, since the rows carry short titles only (scene 41): what each one does.
+    static var protectionsDetails: String {
+        return [blockQrLoginText, guardLoginCodesText, blockPhoneSharingText, warnMiniAppsText, confirmExternalLinksText, flagFakeSupportText].map { "• " + $0 }.joined(separator: "\n")
     }
     static var protectionsFooter: String {
         ru ? "Telegram никогда не просит код, пароль или номер в чате, на сайте или в боте. Любая такая просьба — попытка угона."
@@ -157,8 +162,13 @@ private final class BananaSecurityArguments {
 }
 
 private enum BananaSecuritySection: Int32 {
-    case status
     case protections
+    case status
+}
+
+/// The icon of each row (scene 41), an SF Symbol on its hue.
+private func bananaSecurityIcon(_ systemName: String, _ rgb: UInt32) -> UIImage? {
+    return renderSettingsSymbolIcon(systemName: systemName, color: UIColor(rgb: rgb))
 }
 
 private enum BananaSecurityEntry: ItemListNodeEntry {
@@ -181,20 +191,20 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
 
     var stableId: Int32 {
         switch self {
-        case .statusHeader:
-            return 0
-        case .twoStep:
-            return 1
-        case .sessions:
-            return 2
-        case .statusFooter:
-            return 3
         case .protectionsHeader:
-            return 10
+            return 0
         case let .toggle(id, _, _, _, _):
-            return 100 + id
+            return 10 + id
         case .protectionsFooter:
+            return 100
+        case .statusHeader:
             return 1000
+        case .twoStep:
+            return 1001
+        case .sessions:
+            return 1002
+        case .statusFooter:
+            return 1003
         }
     }
 
@@ -236,33 +246,38 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
             } else {
                 labelStyle = .text
             }
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: BananaSecurityStrings.twoStep, label: label, labelStyle: labelStyle, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: bananaSecurityIcon("lock.fill", 0x9C7BE6), title: BananaSecurityStrings.twoStep, label: label, labelStyle: labelStyle, sectionId: self.section, style: .blocks, action: {
                 arguments.openTwoStep()
             })
         case let .sessions(count):
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: BananaSecurityStrings.sessions, label: count.flatMap { "\($0)" } ?? "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: bananaSecurityIcon("person.2.fill", 0x5B8BE0), title: BananaSecurityStrings.sessions, label: count.flatMap { "\($0)" } ?? "", sectionId: self.section, style: .blocks, action: {
                 arguments.openSessions()
             })
         case .statusFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(BananaSecurityStrings.statusFooter), sectionId: self.section)
         case .protectionsHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: BananaSecurityStrings.protectionsHeader, sectionId: self.section)
-        case let .toggle(_, title, text, value, keyPath):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, text: text, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
+        case let .toggle(id, title, _, value, keyPath):
+            let icon: UIImage?
+            switch id {
+            case 0: icon = bananaSecurityIcon("qrcode", 0xF2A43A)
+            case 1: icon = bananaSecurityIcon("shield.fill", 0xF2A43A)
+            case 2: icon = bananaSecurityIcon("phone.fill", 0xEE7B4B)
+            case 3: icon = bananaSecurityIcon("bell.fill", 0xB27BD6)
+            case 4: icon = bananaSecurityIcon("globe", 0x5B8BE0)
+            default: icon = bananaSecurityIcon("checkmark.shield.fill", 0x3AA58F)
+            }
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.update(keyPath, value)
             })
         case .protectionsFooter:
-            return ItemListTextItem(presentationData: presentationData, text: .plain(BananaSecurityStrings.protectionsFooter), sectionId: self.section)
+            return ItemListTextItem(presentationData: presentationData, text: .plain(BananaSecurityStrings.protectionsDetails + "\n\n" + BananaSecurityStrings.protectionsFooter), sectionId: self.section)
         }
     }
 }
 
 private func bananaSecurityEntries(settings: ForkExtrasSettings, hasTwoStep: Bool?, sessionsCount: Int?) -> [BananaSecurityEntry] {
     var entries: [BananaSecurityEntry] = []
-    entries.append(.statusHeader)
-    entries.append(.twoStep(hasTwoStep))
-    entries.append(.sessions(sessionsCount))
-    entries.append(.statusFooter)
     entries.append(.protectionsHeader)
     entries.append(.toggle(id: 0, title: BananaSecurityStrings.blockQrLogin, text: BananaSecurityStrings.blockQrLoginText, value: settings.securityBlockQrLogin, keyPath: \.securityBlockQrLogin))
     entries.append(.toggle(id: 1, title: BananaSecurityStrings.guardLoginCodes, text: BananaSecurityStrings.guardLoginCodesText, value: settings.securityGuardLoginCodes, keyPath: \.securityGuardLoginCodes))
@@ -271,6 +286,10 @@ private func bananaSecurityEntries(settings: ForkExtrasSettings, hasTwoStep: Boo
     entries.append(.toggle(id: 4, title: BananaSecurityStrings.confirmExternalLinks, text: BananaSecurityStrings.confirmExternalLinksText, value: settings.securityConfirmExternalLinks, keyPath: \.securityConfirmExternalLinks))
     entries.append(.toggle(id: 5, title: BananaSecurityStrings.flagFakeSupport, text: BananaSecurityStrings.flagFakeSupportText, value: settings.securityFlagFakeSupport, keyPath: \.securityFlagFakeSupport))
     entries.append(.protectionsFooter)
+    entries.append(.statusHeader)
+    entries.append(.twoStep(hasTwoStep))
+    entries.append(.sessions(sessionsCount))
+    entries.append(.statusFooter)
     return entries
 }
 
@@ -317,7 +336,7 @@ public func bananaSecurityController(context: AccountContext) -> ViewController 
         } |> distinctUntilChanged
     )
     |> map { presentationData, settings, hasTwoStep, sessionsCount -> (ItemListControllerState, (ItemListNodeState, Any)) in
-        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(BananaSecurityStrings.title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
+        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(BananaSecurityStrings.screenTitle), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: bananaSecurityEntries(settings: settings, hasTwoStep: hasTwoStep, sessionsCount: sessionsCount), style: .blocks, animateChanges: false)
         return (controllerState, (listState, arguments))
     }

@@ -102,8 +102,18 @@ private let settingsSymbolNames: [String: String] = [
     "Item List/Icons/Faq": "questionmark.circle.fill",
 ]
 
+/// Names `renderSettingsSymbolIcon` passes: an SF Symbol rather than a bundled glyph.
+private let settingsSymbolNamePrefix = "symbol:"
+
+/// A Settings-style icon from an SF Symbol: the glyph on a rounded square of `color`, cached and repainted by the
+/// BananaGram themes like every other Settings icon.
+public func renderSettingsSymbolIcon(systemName: String, color: UIColor) -> UIImage? {
+    return renderSettingsIcon(name: settingsSymbolNamePrefix + systemName, backgroundColors: [color])
+}
+
 private func renderSettingsIconUncached(name: String, scaleFactor: CGFloat, backgroundColors: [UIColor]?, glyphColor: UIColor?) -> UIImage? {
-    let symbol = backgroundColors == nil ? nil : settingsSymbolNames[name].flatMap {
+    let symbolName = settingsSymbolNames[name] ?? (name.hasPrefix(settingsSymbolNamePrefix) ? String(name.dropFirst(settingsSymbolNamePrefix.count)) : nil)
+    let symbol = backgroundColors == nil ? nil : symbolName.flatMap {
         UIImage(systemName: $0, withConfiguration: UIImage.SymbolConfiguration(pointSize: 19.0, weight: .regular))
     }
     let glyph: UIImage?

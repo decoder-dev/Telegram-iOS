@@ -387,3 +387,12 @@ Storage categories/peer list/media grid/DataUsage items, ChatAdPanel, StoryInter
 ## Wallet send/words и Context/Affiliate
 
 WalletWords/Send keyboard/recipient/collectible, ContextController actions stack, AffiliateProgram/PeerAllowedReactions/LiveStream sliders, QrStudio/PeerNameColor preview, ChatTextInputPanel leftover — Dynamic Type. Branding Liquid: 7 pass. Simulator NOT RUN.
+
+## Сцены 42, 43, 26, 41: защищённый архив, что защищать, скрытые аккаунты, защита BananaGram
+
+`ArchiveSettingsController` разделён на три страницы по макетам handoff v4 (`ArchiveSettingsPage`: `.main`, `.scope`, `.hiddenAccounts`). Главная (42): карточка статуса («Защита активна» / «Защита выключена», что именно защищено), раздел «Настройки» (Что защищать → 43 с подписью «2 объекта» или названием одного раздела, Скрытые аккаунты → 26 с числом скрытых, Face ID / Touch ID, Изменить пароль, Открыть архив), «Быстрые действия» (Заблокировать сейчас) и «Удалить пароль архива»; без пароля — карточка и «Задать пароль архива». Настройки самого Telegram (архив без звука, автоархивация незнакомых) остались внизу. Страница 43: вступление, «Разделы» (Архив чатов, Избранное; последний включённый нельзя выключить), карточка «Настройка требует подтверждения». Страница 26: вступление, «Учётные записи» (реальные аккаунты с аватарами и переключателями), «Защита» (Сменить пароль архива, Заблокировать сейчас). «Открыть архив» спрашивает пароль через `ensureArchiveUnlocked` и открывает папку тем же `ChatListControllerImpl`, что и список чатов. Логика пароля, скрытия и выбора не менялась.
+
+`BananaSecurityController` (41): заголовок «Защита BananaGram», сначала «Защита от обмана» (короткие названия, пояснения в подписи), затем «Аккаунт» (двухэтапная проверка, активные сессии).
+
+Иконки — SF Symbols на цветных плашках через новый `renderSettingsSymbolIcon(systemName:color:)` (`PresentationResourcesSettings`), с тем же кэшем и перекраской тем BananaGram. Linux: archive/security regression scripts pass, остальные падения совпадают с базой. Simulator NOT RUN.
+
