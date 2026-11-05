@@ -1164,10 +1164,26 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
             let dcDigit = digits[digits.index(digits.startIndex, offsetBy: 5)]
             let phoneCode = String(repeating: dcDigit, count: 5)
-            let markerUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("ui-test-login.done")
+            let documentsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let markerUrl = documentsUrl.appendingPathComponent("ui-test-login.done")
             let _ = try? FileManager.default.removeItem(at: markerUrl)
+            // The workflow copies this file and the Logger files when the marker does not appear.
+            Logger.shared.logToFile = true
+            Logger.shared.logToConsole = true
+            let progressUrl = documentsUrl.appendingPathComponent("ui-test.log")
+            func progress(_ text: String) {
+                NSLog("[UITestLogin] \(text)")
+                let line = "\(Date()) \(text)\n"
+                if let handle = try? FileHandle(forWritingTo: progressUrl) {
+                    handle.seekToEndOfFile()
+                    handle.write(Data(line.utf8))
+                    try? handle.close()
+                } else {
+                    try? Data(line.utf8).write(to: progressUrl)
+                }
+            }
 
-            NSLog("[UITestLogin] starting for +\(digits)")
+            progress("starting for +\(digits), root \(rootPath)")
             let _ = test_loginAccount(
                 rootPath: rootPath,
                 accountManager: accountManager,
@@ -1178,10 +1194,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 firstName: "Анна",
                 lastName: "Смирнова"
             ).start(error: { error in
-                NSLog("[UITestLogin] error: \(error)")
-                preconditionFailure("test_loginAccount failed")
+                progress("error: \(error)")
             }, completed: {
-                NSLog("[UITestLogin] completed")
+                progress("completed")
                 let _ = try? Data("ok".utf8).write(to: markerUrl)
             })
 
