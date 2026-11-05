@@ -26,6 +26,7 @@ enum SettingsSection: Int, CaseIterable {
     case apps
     case shortcuts
     case advanced
+    case bananaGram
     case payment
     case extra
     case support
@@ -282,8 +283,16 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 9, text: forkCustomizationSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.appearance, action: {
         interaction.openSettings(.appearance)
     }))
-    items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 8, text: forkExtrasSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.forkExtras, action: {
+    // BananaGram's own group (handoff scene 24): its features, the protected Archive and the anti-takeover switches.
+    items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 8, text: forkExtrasSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.forkExtras, action: {
         interaction.openSettings(.forkExtras)
+    }))
+    let bananaRussian = ForkPresentationLanguage.prefersRussianStrings
+    items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 11, text: bananaRussian ? "Защищённый архив" : "Protected Archive", icon: renderSettingsSymbolIcon(systemName: "lock.fill", color: .systemOrange), action: {
+        interaction.openSettings(.archiveProtection)
+    }))
+    items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 12, text: bananaRussian ? "Безопасность BananaGram" : "BananaGram Security", icon: renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGray), action: {
+        interaction.openSettings(.bananaSecurity)
     }))
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 10, text: forkDeveloperModeSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.developerMode, action: {
         interaction.openSettings(.debug)
