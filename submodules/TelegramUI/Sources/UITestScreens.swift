@@ -93,6 +93,8 @@ func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext
                 case "chatList": focus = .chatList
                 case "tabBar": focus = .tabBar
                 case "messages": focus = .messages
+                case "sending": focus = .messageSending
+                case "actions": focus = .messageActions
                 case "media": focus = .media
                 case "profile": focus = .profile
                 case "network": focus = .network

@@ -568,6 +568,9 @@ private enum ForkExtrasDestination: Equatable {
     case accountOrder
     /// Scene 40/45: the connection status screen (route, state, the selected server's last response).
     case connectionCheck
+    /// The two pages split off Messages and composer, so that screen shows what a chat looks like and links to the rest.
+    case messageSending
+    case messageActions
 }
 
 private final class ForkExtrasControllerArguments {
@@ -705,7 +708,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         (.appearance, [[1618, 1531, 1532, 1553, 1619], [1900, 1901, 1902, 1903, 1904, 1905, 1906]]),
         // Scene 38: the input panel opens Messages. Scene 39: round videos and voice open Media, calls follow.
         (.messages, [
-            [1850, 2101, 2102, 1851, 1852, 1853],
+            [2200, 2201],
             [1605, 65, 66],
             [1557],
             [1558],
@@ -717,22 +720,27 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1940, 1941, 1942, 1943],
             [1944],
             [1721, 1542, 1712, 1700, 1701, 1702],
-            [1606, 81, 82, 1710],
-            [98, 99],
-            [1511, 1520],
             [1533],
-            [1802],
-            [1800, 1801, 1803],
-            [92, 93],
-            [94, 95],
-            [96, 97],
             [88, 89],
             [1518],
             [1607, 1510, 1513, 1517],
             [1825, 1826, 1827, 1828],
             [85, 86, 87],
-            [1910, 1911],
             [1960, 1962, 1964]
+        ]),
+        (.messageSending, [
+            [1850, 2101, 2102, 1851, 1852, 1853],
+            [1606, 81, 82, 1710],
+            [98, 99],
+            [1511, 1520]
+        ]),
+        (.messageActions, [
+            [1802],
+            [1800, 1801, 1803],
+            [92, 93],
+            [94, 95],
+            [96, 97],
+            [1910, 1911]
         ]),
         (.media, [
             [1609, 2110, 2111, 2112, 2113, 2114, 2115, 1515, 1516, 1544, 1545, 1559, 1612],
@@ -818,6 +826,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             case .security: return ForkExtrasSection.hub.rawValue
             case .accountOrder: return ForkExtrasSection.hubLook.rawValue
             case .connectionCheck: return ForkExtrasSection.proxy.rawValue
+            case .messageSending, .messageActions: return ForkExtrasSection.appearance.rawValue
             }
         case .audioHeader, .musicPolicy: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
@@ -969,6 +978,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             case .security: icon = renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGreen); detail = BananaSecurityStrings.hubLabel
             case .accountOrder: icon = renderSettingsSymbolIcon(systemName: "person.2.fill", color: .systemIndigo); detail = nil
             case .connectionCheck: icon = renderSettingsSymbolIcon(systemName: "speedometer", color: .systemGreen); detail = nil
+            case .messageSending: icon = renderSettingsSymbolIcon(systemName: "paperplane.fill", color: .systemBlue); detail = nil
+            case .messageActions: icon = renderSettingsSymbolIcon(systemName: "hand.tap.fill", color: .systemOrange); detail = nil
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, action: {
                 arguments.openDestination(destination)
@@ -1380,6 +1391,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ]
     case .messages:
         entries = [
+            .destination(2200, russian ? "Ввод и отправка" : "Input and Sending", .messageSending),
+            .destination(2201, russian ? "Действия с сообщениями" : "Message Actions", .messageActions),
             .designHeader(1605, russian ? "Отображение" : "Display"),
             .settingToggle(65, .appearance, ForkExtrasLocalizedString.showMessageSeconds, settings.showMessageSeconds, \.showMessageSeconds),
             .settingFooter(66, .appearance, ForkExtrasLocalizedString.showMessageSecondsFooter),
@@ -1420,30 +1433,10 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1942, russian ? "Подтверждать переход по ссылкам Telegram" : "Confirm Telegram link opens", settings.confirmTelegramLinks, \.confirmTelegramLinks),
             .appearanceToggle(1944, russian ? "Подтверждать ссылки «поделиться» (tg://msg_url)" : "Confirm share links (tg://msg_url)", settings.confirmShareLinks, \.confirmShareLinks),
             .appearanceToggle(1943, russian ? "Подтверждать вход из предпросмотра" : "Confirm entering a chat preview", settings.confirmChatPreviewEntry, \.confirmChatPreviewEntry),
-            .appearanceToggle(1710, russian ? "Запятая после упоминания" : "Comma after mention", settings.commaAfterMention, \.commaAfterMention),
             .appearanceToggle(1791, russian ? "«В начало чата» в меню аватарки" : "Jump to start in the avatar menu", settings.jumpToStartInChatMenu, \.jumpToStartInChatMenu),
-            .designHeader(1606, russian ? "Отправка и правка" : "Sending and editing"),
-            .settingToggle(81, .calls, ForkExtrasLocalizedString.sendWithReturnKey, settings.sendWithReturnKey, \.sendWithReturnKey),
-            .settingFooter(82, .calls, ForkExtrasLocalizedString.sendWithReturnKeyFooter),
-            .outgoingPhotoQuality(settings.outgoingPhotoQuality),
-            .settingFooter(99, .chatExtras, ForkExtrasLocalizedString.outgoingPhotoQualityFooter),
-            .appearanceToggle(1511, russian ? "Отправлять без превью ссылок" : "Send without link previews", settings.removeLinkPreviews, \.removeLinkPreviews),
-            .appearanceToggle(1520, russian ? "Запрещённые GIF как видео" : "Send banned GIFs as video", settings.sendBannedGifsAsVideo, \.sendBannedGifsAsVideo),
-            .intChoice(1802, russian ? "Двойное касание" : "Double-tap action", forkIntChoiceLabel(forkDoubleTapActionOptions(russian: russian), settings.doubleTapAction)),
-            .appearanceToggle(1800, russian ? "ID сообщения в группах и каналах" : "Message ID in groups and channels", settings.showMessageId, \.showMessageId),
-            .appearanceToggle(1801, russian ? "Раскрывать спойлеры сразу" : "Reveal spoilers automatically", settings.autoRevealSpoilers, \.autoRevealSpoilers),
-            .appearanceToggle(1803, russian ? "Меню: повторить и переслать без автора" : "Menu: Repeat and Forward without author", settings.repeatMessageMenu, \.repeatMessageMenu),
-            .settingToggle(92, .chatExtras, ForkExtrasLocalizedString.quickTranslate, settings.quickTranslateButton, \.quickTranslateButton),
-            .settingFooter(93, .chatExtras, ForkExtrasLocalizedString.quickTranslateFooter),
-            .settingToggle(94, .chatExtras, ForkExtrasLocalizedString.saveToCloud, settings.saveToCloudMenu, \.saveToCloudMenu),
-            .settingFooter(95, .chatExtras, ForkExtrasLocalizedString.saveToCloudFooter),
-            .settingToggle(96, .chatExtras, ForkExtrasLocalizedString.selectFromAuthor, settings.selectFromAuthor, \.selectFromAuthor),
-            .settingFooter(97, .chatExtras, ForkExtrasLocalizedString.selectFromAuthorFooter),
             .scrollToNextChat(settings.scrollToNextChatDisabled),
             .settingFooter(89, .navigation, ForkExtrasLocalizedString.scrollToNextChatFooter),
             .appearanceToggle(1518, russian ? "Хэштег ищет в этом чате" : "Hashtags search this chat", settings.hashtagsPreferCurrentChat, \.hashtagsPreferCurrentChat),
-            .designHeader(1910, russian ? "Скриншот сообщений" : "Message Shot"),
-            .appearanceToggle(1911, russian ? "Пункт «Скриншот» в меню сообщения" : "“Screenshot” in the message menu", settings.messageShot, \.messageShot),
             .appearanceToggle(1960, russian ? "Отзыв всех пригласительных ссылок" : "Bulk revoke invite links", settings.inviteLinksBulkRevoke, \.inviteLinksBulkRevoke),
             .appearanceToggle(1962, russian ? "Подтверждать открепление сообщений" : "Confirm before unpinning messages", settings.confirmUnpin, \.confirmUnpin),
             .appearanceToggle(1964, russian ? "Оставаться на последнем сообщении после обновления" : "Stay at the latest message after a refresh", settings.stayAtLatestMessageAfterRefresh, \.stayAtLatestMessageAfterRefresh),
@@ -1454,12 +1447,38 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .translationBackend(settings.translationBackend),
             .transcriptionBackend(settings.transcriptionBackend),
             .settingFooter(87, .translation, ForkExtrasLocalizedString.translationFooter),
+        ]
+    case .messageSending:
+        entries = [
+            .appearanceToggle(1710, russian ? "Запятая после упоминания" : "Comma after mention", settings.commaAfterMention, \.commaAfterMention),
+            .designHeader(1606, russian ? "Отправка и правка" : "Sending and editing"),
+            .settingToggle(81, .calls, ForkExtrasLocalizedString.sendWithReturnKey, settings.sendWithReturnKey, \.sendWithReturnKey),
+            .settingFooter(82, .calls, ForkExtrasLocalizedString.sendWithReturnKeyFooter),
+            .outgoingPhotoQuality(settings.outgoingPhotoQuality),
+            .settingFooter(99, .chatExtras, ForkExtrasLocalizedString.outgoingPhotoQualityFooter),
+            .appearanceToggle(1511, russian ? "Отправлять без превью ссылок" : "Send without link previews", settings.removeLinkPreviews, \.removeLinkPreviews),
+            .appearanceToggle(1520, russian ? "Запрещённые GIF как видео" : "Send banned GIFs as video", settings.sendBannedGifsAsVideo, \.sendBannedGifsAsVideo),
             .designHeader(1850, russian ? "Панель ввода" : "Input panel"),
             .appearanceToggle(2101, russian ? "Скрыть кнопку AI" : "Hide AI button", settings.hideAIButton, \.hideAIButton),
             .appearanceToggle(2102, russian ? "Скрыть разворачивание редактора" : "Hide expanded editor", settings.hideRichTextEditor, \.hideRichTextEditor),
             .intChoice(1851, russian ? "Формат по умолчанию" : "Default formatting", forkIntChoiceLabel(forkSendFormattingOptions(russian: russian), settings.defaultSendFormatting)),
             .appearanceToggle(1852, russian ? "Упоминание долгим нажатием на аватар" : "Mention by long-pressing an avatar", settings.avatarLongPressMention, \.avatarLongPressMention),
             .designFooter(1853, russian ? "Формат по умолчанию применяется к обычному тексту, ваше форматирование не меняется. Долгое нажатие на аватар в чате вставляет упоминание." : "The default format applies to plain text you send; your own formatting stays as it is. Long-press an avatar in a chat to mention that person."),
+        ]
+    case .messageActions:
+        entries = [
+            .intChoice(1802, russian ? "Двойное касание" : "Double-tap action", forkIntChoiceLabel(forkDoubleTapActionOptions(russian: russian), settings.doubleTapAction)),
+            .appearanceToggle(1800, russian ? "ID сообщения в группах и каналах" : "Message ID in groups and channels", settings.showMessageId, \.showMessageId),
+            .appearanceToggle(1801, russian ? "Раскрывать спойлеры сразу" : "Reveal spoilers automatically", settings.autoRevealSpoilers, \.autoRevealSpoilers),
+            .appearanceToggle(1803, russian ? "Меню: повторить и переслать без автора" : "Menu: Repeat and Forward without author", settings.repeatMessageMenu, \.repeatMessageMenu),
+            .settingToggle(92, .chatExtras, ForkExtrasLocalizedString.quickTranslate, settings.quickTranslateButton, \.quickTranslateButton),
+            .settingFooter(93, .chatExtras, ForkExtrasLocalizedString.quickTranslateFooter),
+            .settingToggle(94, .chatExtras, ForkExtrasLocalizedString.saveToCloud, settings.saveToCloudMenu, \.saveToCloudMenu),
+            .settingFooter(95, .chatExtras, ForkExtrasLocalizedString.saveToCloudFooter),
+            .settingToggle(96, .chatExtras, ForkExtrasLocalizedString.selectFromAuthor, settings.selectFromAuthor, \.selectFromAuthor),
+            .settingFooter(97, .chatExtras, ForkExtrasLocalizedString.selectFromAuthorFooter),
+            .designHeader(1910, russian ? "Скриншот сообщений" : "Message Shot"),
+            .appearanceToggle(1911, russian ? "Пункт «Скриншот» в меню сообщения" : "“Screenshot” in the message menu", settings.messageShot, \.messageShot),
         ]
     case .media:
         entries = [
@@ -1617,6 +1636,8 @@ public enum ForkExtrasControllerFocus {
     case chatList
     case tabBar
     case messages
+    case messageSending
+    case messageActions
     case media
     case profile
     case network
@@ -1648,6 +1669,10 @@ public enum ForkExtrasControllerFocus {
             return ForkExtrasLocalizedString.hubTabBar
         case .messages:
             return ForkExtrasLocalizedString.hubMessages
+        case .messageSending:
+            return ForkPresentationLanguage.prefersRussianStrings ? "Ввод и отправка" : "Input and Sending"
+        case .messageActions:
+            return ForkPresentationLanguage.prefersRussianStrings ? "Действия с сообщениями" : "Message Actions"
         case .media:
             return ForkExtrasLocalizedString.hubMedia
         case .profile:
@@ -1664,7 +1689,7 @@ public enum ForkExtrasControllerFocus {
 func forkExtrasSearchableRows(strings: PresentationStrings) -> [(id: Int32, title: String, focus: ForkExtrasControllerFocus)] {
     var result: [(id: Int32, title: String, focus: ForkExtrasControllerFocus)] = []
     var seen = Set<Int32>()
-    let categories: [ForkExtrasControllerFocus] = [.ninja, .ghost, .privacy, .appearance, .chatList, .tabBar, .messages, .media, .profile, .network]
+    let categories: [ForkExtrasControllerFocus] = [.ninja, .ghost, .privacy, .appearance, .chatList, .tabBar, .messages, .messageSending, .messageActions, .media, .profile, .network]
     for focus in categories {
         let entries = forkExtrasControllerEntries(settings: .defaultSettings, autoFetchPublicMtProxy: false, showCallsTab: true, mediaInputSettings: .defaultSettings, focus: focus)
         for entry in entries {
@@ -1890,6 +1915,8 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             case .proxy: pushControllerImpl?(context.sharedContext.makeProxySettingsController(context: context))
             case .security: pushControllerImpl?(bananaSecurityController(context: context))
             case .accountOrder: pushControllerImpl?(accountOrderController(context: context))
+            case .messageSending: pushControllerImpl?(forkExtrasController(context: context, focus: .messageSending))
+            case .messageActions: pushControllerImpl?(forkExtrasController(context: context, focus: .messageActions))
             case .connectionCheck:
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                 let proxySettings: Signal<ProxySettings, NoError> = context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings])

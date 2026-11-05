@@ -4381,6 +4381,8 @@ func settingsSearchableItems(
             ("bananagram/chatlist", ForkPresentationLanguage.prefersRussianStrings ? "Список чатов и папки" : "Chat list and folders", .chatList),
             ("bananagram/tabbar", ForkPresentationLanguage.prefersRussianStrings ? "Панель вкладок" : "Tab bar", .tabBar),
             ("bananagram/messages", ForkPresentationLanguage.prefersRussianStrings ? "Сообщения и ввод" : "Messages and composer", .messages),
+            ("bananagram/sending", ForkPresentationLanguage.prefersRussianStrings ? "Ввод и отправка" : "Input and Sending", .messageSending),
+            ("bananagram/actions", ForkPresentationLanguage.prefersRussianStrings ? "Действия с сообщениями" : "Message Actions", .messageActions),
             ("bananagram/media", ForkPresentationLanguage.prefersRussianStrings ? "Звонки и звук" : "Calls and audio", .media),
             ("bananagram/profile", ForkPresentationLanguage.prefersRussianStrings ? "Профиль и эффекты" : "Profile and effects", .profile),
             ("bananagram/network", ForkPresentationLanguage.prefersRussianStrings ? "Сеть и загрузки" : "Network and downloads", .network)
