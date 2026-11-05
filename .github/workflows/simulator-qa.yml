@@ -106,19 +106,23 @@ jobs:
       - name: Select and boot an iPhone simulator
         run: |
           set -euo pipefail
-          RUNTIME="$(xcrun simctl list runtimes -j | jq -r '[.runtimes[] | select(.isAvailable and (.name | startswith("iOS")))] | last | .identifier')"
-          test -n "$RUNTIME" && test "$RUNTIME" != "null"
-          # Only a device type the runtime supports boots ("Incompatible device" otherwise): the newest runtime
-          # (iOS 27 on Xcode 27) dropped the older iPhones, so pick from the runtime's own list, a plain iPhone first.
-          SUPPORTED="$(xcrun simctl list runtimes -j | jq -c --arg runtime "$RUNTIME" '[.runtimes[] | select(.identifier == $runtime) | .supportedDeviceTypes[]? | select(.productFamily == "iPhone")]')"
-          echo "Supported iPhones: $(echo "$SUPPORTED" | jq -r '[.[].name] | join(", ")')"
-          DEVICE_TYPE="$(echo "$SUPPORTED" | jq -r '[.[] | select(.name | test("^iPhone [0-9]+$"))] | sort_by(.name | capture("(?<n>[0-9]+)").n | tonumber) | last | .identifier // empty')"
-          if [ -z "$DEVICE_TYPE" ]; then
-            DEVICE_TYPE="$(echo "$SUPPORTED" | jq -r '[.[] | select(.name | test("^iPhone [0-9]+ Pro$"))] | last | .identifier // empty')"
-          fi
-          if [ -z "$DEVICE_TYPE" ]; then
-            DEVICE_TYPE="$(echo "$SUPPORTED" | jq -r 'last | .identifier // empty')"
-          fi
+          # Only a device type the runtime supports boots ("Incompatible device" otherwise), and a runtime may support
+          # nothing but iPhone Duo (two displays, which `simctl io screenshot` cannot choose between). Take the newest
+          # iOS runtime that runs a plain numbered iPhone (or its Pro), and the highest-numbered one.
+          RUNTIMES="$(xcrun simctl list runtimes -j)"
+          echo "$RUNTIMES" | jq -r '.runtimes[] | select(.isAvailable and (.name | startswith("iOS"))) | "\(.identifier): \([.supportedDeviceTypes[]? | select(.productFamily == "iPhone") | .name] | join(", "))"'
+          PICK="$(echo "$RUNTIMES" | jq -r '
+            [.runtimes[] | select(.isAvailable and (.name | startswith("iOS")))
+             | {runtime: .identifier, version: .version,
+                devices: [.supportedDeviceTypes[]? | select(.productFamily == "iPhone" and (.name | test("^iPhone [0-9]+( Pro)?$")))]}
+             | select(.devices | length > 0)]
+            | sort_by(.version | split(".") | map(tonumber))
+            | last
+            | if . == null then empty else "\(.runtime) \(.devices | sort_by(.name | capture("(?<n>[0-9]+)").n | tonumber) | last | .identifier)" end')"
+          test -n "$PICK"
+          RUNTIME="${PICK%% *}"
+          DEVICE_TYPE="${PICK##* }"
+          echo "Runtime: $RUNTIME"
           echo "Device type: $DEVICE_TYPE"
           test -n "$DEVICE_TYPE" && test "$DEVICE_TYPE" != "null"
           UDID="$(xcrun simctl list devices -j | jq -r --arg runtime "$RUNTIME" --arg type "$DEVICE_TYPE" '(.devices[$runtime] // []) | map(select(.isAvailable and .deviceTypeIdentifier == $type)) | last | .udid // empty')"
