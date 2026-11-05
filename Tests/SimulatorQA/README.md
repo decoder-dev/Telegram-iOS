@@ -13,14 +13,18 @@ can be added safely.
 
 ## Signed-in screens (2026-11)
 
-After the welcome screens the workflow signs a fresh test-environment number in (`99966 2 YYYY`, code `22222`, no
-SMS) and captures the chat list, Saved Messages and Settings in light and dark appearance (`qa-artifacts/screens/`).
-Nothing personal is involved: `--ui-test` uses its own data directory and Telegram's test servers.
+After the welcome screens the workflow opens an **offline fixture account** and captures the chat list, the Archive,
+Saved Messages and Settings in light and dark appearance (`qa-artifacts/screens/`).
 
-The app side is three launch flags, honoured only together with `--ui-test`:
+Why a fixture: Telegram's test servers no longer provision accounts for random `99966XYYYY` numbers. `auth.sendCode`
+still answers, but `auth.signIn` returns PHONE_CODE_INVALID for `XXXXX` on all three test DCs (measured in this
+workflow, 2026-11-05; also reported by other clients). So nothing signs in anywhere.
 
-- `--ui-test-login <phone>` signs the number in, registering it when new (`test_loginAccount` in TelegramCore), and
-  writes `Documents/ui-test-login.done`.
-- `--ui-test-keep-data` keeps the test data directory, so later launches find the account.
-- `--ui-test-seed` creates three channels with posts and a few Saved Messages (`UITestSeed.swift`), then writes
-  `Documents/ui-test-seed.done`. `--ui-test-screen <chats|saved|settings|contacts>` opens that screen after launch.
+`--ui-test --ui-test-fixture` (`test_createOfflineFixtureAccount` in TelegramCore) writes into the `--ui-test` data
+directory what a sign-in leaves behind: an `AuthorizedAccountState` for a made-up user, the record made current, and
+eight chats with messages, unread counts and one archived chat. Networking goes to a SOCKS5 proxy on a closed loopback
+port with the WebSocket transport and its direct fallback off, so no connection leaves the machine: a server's 401 on
+the made-up account would log it out. The chat list therefore shows the connecting state in its title.
+
+Later launches use `--ui-test --ui-test-keep-data`; `--ui-test-screen <chats|archive|saved|settings|contacts>` opens a
+screen after launch. `--ui-test-login <phone>` (a real test-DC sign-in) is kept for when test numbers work again.

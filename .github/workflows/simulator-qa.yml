@@ -174,14 +174,14 @@ jobs:
           test -s qa-artifacts/welcome-dark.png
           test -s qa-artifacts/first-launch.mp4
 
-      - name: Sign in a test account and capture the signed-in screens
+      - name: Open an offline fixture account and capture the signed-in screens
         run: |
           set -euo pipefail
           BUNDLE_ID="$(jq -r .bundle_id build-system/sideload-configuration.json)"
           mkdir -p qa-artifacts/screens
-          # A fresh test-environment number every run (99966 + DC 2 + 4 digits): the code is 22222, no SMS.
-          PHONE="999662$(printf '%04d' $((RANDOM % 10000)))"
-          echo "Test phone: +$PHONE"
+          # Telegram's test servers no longer provision random 99966XYYYY numbers (PHONE_CODE_INVALID on every test
+          # DC), so the signed-in screens come from an offline fixture: a made-up account with a few chats in the
+          # --ui-test data directory, networking on a closed loopback proxy (test_createOfflineFixtureAccount).
           wait_for_marker() {
             local name="$1" seconds="$2"
             local data
@@ -211,14 +211,9 @@ jobs:
             return 1
           }
           xcrun simctl ui "$UDID" appearance light
-          xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-login "$PHONE"
-          wait_for_marker ui-test-login.done 240
-          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
-
-          xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-seed
-          wait_for_marker ui-test-seed.done 240
-          # Let the queued messages reach the server and the chat list settle.
-          sleep 20
+          xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-fixture
+          wait_for_marker ui-test-login.done 180
+          sleep 2
           xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
 
           for appearance in light dark; do

@@ -1151,6 +1151,29 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             return true
         }
 
+        if isUITest, CommandLine.arguments.contains("--ui-test-fixture") {
+            // Simulator QA: a signed-in account that exists only in this test data directory, with a few chats
+            // (`test_createOfflineFixtureAccount`); networking goes to a closed loopback proxy, so nothing reaches a
+            // server. The marker tells the workflow it may relaunch with `--ui-test --ui-test-keep-data`.
+            let documentsUrl = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let markerUrl = documentsUrl.appendingPathComponent("ui-test-login.done")
+            let _ = try? FileManager.default.removeItem(at: markerUrl)
+            Logger.shared.logToFile = true
+            NSLog("[UITestFixture] creating at \(rootPath)")
+            let _ = test_createOfflineFixtureAccount(
+                rootPath: rootPath,
+                accountManager: accountManager,
+                networkArguments: networkArguments,
+                encryptionParameters: encryptionParameters
+            ).start(completed: {
+                NSLog("[UITestFixture] completed")
+                try? Data("ok".utf8).write(to: documentsUrl.appendingPathComponent("ui-test.log"))
+                let _ = try? Data("ok".utf8).write(to: markerUrl)
+            })
+
+            return true
+        }
+
         if isUITest,
            let loginIdx = CommandLine.arguments.firstIndex(of: "--ui-test-login"),
            loginIdx + 1 < CommandLine.arguments.count
@@ -1529,7 +1552,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             
             Logger.shared.log("App \(self.episodeId)", "received context \(String(describing: context)) account \(String(describing: context?.context.account.id)) network \(String(describing: network))")
             if let context {
-                runUITestSeedIfRequested(context: context.context)
                 runUITestScreenIfRequested(applicationContext: context)
             }
             
