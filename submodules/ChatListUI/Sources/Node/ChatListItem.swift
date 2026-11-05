@@ -2537,7 +2537,8 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             let titleFont = Font.semibold(item.presentationData.fontSize.itemListBaseFontSize)
             let textFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
             let italicTextFont = Font.italic(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
-            let dateFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 13.0 / 17.0))
+            // Messages draws the date in the preview's size (15 pt at the default text size), secondary color.
+            let dateFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
             let badgeFont = Font.with(size: floor(item.presentationData.fontSize.itemListBaseFontSize * 13.0 / 17.0), design: .regular, weight: .semibold, traits: [.monospacedNumbers])
             let avatarBadgeFont = Font.with(size: floor(item.presentationData.fontSize.itemListBaseFontSize * 16.0 / 17.0), design: .regular, weight: .regular, traits: [.monospacedNumbers])
             
