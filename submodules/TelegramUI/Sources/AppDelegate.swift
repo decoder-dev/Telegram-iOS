@@ -1183,22 +1183,37 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 }
             }
 
-            progress("starting for +\(digits), root \(rootPath)")
-            let _ = test_loginAccount(
-                rootPath: rootPath,
-                accountManager: accountManager,
-                networkArguments: networkArguments,
-                encryptionParameters: encryptionParameters,
-                phoneNumber: "+\(digits)",
-                phoneCode: phoneCode,
-                firstName: "Анна",
-                lastName: "Смирнова"
-            ).start(error: { error in
-                progress("error: \(error)")
-            }, completed: {
-                progress("completed")
-                let _ = try? Data("ok".utf8).write(to: markerUrl)
-            })
+            // A test number can be refused (a flood limit per number per day, or a code the server rejects), so a failed
+            // attempt moves to a fresh random number on the next test datacenter, up to four attempts in all.
+            let retryDatacenters: [Character] = ["1", "3", "2"]
+            func attempt(_ index: Int, digits: String, phoneCode: String) {
+                progress("attempt \(index + 1): +\(digits), code \(phoneCode), root \(rootPath)")
+                let _ = test_loginAccount(
+                    rootPath: rootPath,
+                    accountManager: accountManager,
+                    networkArguments: networkArguments,
+                    encryptionParameters: encryptionParameters,
+                    phoneNumber: "+\(digits)",
+                    phoneCode: phoneCode,
+                    firstName: "Анна",
+                    lastName: "Смирнова"
+                ).start(error: { error in
+                    progress("attempt \(index + 1) error: \(error)")
+                    guard index < retryDatacenters.count else {
+                        progress("giving up")
+                        return
+                    }
+                    let datacenter = retryDatacenters[index]
+                    let nextDigits = "99966\(datacenter)" + String(format: "%04d", Int.random(in: 0 ..< 10000))
+                    Queue.mainQueue().after(2.0) {
+                        attempt(index + 1, digits: nextDigits, phoneCode: String(repeating: datacenter, count: 5))
+                    }
+                }, completed: {
+                    progress("completed")
+                    let _ = try? Data("ok".utf8).write(to: markerUrl)
+                })
+            }
+            attempt(0, digits: digits, phoneCode: phoneCode)
 
             return true
         }

@@ -1728,7 +1728,7 @@ private func test_signIn(
             forcedPasswordSetupNotice: { _ in nil }
         )
         |> mapError { error -> TestLoginAndDeleteAccountError in
-            NSLog("[DeleteAccount] sendAuthorizationCode error: \(error)")
+            NSLog("[UITestLogin] sendAuthorizationCode error: \(error)")
             return .generic
         }
         |> mapToSignal { result -> Signal<(UnauthorizedAccount, UnauthorizedAccountStateContents), TestLoginAndDeleteAccountError> in
@@ -1770,7 +1770,8 @@ private func test_signIn(
                     termsOfService: nil,
                     forcedPasswordSetupNotice: { _ in nil }
                 )
-                |> mapError { _ -> TestLoginAndDeleteAccountError in
+                |> mapError { error -> TestLoginAndDeleteAccountError in
+                    NSLog("[UITestLogin] authorizeWithCode error: \(error)")
                     return .generic
                 }
                 |> mapToSignal { result -> Signal<(UnauthorizedAccount, AuthorizeWithCodeResult), TestLoginAndDeleteAccountError> in
