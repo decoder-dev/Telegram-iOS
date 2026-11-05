@@ -20,6 +20,11 @@ func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext
     let context = applicationContext.context
     let rootController = applicationContext.rootController
     Queue.mainQueue().after(3.0) {
+        // `url:<tg link>` opens one of the app's own links in place (`simctl openurl` stops at a system confirmation).
+        if screen.hasPrefix("url:"), let url = URL(string: String(screen.dropFirst(4))) {
+            applicationContext.openUrl(url, external: true)
+            return
+        }
         switch screen {
         case "settings":
             rootController.openSettings(edit: false)

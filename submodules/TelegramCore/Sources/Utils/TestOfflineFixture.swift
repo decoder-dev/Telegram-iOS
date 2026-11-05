@@ -143,24 +143,48 @@ private func test_seedOfflineFixture(transaction: Transaction, seedConfiguration
     ]
 
     var readStates: [PeerId: [MessageId.Namespace: PeerReadState]] = [:]
+    // Cloud message ids of private chats and basic groups are global to the account (`globalMessageIdsPeerIdNamespaces`),
+    // so they are numbered across those chats; a channel numbers its own. Overlapping ids left private chats loading.
+    var nextGlobalId: Int32 = 1
     for chat in chats {
         let peerId = chat.peer.id
+        let usesGlobalIds = peerId.namespace != Namespaces.Peer.CloudChannel
+        // Saved Messages are threads keyed by the saved peer; a note written by the account is its own thread.
+        let threadId: Int64? = peerId == fixtureSelfPeerId ? fixtureSelfPeerId.toInt64() : nil
         var storeMessages: [StoreMessage] = []
+        var lastId: Int32 = 0
+        var firstId: Int32 = 1
         for (index, message) in chat.messages.enumerated() {
-            let id = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: Int32(index + 1))
+            let idValue: Int32
+            if usesGlobalIds {
+                idValue = nextGlobalId
+                nextGlobalId += 1
+            } else {
+                idValue = Int32(index + 1)
+            }
+            if index == 0 {
+                firstId = idValue
+            }
+            lastId = idValue
+            let id = MessageId(peerId: peerId, namespace: Namespaces.Message.Cloud, id: idValue)
             // A channel post's author is the channel; a private chat's incoming message is the other user's.
             let authorId: PeerId = message.outgoing ? fixtureSelfPeerId : peerId
             var flags: StoreMessageFlags = []
             if !message.outgoing {
                 flags.insert(.Incoming)
             }
-            storeMessages.append(StoreMessage(id: id, customStableId: nil, globallyUniqueId: nil, groupingKey: nil, threadId: nil, timestamp: now - message.ago, flags: flags, tags: [], globalTags: [], localTags: [], forwardInfo: nil, authorId: authorId, text: message.text, attributes: [], media: []))
+            storeMessages.append(StoreMessage(id: id, customStableId: nil, globallyUniqueId: nil, groupingKey: nil, threadId: threadId, timestamp: now - message.ago, flags: flags, tags: [], globalTags: [], localTags: [], forwardInfo: nil, authorId: authorId, text: message.text, attributes: [], media: []))
         }
         let _ = transaction.addMessages(storeMessages, location: .Random)
         // No history hole: the chat opens on these messages instead of waiting for a server.
         transaction.removeHole(peerId: peerId, threadId: nil, namespace: Namespaces.Message.Cloud, space: .everywhere, range: 1 ... Int32.max)
-        let lastId = Int32(chat.messages.count)
-        readStates[peerId] = [Namespaces.Message.Cloud: .idBased(maxIncomingReadId: lastId - Int32(chat.unread), maxOutgoingReadId: lastId, maxKnownId: lastId, count: Int32(chat.unread), markedUnread: false)]
+        if let threadId {
+            transaction.removeHole(peerId: peerId, threadId: threadId, namespace: Namespaces.Message.Cloud, space: .everywhere, range: 1 ... Int32.max)
+        }
+        // The read mark sits `unread` messages before the last one (the ids are not contiguous across chats).
+        let unreadFromIndex = max(0, chat.messages.count - chat.unread)
+        let maxIncomingReadId: Int32 = unreadFromIndex == 0 ? max(0, firstId - 1) : (usesGlobalIds ? firstId + Int32(unreadFromIndex) - 1 : Int32(unreadFromIndex))
+        readStates[peerId] = [Namespaces.Message.Cloud: .idBased(maxIncomingReadId: maxIncomingReadId, maxOutgoingReadId: lastId, maxKnownId: lastId, count: Int32(chat.unread), markedUnread: false)]
         transaction.updatePeerChatListInclusion(peerId, inclusion: .ifHasMessagesOrOneOf(groupId: chat.archived ? Namespaces.PeerGroup.archive : .root, pinningIndex: nil, minTimestamp: nil))
     }
     transaction.resetIncomingReadStates(readStates)

@@ -216,41 +216,35 @@ jobs:
           sleep 2
           xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
 
-          # Every screen the offline account can open: app screens through --ui-test-screen, the rest through the
-          # app's own tg:// links (tg://settings/<path> is a Settings search item id). One launch per screen.
+          # Every screen the offline account can open, through --ui-test-screen: app screens by name, the rest as the
+          # app's own tg:// links opened in place (url:tg://settings/<path> is a Settings search item id). One launch
+          # per screen; simctl openurl is not used, it stops at a system confirmation that then covers later screens.
           SCREENS=(
             "app chats" "app search" "app archive" "app saved" "app compose" "app contacts" "app settings"
             "app chat:user:1001" "app chat:user:1002" "app chat:channel:2001" "app chat:channel:2004"
-            "url tg://user?id=1001" "url tg://settings/edit" "url tg://settings/my-profile"
+            "app url:tg://user?id=1001" "app url:tg://settings/edit" "app url:tg://settings/my-profile"
             "app extras" "app extras:appearance" "app extras:ninja" "app extras:ghost" "app extras:privacy"
             "app extras:chatList" "app extras:tabBar" "app extras:messages" "app extras:media" "app extras:profile"
             "app extras:network" "app archive-settings" "app banana-security" "app accounts"
-            "url tg://settings/appearance" "url tg://settings/appearance/themes" "url tg://settings/appearance/text-size"
-            "url tg://settings/appearance/message-corners" "url tg://settings/appearance/app-icon"
-            "url tg://settings/appearance/stickers-and-emoji" "url tg://settings/appearance/wallpapers"
-            "url tg://settings/notifications" "url tg://settings/privacy" "url tg://settings/privacy/blocked"
-            "url tg://settings/privacy/auto-delete" "url tg://settings/privacy/data-settings"
-            "url tg://settings/privacy/active-websites" "url tg://settings/data" "url tg://settings/data/storage"
-            "url tg://settings/data/usage" "url tg://settings/data/proxy" "url tg://settings/data/auto-download/mobile"
-            "url tg://settings/data/save-to-photos/chats" "url tg://settings/devices" "url tg://settings/folders"
-            "url tg://settings/language" "url tg://settings/power-saving" "url tg://settings/calls"
-            "url tg://settings/premium"
+            "app url:tg://settings/appearance" "app url:tg://settings/appearance/themes" "app url:tg://settings/appearance/text-size"
+            "app url:tg://settings/appearance/message-corners" "app url:tg://settings/appearance/app-icon"
+            "app url:tg://settings/appearance/stickers-and-emoji" "app url:tg://settings/appearance/wallpapers"
+            "app url:tg://settings/notifications" "app url:tg://settings/privacy" "app url:tg://settings/privacy/blocked"
+            "app url:tg://settings/privacy/auto-delete" "app url:tg://settings/privacy/data-settings"
+            "app url:tg://settings/privacy/active-websites" "app url:tg://settings/data" "app url:tg://settings/data/storage"
+            "app url:tg://settings/data/usage" "app url:tg://settings/data/proxy" "app url:tg://settings/data/auto-download/mobile"
+            "app url:tg://settings/data/save-to-photos/chats" "app url:tg://settings/devices" "app url:tg://settings/folders"
+            "app url:tg://settings/language" "app url:tg://settings/power-saving" "app url:tg://settings/calls"
+            "app url:tg://settings/premium"
           )
           for appearance in light dark; do
             xcrun simctl ui "$UDID" appearance "$appearance"
             for entry in "${SCREENS[@]}"; do
               kind="${entry%% *}"
               target="${entry#* }"
-              name="$(echo "$target" | sed -E 's#^tg://##; s#[^A-Za-z0-9]+#-#g; s#-+$##')"
-              if [ "$kind" = "app" ]; then
-                xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-screen "$target" > /dev/null
-                sleep 12
-              else
-                xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data > /dev/null
-                sleep 9
-                xcrun simctl openurl "$UDID" "$target" || echo "openurl failed: $target"
-                sleep 5
-              fi
+              name="$(echo "$target" | sed -E 's#^url:##; s#^tg://##; s#[^A-Za-z0-9]+#-#g; s#-+$##')"
+              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-screen "$target" > /dev/null
+              sleep 12
               xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/$appearance-$name.png" > /dev/null 2>&1 || echo "screenshot failed: $name"
               xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
             done
