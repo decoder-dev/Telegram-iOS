@@ -4363,7 +4363,14 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 itemHeight += 20.0
             } else {
                 itemHeight += titleLayout.size.height
-                itemHeight += measureLayout.size.height * (compactMessagePreview ? 2.0 : 3.0)
+                if compactMessagePreview {
+                    itemHeight += measureLayout.size.height * 2.0
+                } else {
+                    // Messages: the title and two preview lines in the preview's own font, 8 pt above and below. This
+                    // reserved three lines of the 17 pt title font, which left a tall empty band under every preview;
+                    // at the default size the row now settles at the avatar's 74 pt, and grows with Dynamic Type.
+                    itemHeight += ceil(textFont.lineHeight) * 2.0 + 16.0
+                }
                 itemHeight += titleSpacing
                 itemHeight += authorSpacing
             }
