@@ -102,10 +102,14 @@ private func test_seedOfflineFixture(transaction: Transaction, seedConfiguration
     let trip = fixtureChannel(2004, "Заметки о поездке")
     updatePeersCustom(transaction: transaction, peers: [me, maria, victor, alexey, team, news, design, trip], update: { _, updated in updated })
     // What a server would have filled in on first open: the users' cached data, and the three people as contacts, so a
-    // private chat opens as one with a contact instead of waiting for data no server will send.
+    // private chat opens as one with a contact instead of waiting for data no server will send. A user's chat (Saved
+    // Messages included) shows its history only once the business intro is known (`isPossibleIntroLoaded` in
+    // ChatHistoryViewForLocation), and `CachedUserData()` leaves it `.unknown`: known-and-absent opens the chat. Empty
+    // status settings are a contact's, with no report panel.
     let userIds: Set<PeerId> = [me.id, maria.id, victor.id, alexey.id]
     transaction.updatePeerCachedData(peerIds: userIds, update: { _, current in
-        return current ?? CachedUserData()
+        let data = (current as? CachedUserData) ?? CachedUserData()
+        return data.withUpdatedBusinessIntro(nil).withUpdatedPeerStatusSettings(PeerStatusSettings())
     })
     transaction.replaceContactPeerIds([maria.id, victor.id, alexey.id])
 
