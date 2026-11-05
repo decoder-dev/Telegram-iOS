@@ -1585,7 +1585,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         entries = []
         if let connectionSummary {
             entries.append(.connectionStatus(
-                title: connectionSummary.viaProxy ? (russian ? "Подключение через прокси" : "Connected through a proxy") : (russian ? "Прямое подключение" : "Direct connection"),
+                title: connectionSummary.viaProxy ? (russian ? "Подключение через прокси" : "Connection through a proxy") : (russian ? "Прямое подключение" : "Direct connection"),
                 detail: connectionSummary.detail,
                 viaProxy: connectionSummary.viaProxy
             ))
