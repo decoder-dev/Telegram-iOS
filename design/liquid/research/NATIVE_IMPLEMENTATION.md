@@ -408,3 +408,7 @@ WalletWords/Send keyboard/recipient/collectible, ContextController actions stack
 
 Иконки новых экранов — SF Symbols на системных цветах (`systemOrange`, `systemPurple`, `systemIndigo`, `systemGreen`, `systemRed`, `systemBlue`, `systemTeal`, `systemGray`, `systemYellow`), чтобы следовать Dark Mode и Increase Contrast; списки — сгруппированные inset-секции ItemList с Dynamic Type; разрушительное действие («Удалить пароль архива») — красное.
 
+## Сцена 24 (частично): группа BananaGram в «Настройках»
+
+Новая секция `SettingsSection.bananaGram` после стандартных: «Дополнительно» (перенесено из общей группы), «Защищённый архив» (`archiveSettingsController`) и «Безопасность BananaGram» (`bananaSecurityController`) через новые `PeerInfoSettingsSection.archiveProtection` / `.bananaSecurity`. Заголовков секций нет — как в остальных настройках Telegram. Прокси остался своей секцией с подписью типа. Simulator NOT RUN.
+

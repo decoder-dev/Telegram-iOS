@@ -667,7 +667,7 @@ private enum ForkExtrasSection: Int32 {
     case backgroundConnection
     // The Extras hub (scene 37): the header card, then "Sections", then "Interface" (which is `hub`'s second half).
     case hubCard
-    case hubInterface
+    case hubLook
     // The Network page's connection card (scene 40).
     case connectionStatus
 }
@@ -772,7 +772,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case hubNetwork
     case hubCard
     case hubSectionsHeader
-    case hubInterfaceHeader
+    case hubLookHeader
     /// Network page (scene 40): how the app connects right now. `detail` is the proxy's kind and host, never a secret.
     case connectionStatus(title: String, detail: String, viaProxy: Bool)
     case ghostModeMaster(Bool)
@@ -813,14 +813,14 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             switch destination {
             case .proxy: return ForkExtrasSection.proxy.rawValue
             case .security: return ForkExtrasSection.hub.rawValue
-            case .accountOrder: return ForkExtrasSection.hubInterface.rawValue
+            case .accountOrder: return ForkExtrasSection.hubLook.rawValue
             }
         case .audioHeader, .musicPolicy: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
         case .hubSectionsHeader, .hubNinja, .hubGhost, .hubPrivacy, .hubMessages, .hubMedia, .hubProfile, .hubNetwork:
             return ForkExtrasSection.hub.rawValue
-        case .hubInterfaceHeader, .hubAppearance, .hubChatList, .hubTabBar:
-            return ForkExtrasSection.hubInterface.rawValue
+        case .hubLookHeader, .hubAppearance, .hubChatList, .hubTabBar:
+            return ForkExtrasSection.hubLook.rawValue
         case .hubCard:
             return ForkExtrasSection.hubCard.rawValue
         case .connectionStatus:
@@ -871,7 +871,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hubCard: return 1996
         case .connectionStatus: return 2110
         case .hubSectionsHeader: return 1997
-        case .hubInterfaceHeader: return 1998
+        case .hubLookHeader: return 1998
         case .ghostModeMaster: return 9
         case .ghostReadOnInteract: return 16
         case .ghostScheduleMessages: return 20
@@ -1050,7 +1050,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubSectionsHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ForkPresentationLanguage.prefersRussianStrings ? "РАЗДЕЛЫ" : "SECTIONS", sectionId: self.section)
-        case .hubInterfaceHeader:
+        case .hubLookHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ForkPresentationLanguage.prefersRussianStrings ? "ИНТЕРФЕЙС" : "INTERFACE", sectionId: self.section)
         case .hubNetwork:
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.proxy, title: ForkExtrasLocalizedString.hubNetwork, label: ForkExtrasLocalizedString.hubNetworkLabel, sectionId: self.section, style: .blocks, action: {
@@ -1261,12 +1261,12 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .hubMedia,
             .hubProfile,
             .hubNetwork,
-            .hubInterfaceHeader,
+            .hubLookHeader,
             .hubChatList,
             .hubTabBar,
             .destination(2100, ForkPresentationLanguage.prefersRussianStrings ? "Порядок аккаунтов" : "Account Order", .accountOrder),
             .hubAppearance,
-            .settingFooter(6, .hubInterface, ForkExtrasLocalizedString.hubFooter),
+            .settingFooter(6, .hubLook, ForkExtrasLocalizedString.hubFooter),
         ]
     }
 
