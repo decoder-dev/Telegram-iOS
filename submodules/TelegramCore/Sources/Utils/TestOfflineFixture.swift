@@ -101,6 +101,13 @@ private func test_seedOfflineFixture(transaction: Transaction, seedConfiguration
     let design = fixtureChannel(2003, "Дизайн-сообщество")
     let trip = fixtureChannel(2004, "Заметки о поездке")
     updatePeersCustom(transaction: transaction, peers: [me, maria, victor, alexey, team, news, design, trip], update: { _, updated in updated })
+    // What a server would have filled in on first open: the users' cached data, and the three people as contacts, so a
+    // private chat opens as one with a contact instead of waiting for data no server will send.
+    let userIds: Set<PeerId> = [me.id, maria.id, victor.id, alexey.id]
+    transaction.updatePeerCachedData(peerIds: userIds, update: { _, current in
+        return current ?? CachedUserData()
+    })
+    transaction.replaceContactPeerIds([maria.id, victor.id, alexey.id])
 
     let now = Int32(Date().timeIntervalSince1970)
     let minute: Int32 = 60
