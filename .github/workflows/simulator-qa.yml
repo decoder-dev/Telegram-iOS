@@ -260,6 +260,11 @@ jobs:
             done
           done
           ls qa-artifacts/screens | wc -l
+          # The app's own Logger files, so a screen stuck loading can be read from what the app did.
+          mkdir -p qa-artifacts/app-logs
+          find "$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data/Containers/Shared/AppGroup" -path '*telegram-ui-tests-data*' -name '*.txt' -exec cp {} qa-artifacts/app-logs/ \; 2>/dev/null || true
+          cp "$(xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" data)/Documents/"*.log qa-artifacts/app-logs/ 2>/dev/null || true
+          ls -la qa-artifacts/app-logs | tail -5 || true
           test -s qa-artifacts/screens/light-chats.png
           test -s qa-artifacts/screens/dark-chats.png
           # Contact sheets: every screen of one appearance on one image, for a quick look.
