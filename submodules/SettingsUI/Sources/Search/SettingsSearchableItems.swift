@@ -4372,21 +4372,23 @@ func settingsSearchableItems(
         let privacyItems = privacySearchableItems(context: context, privacySettings: privacySettings, activeSessionsContext: activeSessionsContext, webSessionsContext: activeWebSessionsContext)
         allItems.append(contentsOf: privacyItems)
         
-        let extraCategories: [(String, String, ForkExtrasControllerFocus)] = [
-            ("bananagram", forkExtrasSettingsTitle(strings), .top),
-            ("bananagram/saving", ForkPresentationLanguage.prefersRussianStrings ? "Сохранение сообщений" : "Message saving", .ninja),
-            ("bananagram/ghost", ForkPresentationLanguage.prefersRussianStrings ? "Режим призрака" : "Ghost mode", .ghost),
-            ("bananagram/privacy", strings.Settings_PrivacySettings, .privacy),
-            ("bananagram/island", ForkPresentationLanguage.prefersRussianStrings ? "Оформление и бананчик" : "Appearance and banana island", .appearance),
-            ("bananagram/chatlist", ForkPresentationLanguage.prefersRussianStrings ? "Список чатов и папки" : "Chat list and folders", .chatList),
-            ("bananagram/tabbar", ForkPresentationLanguage.prefersRussianStrings ? "Панель вкладок" : "Tab bar", .tabBar),
-            ("bananagram/messages", ForkPresentationLanguage.prefersRussianStrings ? "Сообщения и ввод" : "Messages and composer", .messages),
-            ("bananagram/sending", ForkPresentationLanguage.prefersRussianStrings ? "Ввод и отправка" : "Input and Sending", .messageSending),
-            ("bananagram/actions", ForkPresentationLanguage.prefersRussianStrings ? "Действия с сообщениями" : "Message Actions", .messageActions),
-            ("bananagram/media", ForkPresentationLanguage.prefersRussianStrings ? "Звонки и звук" : "Calls and audio", .media),
-            ("bananagram/voice", ForkPresentationLanguage.prefersRussianStrings ? "Голосовые и кружки" : "Voice and Round Videos", .voiceAndRound),
-            ("bananagram/profile", ForkPresentationLanguage.prefersRussianStrings ? "Профиль и эффекты" : "Profile and effects", .profile),
-            ("bananagram/network", ForkPresentationLanguage.prefersRussianStrings ? "Сеть и загрузки" : "Network and downloads", .network)
+        // Each page is offered under the title its screen shows; the names it had before stay findable as alternates.
+        let russian = ForkPresentationLanguage.prefersRussianStrings
+        let extraCategories: [(String, String, [String], ForkExtrasControllerFocus)] = [
+            ("bananagram", forkExtrasSettingsTitle(strings), [], .top),
+            ("bananagram/saving", ForkExtrasControllerFocus.ninja.title, [russian ? "Сохранение сообщений" : "Message saving"], .ninja),
+            ("bananagram/ghost", ForkExtrasControllerFocus.ghost.title, [russian ? "Режим призрака" : "Ghost mode"], .ghost),
+            ("bananagram/privacy", ForkExtrasControllerFocus.privacy.title, [], .privacy),
+            ("bananagram/island", ForkExtrasControllerFocus.appearance.title, [russian ? "Оформление и бананчик" : "Appearance and banana island"], .appearance),
+            ("bananagram/chatlist", ForkExtrasControllerFocus.chatList.title, [], .chatList),
+            ("bananagram/tabbar", ForkExtrasControllerFocus.tabBar.title, [], .tabBar),
+            ("bananagram/messages", ForkExtrasControllerFocus.messages.title, [], .messages),
+            ("bananagram/sending", ForkExtrasControllerFocus.messageSending.title, [], .messageSending),
+            ("bananagram/actions", ForkExtrasControllerFocus.messageActions.title, [], .messageActions),
+            ("bananagram/media", ForkExtrasControllerFocus.media.title, [], .media),
+            ("bananagram/voice", ForkExtrasControllerFocus.voiceAndRound.title, [], .voiceAndRound),
+            ("bananagram/profile", ForkExtrasControllerFocus.profile.title, [], .profile),
+            ("bananagram/network", ForkExtrasControllerFocus.network.title, [russian ? "Сеть и загрузки" : "Network and downloads"], .network)
         ]
         // Rows that have their own search entry elsewhere (Data and Storage, Appearance) are not offered twice.
         let rowsWithOwnSearchItem: Set<Int32> = [2001, 2002, 2003, 147, 1521]
@@ -4395,8 +4397,8 @@ func settingsSearchableItems(
                 present(.push, forkExtrasController(context: context, focus: row.focus, focusItemId: row.id))
             }))
         }
-        for (id, title, focus) in extraCategories {
-            allItems.append(SettingsSearchableItem(id: id, title: title, alternate: [], icon: .appearance, breadcrumbs: focus == .top ? [] : [forkExtrasSettingsTitle(strings)], present: { context, _, present in
+        for (id, title, alternate, focus) in extraCategories {
+            allItems.append(SettingsSearchableItem(id: id, title: title, alternate: alternate, icon: .appearance, breadcrumbs: focus == .top ? [] : [forkExtrasSettingsTitle(strings)], present: { context, _, present in
                 present(.push, forkExtrasController(context: context, focus: focus))
             }))
         }

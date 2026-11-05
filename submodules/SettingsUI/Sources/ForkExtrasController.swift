@@ -1620,7 +1620,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         }
         entries += [
             .settingToggle(2105, .proxy, russian ? "Скрыть спонсора прокси" : "Hide proxy sponsor", settings.hideProxySponsor, \.hideProxySponsor),
-            .destination(138, ForkPresentationLanguage.prefersRussianStrings ? "Прокси и подключение" : "Proxies and connection", .proxy),
+            .destination(138, ForkPresentationLanguage.prefersRussianStrings ? "Прокси" : "Proxy", .proxy),
             .destination(139, russian ? "Проверка подключения" : "Connection check", .connectionCheck),
 
             .settingToggle(144, .downloads, ForkExtrasLocalizedString.downloadSpeedBoost, settings.downloadSpeedBoost, \.downloadSpeedBoost),
