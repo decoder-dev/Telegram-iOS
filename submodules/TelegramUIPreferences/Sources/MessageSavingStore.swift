@@ -774,7 +774,8 @@ public enum MessageSavingStore {
             return nil
         }
         let fm = FileManager.default
-        let root = fm.temporaryDirectory.appendingPathComponent("AyuGram Saved Messages-\(UUID().uuidString)", isDirectory: true)
+        // The folder is what the share sheet shows, so it carries a plain name; the UUID parent keeps exports apart.
+        let root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true).appendingPathComponent("BananaGram Deleted and Edited", isDirectory: true)
         do {
             let attachments = root.appendingPathComponent(bundleAttachmentsFolderName, isDirectory: true)
             try fm.createDirectory(at: attachments, withIntermediateDirectories: true)
@@ -797,7 +798,7 @@ public enum MessageSavingStore {
             try JSONEncoder().encode(records).write(to: root.appendingPathComponent(bundleRecordsFileName), options: .atomic)
             return root
         } catch {
-            try? fm.removeItem(at: root)
+            try? fm.removeItem(at: root.deletingLastPathComponent())
             return nil
         }
     }
