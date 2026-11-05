@@ -216,20 +216,75 @@ jobs:
           sleep 2
           xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
 
+          # Every screen the offline account can open: app screens through --ui-test-screen, the rest through the
+          # app's own tg:// links (tg://settings/<path> is a Settings search item id). One launch per screen.
+          SCREENS=(
+            "app chats" "app search" "app archive" "app saved" "app compose" "app contacts" "app settings"
+            "app chat:user:1001" "app chat:user:1002" "app chat:channel:2001" "app chat:channel:2004"
+            "url tg://user?id=1001" "url tg://settings/edit" "url tg://settings/my-profile"
+            "app extras" "app extras:appearance" "app extras:ninja" "app extras:ghost" "app extras:privacy"
+            "app extras:chatList" "app extras:tabBar" "app extras:messages" "app extras:media" "app extras:profile"
+            "app extras:network" "app archive-settings" "app banana-security" "app accounts"
+            "url tg://settings/appearance" "url tg://settings/appearance/themes" "url tg://settings/appearance/text-size"
+            "url tg://settings/appearance/message-corners" "url tg://settings/appearance/app-icon"
+            "url tg://settings/appearance/stickers-and-emoji" "url tg://settings/appearance/wallpapers"
+            "url tg://settings/notifications" "url tg://settings/privacy" "url tg://settings/privacy/blocked"
+            "url tg://settings/privacy/auto-delete" "url tg://settings/privacy/data-settings"
+            "url tg://settings/privacy/active-websites" "url tg://settings/data" "url tg://settings/data/storage"
+            "url tg://settings/data/usage" "url tg://settings/data/proxy" "url tg://settings/data/auto-download/mobile"
+            "url tg://settings/data/save-to-photos/chats" "url tg://settings/devices" "url tg://settings/folders"
+            "url tg://settings/language" "url tg://settings/power-saving" "url tg://settings/calls"
+            "url tg://settings/premium"
+          )
           for appearance in light dark; do
             xcrun simctl ui "$UDID" appearance "$appearance"
-            for screen in chats archive saved settings; do
-              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-screen "$screen"
-              sleep 14
-              xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/$screen-$appearance.png"
+            for entry in "${SCREENS[@]}"; do
+              kind="${entry%% *}"
+              target="${entry#* }"
+              name="$(echo "$target" | sed -E 's#^tg://##; s#[^A-Za-z0-9]+#-#g; s#-+$##')"
+              if [ "$kind" = "app" ]; then
+                xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-screen "$target" > /dev/null
+                sleep 12
+              else
+                xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data > /dev/null
+                sleep 9
+                xcrun simctl openurl "$UDID" "$target" || echo "openurl failed: $target"
+                sleep 5
+              fi
+              xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/$appearance-$name.png" > /dev/null 2>&1 || echo "screenshot failed: $name"
               xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
             done
           done
-          ls -la qa-artifacts/screens
-          for screen in chats archive saved settings; do
-            test -s "qa-artifacts/screens/$screen-light.png"
-            test -s "qa-artifacts/screens/$screen-dark.png"
-          done
+          ls qa-artifacts/screens | wc -l
+          test -s qa-artifacts/screens/light-chats.png
+          test -s qa-artifacts/screens/dark-chats.png
+          # Contact sheets: every screen of one appearance on one image, for a quick look.
+          python3 -m pip install --quiet pillow 2>/dev/null || true
+          python3 - <<'PY' || true
+          import glob, os
+          from PIL import Image, ImageDraw
+          for appearance in ("light", "dark"):
+              files = sorted(glob.glob(f"qa-artifacts/screens/{appearance}-*.png"))
+              if not files:
+                  continue
+              thumbs = []
+              for path in files:
+                  image = Image.open(path).convert("RGB")
+                  scale = 300 / image.width
+                  image = image.resize((300, int(image.height * scale)))
+                  label = Image.new("RGB", (300, 24), (255, 255, 255))
+                  ImageDraw.Draw(label).text((4, 4), os.path.basename(path)[len(appearance) + 1:-4], fill=(0, 0, 0))
+                  tile = Image.new("RGB", (300, image.height + 24), (255, 255, 255))
+                  tile.paste(label, (0, 0)); tile.paste(image, (0, 24))
+                  thumbs.append(tile)
+              columns = 8
+              rows = (len(thumbs) + columns - 1) // columns
+              height = max(t.height for t in thumbs)
+              sheet = Image.new("RGB", (columns * 300, rows * height), (200, 200, 200))
+              for index, tile in enumerate(thumbs):
+                  sheet.paste(tile, ((index % columns) * 300, (index // columns) * height))
+              sheet.save(f"qa-artifacts/contact-sheet-{appearance}.jpg", quality=80)
+          PY
 
       - name: Save Bazel simulator cache
         if: ${{ !cancelled() && steps.bazel-cache.outcome == 'success' }}

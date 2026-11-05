@@ -4,10 +4,11 @@ import Display
 import TelegramCore
 import AccountContext
 import ChatListUI
+import SettingsUI
 
 private var uiTestScreenStarted = false
 
-/// Simulator QA: `--ui-test --ui-test-screen <chats|saved|settings|contacts|archive>` opens that screen a few seconds after the
+/// Simulator QA: `--ui-test --ui-test-screen <name>` opens that screen a few seconds after the
 /// account is ready, so the workflow can take its screenshot without driving the UI. `chats` is the launch screen.
 func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext) {
     let arguments = CommandLine.arguments
@@ -26,6 +27,18 @@ func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext
             rootController.openContacts()
         case "archive":
             rootController.pushViewController(ChatListControllerImpl(context: context, location: .chatList(groupId: .archive), controlsHistoryPreload: false, enableDebugActions: false))
+        case "search":
+            rootController.openChatsController(activateSearch: true)
+        case "compose":
+            rootController.pushViewController(context.sharedContext.makeComposeController(context: context))
+        case "archive-settings":
+            rootController.pushViewController(archiveSettingsController(context: context))
+        case "banana-security":
+            rootController.pushViewController(bananaSecurityController(context: context))
+        case "accounts":
+            rootController.pushViewController(accountOrderController(context: context))
+        case "extras":
+            rootController.pushViewController(forkExtrasController(context: context))
         case "saved":
             let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
             |> deliverOnMainQueue).startStandalone(next: { peer in
@@ -35,7 +48,37 @@ func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext
                 context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: rootController, context: context, chatLocation: .peer(peer)))
             })
         default:
-            break
+            // `chat:user:<id>` / `chat:channel:<id>` opens a fixture chat; `extras:<page>` an Extras page.
+            let parts = screen.split(separator: ":").map(String.init)
+            if parts.count == 3, parts[0] == "chat", let id = Int64(parts[2]) {
+                let namespace = parts[1] == "channel" ? Namespaces.Peer.CloudChannel : Namespaces.Peer.CloudUser
+                let peerId = EnginePeer.Id(namespace: namespace, id: EnginePeer.Id.Id._internalFromInt64Value(id))
+                let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
+                |> deliverOnMainQueue).startStandalone(next: { peer in
+                    guard let peer else {
+                        return
+                    }
+                    context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: rootController, context: context, chatLocation: .peer(peer)))
+                })
+            } else if parts.count == 2, parts[0] == "extras" {
+                let focus: ForkExtrasControllerFocus?
+                switch parts[1] {
+                case "appearance": focus = .appearance
+                case "ninja": focus = .ninja
+                case "ghost": focus = .ghost
+                case "privacy": focus = .privacy
+                case "chatList": focus = .chatList
+                case "tabBar": focus = .tabBar
+                case "messages": focus = .messages
+                case "media": focus = .media
+                case "profile": focus = .profile
+                case "network": focus = .network
+                default: focus = nil
+                }
+                if let focus {
+                    rootController.pushViewController(forkExtrasController(context: context, focus: focus))
+                }
+            }
         }
     }
 }
