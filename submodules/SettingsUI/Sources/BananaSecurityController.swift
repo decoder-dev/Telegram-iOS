@@ -166,9 +166,9 @@ private enum BananaSecuritySection: Int32 {
     case status
 }
 
-/// The icon of each row (scene 41), an SF Symbol on its hue.
-private func bananaSecurityIcon(_ systemName: String, _ rgb: UInt32) -> UIImage? {
-    return renderSettingsSymbolIcon(systemName: systemName, color: UIColor(rgb: rgb))
+/// The icon of each row (scene 41), an SF Symbol on a system colour (Apple HIG).
+private func bananaSecurityIcon(_ systemName: String, _ color: UIColor) -> UIImage? {
+    return renderSettingsSymbolIcon(systemName: systemName, color: color)
 }
 
 private enum BananaSecurityEntry: ItemListNodeEntry {
@@ -246,11 +246,11 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
             } else {
                 labelStyle = .text
             }
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: bananaSecurityIcon("lock.fill", 0x9C7BE6), title: BananaSecurityStrings.twoStep, label: label, labelStyle: labelStyle, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: bananaSecurityIcon("lock.fill", .systemPurple), title: BananaSecurityStrings.twoStep, label: label, labelStyle: labelStyle, sectionId: self.section, style: .blocks, action: {
                 arguments.openTwoStep()
             })
         case let .sessions(count):
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: bananaSecurityIcon("person.2.fill", 0x5B8BE0), title: BananaSecurityStrings.sessions, label: count.flatMap { "\($0)" } ?? "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: bananaSecurityIcon("person.2.fill", .systemBlue), title: BananaSecurityStrings.sessions, label: count.flatMap { "\($0)" } ?? "", sectionId: self.section, style: .blocks, action: {
                 arguments.openSessions()
             })
         case .statusFooter:
@@ -260,12 +260,12 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
         case let .toggle(id, title, _, value, keyPath):
             let icon: UIImage?
             switch id {
-            case 0: icon = bananaSecurityIcon("qrcode", 0xF2A43A)
-            case 1: icon = bananaSecurityIcon("shield.fill", 0xF2A43A)
-            case 2: icon = bananaSecurityIcon("phone.fill", 0xEE7B4B)
-            case 3: icon = bananaSecurityIcon("bell.fill", 0xB27BD6)
-            case 4: icon = bananaSecurityIcon("globe", 0x5B8BE0)
-            default: icon = bananaSecurityIcon("checkmark.shield.fill", 0x3AA58F)
+            case 0: icon = bananaSecurityIcon("qrcode", .systemOrange)
+            case 1: icon = bananaSecurityIcon("shield.fill", .systemOrange)
+            case 2: icon = bananaSecurityIcon("phone.fill", .systemRed)
+            case 3: icon = bananaSecurityIcon("bell.fill", .systemPurple)
+            case 4: icon = bananaSecurityIcon("globe", .systemBlue)
+            default: icon = bananaSecurityIcon("checkmark.shield.fill", .systemGreen)
             }
             return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.update(keyPath, value)

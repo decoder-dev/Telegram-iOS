@@ -1035,7 +1035,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubCard:
             let russian = ForkPresentationLanguage.prefersRussianStrings
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: renderSettingsSymbolIcon(systemName: "sparkles", color: UIColor(rgb: 0xE9B53D)), title: russian ? "Дополнительные функции" : "Extra Features", titleFont: .bold, label: "", additionalDetailLabel: russian ? "Тонкая настройка клиента" : "Fine-tune the client", sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil, tag: BananaSettingsItemTag(id: self.stableId))
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: renderSettingsSymbolIcon(systemName: "sparkles", color: .systemYellow), title: russian ? "Дополнительные функции" : "Extra Features", titleFont: .bold, label: "", additionalDetailLabel: russian ? "Тонкая настройка клиента" : "Fine-tune the client", sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubSectionsHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ForkPresentationLanguage.prefersRussianStrings ? "РАЗДЕЛЫ" : "SECTIONS", sectionId: self.section)
         case .hubInterfaceHeader:
