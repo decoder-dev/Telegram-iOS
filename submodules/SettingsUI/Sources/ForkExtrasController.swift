@@ -701,7 +701,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1507]
         ]),
         (.appearance, [[1618, 1531, 1532, 1553, 1619], [1900, 1901, 1902, 1903, 1904, 1905, 1906]]),
+        // Scene 38: the input panel opens Messages. Scene 39: round videos and voice open Media, calls follow.
         (.messages, [
+            [1850, 2101, 2102, 1851, 1852, 1853],
             [1605, 65, 66],
             [1557],
             [1558],
@@ -727,14 +729,13 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1607, 1510, 1513, 1517],
             [1825, 1826, 1827, 1828],
             [85, 86, 87],
-            [1850, 2101, 2102, 1851, 1852, 1853],
             [1910, 1911],
             [1960, 1962, 1964]
         ]),
         (.media, [
+            [1609, 2110, 2111, 2112, 2113, 2114, 2115, 1515, 1516, 1544, 1545, 1559, 1612],
             [1608, 80, 84],
             [83],
-            [1609, 2110, 2111, 2112, 2113, 2114, 2115, 1515, 1516, 1544, 1545, 1559, 1612],
             [1613, 1554, 1555, 1556, 1614, 1982],
             [1750, 1751, 1752, 1753, 1754, 1755, 1756, 2021, 1757, 1758],
             [1860, 1861, 1862, 1863, 1864, 1865],
@@ -1447,7 +1448,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .translationBackend(settings.translationBackend),
             .transcriptionBackend(settings.transcriptionBackend),
             .settingFooter(87, .translation, ForkExtrasLocalizedString.translationFooter),
-            .designHeader(1850, russian ? "Ввод" : "Input"),
+            .designHeader(1850, russian ? "Панель ввода" : "Input panel"),
             .appearanceToggle(2101, russian ? "Скрыть кнопку AI" : "Hide AI button", settings.hideAIButton, \.hideAIButton),
             .appearanceToggle(2102, russian ? "Скрыть разворачивание редактора" : "Hide expanded editor", settings.hideRichTextEditor, \.hideRichTextEditor),
             .intChoice(1851, russian ? "Формат по умолчанию" : "Default formatting", forkIntChoiceLabel(forkSendFormattingOptions(russian: russian), settings.defaultSendFormatting)),
