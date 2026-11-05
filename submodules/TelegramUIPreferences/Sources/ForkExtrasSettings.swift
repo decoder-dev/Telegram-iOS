@@ -510,7 +510,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideGreetingSticker = false
         self.removePings = false
         self.sendTelegramStatistics = false
-        self.bananaIslandEnabled = true
+        // Off by default: a decorative capsule under the camera is not part of the system chrome (Apple HIG).
+        self.bananaIslandEnabled = false
         self.bananaIslandShowsName = true
         self.bananaIslandFollowsIcon = true
         self.hashtagsPreferCurrentChat = false
@@ -704,7 +705,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideGreetingSticker = try container.decodeIfPresent(Bool.self, forKey: "hideGreetingSticker") ?? false
         self.removePings = try container.decodeIfPresent(Bool.self, forKey: "removePings") ?? false
         self.sendTelegramStatistics = try container.decodeIfPresent(Bool.self, forKey: "sendTelegramStatistics") ?? false
-        self.bananaIslandEnabled = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandEnabled") ?? true
+        // Every install stored `true` (the old default, written with the rest of the settings), so the stored value is
+        // read only once the off-by-default migration has run; after that it is the user's own choice again.
+        let bananaIslandStoredValue = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandEnabled") ?? false
+        let bananaIslandDefaultOff = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandDefaultOff") ?? false
+        self.bananaIslandEnabled = bananaIslandDefaultOff ? bananaIslandStoredValue : false
         self.bananaIslandShowsName = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandShowsName") ?? true
         self.bananaIslandFollowsIcon = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandFollowsIcon") ?? true
         self.hashtagsPreferCurrentChat = try container.decodeIfPresent(Bool.self, forKey: "hashtagsPreferCurrentChat") ?? false
@@ -912,6 +917,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.removePings, forKey: "removePings")
         try container.encode(self.sendTelegramStatistics, forKey: "sendTelegramStatistics")
         try container.encode(self.bananaIslandEnabled, forKey: "bananaIslandEnabled")
+        try container.encode(true, forKey: "bananaIslandDefaultOff")
         try container.encode(self.bananaIslandShowsName, forKey: "bananaIslandShowsName")
         try container.encode(self.bananaIslandFollowsIcon, forKey: "bananaIslandFollowsIcon")
         try container.encode(self.hashtagsPreferCurrentChat, forKey: "hashtagsPreferCurrentChat")
