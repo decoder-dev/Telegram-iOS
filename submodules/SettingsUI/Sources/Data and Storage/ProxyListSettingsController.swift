@@ -26,8 +26,9 @@ private final class ProxySettingsControllerArguments {
     let openRotationTimeoutPicker: () -> Void
     let toggleAutoFetch: (Bool) -> Void
     let shareProxyList: () -> Void
+    let openConnectionStatus: () -> Void
 
-    init(toggleEnabled: @escaping (Bool) -> Void, presentAddProxyMenu: @escaping () -> Void, activateServer: @escaping (ProxyServerSettings) -> Void, editServer: @escaping (ProxyServerSettings) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, toggleUseForCalls: @escaping (Bool) -> Void, toggleUseLocalDNS: @escaping (Bool) -> Void, toggleAutoRotate: @escaping (Bool) -> Void, openRotationTimeoutPicker: @escaping () -> Void, toggleAutoFetch: @escaping (Bool) -> Void, shareProxyList: @escaping () -> Void) {
+    init(toggleEnabled: @escaping (Bool) -> Void, presentAddProxyMenu: @escaping () -> Void, activateServer: @escaping (ProxyServerSettings) -> Void, editServer: @escaping (ProxyServerSettings) -> Void, removeServer: @escaping (ProxyServerSettings) -> Void, setServerWithRevealedOptions: @escaping (ProxyServerSettings?, ProxyServerSettings?) -> Void, toggleUseForCalls: @escaping (Bool) -> Void, toggleUseLocalDNS: @escaping (Bool) -> Void, toggleAutoRotate: @escaping (Bool) -> Void, openRotationTimeoutPicker: @escaping () -> Void, toggleAutoFetch: @escaping (Bool) -> Void, shareProxyList: @escaping () -> Void, openConnectionStatus: @escaping () -> Void = {}) {
         self.toggleEnabled = toggleEnabled
         self.presentAddProxyMenu = presentAddProxyMenu
         self.activateServer = activateServer
@@ -40,6 +41,7 @@ private final class ProxySettingsControllerArguments {
         self.openRotationTimeoutPicker = openRotationTimeoutPicker
         self.toggleAutoFetch = toggleAutoFetch
         self.shareProxyList = shareProxyList
+        self.openConnectionStatus = openConnectionStatus
     }
 }
 
@@ -298,7 +300,9 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
         let arguments = arguments as! ProxySettingsControllerArguments
         switch self {
             case let .statusCard(_, title, detail, connected):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: renderSettingsSymbolIcon(systemName: connected ? "checkmark.shield.fill" : "network", color: connected ? .systemGreen : .systemGray), title: title, titleFont: .bold, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: renderSettingsSymbolIcon(systemName: connected ? "checkmark.shield.fill" : "network", color: connected ? .systemGreen : .systemGray), title: title, titleFont: .bold, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, action: {
+                    arguments.openConnectionStatus()
+                })
             case let .enabled(_, text, value, createsNew):
                 return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: text, value: value, enableInteractiveChanges: !createsNew, enabled: true, sectionId: self.section, style: .blocks, updated: { value in
                     if createsNew {
@@ -379,18 +383,7 @@ private func proxySettingsControllerEntries(theme: PresentationTheme, strings: P
         }
         let detail: String
         if proxySettings.enabled, let server = proxySettings.effectiveActiveServer {
-            let kind: String
-            switch server.connection {
-            case .socks5:
-                kind = "SOCKS5"
-            case .mtp:
-                kind = "MTProto"
-            case .web:
-                kind = "WEB"
-            case .vless:
-                kind = "VLESS"
-            }
-            detail = "\(kind) · \(server.host)"
+            detail = "\(proxyConnectionKindTitle(server.connection)) · \(server.host)"
         } else {
             detail = russian ? "Без прокси" : "No proxy"
         }
@@ -558,6 +551,7 @@ public func proxySettingsController(context: AccountContext, mode: ProxySettings
 public func proxySettingsController(accountManager: AccountManager<TelegramAccountManagerTypes>, sharedContext: SharedAccountContext, context: AccountContext? = nil, network: Network, mode: ProxySettingsControllerMode, presentationData: PresentationData, updatedPresentationData: Signal<PresentationData, NoError>, focusOnItemTag: ProxySettingsEntryTag? = nil) -> ViewController {
     var pushControllerImpl: ((ViewController) -> Void)?
     var dismissImpl: (() -> Void)?
+    var openConnectionStatusImpl: (() -> Void)?
     let stateValue = Atomic(value: ProxySettingsControllerState())
     let statePromise = ValuePromise<ProxySettingsControllerState>(stateValue.with { $0 })
     let updateState: ((ProxySettingsControllerState) -> ProxySettingsControllerState) -> Void = { f in
@@ -662,6 +656,8 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         }).start()
     }, shareProxyList: {
        shareProxyListImpl?()
+    }, openConnectionStatus: {
+        openConnectionStatusImpl?()
     })
     
     let proxySettings = Promise<ProxySettings>()
@@ -679,6 +675,10 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
         return proxySettings.servers.filter { !proxySettings.automaticServers.contains($0) }
     })
     
+    openConnectionStatusImpl = {
+        pushControllerImpl?(proxyConnectionStatusController(presentationData: presentationData, updatedPresentationData: updatedPresentationData, proxySettings: proxySettings.get(), statuses: statusesContext.statuses(), connectionStatus: network.connectionStatus))
+    }
+
     let signal = combineLatest(updatedPresentationData, statePromise.get(), proxySettings.get(), statusesContext.statuses(), network.connectionStatus)
     |> map { presentationData, state, proxySettings, statuses, connectionStatus -> (ItemListControllerState, (ItemListNodeState, ProxySettingsControllerArguments)) in
         var presentationData = presentationData
