@@ -1156,14 +1156,16 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
                 arguments.openStickerSize()
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .outgoingPhotoQuality(value):
+            // The row shows the short name; the choices, which open from it, keep their pixel sizes.
+            let russian = ForkPresentationLanguage.prefersRussianStrings
             let label: String
             switch value {
             case 2:
-                label = ForkExtrasLocalizedString.outgoingPhotoQualityMax
+                label = russian ? "Максимум" : "Maximum"
             case 1:
-                label = ForkExtrasLocalizedString.outgoingPhotoQualityBetter
+                label = russian ? "Лучше" : "Better"
             default:
-                label = ForkExtrasLocalizedString.outgoingPhotoQualityDefault
+                label = russian ? "Обычное" : "Default"
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.outgoingPhotoQuality, label: label, sectionId: self.section, style: .blocks, action: {
                 arguments.openOutgoingPhotoQuality()
@@ -1213,7 +1215,7 @@ private func forkDoubleTapSeekOptions(russian: Bool) -> [(String, Int32)] {
 /// What a double tap on a message does (Regram). The values are `ForkExtrasSettings.doubleTapAction`.
 private func forkDoubleTapActionOptions(russian: Bool) -> [(String, Int32)] {
     return [
-        (russian ? "Реакция (по умолчанию)" : "Default", 0),
+        (russian ? "По умолчанию" : "Default", 0),
         (russian ? "Поставить реакцию" : "React", 1),
         (russian ? "Ответить" : "Reply", 2),
         (russian ? "Повторить" : "Repeat", 3),
