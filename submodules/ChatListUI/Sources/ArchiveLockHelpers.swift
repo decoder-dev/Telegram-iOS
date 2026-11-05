@@ -561,7 +561,8 @@ public func ensureArchiveUnlocked(
                 onCancel: {
                     completion(.cancelled)
                 },
-                allowOwnerReset: true
+                allowOwnerReset: true,
+                fullScreenSubject: forSavedMessages ? .savedMessages : .archive
             )
         }
 
@@ -669,7 +670,8 @@ private func presentArchivePasswordAlert(
     onCancel: @escaping () -> Void,
     capturePassword: ((String) -> Bool)? = nil,
     passwordPeerId: EnginePeer.Id? = nil,
-    allowOwnerReset: Bool = false
+    allowOwnerReset: Bool = false,
+    fullScreenSubject: ArchiveUnlockScreen.Subject? = nil
 ) {
     // The account whose password is asked for: this one, or a hidden account opened from it.
     let peerId = passwordPeerId ?? context.account.peerId
@@ -695,6 +697,91 @@ private func presentArchivePasswordAlert(
 
     func cooldownMessage(_ remaining: Double) -> String {
         return ArchiveLockLocalizedString.tooManyAttempts(seconds: max(1, Int(remaining.rounded(.up))))
+    }
+
+    // Owner escape hatch: the password is forgotten or stops matching. Device-owner authentication (device passcode /
+    // biometrics) must pass before anything is wiped.
+    func runOwnerReset() {
+        let generation = ArchiveLockSession.shared.authorizationGeneration
+        ArchiveLockSession.shared.beginSuppressBackgroundRelock()
+        let _ = (LocalAuth.authenticateDeviceOwner(reason: ArchiveLockLocalizedString.lostReason)
+        |> deliverOnMainQueue).startStandalone(next: { result in
+            ArchiveLockSession.shared.endSuppressBackgroundRelock()
+            guard result == true, ArchiveLockSession.shared.authorizationGeneration == generation else {
+                wrappedOnCancel()
+                return
+            }
+            // Transfer prompt ownership to the replacement-password flow. Keeping this
+            // entry would make setArchivePassword reject its own prompt as a duplicate.
+            activePasswordPrompts.remove(peerId)
+            Logger.shared.log("ArchiveLock", "owner-reset requested from the unlock prompt")
+            resetArchivePasswordAfterDeviceOwnerAuth(context: context, present: { _ in
+                // `setArchivePassword` presents its own alerts internally; this hook is
+                // currently unused by that path and exists for signature compatibility.
+            }, completion: { unlockResult in
+                switch unlockResult {
+                case .unlocked:
+                    wrappedOnSuccess()
+                case .cancelled, .notProtected:
+                    wrappedOnCancel()
+                }
+            })
+        })
+    }
+
+    // Scenes 27 and 53: the unlock asks on a full screen that stays up across wrong attempts. Same checks as the alert:
+    // the Keychain cooldown is consulted before every attempt, failures are recorded, and leaving the screen cancels.
+    func showFullScreen(subject: ArchiveUnlockScreen.Subject) {
+        var finished = false
+        let screen = ArchiveUnlockScreen(context: context, subject: subject, message: subject == .hiddenAccount ? message : nil, confirmTitle: confirmTitle, resetTitle: allowOwnerReset ? ArchiveLockLocalizedString.lostReset : nil)
+        let initialCooldown = ArchivePasswordKeychain.remainingCooldown(peerId: peerId)
+        if initialCooldown > 0 {
+            screen.showMessage(cooldownMessage(initialCooldown), isError: true)
+        }
+        screen.cancel = {
+            guard !finished else { return }
+            finished = true
+            wrappedOnCancel()
+        }
+        screen.submit = { [weak screen] text in
+            guard !finished, let screen else { return }
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cooldown = ArchivePasswordKeychain.remainingCooldown(peerId: peerId)
+            if cooldown > 0 {
+                screen.showMessage(cooldownMessage(cooldown), isError: true)
+                return
+            }
+            let matched = ArchivePasswordKeychain.matchesPassword(trimmed, peerId: peerId)
+            Logger.shared.log("ArchiveLock", "unlock attempt peer=\(peerId) matched=\(matched) failures=\(ArchivePasswordKeychain.failureCount(peerId: peerId)) cooldown=\(ArchivePasswordKeychain.remainingCooldown(peerId: peerId)) screen=full")
+            if matched {
+                ArchivePasswordKeychain.clearFailureState(peerId: peerId)
+                finished = true
+                screen.close()
+                wrappedOnSuccess()
+            } else {
+                ArchivePasswordKeychain.recordFailure(peerId: peerId)
+                let remaining = ArchivePasswordKeychain.remainingCooldown(peerId: peerId)
+                if remaining > 0 {
+                    screen.showMessage(cooldownMessage(remaining), isError: true)
+                } else {
+                    let attemptsLeft = max(0, 5 - ArchivePasswordKeychain.failureCount(peerId: peerId))
+                    screen.showMessage(ArchiveLockLocalizedString.incorrectPassword(attemptsLeft: attemptsLeft), isError: true)
+                }
+            }
+        }
+        if allowOwnerReset {
+            screen.resetOwner = { [weak screen] in
+                guard !finished, let screen else { return }
+                finished = true
+                screen.close()
+                runOwnerReset()
+            }
+        }
+        presentArchiveUnlockScreen(context: context, screen: screen, onUnavailableHost: {
+            guard !finished else { return }
+            finished = true
+            wrappedOnCancel()
+        })
     }
 
     func show(messageOverride: String?) {
@@ -792,37 +879,17 @@ private func presentArchivePasswordAlert(
             alert.addAction(UIAlertAction(title: ArchiveLockLocalizedString.lostReset, style: .destructive, handler: { [weak alert] _ in
                 guard let alert else { return }
                 alert.dismiss(animated: false)
-                let generation = ArchiveLockSession.shared.authorizationGeneration
-                ArchiveLockSession.shared.beginSuppressBackgroundRelock()
-                let _ = (LocalAuth.authenticateDeviceOwner(reason: ArchiveLockLocalizedString.lostReason)
-                |> deliverOnMainQueue).startStandalone(next: { result in
-                    ArchiveLockSession.shared.endSuppressBackgroundRelock()
-                    guard result == true, ArchiveLockSession.shared.authorizationGeneration == generation else {
-                        wrappedOnCancel()
-                        return
-                    }
-                    // Transfer prompt ownership to the replacement-password flow. Keeping this
-                    // entry would make setArchivePassword reject its own prompt as a duplicate.
-                    activePasswordPrompts.remove(peerId)
-                    Logger.shared.log("ArchiveLock", "owner-reset requested from the unlock prompt")
-                    resetArchivePasswordAfterDeviceOwnerAuth(context: context, present: { _ in
-                        // `setArchivePassword` presents its own alerts internally; this hook is
-                        // currently unused by that path and exists for signature compatibility.
-                    }, completion: { unlockResult in
-                        switch unlockResult {
-                        case .unlocked:
-                            wrappedOnSuccess()
-                        case .cancelled, .notProtected:
-                            wrappedOnCancel()
-                        }
-                    })
-                })
+                runOwnerReset()
             }))
         }
         presentUIAlert(context: context, alert: alert, onUnavailableHost: wrappedOnCancel)
     }
     
-    show(messageOverride: nil)
+    if verifyPassword, let fullScreenSubject {
+        showFullScreen(subject: fullScreenSubject)
+    } else {
+        show(messageOverride: nil)
+    }
 }
 
 private var archiveAlertThemeSubscriptionKey: UInt8 = 0
@@ -1024,7 +1091,8 @@ public func ensureHiddenAccountUnlocked(context: AccountContext, owner: AccountC
             onCancel: {
                 completion(false)
             },
-            passwordPeerId: peerId
+            passwordPeerId: peerId,
+            fullScreenSubject: .hiddenAccount
         )
     })
 }

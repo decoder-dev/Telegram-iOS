@@ -55,6 +55,13 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.HiddenAccountEnterText": "Enter the Archive password to open the hidden account",
             "ArchiveLock.ShowAccountText": "Enter the Archive password to show this account in the account list again",
             "ArchiveLock.ScreenTitle": "Protected Archive",
+            "ArchiveLock.LockedArchiveTitle": "Archive Is Locked",
+            "ArchiveLock.LockedSavedTitle": "Saved Messages Are Protected",
+            "ArchiveLock.LockedHiddenTitle": "Account Is Hidden",
+            "ArchiveLock.LockedSubtitle": "Enter the Archive password to open it",
+            "ArchiveLock.LockedFooter": "Leaving the app locks it again.",
+            "ArchiveLock.SavedNavigationTitle": "Saved Messages",
+            "ArchiveLock.Close": "Close",
             "ArchiveLock.StatusOnTitle": "Protection On",
             "ArchiveLock.StatusOnBoth": "Archive and Saved Messages are protected",
             "ArchiveLock.StatusOnArchive": "The Archive is protected",
@@ -126,6 +133,13 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.HiddenAccountEnterText": "Введите пароль архива, чтобы открыть скрытый аккаунт",
             "ArchiveLock.ShowAccountText": "Введите пароль архива, чтобы снова показывать этот аккаунт в списке аккаунтов",
             "ArchiveLock.ScreenTitle": "Защищённый архив",
+            "ArchiveLock.LockedArchiveTitle": "Архив заблокирован",
+            "ArchiveLock.LockedSavedTitle": "Избранное защищено",
+            "ArchiveLock.LockedHiddenTitle": "Аккаунт скрыт",
+            "ArchiveLock.LockedSubtitle": "Для открытия потребуется пароль архива",
+            "ArchiveLock.LockedFooter": "Выход из приложения снова заблокирует доступ.",
+            "ArchiveLock.SavedNavigationTitle": "Избранное",
+            "ArchiveLock.Close": "Закрыть",
             "ArchiveLock.StatusOnTitle": "Защита активна",
             "ArchiveLock.StatusOnBoth": "Архив и «Избранное» защищены",
             "ArchiveLock.StatusOnArchive": "Архив защищён",
@@ -187,6 +201,13 @@ public enum ArchiveLockLocalizedString {
     public static var lockArchive: String { string(forKey: "ArchiveLock.LockArchive") }
     public static var lockNow: String { string(forKey: "ArchiveLock.LockNow") }
     public static var screenTitle: String { string(forKey: "ArchiveLock.ScreenTitle") }
+    public static var lockedArchiveTitle: String { string(forKey: "ArchiveLock.LockedArchiveTitle") }
+    public static var lockedSavedTitle: String { string(forKey: "ArchiveLock.LockedSavedTitle") }
+    public static var lockedHiddenTitle: String { string(forKey: "ArchiveLock.LockedHiddenTitle") }
+    public static var lockedSubtitle: String { string(forKey: "ArchiveLock.LockedSubtitle") }
+    public static var lockedFooter: String { string(forKey: "ArchiveLock.LockedFooter") }
+    public static var savedNavigationTitle: String { string(forKey: "ArchiveLock.SavedNavigationTitle") }
+    public static var close: String { string(forKey: "ArchiveLock.Close") }
     public static var statusOnTitle: String { string(forKey: "ArchiveLock.StatusOnTitle") }
     public static var statusOnBoth: String { string(forKey: "ArchiveLock.StatusOnBoth") }
     public static var statusOnArchive: String { string(forKey: "ArchiveLock.StatusOnArchive") }

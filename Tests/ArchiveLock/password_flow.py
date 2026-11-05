@@ -107,6 +107,70 @@ precondition(archiveSettings.isPasswordConfigured && archiveSettings.passwordVer
 precondition(!ArchivePasswordKeychain.matchesPassword("password", peerId: 1))
 precondition(presented.isEmpty && activePasswordPrompts.isEmpty)
 print("Owner reset: rejected/stale authentication, cancellation, persistence failure/retry and replacement: passed")
+
+// Full-screen unlock (scenes 27, 53): one screen across wrong attempts, the Keychain limit before every attempt,
+// exactly one terminal result, and the single-flight entry released on every way out.
+ArchivePasswordKeychain.failures = 0
+var screenSuccesses = 0
+var screenCancels = 0
+func openScreen(_ subject: ArchiveUnlockScreen.Subject = .archive, reset: Bool = true) -> ArchiveUnlockScreen {
+    presentArchivePasswordAlert(context: context, title: "Unlock", message: nil, confirmTitle: "Unlock", verifyPassword: true, onSuccess: { screenSuccesses += 1 }, onCancel: { screenCancels += 1 }, allowOwnerReset: reset, fullScreenSubject: subject)
+    precondition(presented.isEmpty, "The unlock must not fall back to an alert")
+    return presentedScreens.last!
+}
+var screen = openScreen()
+precondition(screen.subject == .archive && screen.hasReset && presentedScreens.count == 1)
+var duplicate = 0
+presentArchivePasswordAlert(context: context, title: "Unlock", message: nil, confirmTitle: "Unlock", verifyPassword: true, onSuccess: { preconditionFailure() }, onCancel: { duplicate += 1 }, fullScreenSubject: .archive)
+precondition(duplicate == 1 && presentedScreens.count == 1, "A second unlock while the screen is up is cancelled at once")
+screen.submit?("wrong")
+precondition(ArchivePasswordKeychain.failures == 1 && screen.messages.last == "Incorrect" && !screen.closed && presentedScreens.count == 1)
+ArchivePasswordKeychain.cooldown = 30
+screen.submit?("new-password")
+precondition(screen.messages.last == "Cooldown" && screenSuccesses == 0, "No password is checked during the cooldown")
+precondition(ArchivePasswordKeychain.failures == 1)
+ArchivePasswordKeychain.cooldown = 0
+screen.submit?("  new-password ")
+precondition(screen.closed && screenSuccesses == 1 && screenCancels == 0 && ArchivePasswordKeychain.failures == 0)
+precondition(activePasswordPrompts.isEmpty && presentedScreens.isEmpty)
+screen.submit?("new-password"); screen.cancel?()
+precondition(screenSuccesses == 1 && screenCancels == 0, "A finished screen reports nothing more")
+
+for _ in 0..<20 {
+    let s = openScreen(.savedMessages, reset: false)
+    precondition(s.subject == .savedMessages && !s.hasReset)
+    s.submit?("wrong")
+    s.userClosed()
+    s.cancel?()
+    precondition(activePasswordPrompts.isEmpty && presentedScreens.isEmpty)
+}
+precondition(screenCancels == 20 && screenSuccesses == 1)
+ArchivePasswordKeychain.failures = 0
+
+ArchivePasswordKeychain.cooldown = 10
+screen = openScreen(.hiddenAccount)
+precondition(screen.messages == ["Cooldown"], "A standing cooldown is shown as soon as the screen opens")
+screen.userClosed()
+ArchivePasswordKeychain.cooldown = 0
+precondition(screenCancels == 21 && activePasswordPrompts.isEmpty)
+
+screenHostAvailable = false
+presentArchivePasswordAlert(context: context, title: "Unlock", message: nil, confirmTitle: "Unlock", verifyPassword: true, onSuccess: { preconditionFailure() }, onCancel: { screenCancels += 1 }, fullScreenSubject: .archive)
+precondition(screenCancels == 22 && activePasswordPrompts.isEmpty, "No host to present on is a cancellation")
+screenHostAvailable = true
+
+LocalAuth.result = false
+screen = openScreen()
+screen.resetOwner?()
+precondition(screen.closed && screenCancels == 23 && activePasswordPrompts.isEmpty && presentedScreens.isEmpty, "A refused owner reset cancels")
+LocalAuth.result = true
+screen = openScreen()
+screen.resetOwner?()
+precondition(screen.closed && presented.count == 1, "An accepted owner reset continues with the new-password prompt")
+submit("reset-password"); Queue.drain(); submit("reset-password"); Queue.drain()
+precondition(screenSuccesses == 2 && screenCancels == 23 && activePasswordPrompts.isEmpty && presented.isEmpty)
+precondition(ArchivePasswordKeychain.stored == "reset-password")
+print("Full-screen unlock: wrong password, cooldown, success, close, 20 release cycles, no host and owner reset: passed")
 print("Archive password persistence failure/retry, mismatches and 20 prompt release cycles: passed")
 '''
 with tempfile.TemporaryDirectory(prefix='archive-password-flow-') as tmp:

@@ -126,4 +126,15 @@ assert 'id: "ask-question"' not in searchable and 'id: "faq"' not in searchable 
 assert "forSavedMessages: true" in searchable
 assert "setArchiveLockTargets(context: context" in archive_settings, "Archive settings choose what the password locks"
 
+# Scenes 27, 53: every unlock that opens something asks on the full-screen lock, not an alert.
+unlock = helpers[helpers.index("public func ensureArchiveUnlocked("):helpers.index("public func ensureArchivedPeerAccessible(")]
+assert "fullScreenSubject: forSavedMessages ? .savedMessages : .archive" in unlock, "Archive and Saved Messages unlock on the full screen"
+hidden_unlock = helpers[helpers.index("public func ensureHiddenAccountUnlocked("):helpers.index("public func setAccountHidden(")]
+assert "fullScreenSubject: .hiddenAccount" in hidden_unlock, "A hidden account unlocks on the full screen"
+prompt = helpers[helpers.index("private var activePasswordPrompts:"):helpers.index("private var archiveAlertThemeSubscriptionKey")]
+assert "if verifyPassword, let fullScreenSubject {" in prompt
+screen = read("submodules/ChatListUI/Sources/ArchiveUnlockScreen.swift")
+assert "isSecureTextEntry = true" in screen and "modalPresentationStyle = .fullScreen" in screen
+assert "self.reportCancelIfNeeded()" in screen, "Leaving the lock screen reports a cancellation"
+
 print("Archive lock entry points, recovery, biometrics, cooldown clamp, notification staging and hidden accounts: passed")
