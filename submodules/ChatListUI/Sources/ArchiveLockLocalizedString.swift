@@ -54,6 +54,32 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.HiddenAccountsFooter": "Chosen accounts disappear from the account list, and their notifications and calls are hidden. To open one, tap Settings 10 times on this account, then tap the account and enter this Archive password. Everything is hidden again when the app goes to the background.",
             "ArchiveLock.HiddenAccountEnterText": "Enter the Archive password to open the hidden account",
             "ArchiveLock.ShowAccountText": "Enter the Archive password to show this account in the account list again",
+            "ArchiveLock.ScreenTitle": "Protected Archive",
+            "ArchiveLock.StatusOnTitle": "Protection On",
+            "ArchiveLock.StatusOnBoth": "Archive and Saved Messages are protected",
+            "ArchiveLock.StatusOnArchive": "The Archive is protected",
+            "ArchiveLock.StatusOnSaved": "Saved Messages are protected",
+            "ArchiveLock.StatusOffTitle": "Protection Off",
+            "ArchiveLock.StatusOffText": "Archive and Saved Messages open without a password",
+            "ArchiveLock.SettingsHeader": "SETTINGS",
+            "ArchiveLock.ScopeRow": "What to Protect",
+            "ArchiveLock.ScopeCountBoth": "2 items",
+            "ArchiveLock.HiddenAccountsRow": "Hidden Accounts",
+            "ArchiveLock.HiddenAccountsNone": "None",
+            "ArchiveLock.OpenArchive": "Open Archive",
+            "ArchiveLock.QuickHeader": "QUICK ACTIONS",
+            "ArchiveLock.QuickFooter": "Unlocking needs the password or Face ID; protection resumes when the app goes to the background.",
+            "ArchiveLock.ScopeTitle": "What to Protect",
+            "ArchiveLock.ScopeIntro": "Choose what the Archive password closes. At least one stays protected.",
+            "ArchiveLock.ScopeHeader": "SECTIONS",
+            "ArchiveLock.ScopeArchive": "Chat Archive",
+            "ArchiveLock.ScopeConfirmTitle": "Confirmation Required",
+            "ArchiveLock.ScopeConfirmText": "Turning protection off for a section asks for the owner's password.",
+            "ArchiveLock.HiddenIntro": "Hidden accounts do not appear in the account switcher, search or system suggestions.",
+            "ArchiveLock.HiddenAccountsListHeader": "ACCOUNTS",
+            "ArchiveLock.ProtectionHeader": "PROTECTION",
+            "ArchiveLock.ChangeArchivePassword": "Change Archive Password",
+            "ArchiveLock.PasswordOffHeader": "PASSWORD",
         ],
         "ru": [
             "ArchiveLock.PasswordSection": "ПАРОЛЬ",
@@ -99,6 +125,32 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.HiddenAccountsFooter": "Выбранных аккаунтов нет в списке аккаунтов, их уведомления и звонки скрыты. Чтобы открыть такой аккаунт, нажмите «Настройки» 10 раз на этом аккаунте, затем нажмите на нужный аккаунт и введите этот пароль архива. При сворачивании приложения всё снова скрывается.",
             "ArchiveLock.HiddenAccountEnterText": "Введите пароль архива, чтобы открыть скрытый аккаунт",
             "ArchiveLock.ShowAccountText": "Введите пароль архива, чтобы снова показывать этот аккаунт в списке аккаунтов",
+            "ArchiveLock.ScreenTitle": "Защищённый архив",
+            "ArchiveLock.StatusOnTitle": "Защита активна",
+            "ArchiveLock.StatusOnBoth": "Архив и «Избранное» защищены",
+            "ArchiveLock.StatusOnArchive": "Архив защищён",
+            "ArchiveLock.StatusOnSaved": "«Избранное» защищено",
+            "ArchiveLock.StatusOffTitle": "Защита выключена",
+            "ArchiveLock.StatusOffText": "Архив и «Избранное» открываются без пароля",
+            "ArchiveLock.SettingsHeader": "НАСТРОЙКИ",
+            "ArchiveLock.ScopeRow": "Что защищать",
+            "ArchiveLock.ScopeCountBoth": "2 объекта",
+            "ArchiveLock.HiddenAccountsRow": "Скрытые аккаунты",
+            "ArchiveLock.HiddenAccountsNone": "Нет",
+            "ArchiveLock.OpenArchive": "Открыть архив",
+            "ArchiveLock.QuickHeader": "БЫСТРЫЕ ДЕЙСТВИЯ",
+            "ArchiveLock.QuickFooter": "Разблокировка требует пароль или Face ID; после ухода в фон защита возобновляется.",
+            "ArchiveLock.ScopeTitle": "Что защищать",
+            "ArchiveLock.ScopeIntro": "Выберите разделы, которые необходимо закрыть паролем архива. Хотя бы один должен остаться.",
+            "ArchiveLock.ScopeHeader": "РАЗДЕЛЫ",
+            "ArchiveLock.ScopeArchive": "Архив чатов",
+            "ArchiveLock.ScopeConfirmTitle": "Настройка требует подтверждения",
+            "ArchiveLock.ScopeConfirmText": "Отключение защиты одного раздела запрашивает пароль владельца.",
+            "ArchiveLock.HiddenIntro": "Скрытые аккаунты не отображаются в обычных переключателях, поиске и системных подсказках.",
+            "ArchiveLock.HiddenAccountsListHeader": "УЧЁТНЫЕ ЗАПИСИ",
+            "ArchiveLock.ProtectionHeader": "ЗАЩИТА",
+            "ArchiveLock.ChangeArchivePassword": "Сменить пароль архива",
+            "ArchiveLock.PasswordOffHeader": "ПАРОЛЬ",
         ],
     ]
     
@@ -134,6 +186,32 @@ public enum ArchiveLockLocalizedString {
     public static var storageError: String { string(forKey: "ArchiveLock.StorageError") }
     public static var lockArchive: String { string(forKey: "ArchiveLock.LockArchive") }
     public static var lockNow: String { string(forKey: "ArchiveLock.LockNow") }
+    public static var screenTitle: String { string(forKey: "ArchiveLock.ScreenTitle") }
+    public static var statusOnTitle: String { string(forKey: "ArchiveLock.StatusOnTitle") }
+    public static var statusOnBoth: String { string(forKey: "ArchiveLock.StatusOnBoth") }
+    public static var statusOnArchive: String { string(forKey: "ArchiveLock.StatusOnArchive") }
+    public static var statusOnSaved: String { string(forKey: "ArchiveLock.StatusOnSaved") }
+    public static var statusOffTitle: String { string(forKey: "ArchiveLock.StatusOffTitle") }
+    public static var statusOffText: String { string(forKey: "ArchiveLock.StatusOffText") }
+    public static var settingsHeader: String { string(forKey: "ArchiveLock.SettingsHeader") }
+    public static var scopeRow: String { string(forKey: "ArchiveLock.ScopeRow") }
+    public static var scopeCountBoth: String { string(forKey: "ArchiveLock.ScopeCountBoth") }
+    public static var hiddenAccountsRow: String { string(forKey: "ArchiveLock.HiddenAccountsRow") }
+    public static var hiddenAccountsNone: String { string(forKey: "ArchiveLock.HiddenAccountsNone") }
+    public static var openArchive: String { string(forKey: "ArchiveLock.OpenArchive") }
+    public static var quickHeader: String { string(forKey: "ArchiveLock.QuickHeader") }
+    public static var quickFooter: String { string(forKey: "ArchiveLock.QuickFooter") }
+    public static var scopeTitle: String { string(forKey: "ArchiveLock.ScopeTitle") }
+    public static var scopeIntro: String { string(forKey: "ArchiveLock.ScopeIntro") }
+    public static var scopeHeader: String { string(forKey: "ArchiveLock.ScopeHeader") }
+    public static var scopeArchive: String { string(forKey: "ArchiveLock.ScopeArchive") }
+    public static var scopeConfirmTitle: String { string(forKey: "ArchiveLock.ScopeConfirmTitle") }
+    public static var scopeConfirmText: String { string(forKey: "ArchiveLock.ScopeConfirmText") }
+    public static var hiddenIntro: String { string(forKey: "ArchiveLock.HiddenIntro") }
+    public static var hiddenAccountsListHeader: String { string(forKey: "ArchiveLock.HiddenAccountsListHeader") }
+    public static var protectionHeader: String { string(forKey: "ArchiveLock.ProtectionHeader") }
+    public static var changeArchivePassword: String { string(forKey: "ArchiveLock.ChangeArchivePassword") }
+    public static var passwordOffHeader: String { string(forKey: "ArchiveLock.PasswordOffHeader") }
     public static var footer: String { string(forKey: "ArchiveLock.Footer") }
     public static var hiddenAccountsHeader: String { string(forKey: "ArchiveLock.HiddenAccountsHeader") }
     public static var lockTargetsHeader: String { string(forKey: "ArchiveLock.LockTargetsHeader") }
