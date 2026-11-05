@@ -84,6 +84,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         }))
     }
     
+    var bananaProxyItem: PeerInfoScreenItem?
     if let settings = data.globalSettings {
         if settings.premiumGracePeriod {
             items[.phone]!.append(PeerInfoScreenInfoItem(id: 0, title: "Your access to Telegram Premium will expire soon!", text: .markdown("Unfortunately, your latest payment didn't come through. To keep your access to exclusive features, please renew the subscription."), isWarning: true, linkAction: nil))
@@ -196,9 +197,10 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         } else {
             proxyType = presentationData.strings.Settings_ProxyDisabled
         }
-        items[.proxy]!.append(PeerInfoScreenDisclosureItem(id: 0, label: .text(proxyType), text: presentationData.strings.Settings_Proxy, icon: PresentationResourcesSettings.proxy, action: {
+        // Scene 24: the proxy row sits in the BananaGram group, after Extras (appended there below).
+        bananaProxyItem = PeerInfoScreenDisclosureItem(id: 13, label: .text(proxyType), text: presentationData.strings.Settings_Proxy, icon: PresentationResourcesSettings.proxy, action: {
             interaction.openSettings(.proxy)
-        }))
+        })
     }
     
     var appIndex = 1000
@@ -287,6 +289,9 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 8, text: forkExtrasSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.forkExtras, action: {
         interaction.openSettings(.forkExtras)
     }))
+    if let bananaProxyItem {
+        items[.bananaGram]!.append(bananaProxyItem)
+    }
     let bananaRussian = ForkPresentationLanguage.prefersRussianStrings
     items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 11, text: bananaRussian ? "Защищённый архив" : "Protected Archive", icon: renderSettingsSymbolIcon(systemName: "lock.fill", color: .systemOrange), action: {
         interaction.openSettings(.archiveProtection)
