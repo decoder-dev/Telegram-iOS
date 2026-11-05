@@ -190,7 +190,7 @@ jobs:
 
           for appearance in light dark; do
             xcrun simctl ui "$UDID" appearance "$appearance"
-            for screen in chats saved settings; do
+            for screen in chats archive saved settings; do
               xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-screen "$screen"
               sleep 14
               xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/$screen-$appearance.png"
@@ -198,7 +198,7 @@ jobs:
             done
           done
           ls -la qa-artifacts/screens
-          for screen in chats saved settings; do
+          for screen in chats archive saved settings; do
             test -s "qa-artifacts/screens/$screen-light.png"
             test -s "qa-artifacts/screens/$screen-dark.png"
           done

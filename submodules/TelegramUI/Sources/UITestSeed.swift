@@ -3,6 +3,7 @@ import SwiftSignalKit
 import Display
 import TelegramCore
 import AccountContext
+import ChatListUI
 
 /// Simulator QA: fills a freshly signed-in test-environment account with a few chats, so the chat list, a chat and the
 /// profile have real content on the screenshots. Runs once per launch, and only with `--ui-test --ui-test-seed`
@@ -28,10 +29,11 @@ func runUITestSeedIfRequested(context: AccountContext) {
         }
     }
 
-    let channels: [(title: String, posts: [String])] = [
-        ("Дизайн-сообщество", ["Новые идеи для интерфейса"]),
-        ("Новости BananaGram", ["Вышло обновление клиента: новый список чатов и системная навигация."]),
-        ("Команда BananaGram", ["Макеты списка чатов готовы к проверке.", "Посмотрите, как выглядит крупный текст."])
+    let channels: [(title: String, posts: [String], archived: Bool)] = [
+        ("Заметки о поездке", ["Фотографии с поездки — в альбоме."], true),
+        ("Дизайн-сообщество", ["Новые идеи для интерфейса"], false),
+        ("Новости BananaGram", ["Вышло обновление клиента: новый список чатов и системная навигация."], false),
+        ("Команда BananaGram", ["Макеты списка чатов готовы к проверке.", "Посмотрите, как выглядит крупный текст."], false)
     ]
 
     var signal: Signal<Void, NoError> = .single(Void())
@@ -52,6 +54,10 @@ func runUITestSeedIfRequested(context: AccountContext) {
                 for post in channel.posts {
                     posts = posts |> then(send(post, to: peerId))
                 }
+                if channel.archived {
+                    // One chat in the Archive, so the Archive row and the Archive list have content.
+                    posts = posts |> then(context.engine.peers.updatePeersGroupIdInteractively(peerIds: [peerId], groupId: .archive) |> map { _ -> Void in } |> then(.single(Void())))
+                }
                 return posts
             }
         )
@@ -70,7 +76,7 @@ func runUITestSeedIfRequested(context: AccountContext) {
 
 private var uiTestScreenStarted = false
 
-/// Simulator QA: `--ui-test --ui-test-screen <chats|saved|settings|contacts>` opens that screen a few seconds after the
+/// Simulator QA: `--ui-test --ui-test-screen <chats|saved|settings|contacts|archive>` opens that screen a few seconds after the
 /// account is ready, so the workflow can take its screenshot without driving the UI. `chats` is the launch screen.
 func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext) {
     let arguments = CommandLine.arguments
@@ -87,6 +93,8 @@ func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext
             rootController.openSettings(edit: false)
         case "contacts":
             rootController.openContacts()
+        case "archive":
+            rootController.pushViewController(ChatListControllerImpl(context: context, location: .chatList(groupId: .archive), controlsHistoryPreload: false, enableDebugActions: false))
         case "saved":
             let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
             |> deliverOnMainQueue).startStandalone(next: { peer in
