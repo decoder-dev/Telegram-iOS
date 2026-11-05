@@ -96,11 +96,13 @@ enum ArchivePasswordKeychain {
     }
     static func loadHash(peerId: Int64) -> String? { stored }
     static func noteBackupVerifier(_ value: String?, peerId: Int64) { backup = value }
-    static func remainingCooldown(peerId: Int64) -> Double { 0 }
+    static var cooldown: Double = 0
+    static var failures = 0
+    static func remainingCooldown(peerId: Int64) -> Double { cooldown }
     static func matchesPassword(_ value: String, peerId: Int64) -> Bool { value == stored || value == backup }
-    static func clearFailureState(peerId: Int64) {}
-    static func recordFailure(peerId: Int64) {}
-    static func failureCount(peerId: Int64) -> Int { 1 }
+    static func clearFailureState(peerId: Int64) { failures = 0 }
+    static func recordFailure(peerId: Int64) { failures += 1 }
+    static func failureCount(peerId: Int64) -> Int { failures }
 }
 enum ArchiveLockLocalizedString {
     static let setTitle = "Set"
@@ -136,6 +138,31 @@ func updateChatArchiveSettings(engine: Int, _ update: (ChatArchiveSettings) -> C
 func alignKeepArchivedUnmutedIfNeeded(context: AccountContext) {}
 func clearStaleArchiveNotifications(context: AccountContext) {}
 var presented: [UIAlertController] = []
+// The full-screen lock (ArchiveUnlockScreen.swift) is simulated the same way: the screen only collects text and shows
+// what the prompt logic tells it; every decision is in the extracted code.
+final class ArchiveUnlockScreen {
+    enum Subject { case archive, savedMessages, hiddenAccount }
+    var submit: ((String) -> Void)?
+    var cancel: (() -> Void)?
+    var resetOwner: (() -> Void)?
+    let subject: Subject
+    let hasReset: Bool
+    var messages: [String] = []
+    var closed = false
+    init(context: AccountContext, subject: Subject, message: String?, confirmTitle: String, resetTitle: String?) {
+        self.subject = subject
+        self.hasReset = resetTitle != nil
+    }
+    func showMessage(_ text: String, isError: Bool) { messages.append(text) }
+    func close() { closed = true; presentedScreens.removeAll(where: { $0 === self }) }
+    // The Close button, or anything else that dismisses the screen.
+    func userClosed() { presentedScreens.removeAll(where: { $0 === self }); cancel?() }
+}
+var presentedScreens: [ArchiveUnlockScreen] = []
+var screenHostAvailable = true
+func presentArchiveUnlockScreen(context: AccountContext, screen: ArchiveUnlockScreen, onUnavailableHost: @escaping () -> Void) {
+    if screenHostAvailable { presentedScreens.append(screen) } else { onUnavailableHost() }
+}
 func presentUIAlert(context: AccountContext, alert: UIAlertController, onUnavailableHost: @escaping () -> Void) { presented.append(alert) }
 
 // UIKit keeps the alert alive while its action handler runs, then dismisses it.
