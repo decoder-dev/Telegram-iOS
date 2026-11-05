@@ -5,7 +5,7 @@
   "10_appearance": "DOM_PROTOTYPE_REVIEW_PENDING",
   "12_vault": "DOM_PROTOTYPE_REVIEW_PENDING",
   "15_archive": "DOM_PROTOTYPE_REVIEW_PENDING",
-  "27_vault_locked": "DOM_PROTOTYPE_REVIEW_PENDING",
+  "27_vault_locked": "NATIVE_IMPLEMENTED_BUILD_PENDING",
   "42_archive_settings": "NATIVE_IMPLEMENTED_BUILD_PENDING",
   "43_archive_scope": "NATIVE_IMPLEMENTED_BUILD_PENDING",
   "26_hidden_accounts": "NATIVE_IMPLEMENTED_BUILD_PENDING",
@@ -22,5 +22,6 @@
   "33_notifications": "NATIVE_EXISTING_MATCHES",
   "48_chat_style": "NATIVE_EXISTING_MATCHES",
   "11_proxy_detail": "NATIVE_EXISTING_MATCHES",
-  "44_proxy_add": "NATIVE_EXISTING_MATCHES"
+  "44_proxy_add": "NATIVE_EXISTING_MATCHES",
+  "53_saved_protected": "NATIVE_IMPLEMENTED_BUILD_PENDING"
 }
