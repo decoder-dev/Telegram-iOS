@@ -309,6 +309,11 @@ private final class ContactSyncNode: ASDisplayNode {
     }
 }
 
+
+/// Scene 01: signing in opens with the app's name; the notice under it still asks for the country code and number.
+/// Changing the number keeps its own title.
+private let authorizationPhoneEntryBrandTitle = "BananaGram"
+
 final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     private let sharedContext: SharedAccountContext
     private var account: UnauthorizedAccount?
@@ -419,7 +424,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = true
         self.titleNode.displaysAsynchronously = false
-        self.titleNode.attributedText = NSAttributedString(string: account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle, font: Font.light(30.0), textColor: theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = NSAttributedString(string: account == nil ? strings.Login_NewNumber : authorizationPhoneEntryBrandTitle, font: Font.bold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: theme.list.itemPrimaryTextColor)
         
         self.titleActivateAreaNode = AccessibilityAreaNode()
         self.titleActivateAreaNode.accessibilityTraits = [.header]
@@ -664,7 +669,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         
         let titleInset: CGFloat = layout.size.width > 320.0 ? 18.0 : 0.0
         self.updateNotice()
-        self.titleNode.attributedText = NSAttributedString(string: self.account == nil ? self.strings.Login_NewNumber : self.strings.Login_PhoneTitle, font: Font.bold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.titleNode.attributedText = NSAttributedString(string: self.account == nil ? self.strings.Login_NewNumber : authorizationPhoneEntryBrandTitle, font: Font.bold(UIFont.preferredFont(forTextStyle: .title1).pointSize), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
         self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
         
         // iPhone Duo: beside a side strip the content keeps to the band between the side insets. With equal
