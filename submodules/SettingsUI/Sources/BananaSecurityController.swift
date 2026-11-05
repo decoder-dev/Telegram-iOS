@@ -17,7 +17,7 @@ public enum BananaSecurityStrings {
         return ForkPresentationLanguage.prefersRussianStrings
     }
 
-    static var title: String { ru ? "Безопасность" : "Security" }
+    static var title: String { ru ? "Защита" : "Protection" }
     static var hubLabel: String { ru ? "Защита от угона" : "Takeover protection" }
     static var screenTitle: String { ru ? "Защита BananaGram" : "BananaGram Protection" }
     static var statusHeader: String { ru ? "АККАУНТ" : "ACCOUNT" }
@@ -68,16 +68,16 @@ public enum BananaSecurityStrings {
     public static var blockedTitle: String { ru ? "Заблокировано" : "Blocked" }
     public static var openSettings: String { ru ? "Настройки безопасности" : "Security Settings" }
     public static var qrLoginBlocked: String {
-        ru ? "Вход по QR-коду запрещён в BananaGram → Безопасность. Если кто-то просит отсканировать QR для «голосования» или «проверки», это угон аккаунта."
-           : "QR code login is blocked in BananaGram → Security. Anyone asking you to scan a QR to \"vote\" or \"verify\" is stealing the account."
+        ru ? "Вход по QR-коду запрещён в BananaGram → Защита. Если кто-то просит отсканировать QR для «голосования» или «проверки», это угон аккаунта."
+           : "QR code login is blocked in BananaGram → Protection. Anyone asking you to scan a QR to \"vote\" or \"verify\" is stealing the account."
     }
     public static var loginCodeBlocked: String {
         ru ? "В сообщении код входа в Telegram. Его не отправляют никому, даже «поддержке»: с ним заходят в ваш аккаунт."
            : "This message holds your Telegram login code. It is never sent to anyone, not even \"support\": it signs into your account."
     }
     public static var phoneSharingBlocked: String {
-        ru ? "Отправка своего номера запрещена в BananaGram → Безопасность. Номер просят, чтобы начать вход в ваш аккаунт."
-           : "Sharing your number is blocked in BananaGram → Security. The number is asked for to start a login to your account."
+        ru ? "Отправка своего номера запрещена в BananaGram → Защита. Номер просят, чтобы начать вход в ваш аккаунт."
+           : "Sharing your number is blocked in BananaGram → Protection. The number is asked for to start a login to your account."
     }
     public static var miniAppWarningTitle: String { ru ? "Мини-приложение" : "Mini App" }
     public static func miniAppWarning(name: String) -> String {

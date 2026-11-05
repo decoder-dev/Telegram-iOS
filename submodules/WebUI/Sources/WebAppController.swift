@@ -2342,7 +2342,7 @@ public final class WebAppController: ViewController, AttachmentContainable {
             // BananaGram → Security: a mini app asking for the number is how a login to the account starts.
             if context.sharedContext.immediateForkExtrasSettings.securityBlockPhoneSharing {
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-                let text = ForkPresentationLanguage.prefersRussianStrings ? "Отправка своего номера запрещена в BananaGram → Безопасность. Номер просят, чтобы начать вход в ваш аккаунт." : "Sharing your number is blocked in BananaGram → Security. The number is asked for to start a login to your account."
+                let text = ForkPresentationLanguage.prefersRussianStrings ? "Отправка своего номера запрещена в BananaGram → Защита. Номер просят, чтобы начать вход в ваш аккаунт." : "Sharing your number is blocked in BananaGram → Protection. The number is asked for to start a login to your account."
                 self.controller?.present(textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]), in: .window(.root))
                 sendEvent(false)
                 return

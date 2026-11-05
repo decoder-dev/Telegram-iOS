@@ -296,7 +296,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 11, text: bananaRussian ? "Защищённый архив" : "Protected Archive", icon: renderSettingsSymbolIcon(systemName: "lock.fill", color: .systemOrange), action: {
         interaction.openSettings(.archiveProtection)
     }))
-    items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 12, text: bananaRussian ? "Безопасность BananaGram" : "BananaGram Security", icon: renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGray), action: {
+    items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 12, text: bananaRussian ? "Защита BananaGram" : "BananaGram Protection", icon: renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGreen), action: {
         interaction.openSettings(.bananaSecurity)
     }))
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 10, text: forkDeveloperModeSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.developerMode, action: {
