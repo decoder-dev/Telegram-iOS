@@ -400,3 +400,11 @@ WalletWords/Send keyboard/recipient/collectible, ContextController actions stack
 
 Корень `forkExtrasController(focus: .top)` сгруппирован как в макете: карточка «Дополнительные функции · Тонкая настройка клиента», «Разделы» (Ниндзя, Невидимка, Приватность, Безопасность, Сообщения и ввод, Звонки и звук, Профиль и эффекты, Сеть), «Интерфейс» (Список чатов и папки, Панель вкладок, Порядок аккаунтов, Оформление) и прежняя подпись. Все пункты и их переходы прежние; новые секции `hubCard`/`hubInterface`, порядок задан `positionOverrides`. `Tests/ClientAdditions/menu_layout.py` (компилирует настоящую фабрику) ждёт новый порядок и проходит. Simulator NOT RUN.
 
+## Сцена 40 (частично): карточка подключения на странице «Сеть»
+
+Сверху страницы `focus: .network` — карточка «Подключение через прокси · VLESS/MTProto/SOCKS5/WEB · хост» или «Прямое подключение · Без прокси» из `ProxySettings.effectiveActiveServer`; секреты и пароли не показываются; нажатие открывает настройки прокси. Иконки на каждом переключателе (38–40) не добавлены сознательно: по Apple HIG цветные иконки — у пунктов навигации верхнего уровня, а не у переключателей внутренних страниц. Simulator NOT RUN.
+
+## Apple HIG
+
+Иконки новых экранов — SF Symbols на системных цветах (`systemOrange`, `systemPurple`, `systemIndigo`, `systemGreen`, `systemRed`, `systemBlue`, `systemTeal`, `systemGray`, `systemYellow`), чтобы следовать Dark Mode и Increase Contrast; списки — сгруппированные inset-секции ItemList с Dynamic Type; разрушительное действие («Удалить пароль архива») — красное.
+
