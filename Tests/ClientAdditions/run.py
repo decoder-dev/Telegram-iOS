@@ -92,7 +92,7 @@ def swift_tests():
 import Foundation
 import CoreGraphics
 enum ForkExtrasControllerFocus: Equatable {
-    case top, ninja, ghost, privacy, appearance, chatList, tabBar, messages, media, profile, network, messageSaving, messageFilters
+    case top, ninja, ghost, privacy, appearance, chatList, tabBar, messages, messageSending, messageActions, voiceAndRound, media, profile, network, messageSaving, messageFilters
     var resolvedCategory: Self { switch self { case .messageSaving, .messageFilters: return .ninja; default: return self } }
 }
 '''
@@ -112,7 +112,7 @@ for mask in 0..<8 {
 }
 let old = try JSONDecoder().decode(MediaInputSettings.self, from: Data(#"{"enableRaiseToSpeak":1,"pauseMusicOnRecording_v2":0}"#.utf8))
 precondition(!old.pauseMusicOnRecording && old.pauseMusicOnVoiceRecording && old.pauseMusicOnVoicePlayback)
-for focus in [ForkExtrasControllerFocus.top, .ninja, .ghost, .privacy, .chatList, .tabBar, .messages, .media, .profile, .network] {
+for focus in [ForkExtrasControllerFocus.top, .ninja, .ghost, .privacy, .chatList, .tabBar, .messages, .messageSending, .messageActions, .voiceAndRound, .media, .profile, .network] {
     let page = bananaSettingsPage(focus)
     let parsed = bananaSettingsLinkTarget("bananagram/" + page + "/1508")!
     precondition(parsed.0 == focus && parsed.1 == 1508)
