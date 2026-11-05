@@ -240,6 +240,58 @@ jobs:
             "app url:tg://settings/language" "app url:tg://settings/power-saving" "app url:tg://settings/calls"
             "app url:tg://settings/premium"
           )
+          # One launch per screen: `capture <appearance> <theme> <target> [language]` saves qa-artifacts/screens/<appearance>-<name>.png
+          # unless that screenshot already exists. 8 s covers the launch, the 3 s before the screen opens, and its push.
+          capture() {
+            local appearance="$1" theme="$2" target="$3" language="${4:-}"
+            local name
+            name="$(echo "$target" | sed -E 's#^url:##; s#^tg://##; s#[^A-Za-z0-9]+#-#g; s#-+$##')"
+            [ -f "qa-artifacts/screens/$appearance-$name.png" ] && return 0
+            if [ -n "$language" ]; then
+              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme "$theme" --ui-test-language "$language" --ui-test-screen "$target" > /dev/null
+            else
+              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme "$theme" --ui-test-screen "$target" > /dev/null
+            fi
+            sleep 8
+            xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/$appearance-$name.png" > /dev/null 2>&1 || echo "screenshot failed: $appearance-$name"
+            xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          }
+          declare -f capture > "$RUNNER_TEMP/qa-capture.sh"
+          printf '%s\n' "${SCREENS[@]}" > "$RUNNER_TEMP/qa-screens.txt"
+          # First the screens under work right now, in English and Russian, uploaded on their own a few minutes in
+          # (the next step) so they can be looked at long before the full set is done.
+          PRIORITY=(chats saved chat:user:1001 chat:user:1002 chat:channel:2001 settings extras extras:messages extras:sending
+            extras:actions extras:media extras:voice extras:profile extras:privacy extras:ninja extras:ghost extras:network
+            banana-security archive-settings accounts)
+          xcrun simctl ui "$UDID" appearance light
+          for target in "${PRIORITY[@]}"; do capture light day "$target"; done
+          for target in "${PRIORITY[@]}"; do
+            case "$target" in chat:*|saved|settings) continue ;; esac
+            capture ru day "$target" ru
+          done
+          xcrun simctl ui "$UDID" appearance dark
+          for target in chats saved chat:user:1001 extras banana-security; do capture dark night "$target"; done
+          mkdir -p qa-artifacts/app-logs
+          find "$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data/Containers/Shared/AppGroup" -path '*telegram-ui-tests-data*' -name '*.txt' -exec cp {} qa-artifacts/app-logs/ \; 2>/dev/null || true
+          ls qa-artifacts/screens | wc -l
+
+      - name: Upload the first screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-ios-simulator-qa-first-${{ github.run_number }}
+          path: |
+            qa-artifacts/screens/
+            qa-artifacts/app-logs/
+          if-no-files-found: warn
+
+      - name: Capture every other screen
+        run: |
+          set -euo pipefail
+          BUNDLE_ID="$(jq -r .bundle_id build-system/sideload-configuration.json)"
+          source "$RUNNER_TEMP/qa-capture.sh"
+          SCREENS=()
+          while IFS= read -r line; do SCREENS+=("$line"); done < "$RUNNER_TEMP/qa-screens.txt"
           # The app keeps its own theme (no system switching), so each pass selects one: Classic White, Classic Black
           # and the fork's BananaGram Cream.
           for appearance in light dark cream; do
@@ -250,13 +302,7 @@ jobs:
             esac
             xcrun simctl ui "$UDID" appearance "$system"
             for entry in "${SCREENS[@]}"; do
-              kind="${entry%% *}"
-              target="${entry#* }"
-              name="$(echo "$target" | sed -E 's#^url:##; s#^tg://##; s#[^A-Za-z0-9]+#-#g; s#-+$##')"
-              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme "$theme" --ui-test-screen "$target" > /dev/null
-              sleep 12
-              xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/$appearance-$name.png" > /dev/null 2>&1 || echo "screenshot failed: $name"
-              xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+              capture "$appearance" "$theme" "${entry#* }"
             done
           done
           # The fork's own screens once more with their Russian strings, which run longer than the English ones and are
@@ -265,14 +311,8 @@ jobs:
           for entry in "${SCREENS[@]}"; do
             target="${entry#* }"
             case "$target" in
-              extras*|archive-settings|banana-security|accounts|chats|url:tg://settings/data/proxy) ;;
-              *) continue ;;
+              extras*|archive-settings|banana-security|accounts|chats|url:tg://settings/data/proxy) capture ru day "$target" ru ;;
             esac
-            name="$(echo "$target" | sed -E 's#^url:##; s#^tg://##; s#[^A-Za-z0-9]+#-#g; s#-+$##')"
-            xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme day --ui-test-language ru --ui-test-screen "$target" > /dev/null
-            sleep 12
-            xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/ru-$name.png" > /dev/null 2>&1 || echo "screenshot failed: ru-$name"
-            xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
           done
           ls qa-artifacts/screens | wc -l
           # The app's own Logger files, so a screen stuck loading can be read from what the app did.
