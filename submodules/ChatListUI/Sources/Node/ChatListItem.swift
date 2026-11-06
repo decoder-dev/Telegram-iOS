@@ -2075,11 +2075,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
         var storyState: ChatListItemContent.StoryState?
         if case let .peer(peerData) = item.content {
             storyState = peerData.storyState
-        } else if case let .groupReference(groupReference) = item.content {
-            if !shouldHideArchiveGroupContents(groupReference) {
-                storyState = groupReference.storyState
-            }
         }
+        // The Archive row draws no story ring: its avatar is the folder icon, and a ring around it read as a broken
+        // outline. Hidden stories stay in the archive's own header and in the row's "N stories" text.
         
         var peer: EnginePeer?
         var displayAsMessage = false

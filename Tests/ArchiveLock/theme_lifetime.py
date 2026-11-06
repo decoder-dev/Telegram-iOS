@@ -23,7 +23,18 @@ struct Theme {
 struct PresentationData { var theme = Theme() }
 class UIViewController: NSObject {
     var presentedViewController: UIViewController?
-    func present(_ alert: UIAlertController, animated: Bool) { presentedViewController = alert }
+    weak var presentingViewController: UIViewController?
+    var isBeingDismissed = false
+    var isBeingPresented = false
+    func present(_ alert: UIAlertController, animated: Bool, completion: (() -> Void)? = nil) {
+        presentedViewController = alert
+        alert.presentingViewController = self
+        completion?()
+    }
+}
+final class Logger {
+    static let shared = Logger()
+    func log(_ tag: String, _ text: String) {}
 }
 final class UIAlertController: UIViewController {
     enum Style { case light, dark }

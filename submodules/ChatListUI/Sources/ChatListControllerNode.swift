@@ -1792,6 +1792,15 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             }
         }
         
+        // With stories in the header their row carries the title (expanded or beside the collapsed avatars), so the
+        // large title would only hold an empty band between the stories and the search field.
+        let storiesShowTitle: Bool
+        if let effectiveStorySubscriptions {
+            storiesShowTitle = effectiveStorySubscriptions.accountItem != nil || !effectiveStorySubscriptions.items.isEmpty
+        } else {
+            storiesShowTitle = false
+        }
+        
         // iPhone Duo: the header's back and icon buttons go into the side strip, above the vertical tab
         // bar when this list is a tab (spec 2026-10-06). A preview's layout is not the screen's.
         var sideColumn: SideColumnRegion?
@@ -1811,7 +1820,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                 leftInset: layout.safeInsets.left,
                 rightInset: layout.safeInsets.right,
                 trailingButtonsInset: layout.navigationBarTrailingButtonsInset,
-                largeTitle: self.location == .chatList(groupId: .root) && !self.isEditing && !self.isReorderingFilters && !(self.controller?.previewing ?? false) ? "BananaGram" : nil,
+                largeTitle: self.location == .chatList(groupId: .root) && !storiesShowTitle && !self.isEditing && !self.isReorderingFilters && !(self.controller?.previewing ?? false) ? "BananaGram" : nil,
                 search: BananaChatListHeader.current.hidesSearch && self.location == .chatList(groupId: .root) ? nil : ChatListNavigationBar.Search(isEnabled: true),
                 activeSearch: self.isSearchDisplayControllerActive,
                 primaryContent: headerContent?.primaryContent,

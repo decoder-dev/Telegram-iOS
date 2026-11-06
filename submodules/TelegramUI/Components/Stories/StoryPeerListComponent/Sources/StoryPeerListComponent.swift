@@ -1476,7 +1476,10 @@ public final class StoryPeerListComponent: Component {
             if self.sortedItems.isEmpty {
                 titleContentOffset = collapsedTitleOffset
             } else {
-                titleContentOffset = titleMinContentOffset.interpolate(to: ((itemLayout.containerSize.width - titleWidth) * 0.5) as CGFloat, amount: min(1.0, collapsedState.maxFraction) * (1.0 - collapsedState.activityFraction))
+                // Centred in the row while clear of the bar's buttons, balanced between them otherwise: a wide right-hand
+                // button group (three glass buttons) must not draw over the expanded title.
+                let expandedTitleOffset = StoryPeerListTitleLayout.contentOrigin(containerWidth: itemLayout.containerSize.width, contentWidth: titleWidth, minX: component.minTitleX, maxX: component.maxTitleX)
+                titleContentOffset = titleMinContentOffset.interpolate(to: expandedTitleOffset, amount: min(1.0, collapsedState.maxFraction) * (1.0 - collapsedState.activityFraction))
                 titleContentOffset += -expandBoundsFraction * 4.0
             }
             if component.centeredTitle {
