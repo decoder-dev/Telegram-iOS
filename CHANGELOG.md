@@ -6,7 +6,12 @@
 
 ## [Unreleased]
 
+## [v13.1.2-4505]
+
 ### Fixed — Archive protection
+- Every page of the Archive's settings closes when the Archive locks again, however it was opened; the hidden accounts list no longer stays on screen.
+- With only Saved Messages locked, the hidden accounts list asks for the password: the Archive itself opens without it.
+- Closing the Archive preview also closes the hidden accounts it opened. Archive settings have no "Open Archive" row, which pushed a second Archive.
 - The Archive locks again as soon as it is left, and when its long-press preview closes. Before, one unlock left it open — row previews, search, re-entry and hidden accounts — until the app went to the background.
 - Protected Archive is set up only from the Archive's own settings (its "…" menu), inside an unlocked Archive. Settings no longer has a row that opened it without a password.
 - A correct password or Face ID no longer turns into a cancel when something interrupts the prompt (Control Center, AutoFill, a banner). A password prompt that UIKit failed to show no longer blocks every later one until a restart, and Face ID runs once at a time.
@@ -19,6 +24,8 @@
 - Icons only on top-level rows, as in iOS Settings, and no decorative cards. Privacy and Security looks as it does upstream. BananaGram Protection has one name and one icon everywhere.
 - Long titles wrap instead of running under switches; values on rows are short.
 - A context menu over the keyboard dims the screen instead of turning it black.
+- A chat preview over the keyboard (a long press in search) fades and springs in, and shrinks and fades when it closes, instead of popping in and vanishing.
+- Chat list header: the title stays between the bar's buttons when stories are shown, no empty band between the stories and search, and the Archive row has no story ring.
 
 ### Fixed — stability audit
 - Media picker dismissal stops its actual camera and disables the preview. Remove a stale upstream teardown branch for a legacy view that the picker no longer owns, which blocked compilation.
