@@ -1190,6 +1190,12 @@ private func mappedChatListNodeViewListTransition(
     return ChatListNodeListViewTransition(chatListView: transition.chatListView, deleteItems: transition.deleteItems, insertItems: mappedInsertEntries(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: isPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, entries: transition.insertEntries, presentationData: presentationData), updateItems: mappedUpdateEntries(context: context, nodeInteraction: nodeInteraction, location: location, isPremium: isPremium, filterData: filterData, chatListFilters: chatListFilters, mode: mode, isPeerEnabled: isPeerEnabled, entries: transition.updateEntries, presentationData: presentationData), options: transition.options, scrollToItem: transition.scrollToItem, stationaryItemRange: transition.stationaryItemRange, adjustScrollToFirstItem: transition.adjustScrollToFirstItem, animateCrossfade: transition.animateCrossfade)
 }
 
+/// Which rows of the chat list the lock hides: the Archive row's contents and the Saved Messages row.
+private struct ChatListLockedRows: Equatable {
+    var archive: Bool
+    var savedMessages: Bool
+}
+
 private final class ChatListOpaqueTransactionState {
     let chatListView: ChatListNodeView
     
@@ -2056,17 +2062,17 @@ public final class ChatListNode: ListViewImpl {
         // rebuild the entry instead of leaving a previously laid-out preview on screen.
         // The Saved Messages row follows its own lock: with only Saved Messages locked it used to stay in the list with
         // its last message, and with only the Archive locked it was hidden for nothing.
-        let archiveFolderContentsHidden = combineLatest(
+        let lockSources: Signal<(Bool, Bool, Bool), NoError> = combineLatest(
             ArchiveLockSession.shared.unlockedSignal,
             archiveFolderLockSignal(context: context),
             savedMessagesLockSignal(context: context)
         )
-        |> map { unlocked, isPasswordProtected, isSavedMessagesLocked -> (archive: Bool, savedMessages: Bool) in
-            return (isPasswordProtected && !unlocked, isSavedMessagesLocked && !unlocked)
+        let archiveFolderContentsHidden: Signal<ChatListLockedRows, NoError> = lockSources
+        |> map { (values: (Bool, Bool, Bool)) -> ChatListLockedRows in
+            let (unlocked, isPasswordProtected, isSavedMessagesLocked) = values
+            return ChatListLockedRows(archive: isPasswordProtected && !unlocked, savedMessages: isSavedMessagesLocked && !unlocked)
         }
-        |> distinctUntilChanged(isEqual: { lhs, rhs in
-            return lhs.archive == rhs.archive && lhs.savedMessages == rhs.savedMessages
-        })
+        |> distinctUntilChanged
         
         let displayArchiveIntro: Signal<Bool, NoError>
         if case .chatList(.archive) = location {
