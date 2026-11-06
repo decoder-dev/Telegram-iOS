@@ -103,12 +103,6 @@ public enum PrivacyAndSecurityEntryTag: ItemListItemTag {
     }
 }
 
-/// Privacy rows carry an SF Symbol on a system-coloured square, like the stock rows above them (Apple HIG:
-/// one icon per row in a group, system colours so Dark Mode and Increase Contrast follow).
-private func privacyRowIcon(_ systemName: String, _ color: UIColor) -> UIImage? {
-    return renderSettingsSymbolIcon(systemName: systemName, color: color)
-}
-
 private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     case privacyHeader(PresentationTheme, String)
     case blockedPeers(PresentationTheme, String, String)
@@ -129,7 +123,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     case passcode(PresentationTheme, String, Bool, String)
     case twoStepVerification(PresentationTheme, String, String, TwoStepVerificationAccessConfiguration?)
     case passkeys(PresentationTheme, String, String)
-    case bananaProtection(PresentationTheme, String)
     case securityHeader(PresentationTheme, String)
     case loginEmail(PresentationTheme, String, String?)
     case loginEmailInfo(PresentationTheme, String)
@@ -148,7 +141,7 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     
     var section: ItemListSectionId {
         switch self {
-        case .securityHeader, .blockedPeers, .activeSessions, .passcode, .bananaProtection, .twoStepVerification, .passkeys, .messageAutoremoveTimeout, .messageAutoremoveInfo:
+        case .securityHeader, .blockedPeers, .activeSessions, .passcode, .twoStepVerification, .passkeys, .messageAutoremoveTimeout, .messageAutoremoveInfo:
             return PrivacyAndSecuritySection.general.rawValue
         case .loginEmail, .loginEmailInfo:
             return PrivacyAndSecuritySection.loginEmail.rawValue
@@ -175,8 +168,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 return 2
             case .passcode:
                 return 3
-            case .bananaProtection:
-                return 4
             case .twoStepVerification:
                 return 5
             case .passkeys:
@@ -356,12 +347,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 } else {
                     return false
                 }
-            case let .bananaProtection(lhsTheme, lhsText):
-                if case let .bananaProtection(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
-                    return true
-                } else {
-                    return false
-                }
             case let .passkeys(lhsTheme, lhsText, lhsValue):
                 if case let .passkeys(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
                     return true
@@ -478,55 +463,55 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                     arguments.openBlockedUsers()
                 })
             case let .phoneNumberPrivacy(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("number", .systemGray), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openPhoneNumberPrivacy()
                 })
             case let .lastSeenPrivacy(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("clock.fill", .systemPurple), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openLastSeenPrivacy()
                 })
             case let .profilePhotoPrivacy(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("person.crop.circle.fill", .systemBlue), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openProfilePhotoPrivacy()
                 })
             case let .forwardPrivacy(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("arrowshape.turn.up.right.fill", .systemIndigo), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openForwardPrivacy()
                 })
             case let .groupPrivacy(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("person.2.fill", .systemTeal), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openGroupsPrivacy()
                 })
             case .groupPrivacyFooter:
                 return ItemListTextItem(presentationData: presentationData, text: .markdown(presentationData.strings.PrivacySettings_InviteSectionFooter), sectionId: self.section)
             case let .voiceMessagePrivacy(theme, text, value, hasPremium):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("mic.fill", .systemOrange), title: text, titleIcon: hasPremium ? PresentationResourcesItemList.premiumIcon(theme) : nil, label: value, labelStyle: .text, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, titleIcon: hasPremium ? PresentationResourcesItemList.premiumIcon(theme) : nil, label: value, labelStyle: .text, sectionId: self.section, style: .blocks, action: {
                     arguments.openVoiceMessagePrivacy()
                 })
             case let .messagePrivacy(theme, value, hasPremium):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("bubble.left.fill", .systemBlue), title: presentationData.strings.Settings_Privacy_Messages, titleIcon: hasPremium ? PresentationResourcesItemList.premiumIcon(theme) : nil, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.Settings_Privacy_Messages, titleIcon: hasPremium ? PresentationResourcesItemList.premiumIcon(theme) : nil, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openMessagePrivacy()
                 })
             case let .bioPrivacy(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("text.alignleft", .systemOrange), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openBioPrivacy()
                 })
             case let .birthdayPrivacy(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("gift.fill", .systemPink), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openBirthdayPrivacy()
                 })
             case let .savedMusicPrivacy(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("music.note", .systemRed), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openSavedMusicPrivacy()
                 })
             case let .giftsAutoSavePrivacy(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("giftcard.fill", .systemYellow), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openGiftsPrivacy()
                 })
             case let .selectivePrivacyInfo(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
             case let .voiceCallPrivacy(_, text, value):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("phone.fill", .systemGreen), title: text, label: value, sectionId: self.section, style: .blocks, action: {
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openVoiceCallPrivacy()
                 })
             case let .passcode(_, text, hasFaceId, value):
@@ -540,10 +525,6 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 })
             case let .securityHeader(_, text):
                 return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
-            case let .bananaProtection(_, text):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: privacyRowIcon("checkmark.shield.fill", .systemGreen), title: text, label: "", sectionId: self.section, style: .blocks, action: {
-                    arguments.openBananaProtection()
-                })
             case let .passkeys(_, text, value):
                 return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.passkeys, title: text, label: value, sectionId: self.section, style: .blocks, action: {
                     arguments.openPasskeys()
@@ -733,7 +714,6 @@ private func privacyAndSecurityControllerEntries(
     if let hasTwoStepAuth = hasTwoStepAuth {
         twoStepAuthString = hasTwoStepAuth ? presentationData.strings.PrivacySettings_PasscodeOn : presentationData.strings.PrivacySettings_PasscodeOff
     }
-    entries.append(.bananaProtection(presentationData.theme, BananaSecurityStrings.screenTitle))
     entries.append(.twoStepVerification(presentationData.theme, presentationData.strings.PrivacySettings_TwoStepAuth, twoStepAuthString, twoStepAuthData))
     
     if displayPasskeys {

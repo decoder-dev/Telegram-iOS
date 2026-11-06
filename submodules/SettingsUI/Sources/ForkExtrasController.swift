@@ -977,14 +977,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             let icon: UIImage?
             let detail: String?
             switch destination {
-            case .proxy: icon = PresentationResourcesSettings.proxy; detail = nil
-            // Each row its own glyph: Privacy above already draws the grey hand.
-            case .security: icon = renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGreen); detail = BananaSecurityStrings.hubLabel
+            // Icons only on the hub (Protection, Account Order), as iOS Settings draws them on its top level; rows that
+            // lead on from inside a page (Proxy, Connection check, the Messages and Media sub-pages) have none.
+            case .security: icon = renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGreen); detail = nil
             case .accountOrder: icon = renderSettingsSymbolIcon(systemName: "person.2.fill", color: .systemIndigo); detail = nil
-            case .connectionCheck: icon = renderSettingsSymbolIcon(systemName: "speedometer", color: .systemGreen); detail = nil
-            case .messageSending: icon = renderSettingsSymbolIcon(systemName: "paperplane.fill", color: .systemBlue); detail = nil
-            case .messageActions: icon = renderSettingsSymbolIcon(systemName: "hand.tap.fill", color: .systemOrange); detail = nil
-            case .voiceAndRound: icon = renderSettingsSymbolIcon(systemName: "video.circle.fill", color: .systemPurple); detail = nil
+            case .proxy, .connectionCheck, .messageSending, .messageActions, .voiceAndRound: icon = nil; detail = nil
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, action: {
                 arguments.openDestination(destination)
@@ -1029,39 +1026,39 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
                 arguments.updateAppearance(keyPath, value)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubAppearance:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.appearance, title: ForkPresentationLanguage.prefersRussianStrings ? "Оформление" : "Appearance", label: "", additionalDetailLabel: ForkPresentationLanguage.prefersRussianStrings ? "Бананчик наверху" : "Banana island", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.appearance, title: ForkPresentationLanguage.prefersRussianStrings ? "Оформление" : "Appearance", label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.appearance)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubNinja:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.savedMessages, title: ForkExtrasLocalizedString.hubNinja, label: "", additionalDetailLabel: ForkExtrasLocalizedString.hubNinjaLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.savedMessages, title: ForkExtrasLocalizedString.hubNinja, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.ninja)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubGhost:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.stories, title: ForkExtrasLocalizedString.hubGhost, label: "", additionalDetailLabel: ForkExtrasLocalizedString.hubGhostLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.stories, title: ForkExtrasLocalizedString.hubGhost, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.ghost)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubPrivacy:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.security, title: ForkExtrasLocalizedString.hubPrivacy, label: "", additionalDetailLabel: ForkExtrasLocalizedString.hubPrivacyLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.security, title: ForkExtrasLocalizedString.hubPrivacy, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.privacy)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubChatList:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.chatFolders, title: ForkExtrasLocalizedString.hubChatList, label: "", additionalDetailLabel: ForkExtrasLocalizedString.hubChatListLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.chatFolders, title: ForkExtrasLocalizedString.hubChatList, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.chatList)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubTabBar:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.topics, title: ForkExtrasLocalizedString.hubTabBar, label: "", additionalDetailLabel: ForkExtrasLocalizedString.hubTabBarLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.topics, title: ForkExtrasLocalizedString.hubTabBar, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.tabBar)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubMessages:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.messages, title: ForkExtrasLocalizedString.hubMessages, label: "", additionalDetailLabel: ForkExtrasLocalizedString.hubMessagesLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.messages, title: ForkExtrasLocalizedString.hubMessages, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.messages)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubMedia:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.voices, title: ForkExtrasLocalizedString.hubMedia, label: "", additionalDetailLabel: ForkExtrasLocalizedString.hubMediaLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.voices, title: ForkExtrasLocalizedString.hubMedia, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.media)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubProfile:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.myProfile, title: ForkExtrasLocalizedString.hubProfile, label: "", additionalDetailLabel: ForkExtrasLocalizedString.hubProfileLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.myProfile, title: ForkExtrasLocalizedString.hubProfile, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.profile)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case .hubCard:
@@ -1076,7 +1073,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hubLookHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ForkPresentationLanguage.prefersRussianStrings ? "ИНТЕРФЕЙС" : "INTERFACE", sectionId: self.section)
         case .hubNetwork:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.proxy, title: ForkExtrasLocalizedString.hubNetwork, label: "", additionalDetailLabel: ForkExtrasLocalizedString.hubNetworkLabel, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: PresentationResourcesSettings.proxy, title: ForkExtrasLocalizedString.hubNetwork, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openCategory(.network)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .ghostModeMaster(value):
@@ -1275,7 +1272,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
     if category == .top {
         // Scene 37: the header card, the feature sections, then the ones that change the interface.
         return [
-            .hubCard,
             .hubSectionsHeader,
             .hubNinja,
             .hubGhost,
@@ -1613,13 +1609,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         entries.append(.regexFiltersFooter(settings.regexMessageFiltersEnabled ? ForkRegexMessageFilters.unusablePatternCount(settings.regexMessageFilterPatterns) : 0))
     case .network:
         entries = []
-        if let connectionSummary {
-            entries.append(.connectionStatus(
-                title: connectionSummary.viaProxy ? (russian ? "Подключение через прокси" : "Connection through a proxy") : (russian ? "Прямое подключение" : "Direct connection"),
-                detail: connectionSummary.detail,
-                viaProxy: connectionSummary.viaProxy
-            ))
-        }
         entries += [
             .settingToggle(2105, .proxy, russian ? "Скрыть спонсора прокси" : "Hide proxy sponsor", settings.hideProxySponsor, \.hideProxySponsor),
             .destination(138, ForkPresentationLanguage.prefersRussianStrings ? "Прокси" : "Proxy", .proxy),

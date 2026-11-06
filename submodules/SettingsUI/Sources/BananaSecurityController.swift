@@ -162,11 +162,6 @@ private enum BananaSecuritySection: Int32 {
     case status
 }
 
-/// The icon of each row (scene 41), an SF Symbol on a system colour (Apple HIG).
-private func bananaSecurityIcon(_ systemName: String, _ color: UIColor) -> UIImage? {
-    return renderSettingsSymbolIcon(systemName: systemName, color: color)
-}
-
 private enum BananaSecurityEntry: ItemListNodeEntry {
     case statusHeader
     case twoStep(Bool?)
@@ -242,28 +237,20 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
             } else {
                 labelStyle = .text
             }
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: bananaSecurityIcon("lock.fill", .systemPurple), title: BananaSecurityStrings.twoStep, label: label, labelStyle: labelStyle, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: BananaSecurityStrings.twoStep, label: label, labelStyle: labelStyle, sectionId: self.section, style: .blocks, action: {
                 arguments.openTwoStep()
             })
         case let .sessions(count):
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: bananaSecurityIcon("person.2.fill", .systemBlue), title: BananaSecurityStrings.sessions, label: count.flatMap { "\($0)" } ?? "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: BananaSecurityStrings.sessions, label: count.flatMap { "\($0)" } ?? "", sectionId: self.section, style: .blocks, action: {
                 arguments.openSessions()
             })
         case .statusFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(BananaSecurityStrings.statusFooter), sectionId: self.section)
         case .protectionsHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: BananaSecurityStrings.protectionsHeader, sectionId: self.section)
-        case let .toggle(id, title, text, value, keyPath):
-            let icon: UIImage?
-            switch id {
-            case 0: icon = bananaSecurityIcon("qrcode", .systemOrange)
-            case 1: icon = bananaSecurityIcon("shield.fill", .systemOrange)
-            case 2: icon = bananaSecurityIcon("phone.fill", .systemRed)
-            case 3: icon = bananaSecurityIcon("bell.fill", .systemPurple)
-            case 4: icon = bananaSecurityIcon("globe", .systemBlue)
-            default: icon = bananaSecurityIcon("checkmark.shield.fill", .systemGreen)
-            }
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, text: text, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
+        case let .toggle(_, title, text, value, keyPath):
+            // Switches inside a page carry no icons (iOS Settings): the title and its one-line explanation say it all.
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, text: text, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.update(keyPath, value)
             })
         case .protectionsFooter:

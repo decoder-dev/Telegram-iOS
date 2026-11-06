@@ -74,8 +74,9 @@ private enum ProxyConnectionStatusEntry: ItemListNodeEntry {
 
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         switch self {
-        case let .card(title, detail, connected):
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: renderSettingsSymbolIcon(systemName: connected ? "checkmark.shield.fill" : "network", color: connected ? .systemGreen : .systemGray), title: title, titleFont: .bold, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
+        case let .card(title, detail, _):
+            // The state and the server, as a row with its value: no card, no icon.
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: title, label: detail, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
         case let .header(text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
         case let .route(title, value), let .state(title, value), let .lastResponse(title, value):

@@ -299,8 +299,10 @@ private enum ProxySettingsControllerEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ProxySettingsControllerArguments
         switch self {
-            case let .statusCard(_, title, detail, connected):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: renderSettingsSymbolIcon(systemName: connected ? "checkmark.shield.fill" : "network", color: connected ? .systemGreen : .systemGray), title: title, titleFont: .bold, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, action: {
+            case let .statusCard(_, title, _, _):
+                // A plain row with the state as its value, not a bold card with an icon: the server it goes through is
+                // on the screen it opens, and each saved proxy below shows its own state.
+                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkPresentationLanguage.prefersRussianStrings ? "Статус соединения" : "Connection Status", label: title, sectionId: self.section, style: .blocks, action: {
                     arguments.openConnectionStatus()
                 })
             case let .enabled(_, text, value, createsNew):

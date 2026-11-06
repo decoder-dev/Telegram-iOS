@@ -65,23 +65,6 @@ private final class ArchiveSettingsControllerArguments {
     }
 }
 
-/// The icon colours of the scenes: one system colour per kind of action (Apple HIG: system colours adapt to Dark Mode
-/// and Increase Contrast), the glyph an SF Symbol.
-private enum ArchiveSettingsIcon {
-    static var amber: UIColor { .systemOrange }
-    static var purple: UIColor { .systemPurple }
-    static var indigo: UIColor { .systemIndigo }
-    static var teal: UIColor { .systemGreen }
-    static var orange: UIColor { .systemRed }
-    static var blue: UIColor { .systemBlue }
-    static var cyan: UIColor { .systemTeal }
-    static var gray: UIColor { .systemGray }
-
-    static func image(_ systemName: String, _ color: UIColor) -> UIImage? {
-        return renderSettingsSymbolIcon(systemName: systemName, color: color)
-    }
-}
-
 private enum ArchiveSettingsSection: Int32 {
     case status
     case settings
@@ -210,40 +193,41 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
     func item(presentationData: ItemListPresentationData, arguments: Any) -> ListViewItem {
         let arguments = arguments as! ArchiveSettingsControllerArguments
         switch self {
-        case let .status(title, text, isOn):
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image(isOn ? "lock.fill" : "lock.open.fill", isOn ? ArchiveSettingsIcon.blue : ArchiveSettingsIcon.gray), title: title, titleFont: .bold, label: "", additionalDetailLabel: text, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
+        case let .status(_, text, _):
+            // The state is said in plain text above the settings, not on a card that looks like a row and does nothing.
+            return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
         case .settingsHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.settingsHeader, sectionId: self.section)
         case let .scopeRow(label):
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("shield.fill", ArchiveSettingsIcon.amber), title: ArchiveLockLocalizedString.scopeRow, label: label, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.scopeRow, label: label, sectionId: self.section, style: .blocks, action: {
                 arguments.openPage(.scope)
             })
         case let .hiddenAccountsRow(label):
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("person.2.fill", ArchiveSettingsIcon.purple), title: ArchiveLockLocalizedString.hiddenAccountsRow, label: label, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.hiddenAccountsRow, label: label, sectionId: self.section, style: .blocks, action: {
                 arguments.openPage(.hiddenAccounts)
             })
         case let .biometricsValue(isOn, isFaceId):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image(isFaceId ? "faceid" : "touchid", ArchiveSettingsIcon.cyan), title: isFaceId ? ArchiveLockLocalizedString.useFaceId : ArchiveLockLocalizedString.useTouchId, value: isOn, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: isFaceId ? ArchiveLockLocalizedString.useFaceId : ArchiveLockLocalizedString.useTouchId, value: isOn, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.toggleBiometrics(value)
             })
         case .changePassword:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("lock.fill", ArchiveSettingsIcon.indigo), title: ArchiveLockLocalizedString.changePassword, label: "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.changePassword, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.changePassword()
             })
         case .openArchive:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("archivebox.fill", ArchiveSettingsIcon.teal), title: ArchiveLockLocalizedString.openArchive, label: "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.openArchive, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.openArchive()
             })
         case .quickHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.quickHeader, sectionId: self.section)
         case .lockNow:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("lock.fill", ArchiveSettingsIcon.orange), title: ArchiveLockLocalizedString.lockNow, label: "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockNow, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.lockNow()
             })
         case .quickFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.quickFooter), sectionId: self.section)
         case .setPassword:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("lock.fill", ArchiveSettingsIcon.indigo), title: ArchiveLockLocalizedString.setPassword, label: "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.setPassword, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.togglePassword(true)
             })
         case .passwordOffFooter:
@@ -258,15 +242,15 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.scopeHeader, sectionId: self.section)
         case let .lockTargetArchive(isOn, savedMessagesOn):
             // The last thing still locked cannot be switched off: turn the other one on first.
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("archivebox.fill", ArchiveSettingsIcon.blue), title: ArchiveLockLocalizedString.scopeArchive, value: isOn, enabled: !isOn || savedMessagesOn, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.scopeArchive, value: isOn, enabled: !isOn || savedMessagesOn, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateLockTargets(value, savedMessagesOn)
             })
         case let .lockTargetSavedMessages(isOn, archiveOn):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("bookmark.fill", ArchiveSettingsIcon.cyan), title: ArchiveLockLocalizedString.lockTargetSavedMessages, value: isOn, enabled: !isOn || archiveOn, sectionId: self.section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockTargetSavedMessages, value: isOn, enabled: !isOn || archiveOn, sectionId: self.section, style: .blocks, updated: { value in
                 arguments.updateLockTargets(archiveOn, value)
             })
         case .scopeConfirm:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("checkmark.shield.fill", ArchiveSettingsIcon.teal), title: ArchiveLockLocalizedString.scopeConfirmTitle, titleFont: .bold, label: "", additionalDetailLabel: ArchiveLockLocalizedString.scopeConfirmText, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
+            return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.scopeConfirmText), sectionId: self.section)
         case .hiddenIntro:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.hiddenIntro), sectionId: self.section)
         case .hiddenAccountsHeader:
@@ -284,11 +268,11 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
         case .protectionHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: ArchiveLockLocalizedString.protectionHeader, sectionId: self.section)
         case .changeArchivePassword:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("lock.fill", ArchiveSettingsIcon.purple), title: ArchiveLockLocalizedString.changeArchivePassword, label: "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.changeArchivePassword, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.changePassword()
             })
         case .protectionLockNow:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: ArchiveSettingsIcon.image("shield.fill", ArchiveSettingsIcon.amber), title: ArchiveLockLocalizedString.lockNow, label: "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.lockNow, label: "", sectionId: self.section, style: .blocks, action: {
                 arguments.lockNow()
             })
         case .unmutedHeader:
