@@ -6,6 +6,20 @@
 
 ## [Unreleased]
 
+### Fixed — Archive protection
+- The Archive locks again as soon as it is left, and when its long-press preview closes. Before, one unlock left it open — row previews, search, re-entry and hidden accounts — until the app went to the background.
+- Protected Archive is set up only from the Archive's own settings (its "…" menu), inside an unlocked Archive. Settings no longer has a row that opened it without a password.
+- A correct password or Face ID no longer turns into a cancel when something interrupts the prompt (Control Center, AutoFill, a banner). A password prompt that UIKit failed to show no longer blocks every later one until a restart, and Face ID runs once at a time.
+- Turning Face ID on trusts the current enrolment only after the password. Removing the password no longer undoes itself, and a changed password no longer accepts the old one.
+- Saved Messages locked on its own is hidden and gated like the Archive: its row, profile and long-press preview. Hashtag search and groups in common no longer show locked chats.
+- Ten quick taps on Chats no longer crash builds outside the App Store.
+
+### Changed — interface
+- Extras texts are in plain language. Messages and composer is split into Input and Sending and Message Actions, and Voice and Round Videos has its own page.
+- Icons only on top-level rows, as in iOS Settings, and no decorative cards. Privacy and Security looks as it does upstream. BananaGram Protection has one name and one icon everywhere.
+- Long titles wrap instead of running under switches; values on rows are short.
+- A context menu over the keyboard dims the screen instead of turning it black.
+
 ### Fixed — stability audit
 - Media picker dismissal stops its actual camera and disables the preview. Remove a stale upstream teardown branch for a legacy view that the picker no longer owns, which blocked compilation.
 - The general video-message quality preset reads its default dimensions from the encoding profile; a stale reference to the removed export constant no longer blocks the app build.
