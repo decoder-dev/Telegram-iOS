@@ -416,7 +416,92 @@ final class ContextSourceContainer: ASDisplayNode {
         if hosted != self.lastHostedInKeyboardWindow {
             self.lastHostedInKeyboardWindow = hosted
             self.update(transition: .immediate)
+            // Moving between windows drops the layers' running animations, so a preview that was still appearing
+            // would pop in at full size: its appearance runs again in the new window.
+            if let keyboardAppearanceRequestTime = self.keyboardAppearanceRequestTime, CACurrentMediaTime() - keyboardAppearanceRequestTime < 0.5 {
+                self.playKeyboardWindowAppearance()
+            }
         }
+    }
+    
+    /// When the appearance of a chat preview over the keyboard was asked for (`animateIn`).
+    private var keyboardAppearanceRequestTime: Double?
+    
+    private var activeSourceIsControllerPreview: Bool {
+        guard let activeSource = self.activeSource else {
+            return false
+        }
+        if case .controller = activeSource.source {
+            return true
+        }
+        return false
+    }
+    
+    /// A chat preview over the keyboard (search, a long press on a chat) showed none of its own appearance: the screen
+    /// dimmed, then the preview and its menu stood there at full size, and on closing they vanished in one frame while
+    /// only the dim faded. Inside the keyboard window the layout passes that follow cut the preview's spring short, so
+    /// the preview gets an appearance of its own, on the presentation layer and under keys no layout pass removes.
+    private func playKeyboardWindowAppearance() {
+        guard self.isHostedInKeyboardWindow, self.activeSourceIsControllerPreview, let presentationNode = self.activeSource?.presentationNode, presentationNode.isNodeLoaded else {
+            return
+        }
+        let layer = presentationNode.layer
+        
+        let opacity = CABasicAnimation(keyPath: "opacity")
+        opacity.fromValue = 0.0 as NSNumber
+        opacity.toValue = 1.0 as NSNumber
+        opacity.duration = 0.18
+        opacity.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        layer.add(opacity, forKey: "forkKeyboardPreviewAppearOpacity")
+        
+        let scale = CASpringAnimation(keyPath: "transform.scale")
+        scale.fromValue = 0.9 as NSNumber
+        scale.toValue = 1.0 as NSNumber
+        scale.mass = 1.0
+        scale.stiffness = 420.0
+        scale.damping = 34.0
+        scale.duration = scale.settlingDuration
+        layer.add(scale, forKey: "forkKeyboardPreviewAppearScale")
+    }
+    
+    /// The closing half: a snapshot of the preview and its menu shrinks and fades over the dim as it fades, since the
+    /// preview itself is gone from the first frame of the dismissal.
+    private func playKeyboardWindowDisappearance() {
+        guard self.isHostedInKeyboardWindow, self.activeSourceIsControllerPreview, let presentationNode = self.activeSource?.presentationNode, presentationNode.isNodeLoaded else {
+            return
+        }
+        guard let snapshotView = presentationNode.view.snapshotView(afterScreenUpdates: false) else {
+            return
+        }
+        snapshotView.frame = presentationNode.view.frame
+        snapshotView.isUserInteractionEnabled = false
+        self.view.insertSubview(snapshotView, aboveSubview: presentationNode.view)
+        presentationNode.alpha = 0.0
+        
+        let duration: Double = 0.2
+        let opacity = CABasicAnimation(keyPath: "opacity")
+        opacity.fromValue = 1.0 as NSNumber
+        opacity.toValue = 0.0 as NSNumber
+        opacity.duration = duration
+        opacity.timingFunction = CAMediaTimingFunction(name: .easeIn)
+        opacity.fillMode = .forwards
+        opacity.isRemovedOnCompletion = false
+        
+        let scale = CABasicAnimation(keyPath: "transform.scale")
+        scale.fromValue = 1.0 as NSNumber
+        scale.toValue = 0.92 as NSNumber
+        scale.duration = duration
+        scale.timingFunction = CAMediaTimingFunction(name: .easeIn)
+        scale.fillMode = .forwards
+        scale.isRemovedOnCompletion = false
+        
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { [weak snapshotView] in
+            snapshotView?.removeFromSuperview()
+        }
+        snapshotView.layer.add(opacity, forKey: "forkKeyboardPreviewDisappearOpacity")
+        snapshotView.layer.add(scale, forKey: "forkKeyboardPreviewDisappearScale")
+        CATransaction.commit()
     }
     
     init(controller: ContextControllerImpl, configuration: ContextController.Configuration, context: AccountContext?) {
@@ -529,6 +614,10 @@ final class ContextSourceContainer: ASDisplayNode {
     
     func animateIn() {
         self.backgroundNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
+        if self.activeSourceIsControllerPreview {
+            self.keyboardAppearanceRequestTime = CACurrentMediaTime()
+            self.playKeyboardWindowAppearance()
+        }
         
 //        if let activeSource = self.activeSource {
 //            activeSource.animateIn()
@@ -548,6 +637,12 @@ final class ContextSourceContainer: ASDisplayNode {
     }
     
     func animateOut(result: ContextMenuActionResult, completion: @escaping () -> Void) {
+        self.keyboardAppearanceRequestTime = nil
+        if case .default = result {
+            self.playKeyboardWindowDisappearance()
+        } else if case .dismissWithoutContent = result {
+            self.playKeyboardWindowDisappearance()
+        }
         let delayDismissal = self.activeSource?.closeAction != nil
         let delay: Double = delayDismissal ? 0.2 : 0.0
         let duration: Double = delayDismissal ? 0.35 : 0.2
