@@ -2012,8 +2012,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     let contextController = makeContextController(presentationData: strongSelf.presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatListController, sourceNode: node, navigationController: strongSelf.navigationController as? NavigationController)), items: archiveContextMenuItems(context: strongSelf.context, group: groupReference.groupId, chatListController: strongSelf) |> map { ContextController.Items(content: .list($0)) }, gesture: gesture)
                     if case .archive = groupReference.groupId {
                         let navigationController = strongSelf.navigationController
+                        let context = strongSelf.context
                         contextController.dismissed = {
-                            relockArchiveSessionAfterPreview(navigationController: navigationController)
+                            relockArchiveSessionAfterPreview(context: context, navigationController: navigationController)
                         }
                     }
                     strongSelf.presentInGlobalOverlay(contextController)

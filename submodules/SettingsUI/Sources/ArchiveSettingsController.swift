@@ -362,10 +362,8 @@ private func archiveSettingsControllerEntries(
                 }
                 entries.append(.biometricsValue(isOn: useBiometrics, isFaceId: isFaceId))
             }
+            // No "Open Archive" row: these settings open only from inside the Archive, so it would push a second copy.
             entries.append(.changePassword)
-            if lockTargets.archive {
-                entries.append(.openArchive)
-            }
 
             entries.append(.quickHeader)
             entries.append(.lockNow)
@@ -547,7 +545,29 @@ func archiveSettingsController(context: AccountContext, page: ArchiveSettingsPag
             return otherAccountContexts[accountId]
         },
         openPage: { page in
-            pushControllerImpl?(archiveSettingsController(context: context, page: page))
+            guard case .hiddenAccounts = page else {
+                pushControllerImpl?(archiveSettingsController(context: context, page: page))
+                return
+            }
+            // The hidden accounts are behind the password whatever it locks. With only Saved Messages locked the
+            // Archive (and these settings in it) opens without it, so the list asks for it here; with the Archive
+            // locked the session is already open and this goes straight through.
+            let _ = (context.engine.data.get(
+                TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
+            )
+            |> deliverOnMainQueue).startStandalone(next: { preference in
+                let settings = preference?.get(ChatArchiveSettings.self) ?? .default
+                ensureArchiveUnlocked(context: context, forSavedMessages: !settings.locksArchive, present: { controller in
+                    presentControllerImpl?(controller)
+                }, completion: { result in
+                    switch result {
+                    case .cancelled:
+                        return
+                    case .unlocked, .notProtected:
+                        pushControllerImpl?(archiveSettingsController(context: context, page: page))
+                    }
+                })
+            })
         },
         openArchive: {
             // The password first (or nothing, when the Archive is not locked), then the Archive itself, as the
@@ -665,6 +685,9 @@ func archiveSettingsController(context: AccountContext, page: ArchiveSettingsPag
     }
     
     let controller = ItemListController(context: context, state: signal)
+    // Every page of these settings (the hidden accounts' list among them) closes with the Archive when it locks again,
+    // whichever way it was opened: the Archive's "…" menu, its "How it works" sheet, or another page of these settings.
+    markArchiveLockProtected(controller)
     if case .main = page {
         controller.navigationPresentation = .modal
     }

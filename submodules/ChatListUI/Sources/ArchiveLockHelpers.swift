@@ -472,7 +472,7 @@ public func relockArchiveSessionIfLeavingArchivedSurface(
 /// The long-press preview of the Archive row is unlocked like the folder itself, and closing it used to leave the
 /// session unlocked. Once the preview is gone (with a moment for an opened preview to land on the stack) the Archive
 /// relocks unless an Archive surface is on screen.
-public func relockArchiveSessionAfterPreview(navigationController: UINavigationController?) {
+public func relockArchiveSessionAfterPreview(context: AccountContext, navigationController: UINavigationController?) {
     Queue.mainQueue().after(0.6) { [weak navigationController] in
         guard ArchiveLockSession.shared.isLockActive else {
             return
@@ -485,6 +485,11 @@ public func relockArchiveSessionAfterPreview(navigationController: UINavigationC
             return
         }
         ArchiveLockSession.shared.relock()
+        // The preview's unlock opened the accounts this Archive hides as well; they close with it, as on leaving the
+        // folder itself, except from inside a hidden account.
+        if !HiddenAccountsSession.shared.state.hiddenAccountIds.contains(context.account.id.int64) {
+            HiddenAccountsSession.shared.relock()
+        }
     }
 }
 

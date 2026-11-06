@@ -167,4 +167,13 @@ hashtag = read("submodules/HashtagSearchUI/Sources/HashtagSearchGlobalChatConten
 assert hashtag.count("archiveLockHidesSearchResult(") == 2, "Hashtag search must not list chats behind the lock"
 peer_info = read("submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoScreen.swift")
 assert "archiveLockHidesSearchResult(context: strongSelf.context, peerId: peer.id)" in peer_info, "Groups in common must not preview a locked chat"
+archive_settings = read("submodules/SettingsUI/Sources/ArchiveSettingsController.swift")
+assert "markArchiveLockProtected(controller)" in archive_settings, "Every Archive settings page closes when the Archive locks again"
+assert "entries.append(.openArchive)" not in archive_settings, "Archive settings open from inside the Archive: no second Archive row"
+hidden_page = archive_settings[archive_settings.index("openPage: { page in"):]
+hidden_page = hidden_page[:hidden_page.index("openArchive: {")]
+assert "ensureArchiveUnlocked(context: context, forSavedMessages: !settings.locksArchive" in hidden_page, "The hidden accounts list asks for the password when the Archive is open without it"
+preview_relock = helpers[helpers.index("public func relockArchiveSessionAfterPreview("):]
+preview_relock = preview_relock[:preview_relock.index("\npublic func ")]
+assert "HiddenAccountsSession.shared.relock()" in preview_relock, "Hidden accounts close with the Archive preview"
 print("Lock audit fixes: relock on leave, stale generation, Face ID single-flight, password removal, Saved Messages, previews and hashtag search: passed")
