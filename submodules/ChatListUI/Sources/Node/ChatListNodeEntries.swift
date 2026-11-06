@@ -610,8 +610,8 @@ struct ChatListContactPeer {
     }
 }
 
-func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, omitArchiveFolder: Bool = false, forceArchiveCollapsed: Bool = false, redactArchiveFolderContents: Bool = false, hideProxySponsor: Bool = false) -> (entries: [ChatListNodeEntry], loading: Bool) {
-    let hideSavedMessages = redactArchiveFolderContents
+func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, omitArchiveFolder: Bool = false, forceArchiveCollapsed: Bool = false, redactArchiveFolderContents: Bool = false, hideSavedMessages: Bool? = nil, hideProxySponsor: Bool = false) -> (entries: [ChatListNodeEntry], loading: Bool) {
+    let hideSavedMessages = hideSavedMessages ?? redactArchiveFolderContents
     let savedMessagesPeer = hideSavedMessages ? nil : savedMessagesPeer
     let foundPeers = hideSavedMessages ? foundPeers.filter { $0.0.id != accountPeerId } : foundPeers
     var groupItems = view.groupItems

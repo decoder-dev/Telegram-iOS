@@ -57,6 +57,7 @@ enum LocalAuth {
         duringAuthentication()
         return Signal(value: .some(result))
     }
+    static func currentBiometricsDomainState() -> Data? { nil }
 }
 typealias NoError = Never
 final class Queue {
@@ -121,6 +122,7 @@ enum ArchiveLockLocalizedString {
 struct ChatArchiveSettings {
     var isPasswordConfigured = true
     var passwordVerifier: String? = "password"
+    var useBiometrics = false
     func clearingLegacyPasswordHash() -> Self { self }
     func withUpdatedIsPasswordConfigured(_ value: Bool) -> Self {
         var result = self; result.isPasswordConfigured = value; return result

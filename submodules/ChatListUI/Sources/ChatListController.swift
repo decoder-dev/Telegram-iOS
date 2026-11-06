@@ -802,12 +802,10 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             })
         }
         
-        if enableDebugActions {
-            self.tabBarItemDebugTapAction = {
-                preconditionFailure("debug tap")
-            }
-        }
-        
+        // Upstream's internal builds crash on purpose after ten quick taps on Chats ("debug tap"). Every build of the
+        // fork outside the App Store counts as internal, and the ten-tap counter is shared with the Settings tab's
+        // hidden-account reveal, so that gesture could end in a crash. There is no crash action here.
+
         if case .chatList(.root) = self.location {
             self.chatListDisplayNode.mainContainerNode.currentItemFilterUpdated = { [weak self] filter, fraction, transition, force in
                 guard let strongSelf = self else {
@@ -2039,7 +2037,14 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 let peer = peerData.peer
                 let threadInfo = peerData.threadInfo
                 let promoInfo = peerData.promoInfo
-                
+
+                // A locked chat (Saved Messages under its own lock, or an archived chat) gets no long-press preview: the
+                // preview is the chat itself, and a tap already asks for the password.
+                if ArchiveLockSession.shared.isLockedArchivedPeer(peer.peerId) {
+                    gesture?.cancel()
+                    return
+                }
+
                 switch item.index {
                 case .chatList:
                     if case let .channel(channel) = peer.peer, (channel.isForum || (channel.isMonoForum && threadId != nil)) {

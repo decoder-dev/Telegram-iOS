@@ -230,6 +230,14 @@ public final class ArchiveLockSession {
         return self.unlocked && self.passwordBindingAccountPeerId == accountPeerId
     }
     
+    /// Whether the session is bound to this account. A correct password entered while a relock happened in between
+    /// (Control Center, the password field's Face ID AutoFill, a banner) still belongs to this account.
+    public func isBound(accountPeerId: EnginePeer.Id) -> Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.passwordBindingAccountPeerId == accountPeerId
+    }
+    
     /// Whether the Archive folder may appear in the main chat list. With no password there is
     /// nothing to hide, so the folder is always available and the 10-tap gesture is a no-op.
     public var isRevealed: Bool {
@@ -579,7 +587,15 @@ public final class ArchiveLockSession {
     public func isLockedArchivedPeer(_ peerId: EnginePeer.Id) -> Bool {
         self.lock.lock()
         defer { self.lock.unlock() }
-        if !self.passwordConfigured || self.unlocked {
+        if self.unlocked {
+            return false
+        }
+        // The account's own peer is Saved Messages, locked by its own target: with only Saved Messages locked,
+        // `passwordConfigured` (the Archive's) is false and its profile, chat and topics opened without the password.
+        if let accountPeerId = self.passwordBindingAccountPeerId, peerId == accountPeerId {
+            return self.savedMessagesLocked
+        }
+        if !self.passwordConfigured {
             return false
         }
         if !self.lockedPeerIdsResolved {

@@ -145,3 +145,26 @@ assert "isSecureTextEntry = true" in screen and "modalPresentationStyle = .fullS
 assert "self.reportCancelIfNeeded()" in screen, "Leaving the lock screen reports a cancellation"
 
 print("Archive lock entry points, recovery, biometrics, cooldown clamp, notification staging and hidden accounts: passed")
+
+# 2026-11-06 lock audit: each of these was a way the lock failed on a real device.
+helpers = read("submodules/ChatListUI/Sources/ArchiveLockHelpers.swift")
+assert helpers.count("ArchiveLockSession.shared.isBound(accountPeerId: context.account.peerId)") >= 2, "A correct password or Face ID after a mid-prompt relock must still unlock"
+assert "archiveBiometricsInFlight" in helpers, "Face ID must run once at a time per account"
+remove = helpers[helpers.index("public func removeArchivePassword("):]
+remove = remove[:remove.index("\npublic func ")]
+assert "startStandalone(completed:" in remove, "Removing the password must report back only after the settings write"
+change = helpers[helpers.index("public func changeArchivePassword("):]
+change = change[:change.index("\npublic func ")]
+assert "noteBackupVerifier(verifier" in change, "A changed password must replace the cached backup verifier"
+assert "didPresent" in helpers, "A password alert that UIKit did not show must release its prompt"
+assert "isUnlocked(accountPeerId: context.account.peerId) ? LocalAuth.currentBiometricsDomainState()" in helpers, "Face ID trusts an enrolment only after the password"
+session = read("submodules/TelegramUIPreferences/Sources/ChatArchiveSettings.swift")
+assert "return self.savedMessagesLocked" in session, "Saved Messages under its own lock is a locked peer"
+assert 'preconditionFailure("debug tap")' not in chat_list, "Ten taps on Chats must not crash the app"
+peer_preview = chat_list[chat_list.index("case let .peer(peerData):"):]
+assert "isLockedArchivedPeer(peer.peerId)" in peer_preview[:800], "A locked chat gets no long-press preview"
+hashtag = read("submodules/HashtagSearchUI/Sources/HashtagSearchGlobalChatContents.swift")
+assert hashtag.count("archiveLockHidesSearchResult(") == 2, "Hashtag search must not list chats behind the lock"
+peer_info = read("submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoScreen.swift")
+assert "archiveLockHidesSearchResult(context: strongSelf.context, peerId: peer.id)" in peer_info, "Groups in common must not preview a locked chat"
+print("Lock audit fixes: relock on leave, stale generation, Face ID single-flight, password removal, Saved Messages, previews and hashtag search: passed")

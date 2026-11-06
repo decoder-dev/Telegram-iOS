@@ -1385,6 +1385,12 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             guard let strongSelf = self, let controller = strongSelf.controller else {
                 return
             }
+            // Groups in common and recommended channels can list a chat in a locked Archive; its preview is the chat
+            // itself, so it is not offered while the lock is in force (opening it still asks for the password).
+            if archiveLockHidesSearchResult(context: strongSelf.context, peerId: peer.id) {
+                gesture?.cancel()
+                return
+            }
             let presentationData = strongSelf.presentationData
             let chatController = strongSelf.context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peer.id), subject: nil, botStart: nil, mode: .standard(.previewing), params: nil)
             chatController.canReadHistory.set(false)

@@ -332,9 +332,11 @@ private func archiveLockedPeerIdsSignal(context: AccountContext) -> Signal<Set<E
     let passwordConfigured = context.engine.data.subscribe(
         TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: ApplicationSpecificPreferencesKeys.chatArchiveSettings)
     )
-    |> map { preference -> Bool in
+    |> map { preference -> [Bool] in
         let settings = preference?.get(ChatArchiveSettings.self) ?? .default
-        return settings.isPasswordConfigured
+        // What is locked is part of the key: switching the lock between the Archive and Saved Messages left the old
+        // set in place, and the profile gate, relock-on-leave and background dismissal used it.
+        return [settings.isPasswordConfigured, settings.isArchiveLocked, settings.isSavedMessagesLocked]
     }
     |> distinctUntilChanged
     
@@ -342,8 +344,8 @@ private func archiveLockedPeerIdsSignal(context: AccountContext) -> Signal<Set<E
         passwordConfigured,
         context.engine.messages.chatList(group: .archive, count: 100)
     )
-    |> mapToSignal { configured, _ -> Signal<Set<EnginePeer.Id>, NoError> in
-        if !configured {
+    |> mapToSignal { lockKey, _ -> Signal<Set<EnginePeer.Id>, NoError> in
+        if !lockKey[0] {
             return .single([])
         }
         return context.account.postbox.transaction { transaction in
@@ -351,6 +353,13 @@ private func archiveLockedPeerIdsSignal(context: AccountContext) -> Signal<Set<E
         }
     }
     |> distinctUntilChanged
+}
+
+/// Whether a search result from this chat stays out of global results while its lock is in force: chats in a locked
+/// Archive, and Saved Messages under its own lock. For searches outside ChatListUI that list whole messages. Safe off the
+/// main queue (the session is lock-protected); the session is bound by the gates the app has already passed.
+public func archiveLockHidesSearchResult(context: AccountContext, peerId: EnginePeer.Id) -> Bool {
+    return ArchiveLockSession.shared.isLockedArchivedPeer(peerId)
 }
 
 /// Sync Peer Info gate: false when a password is configured, the session is locked, and the
@@ -443,6 +452,11 @@ public func relockArchiveSessionIfLeavingArchivedSurface(
         }
         
         ArchiveLockSession.shared.relock()
+        // Opening the owner's Archive opens the accounts it hides, so closing it closes them too (as Lock Now does).
+        // Not from inside a hidden account: relocking would switch away from the account on screen.
+        if !HiddenAccountsSession.shared.state.hiddenAccountIds.contains(context.account.id.int64) {
+            HiddenAccountsSession.shared.relock()
+        }
     }
     
     if ArchiveLockSession.shared.areLockedPeerIdsResolved {
@@ -563,7 +577,9 @@ public func ensureArchiveUnlocked(
                 confirmTitle: ArchiveLockLocalizedString.unlock,
                 verifyPassword: true,
                 onSuccess: {
-                    guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration else {
+                    // A relock while the prompt was up bumps the generation. It used to turn the correct password into a
+                    // cancel after the screen had closed, so nothing opened; only a switch to another account voids it.
+                    guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration || ArchiveLockSession.shared.isBound(accountPeerId: context.account.peerId) else {
                         completion(.cancelled)
                         return
                     }
@@ -590,6 +606,22 @@ public func ensureArchiveUnlocked(
         // set (checked above) and the user opted in per-account. A cancel/failure always
         // falls through to the password prompt — never a dead end.
         if settings.useBiometrics, LocalAuth.biometricAuthentication != nil {
+            // One Face ID at a time per account: a double tap on the Archive row started two evaluations, the second
+            // failed, and its password screen came up over an Archive the first had already opened.
+            let biometricPeerId = context.account.peerId
+            if archiveBiometricsInFlight.contains(biometricPeerId) {
+                completion(.cancelled)
+                return
+            }
+            archiveBiometricsInFlight.insert(biometricPeerId)
+            var releasedBiometrics = false
+            let releaseBiometrics = {
+                guard !releasedBiometrics else {
+                    return
+                }
+                releasedBiometrics = true
+                archiveBiometricsInFlight.remove(biometricPeerId)
+            }
             // Biometric UI resigns active; suppress Archive background-relock for that window
             // so Face ID does not clear reveal / dismiss the folder mid-unlock. Always end
             // suppress on next *or* completion so a cancelled auth cannot stick the counter.
@@ -605,6 +637,7 @@ public func ensureArchiveUnlocked(
             let _ = (LocalAuth.auth(reason: ArchiveLockLocalizedString.biometricReason)
             |> deliverOnMainQueue).start(next: { success, domainState in
                 endSuppress()
+                releaseBiometrics()
                 if success, let trusted = settings.biometricsDomainState, let domainState, !domainState.isEmpty, domainState != trusted {
                     // Biometric enrollment changed since Face ID / Touch ID was turned on: fall back to the password and stop
                     // trusting biometrics until the owner turns it on again.
@@ -624,7 +657,7 @@ public func ensureArchiveUnlocked(
                     return
                 }
                 if success {
-                    guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration else {
+                    guard ArchiveLockSession.shared.authorizationGeneration == authorizationGeneration || ArchiveLockSession.shared.isBound(accountPeerId: context.account.peerId) else {
                         completion(.cancelled)
                         return
                     }
@@ -640,6 +673,7 @@ public func ensureArchiveUnlocked(
                 }
             }, completed: {
                 endSuppress()
+                releaseBiometrics()
             })
         } else {
             showPasswordPrompt()
@@ -678,6 +712,7 @@ public func ensureArchivedPeerAccessible(
 }
 
 private var activePasswordPrompts: Set<EnginePeer.Id> = []
+private var archiveBiometricsInFlight: Set<EnginePeer.Id> = []
 
 private func presentArchivePasswordAlert(
     context: AccountContext,
@@ -940,10 +975,28 @@ private func presentUIAlert(context: AccountContext, alert: UIAlertController, o
     
     if let host = context.sharedContext.applicationBindings.getTopWindow()?.rootViewController {
         var presenter = host
-        while let presented = presenter.presentedViewController {
+        while let presented = presenter.presentedViewController, !presented.isBeingDismissed {
             presenter = presented
         }
-        presenter.present(alert, animated: true)
+        // UIKit drops a presentation silently when the presenter is busy (another alert still dismissing). A prompt
+        // that never shows never answers, and its single-flight entry then cancelled every later prompt for the
+        // account until the app restarted, so a presentation that did not take is treated as an unavailable host.
+        // `didPresent` is set only by UIKit's own completion, so an alert already answered and dismissed is never
+        // mistaken for one that was not shown.
+        let didPresent = Atomic<Bool>(value: false)
+        presenter.present(alert, animated: true, completion: {
+            let _ = didPresent.swap(true)
+        })
+        Queue.mainQueue().after(1.0) { [weak alert] in
+            if didPresent.with({ $0 }) {
+                return
+            }
+            if let alert, alert.presentingViewController != nil || alert.isBeingPresented {
+                return
+            }
+            Logger.shared.log("ArchiveLock", "password alert was not presented; releasing the prompt")
+            onUnavailableHost()
+        }
     } else {
         onUnavailableHost()
     }
@@ -972,8 +1025,11 @@ public func setArchivePassword(context: AccountContext, present: @escaping (View
             ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
             let verifier = ArchivePasswordKeychain.loadHash(peerId: context.account.peerId)
             ArchivePasswordKeychain.noteBackupVerifier(verifier, peerId: context.account.peerId)
+            // Whoever sets the password is the owner it trusts, so the enrolment is recorded now. Clearing it made the
+            // first Face ID unlock after a new password ask for the password again.
+            let domainState = LocalAuth.currentBiometricsDomainState()
             let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true).withUpdatedPasswordVerifier(verifier).withUpdatedBiometricsDomainState(nil)
+                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(true).withUpdatedPasswordVerifier(verifier).withUpdatedBiometricsDomainState(current.useBiometrics ? domainState : nil)
             }.startStandalone()
             return true
         }
@@ -1049,6 +1105,9 @@ public func changeArchivePassword(context: AccountContext, present: @escaping (V
                     }
                     ArchivePasswordKeychain.clearFailureState(peerId: context.account.peerId)
                     let verifier = ArchivePasswordKeychain.loadHash(peerId: context.account.peerId)
+                    // The cached backup copy follows the new password at once (as `setArchivePassword` does): while it
+                    // held the old verifier, the old password still matched and was written back into the Keychain.
+                    ArchivePasswordKeychain.noteBackupVerifier(verifier, peerId: context.account.peerId)
                     let _ = updateChatArchiveSettings(engine: context.engine) { current in
                         current.withUpdatedPasswordVerifier(verifier)
                     }.startStandalone()
@@ -1065,8 +1124,11 @@ public func changeArchivePassword(context: AccountContext, present: @escaping (V
 /// Toggle per-account Face ID/Touch ID as a convenience unlock. Only meaningful while a
 /// password is set; the settings UI hides this row otherwise.
 public func setArchiveUseBiometrics(context: AccountContext, enabled: Bool) {
-    // Remember which enrollment was trusted; a face or finger added later must not open the Archive.
-    let domainState = enabled ? LocalAuth.currentBiometricsDomainState() : nil
+    // Remember which enrollment was trusted; a face or finger added later must not open the Archive. The enrolment is
+    // trusted only while this account's Archive is open, i.e. after its password: otherwise someone who knows the
+    // device passcode could enrol their own face and then switch Face ID on. Without a snapshot the next Face ID
+    // success asks for the password once, which records it.
+    let domainState = enabled && ArchiveLockSession.shared.isUnlocked(accountPeerId: context.account.peerId) ? LocalAuth.currentBiometricsDomainState() : nil
     let _ = updateChatArchiveSettings(engine: context.engine) { current in
         current.withUpdatedUseBiometrics(enabled).withUpdatedBiometricsDomainState(domainState)
     }.startStandalone()
@@ -1215,18 +1277,22 @@ public func removeArchivePassword(context: AccountContext, present: @escaping (V
                     }
                     return
                 }
-                let _ = updateChatArchiveSettings(engine: context.engine) { current in
-                    // The verifier copy and the enrolled-biometrics snapshot go too: with the verifier
-                // left behind, `archiveIsPasswordProtected` restored the old password into the
-                // Keychain on the next check, so "Remove password" silently undid itself.
-                current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false).withUpdatedPasswordVerifier(nil).withUpdatedBiometricsDomainState(nil)
-                }.startStandalone()
                 // Without the password nothing could open the accounts it hid, so they are shown again.
                 let ownerId = context.account.id.int64
                 let _ = updateHiddenAccountsSettings(accountManager: context.sharedContext.accountManager, { current in
                     return current.removingOwner(ownerId)
                 }).startStandalone()
-                completion(true)
+                // Completion waits for the write. The settings screen re-reads them as soon as it hears back; reading
+                // them before the write landed found the old verifier next to an empty Keychain, and
+                // `archiveIsPasswordProtected` stored that verifier back, so "Remove password" undid itself.
+                let _ = (updateChatArchiveSettings(engine: context.engine) { current in
+                    // The verifier copy and the enrolled-biometrics snapshot go too.
+                    current.clearingLegacyPasswordHash().withUpdatedIsPasswordConfigured(false).withUpdatedPasswordVerifier(nil).withUpdatedBiometricsDomainState(nil)
+                }
+                |> deliverOnMainQueue).startStandalone(completed: {
+                    ArchivePasswordKeychain.noteBackupVerifier(nil, peerId: context.account.peerId)
+                    completion(true)
+                })
             },
             onCancel: {
                 completion(false)
