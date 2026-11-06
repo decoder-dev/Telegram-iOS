@@ -16,6 +16,13 @@ preview = chat_list[chat_list.index("case let .groupReference(groupReference):")
 preview = preview[:preview.index("case let .peer(peerData):")]
 assert "ensureArchiveUnlocked(" in preview, "The Archive long-press preview must ask for the password"
 assert "ArchiveLockSession.shared.relockedSignal" in chat_list, "An open Archive list must close on relock"
+assert "relockArchiveSessionAfterPreview(" in preview, "Closing the Archive preview must lock it again"
+leave = chat_list[chat_list.index("private var relocksArchiveOnLeave: Bool {"):]
+leave = leave[:leave.index("override public func viewWillLeaveNavigation()") + 400]
+assert "case .chatList(groupId: .archive) = self.location" in leave and "relockArchiveSessionIfLeavingArchivedSurface(" in leave, "Leaving the Archive folder must lock it again"
+assert chat_list.count("relockArchiveSessionIfLeavingArchivedSurface(leavingController: self") == 2, "Both the leave and the disappear paths must relock the Archive"
+settings_items = read("submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/PeerInfoSettingsItems.swift")
+assert "archiveProtection" not in settings_items and "Protected Archive" not in settings_items, "The protected Archive is set up only from the Archive's own settings"
 assert chat_list.count("markArchiveLockProtected(") >= 1, "Archive settings opened from the Archive must close on relock"
 
 helpers = read("submodules/ChatListUI/Sources/ArchiveLockHelpers.swift")

@@ -285,7 +285,8 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 9, text: forkCustomizationSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.appearance, action: {
         interaction.openSettings(.appearance)
     }))
-    // BananaGram's own group (handoff scene 24): its features, the protected Archive and the anti-takeover switches.
+    // BananaGram's own group (handoff scene 24): its features and the anti-takeover switches. The protected Archive is
+    // set up only from the Archive's own settings (its "…" menu), which open from inside an unlocked Archive.
     items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 8, text: forkExtrasSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.forkExtras, action: {
         interaction.openSettings(.forkExtras)
     }))
@@ -293,9 +294,6 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         items[.bananaGram]!.append(bananaProxyItem)
     }
     let bananaRussian = ForkPresentationLanguage.prefersRussianStrings
-    items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 11, text: bananaRussian ? "Защищённый архив" : "Protected Archive", icon: renderSettingsSymbolIcon(systemName: "lock.fill", color: .systemOrange), action: {
-        interaction.openSettings(.archiveProtection)
-    }))
     items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 12, text: bananaRussian ? "Защита BananaGram" : "BananaGram Protection", icon: renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGreen), action: {
         interaction.openSettings(.bananaSecurity)
     }))

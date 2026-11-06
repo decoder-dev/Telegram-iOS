@@ -2012,6 +2012,12 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                     let chatListController = ChatListControllerImpl(context: strongSelf.context, location: .chatList(groupId: groupReference.groupId), controlsHistoryPreload: false, hideNetworkActivityStatus: true, previewing: true, enableDebugActions: false)
                     chatListController.navigationPresentation = .master
                     let contextController = makeContextController(presentationData: strongSelf.presentationData, source: .controller(ContextControllerContentSourceImpl(controller: chatListController, sourceNode: node, navigationController: strongSelf.navigationController as? NavigationController)), items: archiveContextMenuItems(context: strongSelf.context, group: groupReference.groupId, chatListController: strongSelf) |> map { ContextController.Items(content: .list($0)) }, gesture: gesture)
+                    if case .archive = groupReference.groupId {
+                        let navigationController = strongSelf.navigationController
+                        contextController.dismissed = {
+                            relockArchiveSessionAfterPreview(navigationController: navigationController)
+                        }
+                    }
                     strongSelf.presentInGlobalOverlay(contextController)
                 }
                 // The long-press preview shows the same list, so it needs the same password.
@@ -2995,6 +3001,30 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         
         if let storyPeerListView = self.chatListHeaderView()?.storyPeerListView() {
             storyPeerListView.cancelLoadingItem()
+        }
+        
+        if self.relocksArchiveOnLeave {
+            relockArchiveSessionIfLeavingArchivedSurface(leavingController: self, isLeavingNavigation: false, context: self.context)
+        }
+    }
+    
+    /// The Archive locks again when the folder itself leaves the stack. Leaving a chat inside it already relocked only
+    /// when no Archive surface remained, and nothing ran when the folder was popped, so after one unlock the Archive
+    /// stayed open (row previews, search, re-entry without a password) until the app went to the background.
+    private var relocksArchiveOnLeave: Bool {
+        if self.previewing {
+            return false
+        }
+        if case .chatList(groupId: .archive) = self.location {
+            return true
+        }
+        return false
+    }
+    
+    override public func viewWillLeaveNavigation() {
+        super.viewWillLeaveNavigation()
+        if self.relocksArchiveOnLeave {
+            relockArchiveSessionIfLeavingArchivedSurface(leavingController: self, isLeavingNavigation: true, context: self.context)
         }
     }
     

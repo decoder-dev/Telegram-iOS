@@ -286,8 +286,6 @@ extension PeerInfoScreenNode {
             }
         case .forkExtras:
             push(self.context.sharedContext.makeForkExtrasController(context: self.context))
-        case .archiveProtection:
-            push(archiveSettingsController(context: self.context))
         case .bananaSecurity:
             push(bananaSecurityController(context: self.context))
         case .businessSetup:

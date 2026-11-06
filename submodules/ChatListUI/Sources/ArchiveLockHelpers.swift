@@ -455,6 +455,25 @@ public func relockArchiveSessionIfLeavingArchivedSurface(
     }
 }
 
+/// The long-press preview of the Archive row is unlocked like the folder itself, and closing it used to leave the
+/// session unlocked. Once the preview is gone (with a moment for an opened preview to land on the stack) the Archive
+/// relocks unless an Archive surface is on screen.
+public func relockArchiveSessionAfterPreview(navigationController: UINavigationController?) {
+    Queue.mainQueue().after(0.6) { [weak navigationController] in
+        guard ArchiveLockSession.shared.isLockActive else {
+            return
+        }
+        guard ArchiveLockSession.shared.isUnlocked || ArchiveLockSession.shared.isRevealed else {
+            return
+        }
+        let archivedPeerIds = ArchiveLockSession.shared.currentLockedPeerIds()
+        if let navigationController, navigationController.viewControllers.contains(where: { archiveLockShouldDismiss($0, archivedPeerIds: archivedPeerIds) }) {
+            return
+        }
+        ArchiveLockSession.shared.relock()
+    }
+}
+
 /// Wires the shared `ArchiveLockSession` to this account: re-lock on background, and keep its
 /// notion of "this account has an Archive password" current. Without the latter every gate stays
 /// fail-closed, which would hide the Archive from accounts that never set a password.

@@ -199,7 +199,6 @@ enum PeerInfoSettingsSection {
     case ton
     case debug
     case forkExtras
-    case archiveProtection
     case bananaSecurity
     case wallet
 }
