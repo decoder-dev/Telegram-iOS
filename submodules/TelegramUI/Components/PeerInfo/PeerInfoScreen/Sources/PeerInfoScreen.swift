@@ -6628,8 +6628,11 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         return self.displayNode as! PeerInfoScreenNode
     }
     
-    /// Started when the screen is created; logged when its content is ready (`ForkOpenTiming`).
-    private let forkOpenTiming = ForkOpenTiming(kind: "profile")
+    /// Started when the screen is created; logged when its content is ready (`ForkOpenTiming`). The Settings tab is
+    /// created with the root controller, at launch or an account switch, and loads only when the tab is first shown:
+    /// timed from creation it read as a "profile" ready after minutes (device logs, 6-8 Nov: 504 of 658 samples over
+    /// 2 s, up to an hour), so it is timed as "settings" from the moment its node loads.
+    private var forkOpenTiming = ForkOpenTiming(kind: "profile")
     private let _readyProxy = Promise<Bool>()
     private let _readyInternal = Promise<Bool>()
     private var readyInternalDisposable: Disposable?
@@ -7060,6 +7063,9 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
     }
     
     override public func loadDisplayNode() {
+        if self.isSettings {
+            self.forkOpenTiming = ForkOpenTiming(kind: "settings")
+        }
         var initialPaneKey: PeerInfoPaneKey?
         if self.switchToRecommendedChannels {
             initialPaneKey = .similarChannels
