@@ -76,7 +76,7 @@ class GlassBubbleRows(unittest.TestCase):
         ids = [int(value) for value in re.findall(r'\.(?:designHeader|designFooter|appearanceToggle|intChoice)\((19\d\d),', factory)]
         self.assertEqual(ids, [1900, 1901, 1902, 1903, 1904, 1905, 1906])
         self.assertTrue(all(1900 <= value <= 1909 for value in ids))
-        self.assertIn('.appearanceToggle(1901, russian ? "Стеклянные пузыри" : "Glass bubbles", settings.glassBubbles, \\.glassBubbles)', factory)
+        self.assertIn('.appearanceToggle(1901, russian ? "Стеклянные пузыри" : "Glass Bubbles", settings.glassBubbles, \\.glassBubbles)', factory)
 
     def test_level_rows_are_int_choices_with_both_languages(self):
         source = read(EXTRAS)

@@ -93,7 +93,7 @@ for russian in [false,true] {
    settings.regexMessageFiltersEnabled=filters; settings.hideTabBar=true
    for mask in 0..<8 {
     let media=MediaInputSettings(enableRaiseToSpeak: false,pauseMusicOnRecording: mask & 1 != 0,pauseMusicOnVoiceRecording: mask & 2 != 0,pauseMusicOnVoicePlayback: mask & 4 != 0)
-    for category in [ForkExtrasControllerFocus.top,.appearance,.ninja,.ghost,.privacy,.chatList,.tabBar,.messages,.messageSending,.messageActions,.voiceAndRound,.media,.profile,.network,.messageSaving,.messageFilters] {
+    for category in [ForkExtrasControllerFocus.top,.appearance,.ninja,.ghost,.privacy,.chatList,.tabBar,.messages,.messagesMore,.messageSending,.messageActions,.voiceAndRound,.media,.profile,.profileMore,.network,.messageSaving,.messageFilters] {
      let entries=forkExtrasControllerEntries(settings: settings,autoFetchPublicMtProxy: false,showCallsTab: true,mediaInputSettings: media,focus: category)
      let ids=entries.map { $0.stableId }
      precondition(Set(ids).count == ids.count,"Duplicate IDs")
@@ -137,7 +137,7 @@ for russian in [false, true] {
   precondition(entries[index].section == entries[index + 1].section, "A switch and its help must share the same themed block")
   if case let .appearanceToggle(_, title, value, path) = entries[index] {
    precondition(value == enabled && settings[keyPath: path] == enabled)
-   precondition(title == (russian ? "Убирать отслеживание из ссылок" : "Remove tracking from sent links"))
+   precondition(title == (russian ? "Убирать отслеживание из ссылок" : "Remove Tracking from Sent Links"))
   } else { preconditionFailure("Missing tracking-link switch") }
  }
 }

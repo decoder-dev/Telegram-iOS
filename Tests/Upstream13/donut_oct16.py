@@ -119,7 +119,7 @@ class StoryCameraSwipe(unittest.TestCase):
 
     def test_row_lives_in_the_chat_list_category(self):
         source = read(CONTROLLER)
-        self.assertIn('.appearanceToggle(1790, russian ? "Отключить камеру по свайпу" : "No story camera on swipe", settings.disableStoryCameraSwipe, \\.disableStoryCameraSwipe)', source)
+        self.assertIn('.appearanceToggle(1790, russian ? "Отключить камеру по свайпу" : "No Story Camera on Swipe", settings.disableStoryCameraSwipe, \\.disableStoryCameraSwipe)', source)
         self.assertIn('[1773, 1774, 1790]', category(source, 'chatList'))
 
 
@@ -143,7 +143,7 @@ class JumpToStart(unittest.TestCase):
 
     def test_row_lives_in_the_messages_category(self):
         source = read(CONTROLLER)
-        self.assertIn('.appearanceToggle(1791, russian ? "«В начало чата» в меню аватарки" : "Jump to start in the avatar menu", settings.jumpToStartInChatMenu, \\.jumpToStartInChatMenu)', source)
+        self.assertIn('.appearanceToggle(1791, russian ? "«В начало чата» в меню аватарки" : "Jump to Start in the Avatar Menu", settings.jumpToStartInChatMenu, \\.jumpToStartInChatMenu)', source)
         self.assertIn('[1720, 1711, 1703, 1713, 1716, 1719, 1717, 1718, 1791]', category(source, 'messages'))
 
     def test_new_ids_are_unique(self):

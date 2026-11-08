@@ -58,7 +58,7 @@ class SharedProfilePhoto(unittest.TestCase):
 class HideAIFeatures(unittest.TestCase):
     def test_the_input_panel_switch_names_all_ai_features(self):
         controller = read(CONTROLLER)
-        self.assertIn('.appearanceToggle(2101, russian ? "Скрыть функции ИИ" : "Hide AI features", settings.hideAIButton, \\.hideAIButton)', controller)
+        self.assertIn('.appearanceToggle(2101, russian ? "Скрыть функции ИИ" : "Hide AI Features", settings.hideAIButton, \\.hideAIButton)', controller)
         self.assertIn('With AI hidden, Copy takes the original text.', controller)
 
     def test_the_flag_is_projected_before_the_history_re_emits(self):
