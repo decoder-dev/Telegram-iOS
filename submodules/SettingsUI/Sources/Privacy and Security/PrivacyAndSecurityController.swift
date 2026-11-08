@@ -21,6 +21,7 @@ import AuthenticationServices
 import ChatTimerScreen
 import PasskeysScreen
 import ContextUI
+import OverlayStatusController
 
 private final class PrivacyAndSecurityControllerArguments {
     let account: Account
@@ -915,6 +916,40 @@ public func privacyAndSecurityController(
     actionsDisposable.add(updateAutoArchiveDisposable)
     
     let privacySettingsPromise = Promise<AccountPrivacySettings?>()
+    // A tap on a row whose settings are still loading must not look ignored (Apple HIG: feedback). It used to take the
+    // current value, find nil and do nothing. Now a loading overlay covers the wait for the settings, and after 15 s
+    // without them an alert says so.
+    let privacySettingsForTap: () -> Signal<AccountPrivacySettings?, NoError> = {
+        return privacySettingsPromise.get()
+        |> take(1)
+        |> deliverOnMainQueue
+        |> mapToSignal { value -> Signal<AccountPrivacySettings?, NoError> in
+            if let value {
+                return .single(value)
+            }
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            let loading = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: nil))
+            presentControllerImpl?(loading)
+            return privacySettingsPromise.get()
+            |> filter { $0 != nil }
+            |> take(1)
+            |> timeout(15.0, queue: Queue.mainQueue(), alternate: .single(nil))
+            |> deliverOnMainQueue
+            |> map { value -> AccountPrivacySettings? in
+                loading.dismiss()
+                if value == nil {
+                    let text = ForkPresentationLanguage.prefersRussianStrings ? "Не удалось загрузить настройки. Проверьте подключение и попробуйте ещё раз." : "Could not load the settings. Check your connection and try again."
+                    presentControllerImpl?(textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]))
+                }
+                return value
+            }
+            |> afterDisposed {
+                Queue.mainQueue().async {
+                    loading.dismiss()
+                }
+            }
+        }
+    }
     privacySettingsPromise.set(.single(initialSettings) |> then(context.engine.privacy.requestAccountPrivacySettings() |> map(Optional.init)))
         
     let blockedPeersContext = blockedPeersContext ?? BlockedPeersContext(account: context.account, subject: .blocked)
@@ -1031,9 +1066,7 @@ public func privacyAndSecurityController(
     let arguments = PrivacyAndSecurityControllerArguments(account: context.account, openBlockedUsers: {
         pushControllerImpl?(blockedPeersController(context: context, blockedPeersContext: blockedPeersContext), true)
     }, openLastSeenPrivacy: { [currentInfoDisposable] in
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         currentInfoDisposable.set(signal.start(next: { [weak currentInfoDisposable] info in
             if let info = info {
                 pushControllerImpl?(selectivePrivacySettingsController(context: context, kind: .presence, current: info.presence, globalSettings: info.globalSettings, updated: { updated, _, _, updatedGlobalSettings in
@@ -1054,9 +1087,7 @@ public func privacyAndSecurityController(
             }
         }))
     }, openGroupsPrivacy: { [currentInfoDisposable] in
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         currentInfoDisposable.set(signal.start(next: { [weak currentInfoDisposable] info in
             if let info = info {
                 pushControllerImpl?(selectivePrivacySettingsController(context: context, kind: .groupInvitations, current: info.groupInvitations, updated: { updated, _, _, _ in
@@ -1081,8 +1112,7 @@ public func privacyAndSecurityController(
             }
         }))
     }, openVoiceCallPrivacy: { [currentInfoDisposable] in
-        let privacySignal = privacySettingsPromise.get()
-        |> take(1)
+        let privacySignal = privacySettingsForTap()
         
         let callsSignal = combineLatest(context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.voiceCallSettings]), context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: PreferencesKeys.voipConfiguration)))
         |> take(1)
@@ -1122,9 +1152,7 @@ public func privacyAndSecurityController(
             }
         }))
     }, openProfilePhotoPrivacy: { [currentInfoDisposable] in
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         currentInfoDisposable.set(signal.start(next: { [weak currentInfoDisposable] info in
             if let info = info {
                 pushControllerImpl?(selectivePrivacySettingsController(context: context, kind: .profilePhoto, current: info.profilePhoto, requestPublicPhotoSetup: { completion in
@@ -1149,9 +1177,7 @@ public func privacyAndSecurityController(
             }
         }))
     }, openForwardPrivacy: { [currentInfoDisposable] in
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         currentInfoDisposable.set(signal.start(next: { [weak currentInfoDisposable] info in
             if let info = info {
                 pushControllerImpl?(selectivePrivacySettingsController(context: context, kind: .forwards, current: info.forwards, updated: { updated, _, _, _ in
@@ -1172,9 +1198,7 @@ public func privacyAndSecurityController(
             }
         }))
     }, openPhoneNumberPrivacy: { [currentInfoDisposable] in
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         currentInfoDisposable.set(signal.start(next: { [weak currentInfoDisposable] info in
             if let info = info {
                 pushControllerImpl?(selectivePrivacySettingsController(context: context, kind: .phoneNumber, current: info.phoneNumber, phoneDiscoveryEnabled: info.phoneDiscoveryEnabled, updated: { updated, _, updatedDiscoveryEnabled, _ in
@@ -1197,7 +1221,7 @@ public func privacyAndSecurityController(
     }, openVoiceMessagePrivacy: { [currentInfoDisposable] in
         let signal = combineLatest(
             context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)),
-            privacySettingsPromise.get()
+            privacySettingsForTap()
         )
         |> take(1)
         |> deliverOnMainQueue
@@ -1221,9 +1245,7 @@ public func privacyAndSecurityController(
             }
         }))
     }, openBioPrivacy: { [currentInfoDisposable] in
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         currentInfoDisposable.set(signal.start(next: { [weak currentInfoDisposable] info in
             if let info = info {
                 pushControllerImpl?(selectivePrivacySettingsController(context: context, kind: .bio, current: info.bio, updated: { updated, _, _, _ in
@@ -1244,9 +1266,7 @@ public func privacyAndSecurityController(
             }
         }))
     }, openBirthdayPrivacy: { [currentInfoDisposable] in
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         currentInfoDisposable.set(signal.start(next: { [weak currentInfoDisposable] info in
             if let info = info {
                 pushControllerImpl?(selectivePrivacySettingsController(context: context, kind: .birthday, current: info.birthday, updated: { updated, _, _, _ in
@@ -1267,9 +1287,7 @@ public func privacyAndSecurityController(
             }
         }))
     }, openSavedMusicPrivacy: { [currentInfoDisposable] in
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         currentInfoDisposable.set(signal.start(next: { [weak currentInfoDisposable] info in
             if let info = info {
                 pushControllerImpl?(selectivePrivacySettingsController(context: context, kind: .savedMusic, current: info.savedMusic, updated: { updated, _, _, _ in
@@ -1374,9 +1392,7 @@ public func privacyAndSecurityController(
             }
         }))
     }, setupAccountAutoremove: { [updateAccountTimeoutDisposable] in
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         updateAccountTimeoutDisposable.set(signal.start(next: { [weak updateAccountTimeoutDisposable] privacySettingsValue in
             if let privacySettingsValue = privacySettingsValue {
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
@@ -1463,9 +1479,7 @@ public func privacyAndSecurityController(
             }
         }))
     }, setupMessageAutoremove: {
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         updateAccountTimeoutDisposable.set(signal.start(next: { privacySettingsValue in
             if let privacySettingsValue {
                 pushControllerImpl?(globalAutoremoveScreen(context: context, initialValue: privacySettingsValue.messageAutoremoveTimeout ?? 0, updated: { updatedValue in
@@ -1506,9 +1520,7 @@ public func privacyAndSecurityController(
             setupEmailImpl?(nil)
         }
     }, openMessagePrivacy: {
-        let _ = (privacySettingsPromise.get()
-        |> filter { $0 != nil }
-        |> take(1)
+        let _ = (privacySettingsForTap()
         |> deliverOnMainQueue).start(next: { privacySettings in
             guard let privacySettings else {
                 return
@@ -1562,9 +1574,7 @@ public func privacyAndSecurityController(
             }), true)
         })
     }, openGiftsPrivacy: { [currentInfoDisposable] in
-        let signal = privacySettingsPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue
+        let signal = privacySettingsForTap()
         currentInfoDisposable.set(signal.start(next: { [weak currentInfoDisposable] info in
             if let info = info {
                 pushControllerImpl?(selectivePrivacySettingsController(context: context, kind: .giftsAutoSave, current: info.giftsAutoSave, globalSettings: info.globalSettings, updated: { updated, _, _, updatedGlobalSettings in

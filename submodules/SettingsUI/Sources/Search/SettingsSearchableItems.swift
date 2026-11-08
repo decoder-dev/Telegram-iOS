@@ -2072,6 +2072,46 @@ private func notificationSearchableItems(context: AccountContext, settings: Glob
     ]
 }
 
+/// A screen that needs the account's privacy settings opens at once when they are cached. Otherwise the server is
+/// asked, and the tap must not look ignored (Apple HIG: give feedback): a loading overlay appears after 0.3 s, and when
+/// no answer comes within 15 s an alert says so instead of nothing happening. Tapping the overlay cancels.
+private func withAccountPrivacySettings(context: AccountContext, cached: AccountPrivacySettings?, present: @escaping (SettingsSearchableItemPresentation, ViewController?) -> Void, completion: @escaping (AccountPrivacySettings) -> Void) {
+    if let cached {
+        completion(cached)
+        return
+    }
+    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+    let disposable = MetaDisposable()
+    var finished = false
+    var overlay: ViewController?
+    let loading = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: {
+        finished = true
+        disposable.dispose()
+    }))
+    Queue.mainQueue().after(0.3, {
+        if !finished {
+            overlay = loading
+            present(.immediate, loading)
+        }
+    })
+    disposable.set((context.engine.privacy.requestAccountPrivacySettings()
+    |> map(Optional.init)
+    |> timeout(15.0, queue: Queue.mainQueue(), alternate: .single(nil))
+    |> deliverOnMainQueue).start(next: { settings in
+        if finished {
+            return
+        }
+        finished = true
+        overlay?.dismiss()
+        if let settings {
+            completion(settings)
+        } else {
+            let text = ForkPresentationLanguage.prefersRussianStrings ? "Не удалось загрузить настройки. Проверьте подключение и попробуйте ещё раз." : "Could not load the settings. Check your connection and try again."
+            present(.immediate, textAlertController(context: context, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})]))
+        }
+    }))
+}
+
 private func privacySearchableItems(context: AccountContext, privacySettings: AccountPrivacySettings?, activeSessionsContext: ActiveSessionsContext?, webSessionsContext: WebSessionsContext?) -> [SettingsSearchableItem] {
     let icon: SettingsSearchableItemIcon = .privacy
     let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
@@ -2081,12 +2121,6 @@ private func privacySearchableItems(context: AccountContext, privacySettings: Ac
     }
     
     let presentSelectivePrivacySettings: (AccountContext, SelectivePrivacySettingsKind, SelectivePrivacyEntryTag?, @escaping (SettingsSearchableItemPresentation, ViewController?) -> Void) -> Void = { context, kind, focusOnItemTag, present in
-        let privacySignal: Signal<AccountPrivacySettings, NoError>
-        if let privacySettings = privacySettings {
-            privacySignal = .single(privacySettings)
-        } else {
-            privacySignal = context.engine.privacy.requestAccountPrivacySettings()
-        }
         let callsSignal: Signal<(VoiceCallSettings, VoipConfiguration)?, NoError>
         if case .voiceCalls = kind {
             callsSignal = combineLatest(context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.voiceCallSettings]), context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: PreferencesKeys.voipConfiguration)))
@@ -2100,8 +2134,9 @@ private func privacySearchableItems(context: AccountContext, privacySettings: Ac
             callsSignal = .single(nil)
         }
 
-        let _ = (combineLatest(privacySignal, callsSignal)
-        |> deliverOnMainQueue).start(next: { info, callSettings in
+        withAccountPrivacySettings(context: context, cached: privacySettings, present: present, completion: { info in
+        let _ = (callsSignal
+        |> deliverOnMainQueue).start(next: { callSettings in
             let current: SelectivePrivacySettings
             switch kind {
             case .presence:
@@ -2136,18 +2171,11 @@ private func privacySearchableItems(context: AccountContext, privacySettings: Ac
                     }
                 }))
         })
+        })
     }
     
     let presentMessagesPrivacySettings: (AccountContext, @escaping (SettingsSearchableItemPresentation, ViewController?) -> Void, IncomingMessagePrivacyEntryTag?) -> Void = { context, present, itemTag in
-        let privacySignal: Signal<AccountPrivacySettings, NoError>
-        if let privacySettings = privacySettings {
-            privacySignal = .single(privacySettings)
-        } else {
-            privacySignal = context.engine.privacy.requestAccountPrivacySettings()
-        }
-        
-        let _ = (privacySignal
-        |> deliverOnMainQueue).start(next: { privacySettings in
+        withAccountPrivacySettings(context: context, cached: privacySettings, present: present, completion: { privacySettings in
             let controller = incomingMessagePrivacyScreen(context: context, value: privacySettings.globalSettings.nonContactChatsPrivacy, exceptions: privacySettings.noPaidMessages, update: { settingValue in
                 let _ = (context.engine.privacy.updateNonContactChatsPrivacy(value: settingValue)
                 |> mapToSignal { _ -> Signal<Void, NoError> in }
@@ -2159,14 +2187,7 @@ private func privacySearchableItems(context: AccountContext, privacySettings: Ac
     }
     
     let presentMessageAutoRemove: (AccountContext, @escaping (SettingsSearchableItemPresentation, ViewController?) -> Void, GlobalAutoremoveEntryTag?) -> Void = { context, present, itemTag in
-        let privacySignal: Signal<AccountPrivacySettings, NoError>
-        if let privacySettings = privacySettings {
-            privacySignal = .single(privacySettings)
-        } else {
-            privacySignal = context.engine.privacy.requestAccountPrivacySettings()
-        }
-        let _ = (privacySignal
-        |> deliverOnMainQueue).start(next: { info in
+        withAccountPrivacySettings(context: context, cached: privacySettings, present: present, completion: { info in
             let controller = globalAutoremoveScreen(context: context, initialValue: info.messageAutoremoveTimeout ?? 0, updated: { _ in }, focusOnItemTag: itemTag)
             present(.push, controller)
         })
