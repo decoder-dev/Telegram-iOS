@@ -278,9 +278,11 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
         case .unmutedHeader:
             return ItemListSectionHeaderItem(presentationData: presentationData, text: presentationData.strings.ArchiveSettings_UnmutedChatsHeader, sectionId: self.section)
         case let .unmutedValue(value):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_KeepArchived, value: value, enableInteractiveChanges: false, enabled: false, sectionId: self.section, style: .blocks, updated: { value in
-                arguments.updateUnmuted(value)
-            })
+            // The policy is fixed (the footer says why), so it is a row with its state, not a switch that cannot be
+            // switched (Apple HIG: don't show a control people can't use).
+            let russian = ForkPresentationLanguage.prefersRussianStrings
+            let state = value ? (russian ? "Всегда" : "Always") : (russian ? "Выкл." : "Off")
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_KeepArchived, label: state, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
         case .unmutedFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.keepArchivedPolicy), sectionId: self.section)
         case .unknownHeader:
