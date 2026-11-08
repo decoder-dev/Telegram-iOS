@@ -327,6 +327,8 @@ jobs:
           # them on the run where a crash has to be named.
           DSYM_FLAG: ${{ inputs.generate_dsym && ' ' || '--skipDsym' }}
           EXTENSION_FLAG: ${{ inputs.compile_extensions && '--compileExtensions' || '' }}
+          # Make.py falls back to the GitHub API when Bazel's release link fails (BazelLocation.py).
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p "$BAZEL_CACHE_DIR" "$BAZEL_REPO_CACHE" artifacts build/artifacts

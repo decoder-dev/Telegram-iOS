@@ -57,6 +57,52 @@ def resolve_cache_path(cache_host_or_path, cache_dir):
 def cache_cas_name(digest):
     return (digest[:2], digest)
 
+def download_bazel_release(version, name, output_path):
+    """Downloads a Bazel release binary; the caller verifies its SHA256.
+
+    The release's download link answered 504 for hours on 2026-11-08 while the GitHub API served the same asset, so a
+    failed link (after curl's own retries) falls back to the API. A token from GH_TOKEN or GITHUB_TOKEN, when set, is
+    sent to api.github.com only: the asset's redirect to the storage host does not carry it.
+    """
+    try:
+        call_executable([
+            'curl', '--fail', '-L', '--proto', '=https', '--proto-redir', '=https',
+            '--retry', '3', '--retry-delay', '10', '--retry-all-errors',
+            'https://github.com/bazelbuild/bazel/releases/download/{version}/{name}'.format(version=version, name=name),
+            '--output', output_path
+        ])
+        return
+    except RuntimeError as error:
+        print('Bazel release link failed ({}), trying the GitHub API'.format(error))
+
+    import json
+    import time
+    import urllib.request
+
+    token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
+
+    def api_request(url, accept):
+        request = urllib.request.Request(url, headers={'Accept': accept, 'User-Agent': 'telegram-ios-build'})
+        if token:
+            request.add_unredirected_header('Authorization', 'Bearer {}'.format(token))
+        return request
+
+    last_error = None
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(api_request('https://api.github.com/repos/bazelbuild/bazel/releases/tags/{}'.format(version), 'application/vnd.github+json'), timeout=60) as response:
+                release = json.load(response)
+            asset_url = next(asset['url'] for asset in release['assets'] if asset['name'] == name)
+            with urllib.request.urlopen(api_request(asset_url, 'application/octet-stream'), timeout=600) as response, open(output_path, 'wb') as output:
+                shutil.copyfileobj(response, output)
+            return
+        except Exception as error:
+            last_error = error
+            print('Bazel download through the GitHub API failed (attempt {}): {}'.format(attempt + 1, error))
+            time.sleep(10)
+    raise RuntimeError('Could not download {} {}: {}'.format(name, version, last_error))
+
+
 def locate_bazel(base_path, cache_host_or_path, cache_dir):
     build_input_dir = '{}/build-input'.format(base_path)
     if not os.path.isdir(build_input_dir):
@@ -103,12 +149,7 @@ def locate_bazel(base_path, cache_host_or_path, cache_dir):
                     shutil.copyfile(cached_path, staging_path)
 
             if calculate_sha256(staging_path) != digest:
-                call_executable([
-                    'curl', '--fail', '-L', '--proto', '=https', '--proto-redir', '=https',
-                    'https://github.com/bazelbuild/bazel/releases/download/{version}/{name}'.format(
-                        version=versions.bazel_version, name=bazel_name),
-                    '--output', staging_path
-                ])
+                download_bazel_release(versions.bazel_version, bazel_name, staging_path)
                 downloaded = True
                 if calculate_sha256(staging_path) != digest:
                     raise RuntimeError('Downloaded Bazel does not match the required SHA256')
