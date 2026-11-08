@@ -92,17 +92,31 @@ print("Actual clipboard reader: empty/invalid rich fallback and representation p
     def test_actual_picker_completes_selection_once(self):
         source = read('submodules/LegacyMediaPickerUI/Sources/LegacyICloudFilePicker.swift')
         body = source[source.index('private final class LegacyICloudFileController'):source.index('public enum LegacyICloudFilePickerMode')]
+        # The host controller and DocumentPickerPresentation (upstream 13.1.3's lost-picker fix) come with stubs of the
+        # UIKit they touch; DocumentPickerPresentation is compiled from its own source.
+        presentation = read('submodules/LegacyMediaPickerUI/Sources/DocumentPickerPresentation.swift')
+        presentation = '\n'.join(line for line in presentation.splitlines() if not line.startswith('import '))
         fixture = r'''import Foundation
 class Logger { static let shared = Logger(); func log(_ tag: String, _ text: String) {} }
 enum LegacyControllerPresentation { case modal }
 class PresentationTheme {}
+class UIView { var window: AnyObject? }
+class UIViewController {
+    var presentingViewController: UIViewController?
+    var viewIfLoaded: UIView?
+}
+enum UIScene { static let didActivateNotification = Notification.Name("UISceneDidActivateNotification") }
 class LegacyController {
+    var hasSparseContainerView = false
     init(presentation: LegacyControllerPresentation, theme: PresentationTheme?) {}
     required init(coder: NSCoder) {}
+    func bind(controller: UIViewController) {}
 }
-class UIDocumentPickerViewController {}
+final class DocumentPickerHostView: UIView { var passesTouchesThrough: (() -> Bool)? }
+final class DocumentPickerHostViewController: UIViewController { let hostView = DocumentPickerHostView() }
+class UIDocumentPickerViewController: UIViewController {}
 protocol UIDocumentPickerDelegate: AnyObject {}
-''' + body + r'''
+''' + presentation + '\n' + body + r'''
 let picker = UIDocumentPickerViewController()
 let first = URL(fileURLWithPath: "/tmp/first.zip"), second = URL(fileURLWithPath: "/tmp/second.zip")
 var results: [[URL]] = []
