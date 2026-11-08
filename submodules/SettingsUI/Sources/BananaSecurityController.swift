@@ -29,40 +29,41 @@ public enum BananaSecurityStrings {
         ru ? "Без облачного пароля один украденный код отдаёт аккаунт целиком, и угонщик ставит свой пароль. Включите его и проверяйте список сеансов: незнакомый сеанс завершайте сразу."
            : "Without a cloud password one stolen code gives the whole account away, and the thief sets a password of their own. Turn it on and check your sessions: end any you do not recognise at once."
     }
+    // One short line per switch (Apple HIG: concise rows); why each matters is in the footer.
     static var protectionsHeader: String { ru ? "ЗАЩИТА ОТ ОБМАНА" : "SCAM PROTECTION" }
     static var blockQrLogin: String { ru ? "Запретить QR-вход" : "Block QR Login" }
     static var blockQrLoginText: String {
-        ru ? "Сканер «Подключить устройство» не впускает другие устройства. Так угоняют через «голосования», «проверки» и QR в домовых чатах."
-           : "The Link Device scanner signs no other device in. Fake \"votes\", \"checks\" and posters in house chats steal accounts this way."
+        ru ? "Сканер QR не подключит чужое устройство."
+           : "The QR scanner won't sign in another device."
     }
     static var guardLoginCodes: String { ru ? "Защитить код входа" : "Protect Login Code" }
     static var guardLoginCodesText: String {
-        ru ? "Сообщение с кодом, который Telegram прислал за последние 15 минут, никуда не отправится. Код — это ключ от аккаунта."
-           : "A message with a code Telegram sent in the last 15 minutes is not sent anywhere. The code is the key to the account."
+        ru ? "Сообщение со свежим кодом входа не отправится."
+           : "A message with a fresh login code won't be sent."
     }
     static var blockPhoneSharing: String { ru ? "Не передавать мой номер" : "Don't Share My Number" }
     static var blockPhoneSharingText: String {
-        ru ? "Боты, мини-приложения и чаты не получат ваш номер по кнопке «Поделиться номером»: с номера начинается вход."
-           : "Bots, mini apps and chats do not get your number from a Share My Number button: a login starts with the number."
+        ru ? "Кнопка «Поделиться номером» не отдаст номер."
+           : "Share My Number buttons won't send your number."
     }
     static var warnMiniApps: String { ru ? "Предупреждать в Mini Apps" : "Warn in Mini Apps" }
     static var warnMiniAppsText: String {
-        ru ? "При первом открытии каждого мини-приложения: никогда не вводите там код из Telegram или пароль."
-           : "The first time each mini app opens: never enter a Telegram code or password there."
+        ru ? "Напомнит не вводить код и пароль."
+           : "A reminder never to enter a code or password."
     }
     static var confirmExternalLinks: String { ru ? "Подтверждать ссылки" : "Confirm Links" }
     static var confirmExternalLinksText: String {
-        ru ? "Перед открытием сайта из сообщения показывается его настоящий адрес."
-           : "Before a website opens from a message, its real address is shown."
+        ru ? "Покажет настоящий адрес сайта перед переходом."
+           : "Shows a site's real address before it opens."
     }
     static var flagFakeSupport: String { ru ? "Предупреждать о поддержке" : "Warn About Fake Support" }
     static var flagFakeSupportText: String {
-        ru ? "Чат с непроверенным аккаунтом по имени «Telegram», «Безопасность», «Поддержка» и т. п. откроется с предупреждением."
-           : "A chat with an unverified account named \"Telegram\", \"Security\", \"Support\" and the like opens with a warning."
+        ru ? "Предупредит в чате «поддержки» без галочки."
+           : "Warns in unverified “support” chats."
     }
     static var protectionsFooter: String {
-        ru ? "Telegram никогда не просит код, пароль или номер в чате, на сайте или в боте. Любая такая просьба — попытка угона."
-           : "Telegram never asks for a code, a password or your number in a chat, on a site or in a bot. Any such request is a takeover attempt."
+        ru ? "Telegram никогда не просит код, пароль, номер или скан QR в чате, на сайте или в боте. Любая такая просьба — попытка угона."
+           : "Telegram never asks for a code, a password, your number or a QR scan in a chat, on a site or in a bot. Any such request is a takeover attempt."
     }
 
     public static var blockedTitle: String { ru ? "Заблокировано" : "Blocked" }
