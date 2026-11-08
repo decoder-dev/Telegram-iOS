@@ -101,7 +101,7 @@ for russian in [false,true] {
      if category != .top {
       let titled=entries.compactMap { $0.searchTitle(strings: PresentationStrings()) }
       precondition(!titled.isEmpty && !titled.contains(""),"No searchable titles: \(category)")
-      if category == .tabBar { precondition(titled.contains("Calls")) }
+      if category == .tabBar { precondition(titled.contains("Calls Tab")) }
      }
      if category == .top { precondition(ids == [1997,0,1,2,1995,4,8,23,5,1998,3,7,2100,1540,6]) }
      if category == .media {
@@ -115,7 +115,9 @@ for russian in [false,true] {
      if category == .media { precondition(ids.contains(2202) && !ids.contains(2110)) }
      if category == .messageActions { precondition(ids.contains(1802) && ids.contains(92) && ids.contains(1911)) }
      if category == .tabBar { precondition(ids.contains(63) == (idiom == .phone) && ids.contains(1507)) }
-     if category == .profile { precondition(ids.contains(140) && ids.contains(55) && ids.contains(1500)) }
+     if category == .profile { precondition(ids.contains(55) && ids.contains(2044) && !ids.contains(140) && !ids.contains(1500)) }
+     if category == .profileMore { precondition(ids.contains(140) && ids.contains(1500) && ids.contains(1740)) }
+     if category == .messagesMore { precondition(ids.contains(1940) && ids.contains(1721) && ids.contains(1607) && !ids.contains(2200)) }
      if category == .chatList { precondition(ids.contains(50) && ids.contains(59) && ids.contains(1499)) }
      // A regrouped row appears on exactly the screen that owns it.
      for id in ids { if let owner=ForkExtrasEntry.regroupedOwner(of: id) { precondition(owner == category.resolvedCategory,"\(id) shown on \(category), owned by \(owner)") } }
