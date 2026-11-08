@@ -377,7 +377,7 @@ public func chatListViewForLocation(chatListLocation: ChatListControllerLocation
                 if let embeddedState = item.embeddedInterfaceState, let _ = embeddedState.overrideChatTimestamp {
                     if let opaqueState = _internal_decodeStoredChatInterfaceState(state: embeddedState) {
                         if let text = opaqueState.synchronizeableInputState?.text {
-                            draft = EngineChatList.Draft(text: text, entities: opaqueState.synchronizeableInputState?.entities ?? [])
+                            draft = EngineChatList.Draft(text: text, entities: opaqueState.synchronizeableInputState?.entities ?? [], isEmptyReply: opaqueState.synchronizeableInputState?.isEmptyReply ?? false)
                         }
                     }
                 }
@@ -441,7 +441,7 @@ public func chatListViewForLocation(chatListLocation: ChatListControllerLocation
                 if let embeddedState = interfaceStateView.value, let _ = embeddedState.overrideChatTimestamp {
                     if let opaqueState = _internal_decodeStoredChatInterfaceState(state: embeddedState) {
                         if let text = opaqueState.synchronizeableInputState?.text {
-                            draft = EngineChatList.Draft(text: text, entities: opaqueState.synchronizeableInputState?.entities ?? [])
+                            draft = EngineChatList.Draft(text: text, entities: opaqueState.synchronizeableInputState?.entities ?? [], isEmptyReply: opaqueState.synchronizeableInputState?.isEmptyReply ?? false)
                         }
                     }
                 }
@@ -468,7 +468,7 @@ public func chatListViewForLocation(chatListLocation: ChatListControllerLocation
                 if let embeddedState = item.embeddedInterfaceState, let _ = embeddedState.overrideChatTimestamp {
                     if let opaqueState = _internal_decodeStoredChatInterfaceState(state: embeddedState) {
                         if let text = opaqueState.synchronizeableInputState?.text {
-                            itemDraft = EngineChatList.Draft(text: text, entities: opaqueState.synchronizeableInputState?.entities ?? [])
+                            itemDraft = EngineChatList.Draft(text: text, entities: opaqueState.synchronizeableInputState?.entities ?? [], isEmptyReply: opaqueState.synchronizeableInputState?.isEmptyReply ?? false)
                         }
                     }
                 }

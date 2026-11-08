@@ -3192,7 +3192,9 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                 }
                 playlistLocation = .savedMusic(context: savedMusicContext, at: initialId, canReorder: canReorder)
             } else {
-                self.context.sharedContext.mediaManager.setPlaylist((self.context, PeerMessagesMediaPlaylist(context: self.context, location: playlistLocation, chatLocationContextHolder: nil)), type: .music, control: .playback(.play))
+                // "Don't autoplay profile music" (Extras > Profile): the playlist opens paused.
+                let autoplays = !self.context.sharedContext.immediateForkExtrasSettings.disableProfileMusicAutoplay
+                self.context.sharedContext.mediaManager.setPlaylist((self.context, PeerMessagesMediaPlaylist(context: self.context, location: playlistLocation, chatLocationContextHolder: nil)), type: .music, control: .playback(autoplays ? .play : .pause))
             }
             
             Queue.mainQueue().after(0.1) {

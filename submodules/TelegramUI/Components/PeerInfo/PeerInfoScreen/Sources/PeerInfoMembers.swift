@@ -84,6 +84,17 @@ enum PeerInfoMember: Equatable {
         }
     }
     
+    /// The label shown for the member: a known admin's or owner's blank title gives way to the standard badge when
+    /// "Show hidden admin badges" is on. The raw rank stays what editing uses.
+    var forkDisplayRank: String? {
+        switch self.role {
+        case .creator, .admin:
+            return ForkAdminTitles.visibleTitle(self.rank)
+        case .member:
+            return self.rank
+        }
+    }
+    
     var storyStats: EnginePeerStoryStats? {
         switch self {
         case let .channelMember(_, value):

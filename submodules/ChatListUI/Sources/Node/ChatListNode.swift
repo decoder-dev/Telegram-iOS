@@ -2298,7 +2298,7 @@ public final class ChatListNode: ListViewImpl {
             displayArchiveIntro,
             storageInfo,
             combineLatest(savedMessagesPeer, forkExtrasSettings(accountManager: context.sharedContext.accountManager)
-            |> map { $0.hideProxySponsor }
+            |> map { settings -> [Bool] in [settings.hideProxySponsor, settings.hideEmptyReplyDrafts] }
             |> distinctUntilChanged),
             chatListViewUpdateForFilters,
             self.statePromise.get(),
@@ -2307,7 +2307,9 @@ public final class ChatListNode: ListViewImpl {
             accountIsPremium
         )
         |> mapToQueue { [weak self] (hideArchivedFolderByDefault, archiveFolderPresentation, archiveFolderContentsHidden, displayArchiveIntro, storageInfo, savedMessagesPeerAndSponsor, updateAndFilter, state, contacts, chatListFilters, accountIsPremium) -> Signal<ChatListNodeListViewTransition, NoError> in
-            let (savedMessagesPeer, hideProxySponsor) = savedMessagesPeerAndSponsor
+            let (savedMessagesPeer, listSwitches) = savedMessagesPeerAndSponsor
+            let hideProxySponsor = listSwitches[0]
+            let hideEmptyReplyDrafts = listSwitches[1]
             // Weak-self gate only — the generation/staleness guard that used to touch `self`
             // was dropped; binding `strongSelf` here tripped [#no-usage] under release Swift.
             guard self != nil else {
@@ -2322,7 +2324,7 @@ public final class ChatListNode: ListViewImpl {
             
             let innerIsMainTab = location == .chatList(groupId: .root) && chatListFilter == nil
             
-            let (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab, omitArchiveFolder: omitArchiveFolder, forceArchiveCollapsed: forceArchiveCollapsed, redactArchiveFolderContents: archiveFolderContentsHidden.archive, hideSavedMessages: archiveFolderContentsHidden.savedMessages, hideProxySponsor: hideProxySponsor)
+            let (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab, omitArchiveFolder: omitArchiveFolder, forceArchiveCollapsed: forceArchiveCollapsed, redactArchiveFolderContents: archiveFolderContentsHidden.archive, hideSavedMessages: archiveFolderContentsHidden.savedMessages, hideProxySponsor: hideProxySponsor, hideEmptyReplyDrafts: hideEmptyReplyDrafts)
             var isEmpty = true
             var entries = rawEntries.filter { entry in
                 switch entry {

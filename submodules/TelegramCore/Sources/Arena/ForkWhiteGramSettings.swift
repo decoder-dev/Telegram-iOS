@@ -42,6 +42,52 @@ public enum ForkAIFeaturesSettings {
     }
 }
 
+/// Chat header switches projected from Extras (Donutgram 9b62a5089c): "Hide phone number in chat title".
+public enum ForkChatTitleSettings {
+    private static let persistedKey = "ForkChatTitleSettings.hidesPhoneNumber.v1"
+    private static let value = Atomic<Bool>(value: UserDefaults.standard.bool(forKey: persistedKey))
+    public static var hidesPhoneNumber: Bool {
+        get { return value.with { $0 } }
+        set {
+            let previous = value.swap(newValue)
+            if previous != newValue {
+                UserDefaults.standard.set(newValue, forKey: persistedKey)
+            }
+        }
+    }
+}
+
+/// "Show hidden admin badges" (Extras > Messages; Donutgram 69259e6c30). Display only: the server's title is untouched.
+public enum ForkAdminTitles {
+    private static let persistedKey = "ForkAdminTitles.showsHiddenBadges.v1"
+    private static let value = Atomic<Bool>(value: UserDefaults.standard.bool(forKey: persistedKey))
+    public static var showsHiddenBadges: Bool {
+        get { return value.with { $0 } }
+        set {
+            let previous = value.swap(newValue)
+            if previous != newValue {
+                UserDefaults.standard.set(newValue, forKey: persistedKey)
+            }
+        }
+    }
+
+    /// The title to show for a known admin or owner: nil, so the caller falls back to the standard badge, when the
+    /// switch is on and the title has nothing visible in it (whitespace, control, default-ignorable or braille-blank
+    /// characters, which some admins use to hide that they are admins).
+    public static func visibleTitle(_ title: String?) -> String? {
+        guard self.showsHiddenBadges, let title else {
+            return title
+        }
+        let hasVisibleContent = title.unicodeScalars.contains { scalar in
+            return !CharacterSet.whitespacesAndNewlines.contains(scalar)
+                && !CharacterSet.controlCharacters.contains(scalar)
+                && !scalar.properties.isDefaultIgnorableCodePoint
+                && scalar.value != 0x2800 // Braille pattern blank is not Unicode whitespace.
+        }
+        return hasVisibleContent ? title : nil
+    }
+}
+
 public enum ForkChannelPostReactionsSettings {
     private static let persistedKey = "ForkChannelPostReactionsSettings.hidden.v1"
     private static let value = Atomic<Bool>(value: UserDefaults.standard.bool(forKey: persistedKey))

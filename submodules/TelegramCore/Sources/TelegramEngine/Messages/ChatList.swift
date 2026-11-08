@@ -21,10 +21,13 @@ public final class EngineChatList: Equatable {
     public struct Draft: Equatable {
         public var text: String
         public var entities: [MessageTextEntity]
+        /// A reply chosen without any text (`SynchronizeableChatInputState.isEmptyReply`).
+        public var isEmptyReply: Bool
         
-        public init(text: String, entities: [MessageTextEntity]) {
+        public init(text: String, entities: [MessageTextEntity], isEmptyReply: Bool = false) {
             self.text = text
             self.entities = entities
+            self.isEmptyReply = isEmptyReply
         }
     }
     
@@ -553,7 +556,7 @@ extension EngineChatList.Item {
             if let embeddedState = embeddedState, let _ = embeddedState.overrideChatTimestamp {
                 if let opaqueState = _internal_decodeStoredChatInterfaceState(state: embeddedState) {
                     if let text = opaqueState.synchronizeableInputState?.text {
-                        draft = EngineChatList.Draft(text: text, entities: opaqueState.synchronizeableInputState?.entities ?? [])
+                        draft = EngineChatList.Draft(text: text, entities: opaqueState.synchronizeableInputState?.entities ?? [], isEmptyReply: opaqueState.synchronizeableInputState?.isEmptyReply ?? false)
                     }
                     mediaDraftContentType = opaqueState.mediaDraftState?.contentType
                 }

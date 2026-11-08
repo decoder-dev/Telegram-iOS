@@ -49,13 +49,13 @@ private enum PeerMembersListEntryStableId: Hashable {
 
 private enum PeerMembersListEntry: Comparable, Identifiable {
     case addMember(PresentationTheme, String)
-    case member(theme: PresentationTheme, index: Int, member: PeerInfoMember)
+    case member(theme: PresentationTheme, index: Int, member: PeerInfoMember, displayRank: String?)
         
     var stableId: PeerMembersListEntryStableId {
         switch self {
             case .addMember:
                 return .addMember
-            case let .member(_, _, member):
+            case let .member(_, _, member, _):
                 return .peer(member.id)
         }
     }
@@ -68,8 +68,8 @@ private enum PeerMembersListEntry: Comparable, Identifiable {
                 } else {
                     return false
                 }
-            case let .member(lhsTheme, lhsIndex, lhsMember):
-                if case let .member(rhsTheme, rhsIndex, rhsMember) = rhs, lhsTheme === rhsTheme, lhsIndex == rhsIndex, lhsMember == rhsMember {
+            case let .member(lhsTheme, lhsIndex, lhsMember, lhsRank):
+                if case let .member(rhsTheme, rhsIndex, rhsMember, rhsRank) = rhs, lhsTheme === rhsTheme, lhsIndex == rhsIndex, lhsMember == rhsMember, lhsRank == rhsRank {
                     return true
                 } else {
                     return false
@@ -86,11 +86,11 @@ private enum PeerMembersListEntry: Comparable, Identifiable {
                     case .member:
                         return true
                 }
-            case let .member(_, lhsIndex, _):
+            case let .member(_, lhsIndex, _, _):
                 switch rhs {
                     case .addMember:
                         return false
-                    case let .member(_, rhsIndex, _):
+                    case let .member(_, rhsIndex, _, _):
                         return lhsIndex < rhsIndex
                 }
         }
@@ -102,11 +102,11 @@ private enum PeerMembersListEntry: Comparable, Identifiable {
                 return ItemListPeerActionItem(presentationData: ItemListPresentationData(presentationData), icon: PresentationResourcesItemList.addPersonIcon(presentationData.theme), title: text, alwaysPlain: true, sectionId: 0, height: .compactPeerList, color: .accent, editing: false, action: {
                     addMemberAction()
                 })
-            case let .member(_, _, member):
+            case let .member(_, _, member, displayRank):
                 var labelColor = presentationData.theme.list.itemSecondaryTextColor
                 var labelBackground = false
                 let label: String?
-                if let rank = member.rank {
+                if let rank = displayRank {
                     label = rank
                 } else {
                     switch member.role {
@@ -452,7 +452,7 @@ final class PeerInfoMembersPaneNode: ASDisplayNode, PeerInfoPaneNode {
             entries.append(.addMember(presentationData.theme, presentationData.strings.GroupInfo_AddParticipant))
         }
         for member in state.members {
-            entries.append(.member(theme: presentationData.theme, index: entries.count, member: member))
+            entries.append(.member(theme: presentationData.theme, index: entries.count, member: member, displayRank: member.forkDisplayRank))
         }
         
         let transaction = preparedTransition(from: self.currentEntries, to: entries, context: self.context, presentationData: presentationData, enclosingPeer: enclosingPeer, addMemberAction: { [weak self] in

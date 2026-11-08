@@ -627,7 +627,7 @@ public final class ChatTitleComponent: Component {
                                 content: .text(component.strings.ChatList_AuthorHidden)
                             )]
                         } else {
-                            if !peerView.isContact, let user = peer as? TelegramUser, !user.flags.contains(.isSupport), user.botInfo == nil, let phone = user.phone, !phone.isEmpty {
+                            if !peerView.hidesPhoneNumber, !peerView.isContact, let user = peer as? TelegramUser, !user.flags.contains(.isSupport), user.botInfo == nil, let phone = user.phone, !phone.isEmpty {
                                 titleSegments = [AnimatedTextComponent.Item(
                                     id: AnyHashable(0),
                                     isUnbreakable: true,

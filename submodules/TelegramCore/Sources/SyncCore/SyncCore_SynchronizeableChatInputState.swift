@@ -29,6 +29,15 @@ public struct SynchronizeableChatInputState: Codable, Equatable {
     public let messageEffectId: Int64?
     public let suggestedPost: SuggestedPost?
 
+    /// A reply chosen without any text, effect or suggested post: "Hide empty reply drafts" keeps it out of the chat
+    /// list's "Draft" (Donutgram a657253b26).
+    public var isEmptyReply: Bool {
+        if case let .textEntities(text, entities) = self.content {
+            return self.replySubject != nil && text.isEmpty && entities.isEmpty && self.messageEffectId == nil && self.suggestedPost == nil
+        }
+        return false
+    }
+
     /// Derived flat-text view of `content` (old-client / cloud fallback).
     public var text: String {
         switch self.content {

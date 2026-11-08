@@ -1392,6 +1392,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         hotFlags.parallelDownloads = settings.parallelDownloads
         hotFlags.hideAIButton = settings.hideAIButton
         ForkAIFeaturesSettings.hidden = settings.hideAIButton
+        ForkChatTitleSettings.hidesPhoneNumber = settings.hidePhoneNumberInChatTitle
+        ForkAdminTitles.showsHiddenBadges = settings.showHiddenAdminBadges
+        ForkStickerBypassSettings.enabled = settings.bypassStickerRestrictions
         hotFlags.hideRichTextEditor = settings.hideRichTextEditor
         ForkExtrasHotFlags.update(hotFlags)
         ForkRegexMessageFilters.apply(

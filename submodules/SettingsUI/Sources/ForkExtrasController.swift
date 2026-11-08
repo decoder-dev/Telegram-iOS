@@ -699,6 +699,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1512],
             [1773, 1774, 1790],
             [1930],
+            [2038, 2039],
             [1961, 1963]
         ]),
         (.tabBar, [
@@ -727,13 +728,14 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1607, 1510, 1513, 1517],
             [1825, 1826, 1827, 1828],
             [85, 86, 87],
-            [1960, 1962, 1964]
+            [1960, 1962, 1964],
+            [2036, 2037]
         ]),
         (.messageSending, [
             [1850, 2101, 2102, 1851, 1852, 1853],
             [1606, 81, 82, 1710],
             [98, 99],
-            [1511, 1520]
+            [1511, 1520, 2040, 2041]
         ]),
         (.messageActions, [
             [1802],
@@ -761,10 +763,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1739, 1731, 1732, 1730, 1733, 1734, 1980, 1981, 2106],
             [1740, 1736, 1737, 1738],
             [1603, 1500, 1501, 1541, 2022, 57],
+            [2034, 2035],
             [1604, 140, 141]
         ]),
         (.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]]),
-        (.privacy, [[2030, 2031]])
+        (.privacy, [[2030, 2031], [2032, 2033]])
     ]
 
     private static let interfaceGroups: [[Int32]] = regroupedCategories.flatMap { $0.groups }
@@ -1322,6 +1325,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1530, russian ? "Отправлять статистику в Telegram" : "Send statistics to Telegram", settings.sendTelegramStatistics, \.sendTelegramStatistics),
             .appearanceToggle(2030, russian ? "Убирать отслеживание из ссылок" : "Remove tracking from sent links", settings.stripTrackingParameters, \.stripTrackingParameters),
             .designFooter(2031, russian ? "Очищать ссылки в текстовых сообщениях. Код и подписанные ссылки сохраняются без изменений." : "Clean links in text messages. Code and signed links remain unchanged."),
+            .appearanceToggle(2032, russian ? "Скрыть номер в заголовке чата" : "Hide phone number in chat title", settings.hidePhoneNumberInChatTitle, \.hidePhoneNumberInChatTitle),
+            .designFooter(2033, russian ? "Чат с человеком не из контактов называется его именем, а не номером телефона. Открытый чат обновится, когда вы откроете его снова." : "A chat with someone outside your contacts is titled with their name instead of their phone number. An open chat updates when you open it again."),
             .settingToggle(28, .lock, ForkExtrasLocalizedString.streamerMode, settings.streamerMode, \.streamerMode),
             .settingFooter(29, .lock, ForkExtrasLocalizedString.streamerModeFooter),
             .settingToggle(30, .lock, ForkExtrasLocalizedString.instantPasscode, settings.instantPasscodeLock, \.instantPasscodeLock),
@@ -1360,6 +1365,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1774, russian ? "Скрыть архив" : "Hide archive", settings.hideArchive, \.hideArchive),
             .appearanceToggle(1790, russian ? "Отключить камеру по свайпу" : "No story camera on swipe", settings.disableStoryCameraSwipe, \.disableStoryCameraSwipe),
             .appearanceToggle(1930, russian ? "Отключить создание историй" : "Disable story creation", settings.disableStoryCreation, \.disableStoryCreation),
+            .appearanceToggle(2038, russian ? "Скрывать черновик пустого ответа" : "Hide empty reply drafts", settings.hideEmptyReplyDrafts, \.hideEmptyReplyDrafts),
+            .designFooter(2039, russian ? "Если выбран ответ, но текст не введён, в списке чатов видно последнее сообщение вместо «Черновик». Выбранный ответ сохраняется." : "When a reply is chosen without any text, the chat list shows the last message instead of Draft. The reply stays chosen."),
             .appearanceToggle(1961, russian ? "Скрыть счётчик непрочитанных на папках" : "Hide unread counts on folders", settings.hideFolderUnreadCount, \.hideFolderUnreadCount),
             .appearanceToggle(1963, russian ? "Скрыть «печатает…» в личных чатах" : "Hide typing status in private chats", settings.hidePrivateChatActivities, \.hidePrivateChatActivities),
         ]
@@ -1443,6 +1450,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1960, russian ? "Отзыв всех пригласительных ссылок" : "Bulk revoke invite links", settings.inviteLinksBulkRevoke, \.inviteLinksBulkRevoke),
             .appearanceToggle(1962, russian ? "Подтверждать открепление сообщений" : "Confirm before unpinning messages", settings.confirmUnpin, \.confirmUnpin),
             .appearanceToggle(1964, russian ? "Оставаться на последнем сообщении после обновления" : "Stay at the latest message after a refresh", settings.stayAtLatestMessageAfterRefresh, \.stayAtLatestMessageAfterRefresh),
+            .appearanceToggle(2036, russian ? "Показывать скрытых админов" : "Show hidden admin badges", settings.showHiddenAdminBadges, \.showHiddenAdminBadges),
+            .designFooter(2037, russian ? "Админ или владелец с невидимым титулом (пробелы или пустые символы) получает обычную метку «админ» или «владелец»." : "An admin or owner whose title is invisible (spaces or blank characters) gets the standard admin or owner badge."),
             .designHeader(1607, russian ? "Боты и служебные сообщения" : "Bots and service messages"),
             .appearanceToggle(1510, russian ? "Скрыть «через бота»" : "Hide \"via bot\"", settings.hideViaBot, \.hideViaBot),
             .appearanceToggle(1513, russian ? "Скрыть панель автоматизации бота" : "Hide bot automation panel", settings.hideBotAutomation, \.hideBotAutomation),
@@ -1461,6 +1470,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingFooter(99, .chatExtras, ForkExtrasLocalizedString.outgoingPhotoQualityFooter),
             .appearanceToggle(1511, russian ? "Отправлять без превью ссылок" : "Send without link previews", settings.removeLinkPreviews, \.removeLinkPreviews),
             .appearanceToggle(1520, russian ? "Запрещённые GIF как видео" : "Send banned GIFs as video", settings.sendBannedGifsAsVideo, \.sendBannedGifsAsVideo),
+            .appearanceToggle(2040, russian ? "Обход запрета стикеров" : "Bypass sticker restrictions", settings.bypassStickerRestrictions, \.bypassStickerRestrictions),
+            .designFooter(2041, russian ? "Где стикеры запрещены, а видео разрешены, стикер уходит коротким видео без звука: анимированный — целиком, обычный — секундным роликом." : "Where stickers are restricted but videos are allowed, a sticker goes out as a short silent video: an animated one as it plays, a static one as a one-second clip."),
             .designHeader(1850, russian ? "Панель ввода" : "Input panel"),
             .appearanceToggle(2101, russian ? "Скрыть функции ИИ" : "Hide AI features", settings.hideAIButton, \.hideAIButton),
             .appearanceToggle(2102, russian ? "Скрыть разворачивание редактора" : "Hide expanded editor", settings.hideRichTextEditor, \.hideRichTextEditor),
@@ -1546,6 +1557,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(2020, russian ? "Примерное время активности, если «был(а) в сети» скрыто" : "Approximate last seen from activity", settings.approximateLastSeen, \.approximateLastSeen),
             .appearanceToggle(1552, russian ? "Серая точка у тех, кто не в сети" : "Grey dot for offline contacts", settings.showsOfflineDot, \.showsOfflineDot),
             .appearanceToggle(1543, russian ? "Исчезнувшие подарки" : "Disappeared gifts", settings.showDisappearedGifts, \.showDisappearedGifts),
+            .appearanceToggle(2034, russian ? "Не включать музыку профиля автоматически" : "Don't autoplay profile music", settings.disableProfileMusicAutoplay, \.disableProfileMusicAutoplay),
+            .designFooter(2035, russian ? "Плейлист закреплённой в профиле музыки открывается на паузе. Трек можно включить вручную." : "A profile's pinned music opens its playlist paused. You can start a track yourself."),
             .settingFooter(58, .privacy, ForkExtrasLocalizedString.privacyFooter),
             .designHeader(1739, russian ? "Профиль" : "Profile"),
             .appearanceToggle(1731, russian ? "ID в формате Bot API" : "ID in Bot API format", settings.profileIdBotApiFormat, \.profileIdBotApiFormat),

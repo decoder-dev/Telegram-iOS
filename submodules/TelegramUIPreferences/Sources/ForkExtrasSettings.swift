@@ -236,6 +236,16 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var approximateLastSeen: Bool
     /// Fork (Donutgram): a sticker goes out without the reference to its set, so the recipient cannot open the set.
     public var anonymousStickers: Bool
+    /// Fork (Donutgram): a chat with someone outside your contacts is titled with their name, not their phone number.
+    public var hidePhoneNumberInChatTitle: Bool
+    /// Fork (Donutgram): a profile's pinned music opens its playlist paused instead of starting a track.
+    public var disableProfileMusicAutoplay: Bool
+    /// Fork (Donutgram): an admin or owner whose custom title is blank (spaces, invisible or braille-blank characters) shows the standard admin or owner badge.
+    public var showHiddenAdminBadges: Bool
+    /// Fork (Donutgram): a reply chosen without any text does not turn the chat into "Draft" in the chat list; the reply is kept.
+    public var hideEmptyReplyDrafts: Bool
+    /// Fork (Donutgram): where stickers are restricted but videos are allowed, a sticker goes out as a short silent video (a static one as a one-second clip).
+    public var bypassStickerRestrictions: Bool
     /// The profile grows out of the chat's header when opened from it (Telegram 13.1.1's expansion). Off: the plain slide.
     public var profileExpansionAnimation: Bool
     public var disableCustomBackgrounds: Bool
@@ -648,6 +658,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.relativeLastSeen = false
         self.approximateLastSeen = false
         self.anonymousStickers = false
+        self.hidePhoneNumberInChatTitle = false
+        self.disableProfileMusicAutoplay = false
+        self.showHiddenAdminBadges = false
+        self.hideEmptyReplyDrafts = false
+        self.bypassStickerRestrictions = false
         self.profileExpansionAnimation = false
         self.disableCustomBackgrounds = false
         self.channelBottomDiscuss = false
@@ -860,6 +875,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.relativeLastSeen = try container.decodeIfPresent(Bool.self, forKey: "relativeLastSeen") ?? false
         self.approximateLastSeen = try container.decodeIfPresent(Bool.self, forKey: "approximateLastSeen") ?? false
         self.anonymousStickers = try container.decodeIfPresent(Bool.self, forKey: "anonymousStickers") ?? false
+        self.hidePhoneNumberInChatTitle = try container.decodeIfPresent(Bool.self, forKey: "hidePhoneNumberInChatTitle") ?? false
+        self.disableProfileMusicAutoplay = try container.decodeIfPresent(Bool.self, forKey: "disableProfileMusicAutoplay") ?? false
+        self.showHiddenAdminBadges = try container.decodeIfPresent(Bool.self, forKey: "showHiddenAdminBadges") ?? false
+        self.hideEmptyReplyDrafts = try container.decodeIfPresent(Bool.self, forKey: "hideEmptyReplyDrafts") ?? false
+        self.bypassStickerRestrictions = try container.decodeIfPresent(Bool.self, forKey: "bypassStickerRestrictions") ?? false
         self.profileExpansionAnimation = try container.decodeIfPresent(Bool.self, forKey: "profileExpansionAnimation") ?? false
         self.disableCustomBackgrounds = try container.decodeIfPresent(Bool.self, forKey: "disableCustomBackgrounds") ?? false
         self.channelBottomDiscuss = try container.decodeIfPresent(Bool.self, forKey: "channelBottomDiscuss") ?? false
@@ -1063,6 +1083,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.relativeLastSeen, forKey: "relativeLastSeen")
         try container.encode(self.approximateLastSeen, forKey: "approximateLastSeen")
         try container.encode(self.anonymousStickers, forKey: "anonymousStickers")
+        try container.encode(self.hidePhoneNumberInChatTitle, forKey: "hidePhoneNumberInChatTitle")
+        try container.encode(self.disableProfileMusicAutoplay, forKey: "disableProfileMusicAutoplay")
+        try container.encode(self.showHiddenAdminBadges, forKey: "showHiddenAdminBadges")
+        try container.encode(self.hideEmptyReplyDrafts, forKey: "hideEmptyReplyDrafts")
+        try container.encode(self.bypassStickerRestrictions, forKey: "bypassStickerRestrictions")
         try container.encode(self.profileExpansionAnimation, forKey: "profileExpansionAnimation")
         try container.encode(self.disableCustomBackgrounds, forKey: "disableCustomBackgrounds")
         try container.encode(self.channelBottomDiscuss, forKey: "channelBottomDiscuss")

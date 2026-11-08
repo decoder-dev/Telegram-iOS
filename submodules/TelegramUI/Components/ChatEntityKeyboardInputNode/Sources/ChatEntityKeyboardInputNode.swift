@@ -1876,8 +1876,11 @@ public final class ChatEntityKeyboardInputNode: ChatInputNode {
             }
         }
 
-        if !stickersEnabled {
+        // Fork: "Bypass sticker restrictions" keeps the sticker tab where a sticker can go out as a video.
+        if !stickersEnabled && !forkCanSendStickerAsMedia(peer: interfaceState.renderedPeer?.peer) {
             stickerContent = nil
+        }
+        if !stickersEnabled {
             // Fork (Donutgram c7bb578): keep the GIF tab where GIFs are banned but videos are not
             // and "Send banned GIFs as video" is on; the GIF then goes out as a silent video.
             if !forkCanSendGifAsVideo(peer: interfaceState.renderedPeer?.peer) {

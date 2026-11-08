@@ -660,6 +660,8 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     }
     
     var layoutActionOnViewTransitionAction: (() -> Void)?
+    /// "Bypass sticker restrictions": a sticker is being converted into a video; another sticker tap waits for it.
+    var forkIsConvertingSticker = false
     
     var lastPostedScheduledMessagesToastTimestamp: Double = 0.0
     var postedScheduledMessagesEventsDisposable: Disposable?
@@ -2481,6 +2483,11 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 return false
             }
             
+            // "Bypass sticker restrictions": while a sticker converts into a video, a second tap must not send another one.
+            if strongSelf.forkIsConvertingSticker {
+                return false
+            }
+            
             if let _ = strongSelf.presentationInterfaceState.slowmodeState, strongSelf.presentationInterfaceState.subject != .scheduledMessages {
                 if let sourceView, let sourceRect {
                     strongSelf.interfaceInteraction?.displaySlowmodeTooltip(sourceView, sourceRect)
@@ -2489,10 +2496,14 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             }
             
             if let peer = strongSelf.presentationInterfaceState.renderedPeer?.peer as? TelegramChannel, peer.hasBannedPermission(.banSendStickers) != nil {
-                if !canBypassRestrictions(chatPresentationInterfaceState: strongSelf.presentationInterfaceState) {
+                if !canBypassRestrictions(chatPresentationInterfaceState: strongSelf.presentationInterfaceState) && !forkCanSendStickerAsMedia(peer: peer, file: fileReference.media) {
                     strongSelf.interfaceInteraction?.openBoostToUnrestrict()
                     return false
                 }
+            }
+            if let peer = strongSelf.presentationInterfaceState.renderedPeer?.peer as? TelegramGroup, peer.hasBannedPermission(.banSendStickers), !forkCanSendStickerAsMedia(peer: peer, file: fileReference.media) {
+                strongSelf.interfaceInteraction?.displayRestrictedInfo(.stickers, .tooltip)
+                return false
             }
             
             var attributes: [MessageAttribute] = []
@@ -2510,6 +2521,12 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             var shouldAnimateMessageTransition = strongSelf.chatDisplayNode.shouldAnimateMessageTransition
             if let _ = sourceView?.asyncdisplaykit_node as? ChatEmptyNodeStickerContentNode {
                 shouldAnimateMessageTransition = true
+            }
+            // A sticker that goes out as a video has no sticker to fly into the chat. Its send action (clearing the
+            // reply) waits for the converted message by correlation id instead of the next update.
+            let sendsStickerAsMedia = !canBypassRestrictions(chatPresentationInterfaceState: strongSelf.presentationInterfaceState) && forkCanSendStickerAsMedia(peer: strongSelf.presentationInterfaceState.renderedPeer?.peer, file: fileReference.media)
+            if sendsStickerAsMedia {
+                shouldAnimateMessageTransition = false
             }
             
             strongSelf.presentPaidMessageAlertIfNeeded(completion: { [weak strongSelf] postpone in
@@ -2591,7 +2608,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                                 return current
                             })
                         }
-                    }, shouldAnimateMessageTransition ? correlationId : nil)
+                    }, shouldAnimateMessageTransition || sendsStickerAsMedia ? correlationId : nil)
                     
                     addToTransitionNodeIfNeeded()
                     let transformedMessages = strongSelf.transformEnqueueMessages(messages, silentPosting: silentPosting, postpone: postpone)
@@ -2620,7 +2637,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                                 return current
                             })
                         }
-                    }, shouldAnimateMessageTransition ? correlationId : nil)
+                    }, shouldAnimateMessageTransition || sendsStickerAsMedia ? correlationId : nil)
                     
                     strongSelf.presentScheduleTimePicker(completion: { [weak self] result in
                         if let strongSelf = self {
@@ -9874,7 +9891,13 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             if commit || !isScheduledMessages {
                 self.commitPurposefulAction()
                 
-                let _ = (enqueueMessages(account: self.context.account, peerId: peerId, messages: self.transformEnqueueMessages(messages, postpone: postpone))
+                let context = self.context
+                let outgoingMessages = self.transformEnqueueMessages(messages, postpone: postpone)
+                // "Bypass sticker restrictions": stickers for a chat that bans them go out as videos; other messages pass at once.
+                let _ = (self.forkMessagesWithStickerMedia(outgoingMessages)
+                |> mapToSignal { prepared -> Signal<[MessageId?], NoError> in
+                    return enqueueMessages(account: context.account, peerId: peerId, messages: prepared)
+                }
                 |> deliverOnMainQueue).startStandalone(next: { [weak self] _ in
                     if let strongSelf = self, strongSelf.presentationInterfaceState.subject != .scheduledMessages {
                         strongSelf.chatDisplayNode.historyNode.scrollToEndOfHistory()

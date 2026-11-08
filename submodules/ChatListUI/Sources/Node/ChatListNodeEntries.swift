@@ -610,7 +610,16 @@ struct ChatListContactPeer {
     }
 }
 
-func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, omitArchiveFolder: Bool = false, forceArchiveCollapsed: Bool = false, redactArchiveFolderContents: Bool = false, hideSavedMessages: Bool? = nil, hideProxySponsor: Bool = false) -> (entries: [ChatListNodeEntry], loading: Bool) {
+/// The chat list's draft line for a chat: none for a bare reply while "Hide empty reply drafts" is on, so the row shows
+/// its last message; the reply itself stays chosen in the chat.
+private func forkChatListDraftState(_ draft: EngineChatList.Draft?, hideEmptyReplies: Bool) -> ChatListItemContent.DraftState? {
+    guard let draft, !(hideEmptyReplies && draft.isEmptyReply) else {
+        return nil
+    }
+    return ChatListItemContent.DraftState(draft: draft)
+}
+
+func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, omitArchiveFolder: Bool = false, forceArchiveCollapsed: Bool = false, redactArchiveFolderContents: Bool = false, hideSavedMessages: Bool? = nil, hideProxySponsor: Bool = false, hideEmptyReplyDrafts: Bool = false) -> (entries: [ChatListNodeEntry], loading: Bool) {
     let hideSavedMessages = hideSavedMessages ?? redactArchiveFolderContents
     let savedMessagesPeer = hideSavedMessages ? nil : savedMessagesPeer
     let foundPeers = hideSavedMessages ? foundPeers.filter { $0.0.id != accountPeerId } : foundPeers
@@ -711,10 +720,7 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
             updatedCombinedReadState = nil
         }
 
-        var draftState: ChatListItemContent.DraftState?
-        if let draft = entry.draft {
-            draftState = ChatListItemContent.DraftState(draft: draft)
-        }
+        let draftState = forkChatListDraftState(entry.draft, hideEmptyReplies: hideEmptyReplyDrafts)
                 
         var hasActiveRevealControls = false
         if let peerId {
@@ -886,7 +892,7 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
                     case let .psa(type, message):
                         promoInfo = .psa(type: type, message: message)
                     }
-                    let draftState = item.item.draft.flatMap(ChatListItemContent.DraftState.init)
+                    let draftState = forkChatListDraftState(item.item.draft, hideEmptyReplies: hideEmptyReplyDrafts)
                     
                     let peerId = index.messageIndex.id.peerId
                     let isSelected = state.selectedPeerIds.contains(peerId)

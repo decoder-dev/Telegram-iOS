@@ -234,6 +234,10 @@ func inputTextPanelStateForChatPresentationInterfaceState(_ chatPresentationInte
                         stickersEnabled = false
                     }
                 }
+                // "Bypass sticker restrictions": the sticker button stays where a sticker can go out as a video.
+                if forkCanSendStickerAsMedia(peer: chatPresentationInterfaceState.renderedPeer?.peer) {
+                    stickersEnabled = true
+                }
                 
                 if let channel = chatPresentationInterfaceState.renderedPeer?.peer as? TelegramChannel, channel.isMonoForum, let mainChannel = chatPresentationInterfaceState.renderedPeer?.chatOrMonoforumMainPeer as? TelegramChannel, (!mainChannel.hasPermission(.manageDirect) || chatPresentationInterfaceState.chatLocation.threadId != nil) {
                     if chatPresentationInterfaceState.interfaceState.postSuggestionState == nil {
