@@ -319,7 +319,8 @@ private enum ThemeSettingsControllerEntry: ItemListNodeEntry {
         let arguments = arguments as! ThemeSettingsControllerArguments
         switch self {
             case let .themeButton(_, reference, text, selected):
-                return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: selected ? "✓" : "", sectionId: self.section, style: .blocks, action: { arguments.selectTheme(reference) })
+                // A choice of one: a checkmark on the selected theme, no disclosure arrow (the row doesn't open a screen).
+                return ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: text, style: .right, checked: selected, zeroSeparatorInsets: false, sectionId: self.section, action: { arguments.selectTheme(reference) })
             case let .chatPreview(theme, wallpaper, fontSize, chatBubbleCorners, strings, dateTimeFormat, nameDisplayOrder, items):
                 return ThemeSettingsChatPreviewItem(context: arguments.context, systemStyle: .glass, theme: theme, componentTheme: theme, strings: strings, sectionId: self.section, fontSize: fontSize, chatBubbleCorners: chatBubbleCorners, wallpaper: wallpaper, dateTimeFormat: dateTimeFormat, nameDisplayOrder: nameDisplayOrder, messageItems: items)
             case let .chatTheme(_, text):

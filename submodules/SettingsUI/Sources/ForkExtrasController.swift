@@ -99,13 +99,13 @@ private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocument
 private enum ForkExtrasLocalizedString {
     private static let translations: [String: [String: String]] = [
         "en": [
-            "ForkExtras.wideTabBar": "Wide tab bar",
-            "ForkExtras.integratedTabSearch": "Search inside tab bar",
-            "ForkExtras.tabSearchOnLeft": "Search on the left",
+            "ForkExtras.wideTabBar": "Wide Tab Bar",
+            "ForkExtras.integratedTabSearch": "Search Inside Tab Bar",
+            "ForkExtras.tabSearchOnLeft": "Search on the Left",
 
-            "ForkExtras.BottomFolders": "Folders at the bottom",
-            "ForkExtras.AvatarGlow": "Avatar glow",
-            "ForkExtras.ReactionGlow": "Reaction glow",
+            "ForkExtras.BottomFolders": "Folders at the Bottom",
+            "ForkExtras.AvatarGlow": "Avatar Glow",
+            "ForkExtras.ReactionGlow": "Reaction Glow",
             "ForkExtras.ContactsTab": "Contacts Tab",
 
             "ForkExtras.Title": "Extras",
@@ -212,15 +212,15 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.HubGhostLabel": "Reading, online status, typing",
             "ForkExtras.HubPrivacy": "Privacy",
             "ForkExtras.HubPrivacyLabel": "Lock, notifications, backup",
-            "ForkExtras.HubChatList": "Chat list and folders",
+            "ForkExtras.HubChatList": "Chat List and Folders",
             "ForkExtras.HubChatListLabel": "List, folders",
-            "ForkExtras.HubTabBar": "Tab bar",
+            "ForkExtras.HubTabBar": "Tab Bar",
             "ForkExtras.HubTabBarLabel": "Tabs, search",
-            "ForkExtras.HubMessages": "Messages and composer",
+            "ForkExtras.HubMessages": "Messages and Composer",
             "ForkExtras.HubMessagesLabel": "Bubbles, sending, translation",
-            "ForkExtras.HubMedia": "Calls and audio",
+            "ForkExtras.HubMedia": "Calls and Audio",
             "ForkExtras.HubMediaLabel": "Calls, voice, music",
-            "ForkExtras.HubProfile": "Profile and effects",
+            "ForkExtras.HubProfile": "Profile and Effects",
             "ForkExtras.HubProfileLabel": "Profile details, glow, Premium",
             "ForkExtras.HubNetwork": "Network",
             "ForkExtras.HubNetworkLabel": "Proxy, downloads, background connection",
@@ -1136,11 +1136,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
                 arguments.updateScrollToNextChatDisabled(!value)
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .deletedMessageMark(value):
-            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: ForkExtrasLocalizedString.deletedMessageMark), text: value, placeholder: "🧹", type: .regular(capitalization: false, autocorrection: false), clearType: .always, maxLength: 8, sectionId: self.section, textUpdated: { value in
+            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: ForkExtrasLocalizedString.deletedMessageMark, textColor: presentationData.theme.list.itemPrimaryTextColor), text: value, placeholder: "🧹", type: .regular(capitalization: false, autocorrection: false), spacing: 10.0, clearType: .always, maxLength: 8, sectionId: self.section, textUpdated: { value in
                 arguments.updateDeletedMessageMark(value)
             }, action: {})
         case let .editedMessageMark(value):
-            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: ForkExtrasLocalizedString.editedMessageMark), text: value, placeholder: "", type: .regular(capitalization: false, autocorrection: false), clearType: .always, maxLength: 8, sectionId: self.section, textUpdated: { value in
+            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: ForkExtrasLocalizedString.editedMessageMark, textColor: presentationData.theme.list.itemPrimaryTextColor), text: value, placeholder: "", type: .regular(capitalization: false, autocorrection: false), spacing: 10.0, clearType: .always, maxLength: 8, sectionId: self.section, textUpdated: { value in
                 arguments.updateEditedMessageMark(value)
             }, action: {})
         case .exportMessageSavingDatabase:

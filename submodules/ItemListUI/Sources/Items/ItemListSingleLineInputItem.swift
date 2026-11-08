@@ -275,6 +275,10 @@ public class ItemListSingleLineInputItemNode: ListViewItemNode, UITextFieldDeleg
                 titleString.removeAttribute(NSAttributedString.Key.font, range: NSMakeRange(0, titleString.length))
             }
             titleString.addAttributes([NSAttributedString.Key.font: Font.regular(item.presentationData.fontSize.itemListBaseFontSize)], range: NSMakeRange(0, titleString.length))
+            // A title passed without a colour would be drawn black, unreadable in a dark theme.
+            if titleString.length != 0, titleString.attribute(NSAttributedString.Key.foregroundColor, at: 0, effectiveRange: nil) == nil {
+                titleString.addAttribute(NSAttributedString.Key.foregroundColor, value: item.presentationData.theme.list.itemPrimaryTextColor, range: NSMakeRange(0, titleString.length))
+            }
             
             let titleArguments = TextNodeLayoutArguments(attributedString: titleString, backgroundColor: nil, maximumNumberOfLines: 0, truncationType: .end, constrainedSize: CGSize(width: titleWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets())
             
