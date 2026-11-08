@@ -62,6 +62,7 @@ swift_library(
         "//submodules/TelegramUI/Components/GlassControls",
         "//submodules/UIKitRuntimeUtils",
         "//submodules/TelegramUI/Components/AuthConfirmationScreen",
+        "//submodules/WalletContext",
     ],
     visibility = [
         "//visibility:public",
