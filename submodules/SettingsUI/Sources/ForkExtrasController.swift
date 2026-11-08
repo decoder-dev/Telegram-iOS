@@ -1765,7 +1765,15 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
     var presentControllerImpl: ((ViewController) -> Void)?
     var pushControllerImpl: ((ViewController) -> Void)?
 
-    func presentPicker(title: String, options: [(String, () -> Void)], destructiveTitles: Set<String> = []) {
+    /// With `selected` (the current value's title) a setting's value is chosen on a list with a checkmark, pushed like
+    /// iOS Settings does it (Apple HIG: action sheets are for actions). Without it, the options are actions in a sheet.
+    func presentPicker(title: String, options: [(String, () -> Void)], destructiveTitles: Set<String> = [], selected: String? = nil) {
+        if let selected {
+            pushControllerImpl?(forkChoiceController(context: context, title: title, options: options.map { $0.0 }, selectedIndex: options.firstIndex(where: { $0.0 == selected }), select: { index in
+                options[index].1()
+            }))
+            return
+        }
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         let actionSheet = ActionSheetController(presentationData: presentationData)
         var items: [ActionSheetItem] = [ActionSheetTextItem(title: title)]
@@ -1813,7 +1821,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                         return updated
                     }.start())
                 })
-            })
+            }, selected: "\(context.sharedContext.immediateForkExtrasSettings.accentColorSaturation)%")
         },
         openTranslationBackend: {
             var options: [(String, () -> Void)] = [
@@ -1835,7 +1843,8 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                     }.start())
                 }))
             }
-            presentPicker(title: ForkExtrasLocalizedString.translationBackend, options: options)
+            let translationBackend = context.sharedContext.immediateForkExtrasSettings.translationBackend == .system ? ForkExtrasLocalizedString.backendSystem : ForkExtrasLocalizedString.backendDefault
+            presentPicker(title: ForkExtrasLocalizedString.translationBackend, options: options, selected: translationBackend)
         },
         openTranscriptionBackend: {
             presentPicker(title: ForkExtrasLocalizedString.transcriptionBackend, options: [
@@ -1853,7 +1862,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                         return updated
                     }.start())
                 })
-            ])
+            ], selected: context.sharedContext.immediateForkExtrasSettings.transcriptionBackend == .apple ? ForkExtrasLocalizedString.backendApple : ForkExtrasLocalizedString.backendDefault)
         },
         updateScrollToNextChatDisabled: { value in
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
@@ -2025,7 +2034,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                         return updated
                     }.start())
                 })
-            })
+            }, selected: "\(context.sharedContext.immediateForkExtrasSettings.stickerSizePercent)%")
         },
         openOutgoingPhotoQuality: {
             presentPicker(title: ForkExtrasLocalizedString.outgoingPhotoQuality, options: [
@@ -2050,7 +2059,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                         return updated
                     }.start())
                 }),
-            ])
+            ], selected: [ForkExtrasLocalizedString.outgoingPhotoQualityDefault, ForkExtrasLocalizedString.outgoingPhotoQualityBetter, ForkExtrasLocalizedString.outgoingPhotoQualityMax][Int(max(0, min(2, context.sharedContext.immediateForkExtrasSettings.outgoingPhotoQuality)))])
         },
         openIntChoice: { id in
             let russian = ForkPresentationLanguage.prefersRussianStrings
@@ -2065,7 +2074,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                             return updated
                         }.start())
                     })
-                })
+                }, selected: forkLocalVerificationOptions(russian: russian).first(where: { $0.1 == (context.sharedContext.immediateForkExtrasSettings.localVerificationBadges[context.account.id.int64] ?? 0) })?.0)
                 return
             }
             if id == 1981 {
@@ -2079,7 +2088,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                             return updated
                         }.start())
                     })
-                })
+                }, selected: forkVisualLabelOptions(russian: russian).first(where: { $0.1 == (context.sharedContext.immediateForkExtrasSettings.visualLabels[context.account.peerId.toInt64()] ?? 0) })?.0)
                 return
             }
             let title: String
@@ -2133,7 +2142,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                         return updated
                     }.start())
                 })
-            })
+            }, selected: options.first(where: { $0.1 == context.sharedContext.immediateForkExtrasSettings[keyPath: keyPath] })?.0 ?? "")
         }
     )
 

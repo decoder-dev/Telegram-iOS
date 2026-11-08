@@ -91,5 +91,18 @@ class ExtrasDensity(unittest.TestCase):
                 self.assertLessEqual(len(value), 170)
 
 
+    def test_values_are_chosen_on_a_list_not_an_action_sheet(self):
+        text = source()
+        helper = text.split('    func presentPicker(', 1)[1].split('let presentationData = context.sharedContext.currentPresentationData.with { $0 }', 1)[0]
+        self.assertIn('selected: String? = nil', helper)
+        self.assertIn('pushControllerImpl?(forkChoiceController(context: context, title: title, options: options.map { $0.0 }, selectedIndex:', helper)
+        # Every value picker passes the current value: accent saturation, both backends, sticker size, photo quality,
+        # local badge, visual label and the generic numeric choices.
+        self.assertEqual(text.count('selected: '), 9)
+        choice = (ROOT / 'submodules/SettingsUI/Sources/ForkChoiceController.swift').read_text(encoding='utf-8')
+        self.assertIn('ItemListCheckboxItem(presentationData: presentationData, systemStyle: .glass, title: title, style: .right, checked: checked', choice)
+        self.assertIn('select(index)\n        popImpl?()', choice)
+
+
 if __name__ == '__main__':
     unittest.main()
