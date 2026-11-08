@@ -9,8 +9,9 @@ public final class LiquidMorphTransition {
         return LTTransitionDriver.visibilityAssertion(for: view) as AnyObject?
     }
 
+    /// Off with Reduce Motion (Apple HIG): the context menu then takes the stock presentation instead of the morph.
     public static var isSupported: Bool {
-        return LTTransitionDriver.isSupported()
+        return LTTransitionDriver.isSupported() && !UIAccessibility.isReduceMotionEnabled
     }
 
     public static func sourcePreview(for view: UIView, parameters: UIPreviewParameters, usePresentationTransform: Bool = false) -> UITargetedPreview? {
