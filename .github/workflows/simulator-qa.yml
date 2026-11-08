@@ -189,12 +189,14 @@ jobs:
           xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test
           sleep 8
           xcrun simctl io "$UDID" screenshot qa-artifacts/welcome-light.png
-          xcrun simctl terminate "$UDID" "$BUNDLE_ID"
+          # An app that is already gone was not terminated: it exited on its own (a crash; QA run 32 lost the whole run to
+          # this on the second launch). Note it, keep going, and let the crash report step below collect the evidence.
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || { echo "::warning::the app exited before the first-launch screenshot was done (light)"; echo "light first launch" >> qa-artifacts/launch-exits.txt; }
           xcrun simctl ui "$UDID" appearance dark
           xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test
           sleep 8
           xcrun simctl io "$UDID" screenshot qa-artifacts/welcome-dark.png
-          xcrun simctl terminate "$UDID" "$BUNDLE_ID"
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || { echo "::warning::the app exited before the first-launch screenshot was done (dark)"; echo "dark first launch" >> qa-artifacts/launch-exits.txt; }
           xcrun simctl io "$UDID" recordVideo --codec h264 --force qa-artifacts/first-launch.mp4 &
           VIDEO_PID=$!
           sleep 2
@@ -400,6 +402,16 @@ jobs:
             ${{ env.BAZEL_CACHE_DIR }}
             ${{ env.BAZEL_REPO_CACHE }}
           key: bazel-warm-simulator-${{ inputs.toolchain }}-${{ hashFiles('versions.json', 'MODULE.bazel', 'MODULE.bazel.lock') }}-${{ github.run_id }}
+
+      - name: Collect crash reports
+        if: always()
+        run: |
+          # The simulator's crash reports land in the host's DiagnosticReports; the app's own log names the last stage.
+          mkdir -p qa-artifacts/crash-reports qa-artifacts/app-logs
+          find "$HOME/Library/Logs/DiagnosticReports" -maxdepth 2 \( -name 'Telegram*' -o -name '*Telegraph*' \) -newer qa-artifacts/environment.txt -exec cp {} qa-artifacts/crash-reports/ \; 2>/dev/null || true
+          find "$HOME/Library/Developer/CoreSimulator/Devices" -path '*telegram-ui-tests-data*' -name '*.txt' -newer qa-artifacts/environment.txt -exec cp {} qa-artifacts/app-logs/ \; 2>/dev/null || true
+          ls -la qa-artifacts/crash-reports | tail -5
+          if [ -s qa-artifacts/launch-exits.txt ]; then echo "::warning::launches that exited on their own: $(tr '\n' ';' < qa-artifacts/launch-exits.txt)"; fi
 
       - name: Upload simulator QA evidence
         if: always()
