@@ -50,9 +50,13 @@ private func makeBananaGramTheme(dark: Bool, halloween: Bool = false) -> Present
     let separator = UIColor(rgb: halloween ? 0x3A3049 : dark ? 0x3A3733 : 0xE6DDCC)
     let title = halloween ? "BananaGram Halloween" : dark ? "BananaGram Graphite" : "BananaGram Cream"
     
-    // Outgoing bubbles: soft banana cream with dark-gold details by day, deep olive gold with white text by night.
-    let outgoingBubbleColors: [UInt32] = halloween ? [0x543326, 0x432A25] : dark ? [0x5E5236, 0x4A4029] : [0xFCF2DC, 0xF8EBCB]
-    let outgoingAccent: UIColor? = dark ? nil : UIColor(rgb: 0x85591A)
+    // Outgoing bubbles: banana yellow with dark-gold details by day, deep olive gold with white text by night. The day
+    // bubble used to be cream (0xFCF2DC to 0xF8EBCB) on a cream wallpaper (0xFAF1DC to 0xF0E2C2): about 1:1, so one's own
+    // messages read as bare text on the wallpaper (QA run 30, colour difference dE about 1). Luminance cannot separate them
+    // (secondary text needs the bubble light), so hue does: a banana yellow about dE 20 from every wallpaper colour, plus a
+    // thin dark-gold edge below. Text 9.6:1, secondary 4.5:1, time, checks and links 6.7:1.
+    let outgoingBubbleColors: [UInt32] = halloween ? [0x543326, 0x432A25] : dark ? [0x5E5236, 0x4A4029] : [0xFAE6A0, 0xF8E39C]
+    let outgoingAccent: UIColor? = dark ? nil : UIColor(rgb: 0x6A4510)
     // Branded pattern wallpaper. Negative intensity draws the colours through the pattern on a dark base.
     let wallpaper = defaultBuiltinWallpaper(
         data: halloween ? .halloween : .default,
@@ -137,9 +141,15 @@ private func makeBananaGramTheme(dark: Bool, halloween: Bool = false) -> Present
         buttonHighlightedFillColor: highlighted,
         buttonTextColor: foreground
     )
+    // Cream: a thin dark-gold edge keeps the outgoing bubble apart from the lightest parts of the pattern wallpaper.
+    let outgoing = theme.chat.message.outgoing
+    let outgoingBubble = dark ? outgoing.bubble : outgoing.bubble.withUpdated(
+        withWallpaper: outgoing.bubble.withWallpaper.withUpdated(stroke: accent.withAlphaComponent(0.28))
+    )
     let chat = theme.chat.withUpdated(
         message: theme.chat.message.withUpdated(
             incoming: incoming.withUpdated(bubble: incomingBubble, primaryTextColor: foreground, secondaryTextColor: secondary, linkTextColor: accent, linkHighlightColor: accent.withAlphaComponent(0.3)),
+            outgoing: outgoing.withUpdated(bubble: outgoingBubble),
             infoLinkTextColor: accent
         ),
         inputPanel: inputPanel,
