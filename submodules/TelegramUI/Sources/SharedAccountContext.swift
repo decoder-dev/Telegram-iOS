@@ -1391,6 +1391,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         )
         hotFlags.parallelDownloads = settings.parallelDownloads
         hotFlags.hideAIButton = settings.hideAIButton
+        ForkAIFeaturesSettings.hidden = settings.hideAIButton
         hotFlags.hideRichTextEditor = settings.hideRichTextEditor
         ForkExtrasHotFlags.update(hotFlags)
         ForkRegexMessageFilters.apply(

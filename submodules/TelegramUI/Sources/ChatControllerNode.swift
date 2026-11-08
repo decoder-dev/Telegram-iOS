@@ -4974,6 +4974,9 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
     }
 
     func openAICompose() {
+        guard !ForkAIFeaturesSettings.hidden else {
+            return
+        }
         Task { @MainActor [weak self] in
             guard let self else {
                 return

@@ -26,6 +26,22 @@ public enum ForkStoryCreationSettings {
 /// WhiteGram "channel post reactions" turned off: reactions are not drawn under posts in broadcast
 /// channels. Groups and private chats keep them; `ForkExtrasHotFlags.hideReactionsBar` is the switch
 /// that hides them everywhere.
+/// "Hide AI features" (Extras > Messages > Input panel; Donutgram 9b62a5089c): besides the AI buttons of the composers,
+/// message summaries are not offered or shown, and Copy takes the original text. Read by the bubble nodes at layout time.
+public enum ForkAIFeaturesSettings {
+    private static let persistedKey = "ForkAIFeaturesSettings.hidden.v1"
+    private static let value = Atomic<Bool>(value: UserDefaults.standard.bool(forKey: persistedKey))
+    public static var hidden: Bool {
+        get { return value.with { $0 } }
+        set {
+            let previous = value.swap(newValue)
+            if previous != newValue {
+                UserDefaults.standard.set(newValue, forKey: persistedKey)
+            }
+        }
+    }
+}
+
 public enum ForkChannelPostReactionsSettings {
     private static let persistedKey = "ForkChannelPostReactionsSettings.hidden.v1"
     private static let value = Atomic<Bool>(value: UserDefaults.standard.bool(forKey: persistedKey))

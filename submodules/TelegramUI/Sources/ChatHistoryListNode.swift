@@ -2171,6 +2171,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var glassBubbles: [Int32]
             // Regram port: message id in the status line, spoilers shown without a tap.
             var regramChat: [Bool]
+            // "Hide AI features": the bubbles drop the summary button and any open summary.
+            var hidesAIFeatures: Bool
         }
         let messageFilterSettings: Signal<MessageFilterSettingsFingerprint, NoError> = forkExtrasSettings(accountManager: context.sharedContext.accountManager)
         |> map { settings -> MessageFilterSettingsFingerprint in
@@ -2179,6 +2181,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             ForkChannelPostReactionsSettings.hidden = settings.hideChannelPostReactions
             // Read when the entries are built; project it before the history re-emits.
             ForkServiceMessageSettings.hidden = settings.hideServiceMessages
+            // Summaries are read by the bubble nodes at layout time; project it before the history re-emits.
+            ForkAIFeaturesSettings.hidden = settings.hideAIButton
             // The sticker nodes read the shape at layout time; project it before the history re-emits.
             var mediaTweaks = BananaMediaTweaks.current
             mediaTweaks.stickerShape = settings.stickerShape
@@ -2210,7 +2214,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 stickerShape: settings.stickerShape,
                 chatAppearance: [settings.disableColoredReplies, settings.hideStickerChecks, settings.mentionAvatars, settings.hideShareButton],
                 glassBubbles: [settings.glassBubbles ? 1 : 0, settings.glassBubbleTint, settings.glassBubbleRimTop, settings.glassBubbleRimSides, settings.glassBubbleRimBottom],
-                regramChat: [settings.showMessageId, settings.autoRevealSpoilers]
+                regramChat: [settings.showMessageId, settings.autoRevealSpoilers],
+                hidesAIFeatures: settings.hideAIButton
             )
         }
         |> distinctUntilChanged

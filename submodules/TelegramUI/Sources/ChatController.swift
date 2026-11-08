@@ -777,6 +777,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         |> distinctUntilChanged
         |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
             guard let self, self.isNodeLoaded else { return }
+            // "Hide AI features" also drops the summaries opened in this chat, so Copy and the bubbles show the original.
+            if ForkExtrasHotFlags.current.hideAIButton {
+                self.controllerInteraction?.summarizedMessageIds.removeAll()
+            }
             self.updateChatPresentationInterfaceState(transition: .immediate, interactive: false, force: true, { $0 })
         })
         

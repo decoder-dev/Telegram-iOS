@@ -416,7 +416,7 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                     
                     let translateToLanguage = item.associatedData.translateToLanguage
                     var isSummarized = false
-                    if item.controllerInteraction.summarizedMessageIds.contains(item.message.id) {
+                    if !ForkAIFeaturesSettings.hidden && item.controllerInteraction.summarizedMessageIds.contains(item.message.id) {
                         isSummarized = true
                     }
                     

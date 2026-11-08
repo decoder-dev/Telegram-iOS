@@ -1928,7 +1928,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 needsShareButton = true
             }
             
-            if let _ = item.message.attributes.first(where: { $0 is SummarizationMessageAttribute }) {
+            if !ForkAIFeaturesSettings.hidden, let _ = item.message.attributes.first(where: { $0 is SummarizationMessageAttribute }) {
                 needsSummarizeButton = true
             }
             
@@ -2549,7 +2549,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         
         let translateToLanguage = item.associatedData.translateToLanguage
         var isSummarized = false
-        if item.controllerInteraction.summarizedMessageIds.contains(item.message.id) {
+        if !ForkAIFeaturesSettings.hidden && item.controllerInteraction.summarizedMessageIds.contains(item.message.id) {
             for attribute in item.message.attributes {
                 if let attribute = attribute as? SummarizationMessageAttribute, attribute.summaryForLang(translateToLanguage) != nil {
                     initialDisplayHeader = true
@@ -6086,7 +6086,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                     }
                 } else if let replyInfoNode = self.replyInfoNode, self.item?.controllerInteraction.tapMessage == nil, replyInfoNode.frame.contains(location) {
                     if let item = self.item {
-                        if item.controllerInteraction.summarizedMessageIds.contains(item.message.id) {
+                        if !ForkAIFeaturesSettings.hidden && item.controllerInteraction.summarizedMessageIds.contains(item.message.id) {
                             return .action(InternalBubbleTapAction.Action({ [weak self] in
                                 guard let self else {
                                     return

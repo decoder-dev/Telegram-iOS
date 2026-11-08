@@ -1462,11 +1462,11 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1511, russian ? "Отправлять без превью ссылок" : "Send without link previews", settings.removeLinkPreviews, \.removeLinkPreviews),
             .appearanceToggle(1520, russian ? "Запрещённые GIF как видео" : "Send banned GIFs as video", settings.sendBannedGifsAsVideo, \.sendBannedGifsAsVideo),
             .designHeader(1850, russian ? "Панель ввода" : "Input panel"),
-            .appearanceToggle(2101, russian ? "Скрыть кнопку AI" : "Hide AI button", settings.hideAIButton, \.hideAIButton),
+            .appearanceToggle(2101, russian ? "Скрыть функции ИИ" : "Hide AI features", settings.hideAIButton, \.hideAIButton),
             .appearanceToggle(2102, russian ? "Скрыть разворачивание редактора" : "Hide expanded editor", settings.hideRichTextEditor, \.hideRichTextEditor),
             .intChoice(1851, russian ? "Формат по умолчанию" : "Default formatting", forkIntChoiceLabel(forkSendFormattingOptions(russian: russian), settings.defaultSendFormatting)),
             .appearanceToggle(1852, russian ? "Упоминание долгим нажатием на аватар" : "Mention by long-pressing an avatar", settings.avatarLongPressMention, \.avatarLongPressMention),
-            .designFooter(1853, russian ? "Формат по умолчанию применяется к обычному тексту, ваше форматирование не меняется. Долгое нажатие на аватар в чате вставляет упоминание." : "The default format applies to plain text you send; your own formatting stays as it is. Long-press an avatar in a chat to mention that person."),
+            .designFooter(1853, russian ? "«Скрыть функции ИИ» убирает кнопки ИИ и краткие пересказы сообщений; копируется исходный текст. Формат по умолчанию применяется к обычному тексту, ваше форматирование не меняется. Долгое нажатие на аватар в чате вставляет упоминание." : "Hide AI features removes the AI buttons and message summaries; Copy takes the original text. The default format applies to plain text you send; your own formatting stays as it is. Long-press an avatar in a chat to mention that person."),
         ]
     case .messageActions:
         entries = [
