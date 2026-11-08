@@ -956,7 +956,7 @@ index b067cf5..3f3283a 100644
          }
      }
      
--    _relayPortFactory.reset(new ReflectorRelayPortFactory(_rtcServers, standaloneReflectorMode, standaloneReflectorRoleId, _underlyingSocketFactory, getCustomParameterBool(_customParameters, "network_reflector_resolve_remote_candidate_ip")));
+-    _relayPortFactory.reset(new ReflectorRelayPortFactory(_rtcServers, standaloneReflectorMode, standaloneReflectorRoleId, _underlyingSocketFactory, getCustomParameterBoolDefaultTrue(_customParameters, "network_reflector_resolve_remote_candidate_ip")));
 +    auto rtcServers = _rtcServers;
 +    const auto managedRoute = _proxy && _proxy->managed;
 +    auto managedProxyIsValid = false;
@@ -972,7 +972,7 @@ index b067cf5..3f3283a 100644
 +        _managedRouteIsValid = true;
 +    }
 +
-+    _relayPortFactory.reset(new ReflectorRelayPortFactory(rtcServers, standaloneReflectorMode, standaloneReflectorRoleId, _underlyingSocketFactory, getCustomParameterBool(_customParameters, "network_reflector_resolve_remote_candidate_ip")));
++    _relayPortFactory.reset(new ReflectorRelayPortFactory(rtcServers, standaloneReflectorMode, standaloneReflectorRoleId, _underlyingSocketFactory, getCustomParameterBoolDefaultTrue(_customParameters, "network_reflector_resolve_remote_candidate_ip")));
  
      _portAllocator.reset(new cricket::BasicPortAllocator(_networkManager.get(), _socketFactory.get(), _turnCustomizer.get(), _relayPortFactory.get()));
  
