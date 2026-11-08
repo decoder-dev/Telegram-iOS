@@ -36,6 +36,7 @@
 - Privacy and Security: while loading, the Bio row no longer reads "Groups" and the invites row has its usual title.
 - Extras › More Profile Settings: the custom number no longer runs into its "Number" label; "Accent Saturation" fits on one line.
 - Protected Archive: the fixed archive policy reads "Stay in Archive — Always" instead of repeating "Always".
+- Compact Chat List: the row is centred (it had an empty band under the text), the Archived Chats row is compact too, the unread badge sits on the line of text, and a draft or folder tags no longer spill onto the next row. Compact Message Preview alone gets the same one-line row.
 
 ## [v13.1.2-4505]
 

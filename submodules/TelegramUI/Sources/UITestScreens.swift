@@ -40,6 +40,21 @@ func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext
             }).startStandalone()
         }
     }
+    // `--ui-test-compact <list|preview|all>`: Extras › Compact Chat List and/or Compact Message Preview for this launch.
+    // The data is kept between launches, so a launch without it turns both off again.
+    var compactList = false
+    var compactPreview = false
+    if let compactIndex = arguments.firstIndex(of: "--ui-test-compact"), compactIndex + 1 < arguments.count {
+        let value = arguments[compactIndex + 1]
+        compactList = value == "list" || value == "all"
+        compactPreview = value == "preview" || value == "all"
+    }
+    let _ = updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager, { settings in
+        var settings = settings
+        settings.compactChatList = compactList
+        settings.compactMessagePreview = compactPreview
+        return settings
+    }).startStandalone()
     Queue.mainQueue().after(3.0) {
         // `url:<tg link>` opens one of the app's own links in place (`simctl openurl` stops at a system confirmation).
         if screen.hasPrefix("url:"), let url = URL(string: String(screen.dropFirst(4))) {

@@ -2531,6 +2531,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             let hotFlags = ForkExtrasHotFlags.current
             let compactChatList = hotFlags.compactChatList
             let compactMessagePreview = hotFlags.compactMessagePreview
+            // Either compact setting gives a row one line of text under the title: an author, a draft, a forum topic or
+            // a folder tag, which would each take a line of their own, go in front of the text or are left out.
+            let singleLinePreview = compactChatList || compactMessagePreview
 
             let titleFont = Font.semibold(item.presentationData.fontSize.itemListBaseFontSize)
             let textFont = Font.regular(floor(item.presentationData.fontSize.itemListBaseFontSize * 15.0 / 17.0))
@@ -2612,7 +2615,8 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     let forumTopicDataValue = peerData.forumTopicData
                     let topForumTopicItemsValue = peerData.topForumTopicItems
                     
-                    itemTags = peerData.tags
+                    // A folder tag is drawn on a line below the text, which a one-line row does not have.
+                    itemTags = singleLinePreview ? [] : peerData.tags
                 
                     autoremoveTimeout = peerData.autoremoveTimeout
                 
@@ -2914,7 +2918,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 useInlineAuthorPrefix = true
             }
             // A compact row has one line of text, so the author goes in front of it instead of on a line of its own.
-            if compactChatList {
+            if singleLinePreview {
                 useInlineAuthorPrefix = true
             }
             if !itemTags.isEmpty {
@@ -3093,11 +3097,19 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         case .video:
                             attributedText = NSAttributedString(string: item.presentationData.strings.Message_VideoMessage, font: textFont, textColor: theme.messageTextColor)
                         }
+                        if singleLinePreview {
+                            // "Draft: Voice Message" on the row's one line.
+                            let attributedTextWithDraft = NSMutableAttributedString()
+                            attributedTextWithDraft.append(NSAttributedString(string: item.presentationData.strings.DialogList_Draft + ": ", font: textFont, textColor: theme.messageDraftTextColor))
+                            attributedTextWithDraft.append(attributedText)
+                            attributedText = attributedTextWithDraft
+                            authorAttributedString = nil
+                        }
                     } else if inlineAuthorPrefix == nil, let draftState = draftState {
                         hasDraft = true
                         let draftText = stringWithAppliedEntities(draftState.text, entities: draftState.entities, baseColor: theme.messageTextColor, linkColor: theme.messageTextColor, baseFont: textFont, linkFont: textFont, boldFont: textFont, italicFont: textFont, boldItalicFont: textFont, fixedFont: textFont, blockQuoteFont: textFont, message: nil)
                         
-                        if !itemTags.isEmpty {
+                        if !itemTags.isEmpty || singleLinePreview {
                             let tempAttributedText = foldLineBreaks(draftText)
                             let attributedTextWithDraft = NSMutableAttributedString()
                             attributedTextWithDraft.append(NSAttributedString(string: item.presentationData.strings.DialogList_Draft + ": ", font: textFont, textColor: theme.messageDraftTextColor))
@@ -4001,7 +4013,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             }
             badgeSize = max(badgeSize, reorderInset)
             
-            if !itemTags.isEmpty || (compactChatList && !hasDraft) {
+            if !itemTags.isEmpty || singleLinePreview {
                 authorAttributedString = nil
             }
             
@@ -4078,7 +4090,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
 
             // A compact row has a single line of text under the title. The topic (or community source) line of a forum,
             // which would be drawn as a second line and clipped by the row, goes in front of the message instead.
-            if compactChatList, !forumThreads.isEmpty {
+            if singleLinePreview, !forumThreads.isEmpty {
                 if let textAttributedStringValue = textAttributedString {
                     let mutableTextAttributedString = NSMutableAttributedString()
                     mutableTextAttributedString.append(NSAttributedString(string: forumThreads[0].title.string + ": ", font: textFont, textColor: theme.authorNameColor))
@@ -4372,19 +4384,38 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 itemHeight += titleSpacing
                 itemHeight += authorSpacing
             }
-            if compactChatList, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
-                // One line of title and one of text, with the padding of the regular row.
-                itemHeight = titleLayout.size.height + measureLayout.size.height + titleSpacing + 21.0 - 3.0
+            let contentTopInset = floor(item.presentationData.fontSize.itemListBaseFontSize * 8.0 / 17.0)
+            // The visible title and one line of text (the text node's 2 pt inset overlaps the title's last 2 pt).
+            let singleLineContentHeight = titleLayout.size.height + ceil(textFont.lineHeight)
+            var isSingleLineRow = false
+            if singleLinePreview {
+                if case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
+                    isSingleLineRow = true
+                } else if case .groupReference = item.content {
+                    isSingleLineRow = true
+                }
+            }
+            if isSingleLineRow {
+                // The same padding above and below the text. Compact Chat List: the row is as tall as that, its smaller
+                // avatar fits; Compact Message Preview alone keeps the regular avatar, with a little less padding.
+                itemHeight = singleLineContentHeight + contentTopInset * 2.0
+                if !compactChatList {
+                    itemHeight = max(itemHeight, avatarDiameter + 10.0 * 2.0)
+                }
             }
             itemHeight = max(itemHeight, PresentationLayoutMetrics.minimumInteractiveSize)
             itemHeight = max(itemHeight, avatarDiameter + 8.0)
-            if !compactChatList, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
+            if !isSingleLineRow, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
                 itemHeight = max(itemHeight, avatarDiameter + PresentationLayoutMetrics.chatListRowVerticalInset * 2.0)
-            } else if !compactChatList, case .groupReference = item.content {
+            } else if !isSingleLineRow, case .groupReference = item.content {
                 itemHeight = max(itemHeight, avatarDiameter + PresentationLayoutMetrics.chatListRowVerticalInset * 2.0)
             }
+            // A one-line row is centred in its height, like the avatar next to it.
+            let contentVerticalOffset: CGFloat = isSingleLineRow ? max(0.0, floor((itemHeight - singleLineContentHeight) / 2.0) - contentTopInset) : 0.0
                         
-            let rawContentRect = CGRect(origin: CGPoint(x: 2.0, y: layoutOffset + floor(item.presentationData.fontSize.itemListBaseFontSize * 8.0 / 17.0)), size: CGSize(width: rawContentWidth, height: itemHeight - 12.0 - 9.0))
+            let rawContentRect = CGRect(origin: CGPoint(x: 2.0, y: layoutOffset + contentTopInset + contentVerticalOffset), size: CGSize(width: rawContentWidth, height: itemHeight - 12.0 - 9.0))
+            // The unread badge of a one-line row is centred on its line of text.
+            let singleLineAccessoryOffset: CGFloat = floorToScreenPixels(rawContentRect.minY + titleLayout.size.height + ceil(textFont.lineHeight) / 2.0 + badgeDiameter / 2.0 - rawContentRect.maxY)
             
             let insets = ChatListItemNode.insets(first: first, last: last, firstWithHeader: firstWithHeader, useHigCardInsets: higChatListCardInset > 0.0)
             var heightOffset: CGFloat = 0.0
@@ -4955,8 +4986,8 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     strongSelf.statusNode.fontSize = item.presentationData.fontSize.itemListBaseFontSize
                     let _ = strongSelf.statusNode.transitionToState(statusState, animated: animateContent)
                     
-                    // The compact row is shorter, so the badge sits below the date instead of overlapping it.
-                    let rightAccessoryVerticalOffset: CGFloat = compactChatList ? 2.0 : floorToScreenPixels(-4.0 * min(1.0, item.presentationData.fontSize.itemListBaseFontSize / 17.0))
+                    // A one-line row has its badge on the line of text, below the date instead of overlapping it.
+                    let rightAccessoryVerticalOffset: CGFloat = isSingleLineRow ? singleLineAccessoryOffset : floorToScreenPixels(-4.0 * min(1.0, item.presentationData.fontSize.itemListBaseFontSize / 17.0))
                     var nextBadgeX: CGFloat = contentRect.maxX
                     if let _ = currentBadgeBackgroundImage {
                         let badgeFrame = CGRect(x: nextBadgeX - badgeLayout.width, y: contentRect.maxY - badgeLayout.height + rightAccessoryVerticalOffset, width: badgeLayout.width, height: badgeLayout.height)

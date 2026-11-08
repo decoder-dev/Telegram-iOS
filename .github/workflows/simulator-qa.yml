@@ -280,9 +280,9 @@ jobs:
             name="$(echo "$target" | sed -E 's#^url:##; s#^tg://##; s#[^A-Za-z0-9]+#-#g; s#-+$##')"
             [ -f "qa-artifacts/screens/$appearance-$name.png" ] && return 0
             if [ -n "$language" ]; then
-              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme "$theme" --ui-test-language "$language" --ui-test-screen "$target" > /dev/null
+              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme "$theme" --ui-test-language "$language" --ui-test-screen "$target" ${QA_ARGS:-} > /dev/null
             else
-              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme "$theme" --ui-test-screen "$target" > /dev/null
+              xcrun simctl launch "$UDID" "$BUNDLE_ID" --ui-test --ui-test-keep-data --ui-test-theme "$theme" --ui-test-screen "$target" ${QA_ARGS:-} > /dev/null
             fi
             sleep 12
             xcrun simctl io "$UDID" screenshot "qa-artifacts/screens/$appearance-$name.png" > /dev/null 2>&1 || echo "screenshot failed: $appearance-$name"
@@ -303,6 +303,21 @@ jobs:
           done
           xcrun simctl ui "$UDID" appearance dark
           for target in chats saved chat:user:1001 extras banana-security; do capture dark night "$target"; done
+          # Extras › Compact Chat List ("compact-") and Compact Message Preview ("compact-preview-"): one line of text per
+          # row, centred, the badge on that line; also in dark, cream and at the largest text size.
+          QA_ARGS="--ui-test-compact list"
+          capture compact-dark night chats
+          xcrun simctl ui "$UDID" appearance light
+          for target in chats archive; do capture compact day "$target"; done
+          capture compact-cream cream chats
+          xcrun simctl ui "$UDID" content_size accessibility-extra-extra-extra-large || true
+          capture compact-xl day chats
+          xcrun simctl ui "$UDID" content_size large || true
+          QA_ARGS="--ui-test-compact preview"
+          capture compact-preview day chats
+          QA_ARGS="--ui-test-compact all"
+          capture compact-all day chats
+          QA_ARGS=""
           mkdir -p qa-artifacts/app-logs
           find "$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data/Containers/Shared/AppGroup" -path '*telegram-ui-tests-data*' -name '*.txt' -exec cp {} qa-artifacts/app-logs/ \; 2>/dev/null || true
           ls qa-artifacts/screens | wc -l
