@@ -36,7 +36,7 @@
 - Privacy and Security: while loading, the Bio row no longer reads "Groups" and the invites row has its usual title.
 - Extras › More Profile Settings: the custom number no longer runs into its "Number" label; "Accent Saturation" fits on one line.
 - Protected Archive: the fixed archive policy reads "Stay in Archive — Always" instead of repeating "Always".
-- Compact Chat List: the row is centred (it had an empty band under the text), the Archived Chats row is compact too, the unread badge sits on the line of text, and a draft or folder tags no longer spill onto the next row. Compact Message Preview alone gets the same one-line row.
+- Compact Chat List: the row is centred (it had an empty band under the text), the Archived Chats row is compact too, the unread badge sits on the line of text, and a draft or folder tags no longer spill onto the next row. Compact Message Preview alone gets the same one-line row. No "You:" in front of your own message in a one-to-one chat, and a group's draft shows in a compact row.
 - Text fields in settings: a title passed without a colour (Deleted/Edited Message Mark, Number) was black on a dark theme; the title also no longer runs into the text.
 - Appearance › themes: the selected theme has a checkmark, without a disclosure arrow on rows that open nothing.
 - Title Case for the remaining Extras names (Messages and Composer, Calls and Audio, Tab Bar, Avatar Glow, …); "Use System Text Size" and "Wi-Fi" spelled correctly.

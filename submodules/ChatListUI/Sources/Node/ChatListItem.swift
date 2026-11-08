@@ -2943,8 +2943,16 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             
             if useInlineAuthorPrefix && !isLastMessageFiltered {
                 if case let .user(author) = messages.last?.author {
+                    // A one-to-one chat shows no author for your own message (the regular row doesn't either); the
+                    // archive row, which mixes chats, and groups do.
+                    var isOneToOne = messages.last?.id.peerId.namespace == Namespaces.Peer.CloudUser || messages.last?.id.peerId.namespace == Namespaces.Peer.SecretChat
+                    if case .groupReference = item.content {
+                        isOneToOne = false
+                    }
                     if author.id == item.context.account.peerId {
-                        inlineAuthorPrefix = item.presentationData.strings.DialogList_You
+                        if !(singleLinePreview && isOneToOne) {
+                            inlineAuthorPrefix = item.presentationData.strings.DialogList_You
+                        }
                     } else if messages.last?.id.peerId.namespace != Namespaces.Peer.CloudUser && messages.last?.id.peerId.namespace != Namespaces.Peer.SecretChat {
                         inlineAuthorPrefix = EnginePeer.user(author).compactDisplayTitle
                     }
@@ -3087,7 +3095,14 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         foldedRichTextPreview = nil
                     }
                 
-                    if inlineAuthorPrefix == nil, let mediaDraftContentType {
+                    // A draft wins over the last message. Only the archive row's author prefix keeps it out; a compact
+                    // row's prefix is there because the row has one line, not to hide a draft.
+                    var isGroupReferenceRow = false
+                    if case .groupReference = item.content {
+                        isGroupReferenceRow = true
+                    }
+                    let draftAllowed = inlineAuthorPrefix == nil || (singleLinePreview && !isGroupReferenceRow)
+                    if draftAllowed, let mediaDraftContentType {
                         hasDraft = true
                         authorAttributedString = NSAttributedString(string: item.presentationData.strings.DialogList_Draft, font: textFont, textColor: theme.messageDraftTextColor)
                         
@@ -3105,7 +3120,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                             attributedText = attributedTextWithDraft
                             authorAttributedString = nil
                         }
-                    } else if inlineAuthorPrefix == nil, let draftState = draftState {
+                    } else if draftAllowed, let draftState = draftState {
                         hasDraft = true
                         let draftText = stringWithAppliedEntities(draftState.text, entities: draftState.entities, baseColor: theme.messageTextColor, linkColor: theme.messageTextColor, baseFont: textFont, linkFont: textFont, boldFont: textFont, italicFont: textFont, boldItalicFont: textFont, fixedFont: textFont, blockQuoteFont: textFont, message: nil)
                         

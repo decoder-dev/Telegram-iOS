@@ -19,12 +19,16 @@ class CompactChatListTests(unittest.TestCase):
         self.assertIn('if singleLinePreview {\n                useInlineAuthorPrefix = true', self.text)
         self.assertIn('if !itemTags.isEmpty || singleLinePreview {\n                authorAttributedString = nil', self.text)
         self.assertIn('if singleLinePreview, !forumThreads.isEmpty {', self.text)
+        # No "You:" in front of your own message in a one-to-one chat, as in the regular row.
+        self.assertIn('if !(singleLinePreview && isOneToOne) {', self.text)
 
     def test_no_second_line_below_the_row(self):
         # Folder tags sit on a line under the text and drafts on an author line; both go in a one-line row.
         self.assertIn('itemTags = singleLinePreview ? [] : peerData.tags', self.text)
         self.assertIn('if !itemTags.isEmpty || singleLinePreview {\n                            let tempAttributedText = foldLineBreaks(draftText)', self.text)
-        media_draft = self.text.split('if inlineAuthorPrefix == nil, let mediaDraftContentType {', 1)[1].split('} else if inlineAuthorPrefix == nil, let draftState', 1)[0]
+        # A group's inline author prefix in a compact row does not hide its draft.
+        self.assertIn('let draftAllowed = inlineAuthorPrefix == nil || (singleLinePreview && !isGroupReferenceRow)', self.text)
+        media_draft = self.text.split('if draftAllowed, let mediaDraftContentType {', 1)[1].split('} else if draftAllowed, let draftState', 1)[0]
         self.assertIn('if singleLinePreview {', media_draft)
         self.assertIn('authorAttributedString = nil', media_draft)
 
