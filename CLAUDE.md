@@ -76,6 +76,11 @@ written), shows the address without the login part, and accepting a prompt recor
 whose `concealed` flag also makes the shared-links list title a link with its whole address instead of
 its host.
 
+`//submodules/LegacyMediaPickerUI:LegacyMediaPickerUITests` (ported from upstream 13.1.3) is an app-side
+`ios_unit_test`, run via `--target`. It pins `DocumentPickerPresentation`: a Files picker that the system drops
+while the app resigns active for Face ID ("Unlock with Face ID" on for Files) counts as lost, and the invisible
+host over the chat finishes as a cancellation instead of taking every touch.
+
 ### Updating the running simulator after a rebuild (whole-`.app` copy)
 
 `simctl install` will NOT replace an already-installed app when the build number is unchanged (installd keeps a hard-link cache), so a rebuilt binary silently doesn't take effect. **Preferred fix: copy the whole freshly-built `.app` over the installed bundle in place.** This is more robust than swapping only the `Frameworks/TelegramUIFramework` binary (no risk of app↔framework version skew), and it preserves the account/login because the **data container is a separate path** (`.../data/Containers/Data/Application/<uuid>/`, keyed by bundle id) — only the **bundle** container is replaced, and the install-DB entry stays valid since the path + bundle id are unchanged.
