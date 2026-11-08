@@ -101,7 +101,7 @@ for russian in [false,true] {
      if category != .top {
       let titled=entries.compactMap { $0.searchTitle(strings: PresentationStrings()) }
       precondition(!titled.isEmpty && !titled.contains(""),"No searchable titles: \(category)")
-      if category == .tabBar { precondition(titled.contains("Calls Tab")) }
+      if category == .tabBar { precondition(titled.contains(ForkPresentationLanguage.prefersRussianStrings ? "Вкладка «Звонки»" : "Calls Tab")) }
      }
      if category == .top { precondition(ids == [1997,0,1,2,1995,4,8,23,5,1998,3,7,2100,1540,6]) }
      if category == .media {
