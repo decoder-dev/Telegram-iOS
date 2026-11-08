@@ -177,7 +177,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.EditedMessageMark": "Edited Message Mark",
             "ForkExtras.EditedMessageMarkFooter": "Shown instead of “edited”. Leave empty to keep the default.",
             "ForkExtras.LocalPremium": "Local Telegram Premium",
-            "ForkExtras.LocalPremiumFooter": "Turns on Premium features that work on this device only, such as story Stealth Mode, HD stories and sticker effects. It is not a Premium subscription, and others don't see a badge.",
+            "ForkExtras.LocalPremiumFooter": "Premium features that work on this device only: story Stealth Mode, HD stories, sticker effects. Not a subscription; others see no badge.",
             "ForkExtras.AutoFetchMtProxy": "Auto MTProxy",
             "ForkExtras.AutoFetchMtProxyFooter": "Connects through the fastest public MTProxy automatically. These servers aren't added to your saved list. They can't read your chats but can see your IP address.",
             "ForkExtras.HideAds": "Hide Ads",
@@ -195,7 +195,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.RegexFilters": "Message Filters",
             "ForkExtras.RegexFiltersCaseInsensitive": "Case Insensitive",
             "ForkExtras.RegexFiltersPatterns": "Patterns (one per line)",
-            "ForkExtras.RegexFiltersFooter": "Hides messages that match any pattern (regular expressions). Text, button labels and links are checked, and a message's type is matched as <type>N</type>. To import a list, open a tg://ayu/filters/import/… link.",
+            "ForkExtras.RegexFiltersFooter": "Hides messages whose text, buttons or links match a regular expression; a type matches as <type>N</type>. Import with a tg://ayu/filters/import/… link.",
             "ForkExtras.ExportMessageSaving": "Export Deleted and Edited",
             "ForkExtras.ImportMessageSaving": "Import Deleted and Edited",
             "ForkExtras.ImportMessageSavingMerge": "Merge with existing",
@@ -330,7 +330,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.EditedMessageMark": "Метка изменённого",
             "ForkExtras.EditedMessageMarkFooter": "Показывается вместо «изменено». Оставьте пустым для стандартной метки.",
             "ForkExtras.LocalPremium": "Локальный Telegram Premium",
-            "ForkExtras.LocalPremiumFooter": "Включает функции Premium, которые работают только на этом устройстве: скрытый просмотр историй, HD-истории, эффекты стикеров. Это не подписка Premium, и другие не видят значок.",
+            "ForkExtras.LocalPremiumFooter": "Функции Premium, работающие только на этом устройстве: скрытый просмотр историй, HD-истории, эффекты стикеров. Это не подписка, значка у вас никто не увидит.",
             "ForkExtras.AutoFetchMtProxy": "Авто MTProxy",
             "ForkExtras.AutoFetchMtProxyFooter": "Автоматически подключается через самый быстрый публичный MTProxy. Эти серверы не попадают в сохранённые. Они не видят ваши чаты, но видят IP-адрес.",
             "ForkExtras.HideAds": "Скрыть рекламу",
@@ -348,7 +348,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.RegexFilters": "Фильтры сообщений",
             "ForkExtras.RegexFiltersCaseInsensitive": "Без учёта регистра",
             "ForkExtras.RegexFiltersPatterns": "Шаблоны (по одному в строке)",
-            "ForkExtras.RegexFiltersFooter": "Скрывает сообщения, подходящие под любой шаблон (регулярные выражения). Проверяются текст, подписи и ссылки кнопок, а тип сообщения — как <type>N</type>. Чтобы импортировать список, откройте ссылку tg://ayu/filters/import/…",
+            "ForkExtras.RegexFiltersFooter": "Скрывает сообщения, текст, кнопки или ссылки которых подходят под регулярное выражение; тип — как <type>N</type>. Импорт — по ссылке tg://ayu/filters/import/…",
             "ForkExtras.ExportMessageSaving": "Экспорт удалённых и правок",
             "ForkExtras.ImportMessageSaving": "Импорт удалённых и правок",
             "ForkExtras.ImportMessageSavingMerge": "Объединить с текущей",
@@ -746,7 +746,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1910, 1911]
         ]),
         (.voiceAndRound, [
-            [1609, 2110, 2111, 2112, 2113, 2114, 2115, 1515, 1516, 1544, 1545, 1559, 1612],
+            [1609, 2110, 2111, 2112, 2113, 2114, 1544, 1545, 2115],
+            [2042, 1515, 1516, 1559, 1612]
         ]),
         (.media, [
             [2202],
@@ -1477,7 +1478,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(2102, russian ? "Скрыть разворачивание редактора" : "Hide expanded editor", settings.hideRichTextEditor, \.hideRichTextEditor),
             .intChoice(1851, russian ? "Формат по умолчанию" : "Default formatting", forkIntChoiceLabel(forkSendFormattingOptions(russian: russian), settings.defaultSendFormatting)),
             .appearanceToggle(1852, russian ? "Упоминание долгим нажатием на аватар" : "Mention by long-pressing an avatar", settings.avatarLongPressMention, \.avatarLongPressMention),
-            .designFooter(1853, russian ? "«Скрыть функции ИИ» убирает кнопки ИИ и краткие пересказы сообщений; копируется исходный текст. Формат по умолчанию применяется к обычному тексту, ваше форматирование не меняется. Долгое нажатие на аватар в чате вставляет упоминание." : "Hide AI features removes the AI buttons and message summaries; Copy takes the original text. The default format applies to plain text you send; your own formatting stays as it is. Long-press an avatar in a chat to mention that person."),
+            .designFooter(1853, russian ? "При скрытом ИИ копируется исходный текст. Формат по умолчанию применяется только к обычному тексту." : "With AI hidden, Copy takes the original text. Default formatting applies only to plain text."),
         ]
     case .messageActions:
         entries = [
@@ -1521,8 +1522,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1862, russian ? "Сохранять стикеры в Фото" : "Save stickers to Photos", settings.saveStickerToPhotos, \.saveStickerToPhotos),
             .appearanceToggle(1863, russian ? "Сведения о медиа в меню" : "Media info in the menu", settings.showMediaInfo, \.showMediaInfo),
             .intChoice(1864, russian ? "Качество видео по умолчанию" : "Default video quality", forkIntChoiceLabel(forkVideoQualityOptions(russian: russian), settings.defaultVideoQuality)),
-            .designFooter(1865, russian ? "Превью ссылок X, Instagram, TikTok, Reddit, Bluesky и Pixiv берутся у сервисов-зеркал (fixupx, ddinstagram и другие), сама ссылка не меняется. Анимированные стикеры сохраняются как GIF. Качество видео выбирается из доступных версий." : "Previews for X, Instagram, TikTok, Reddit, Bluesky and Pixiv links come from mirror services (fixupx, ddinstagram and others); the link itself doesn't change. Animated stickers are saved as GIFs. Video quality is chosen from the versions available."),
-            .designFooter(1758, russian ? "«Только добавленные» убирает популярные наборы и набор группы. Медиа ставится на паузу, когда вы выходите из приложения или блокируете телефон. Ускоренная загрузка отправляет больше частей файла сразу, кроме секретных чатов." : "Only added stickers hides trending packs and the group's pack. Media pauses when you leave the app or lock the phone. Faster uploads send more parts of a file at once, except in secret chats."),
+            .designFooter(1865, russian ? "Превью X, Instagram, TikTok и других берутся у сервисов-зеркал, ссылка не меняется. Анимированные стикеры сохраняются как GIF." : "Previews for X, Instagram, TikTok and others come from mirror services; the link stays the same. Animated stickers are saved as GIFs."),
+            .designFooter(1758, russian ? "«Только добавленные» скрывает популярные наборы. Ускоренная загрузка не действует в секретных чатах." : "Only added stickers hides trending packs. Faster uploads don't apply in secret chats."),
             .audioHeader,
             .musicPolicy(2001, russian ? "Пауза музыки при записи видео" : "Pause music when recording video", mediaInputSettings.pauseMusicOnRecording),
             .musicPolicy(2002, russian ? "Пауза музыки при записи голосового" : "Pause music when recording voice messages", mediaInputSettings.pauseMusicOnVoiceRecording),
@@ -1530,22 +1531,23 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingFooter(2004, .audio, ForkPresentationLanguage.prefersRussianStrings ? "Выберите, когда ставить музыку на паузу. Звонки всегда важнее." : "Choose when music pauses. Calls always take priority."),
             .designHeader(1912, russian ? "Энергосбережение" : "Power saving"),
             .appearanceToggle(1913, russian ? "Режим энергосбережения всегда" : "Always use power saving", settings.powerSaving, \.powerSaving),
-            .designFooter(1914, russian ? "Энергосбережение Telegram включено при любом заряде: без автовоспроизведения, зацикленной анимации, полупрозрачности и фоновых загрузок. Отдельные пункты — в «Данные и память → Энергосбережение»." : "Telegram's power saving stays on at any battery level: no autoplay, looping animations, translucency or background downloads. Fine-tune it in Data and Storage → Power Saving."),
+            .designFooter(1914, russian ? "Как «Данные и память → Энергосбережение», но при любом заряде: без автовоспроизведения, анимаций и фоновых загрузок." : "Like Data and Storage → Power Saving, at any battery level: no autoplay, animations or background downloads."),
         ]
     case .voiceAndRound:
         entries = [
-            .designHeader(1609, russian ? "Голосовые и кружки" : "Voice and round videos"),
+            .designHeader(1609, russian ? "Запись кружков" : "Recording round videos"),
             .appearanceToggle(2110, russian ? "Отсчёт перед записью кружка" : "Round video countdown", settings.roundVideoCountdown, \.roundVideoCountdown),
             .appearanceToggle(2111, russian ? "Записывать кружки в 60 FPS" : "Record round videos at 60 FPS", settings.roundVideoRecordAt60FPS, \.roundVideoRecordAt60FPS),
             .appearanceToggle(2112, russian ? "Максимальное качество кружков" : "Maximum round video quality", settings.roundVideoMaximumQuality, \.roundVideoMaximumQuality),
             .appearanceToggle(2113, russian ? "Фокус кружка по нажатию" : "Tap to focus round videos", settings.roundVideoFocusOnTap, \.roundVideoFocusOnTap),
             .appearanceToggle(2114, russian ? "Сбрасывать зум после жеста" : "Reset zoom after pinching", settings.roundVideoAlwaysResetZoom, \.roundVideoAlwaysResetZoom),
-            .designFooter(2115, russian ? "Для 60 FPS нужна поддерживаемая камера, съёмка двумя камерами сразу отключается. Максимальное качество — до 640p, длинные записи сжимаются. Изменения применятся при следующем открытии камеры." : "60 FPS needs a supported camera and turns off recording with both cameras at once. Maximum quality is up to 640p; long recordings are compressed. Changes apply the next time you open the camera."),
+            .appearanceToggle(1544, russian ? "Кружок: задняя камера" : "Round video: rear camera", settings.roundVideoStartsWithRear, \.roundVideoStartsWithRear),
+            .appearanceToggle(1545, russian ? "Кружок: помнить камеру" : "Round video: remember camera", settings.roundVideoRemembersCamera, \.roundVideoRemembersCamera),
+            .designFooter(2115, russian ? "60 FPS нужна поддерживаемая камера, максимальное качество — до 640p. Применится при следующем открытии камеры." : "60 FPS needs a supported camera; maximum quality is up to 640p. Applies the next time you open the camera."),
+            .designHeader(2042, russian ? "Прослушивание и отправка" : "Playback and sending"),
             .appearanceToggle(1515, russian ? "Останавливать после голосового" : "Stop after a voice message", settings.stopAfterVoice, \.stopAfterVoice),
             .appearanceToggle(1516, russian ? "Останавливать после кружка" : "Stop after a round video", settings.stopAfterRoundVideo, \.stopAfterRoundVideo),
             .appearanceToggle(1559, russian ? "Подтверждать отправку голосовых и кружков" : "Confirm before sending voice and round video", settings.confirmVoiceSend, \.confirmVoiceSend),
-            .appearanceToggle(1544, russian ? "Кружок: задняя камера" : "Round video: rear camera", settings.roundVideoStartsWithRear, \.roundVideoStartsWithRear),
-            .appearanceToggle(1545, russian ? "Кружок: помнить камеру" : "Round video: remember camera", settings.roundVideoRemembersCamera, \.roundVideoRemembersCamera),
             .designFooter(1612, russian ? "Музыка как голосовое: откройте меню трека в разделе «Вложения → Музыка»." : "To send music as a voice message, open the track's menu in Attach → Music."),
         ]
     case .profile:

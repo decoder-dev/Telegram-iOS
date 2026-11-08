@@ -113,6 +113,16 @@ class ThemeTests(unittest.TestCase):
             for index,value in enumerate(group):
                 if value in footers:
                     self.assertEqual(index,len(group)-1,'footer %d must close its section, not sit between switches'%value)
+        # Every block: its header first, its footers last. A footer between switches splits the block into two cards, the
+        # second without a header (QA run 30: Sending and editing; Voice and round videos).
+        kinds={int(i):k for k,i in re.findall(r'\.(designHeader|designFooter|settingFooter|appearanceToggle|settingToggle|intChoice|musicPolicy)\((\d+),',source)}
+        for group in groups:
+            for index,value in enumerate(group):
+                kind=kinds.get(value)
+                if kind=='designHeader':
+                    self.assertEqual(index,0,'header %d must open its block %r'%(value,group))
+                if kind in ('designFooter','settingFooter'):
+                    self.assertTrue(all(kinds.get(after) in ('designFooter','settingFooter') for after in group[index+1:]),'footer %d must close its block %r'%(value,group))
         self.assertIn([1507],groups,'Tab preview is a section of its own')
         self.assertTrue(any({1500,1501}.issubset(group) for group in groups))
     def test_every_text_and_accent_pair_in_both_themes_clears_aa(self):
