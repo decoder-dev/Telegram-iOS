@@ -733,7 +733,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         ]),
         (.messageSending, [
             [1850, 2101, 2102, 1851, 1852, 1853],
-            [1606, 81, 82, 1710],
+            [1606, 1710, 81, 82],
             [98, 99],
             [1511, 1520, 2040, 2041]
         ]),
