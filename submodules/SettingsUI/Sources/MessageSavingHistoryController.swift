@@ -182,6 +182,7 @@ private func messageSavingHistoryController(
 ) -> ViewController {
     let refresh = Promise<Void>()
     refresh.set(.single(Void()))
+    var presentControllerImpl: ((ViewController) -> Void)?
 
     // In-memory retry state does not survive an app kill, so a copy that finished right before
     // the process died leaves a record with no path. Re-link those lazily for just the records
@@ -246,13 +247,28 @@ private func messageSavingHistoryController(
                     }
                 })
             } else if clearAction != nil && !entries.contains(where: { if case .loading = $0 { return true }; return false }) {
+                // Apple HIG: an irreversible delete asks first, and a button with nothing to act on is disabled. The saved
+                // copies are the only ones left once the originals are gone.
+                let hasRecords = entries.contains(where: { if case .record = $0 { return true }; return false })
                 rightButton = ItemListNavigationButton(
                     content: .text(ForkMessageSavingStrings.clearDeleted),
                     style: .regular,
-                    enabled: true,
+                    enabled: hasRecords,
                     action: {
-                        clearAction?()
-                        refresh.set(.single(Void()))
+                        let russian = ForkPresentationLanguage.prefersRussianStrings
+                        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                        presentControllerImpl?(textAlertController(
+                            context: context,
+                            title: ForkMessageSavingStrings.clearDeleted,
+                            text: russian ? "Сохранённые копии удалённых сообщений этого чата будут стёрты с устройства. Это нельзя отменить." : "The saved copies of this chat's deleted messages will be erased from this device. This can't be undone.",
+                            actions: [
+                                TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                                TextAlertAction(type: .destructiveAction, title: russian ? "Очистить" : "Clear", action: {
+                                    clearAction?()
+                                    refresh.set(.single(Void()))
+                                })
+                            ]
+                        ))
                     }
                 )
             }
@@ -281,5 +297,9 @@ private func messageSavingHistoryController(
     }
     |> deliverOnMainQueue
 
-    return ItemListController(context: context, state: signal)
+    let controller = ItemListController(context: context, state: signal)
+    presentControllerImpl = { [weak controller] alert in
+        controller?.present(alert, in: .window(.root))
+    }
+    return controller
 }

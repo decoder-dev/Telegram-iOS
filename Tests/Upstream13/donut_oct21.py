@@ -113,7 +113,9 @@ class Confirmations(unittest.TestCase):
         self.assertIn('func openFromPreviewing()', helper)
         self.assertIn('case .messageOptions = subject', helper)
         self.assertIn('self.presentInGlobalOverlay(alert)', helper)
-        self.assertIn('TextAlertAction(type: .genericAction, title: presentationData.strings.Common_No, action: {})', helper)
+        # The preview stays open on the cancel button (Apple HIG: buttons name the action, so Cancel / Open Chat).
+        self.assertIn('TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {})', helper)
+        self.assertIn('TextAlertAction(type: .defaultAction, title: open, action:', helper)
         self.assertIn('weak var forkPreviewEntryAlert: ViewController?', read('submodules/TelegramUI/Sources/ChatController.swift'))
         self.assertIn('self.controller?.openFromPreviewing()', read('submodules/TelegramUI/Sources/ChatControllerNode.swift'))
 

@@ -69,7 +69,8 @@ private final class BananaTabBarPreviewItemNode: ListViewItemNode, ItemListItemN
         self.block.layer.cornerRadius = 22.0
         self.block.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
         self.block.clipsToBounds = true
-        self.hiddenLabel.font = .systemFont(ofSize: 14.0)
+        self.hiddenLabel.font = UIFont.preferredFont(forTextStyle: .footnote)
+        self.hiddenLabel.adjustsFontForContentSizeCategory = true
         self.hiddenLabel.textAlignment = .center
         self.hiddenLabel.numberOfLines = 0
         self.hiddenLabel.isAccessibilityElement = true

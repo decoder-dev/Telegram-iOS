@@ -82,6 +82,10 @@ public final class BananaSnowView: UIView {
             self?.isInBackground = false
             self?.updateIsRunning()
         }))
+        // Apple HIG: decorative motion stops when Reduce Motion is on, and comes back when it is turned off.
+        self.observers.append(notificationCenter.addObserver(forName: UIAccessibility.reduceMotionStatusDidChangeNotification, object: nil, queue: .main, using: { [weak self] _ in
+            self?.updateIsRunning()
+        }))
     }
 
     required init?(coder: NSCoder) {
@@ -132,7 +136,7 @@ public final class BananaSnowView: UIView {
     }
 
     private func updateIsRunning() {
-        let shouldRun = self.window != nil && !self.isInBackground && !self.bounds.isEmpty && BananaSnowSettings.enabled
+        let shouldRun = self.window != nil && !self.isInBackground && !self.bounds.isEmpty && BananaSnowSettings.enabled && !UIAccessibility.isReduceMotionEnabled
         if shouldRun {
             if self.timer == nil {
                 let timer = SwiftSignalKit.Timer(timeout: BananaSnowView.tickInterval, repeat: true, completion: { [weak self] in

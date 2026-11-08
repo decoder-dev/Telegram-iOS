@@ -341,6 +341,10 @@ final class ArchiveUnlockScreen: UIViewController, UITextFieldDelegate {
         self.passwordField.text = ""
         self.updateUnlockEnabled()
         UIAccessibility.post(notification: .announcement, argument: text)
+        if isError {
+            // A wrong password answers with the system's error haptic, as the lock screen's passcode does.
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
         if isError, !UIAccessibility.isReduceMotionEnabled {
             let animation = CAKeyframeAnimation(keyPath: "transform.translation.x")
             animation.values = [0.0, -10.0, 10.0, -6.0, 6.0, -2.0, 0.0]

@@ -26,9 +26,11 @@ extension ChatControllerImpl {
     func forkPresentReactionConfirmation(apply: @escaping () -> Void) {
         let presentationData = self.presentationData
         let text = ForkPresentationLanguage.prefersRussianStrings ? "Вы точно хотите поставить реакцию в чате, в который еще не вступили?" : "Do you want to react in a chat you haven't joined?"
+        // Apple HIG: alert buttons name the action, not Yes / No.
+        let react = ForkPresentationLanguage.prefersRussianStrings ? "Поставить реакцию" : "React"
         self.present(textAlertController(context: self.context, title: nil, text: text, actions: [
-            TextAlertAction(type: .genericAction, title: presentationData.strings.Common_No, action: {}),
-            TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_Yes, action: apply)
+            TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+            TextAlertAction(type: .defaultAction, title: react, action: apply)
         ]), in: .window(.root))
     }
 
@@ -48,9 +50,10 @@ extension ChatControllerImpl {
         }
         let presentationData = self.presentationData
         let text = ForkPresentationLanguage.prefersRussianStrings ? "Вы точно хотите перейти в этот чат?" : "Do you want to open this chat?"
+        let open = ForkPresentationLanguage.prefersRussianStrings ? "Открыть чат" : "Open Chat"
         let alert = textAlertController(context: self.context, title: nil, text: text, actions: [
-            TextAlertAction(type: .genericAction, title: presentationData.strings.Common_No, action: {}),
-            TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_Yes, action: { [weak self] in
+            TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+            TextAlertAction(type: .defaultAction, title: open, action: { [weak self] in
                 self?.animateFromPreviewing()
             })
         ])
