@@ -14,6 +14,15 @@ private func copyOrMoveResourceData(from fromResource: MediaResource, to toResou
     }
 }
 
+private func canReusePhotoResourceData(from fromResource: MediaResource, to toResource: MediaResource) -> Bool {
+    // Re-uploaded cloud photos (including avatars) can be re-encoded by the server. Their old JPEG bytes do not
+    // match the new photo's progressive scan offsets. Keep the source intact and fetch the new server resource.
+    guard fromResource.id != toResource.id else {
+        return false
+    }
+    return !(fromResource is CloudPeerPhotoSizeMediaResource) && !(fromResource is CloudPhotoSizeMediaResource)
+}
+
 func applyMediaResourceChanges(from: Media, to: Media, postbox: Postbox, force: Bool, skipPreviews: Bool = false) {
     if let fromImage = from as? TelegramMediaImage, let toImage = to as? TelegramMediaImage {
         let fromSmallestRepresentation = smallestImageRepresentation(fromImage.representations)
@@ -21,13 +30,12 @@ func applyMediaResourceChanges(from: Media, to: Media, postbox: Postbox, force: 
             let leeway: Int32 = 4
             let widthDifference = fromSmallestRepresentation.dimensions.width - toSmallestRepresentation.dimensions.width
             let heightDifference = fromSmallestRepresentation.dimensions.height - toSmallestRepresentation.dimensions.height
-            if abs(widthDifference) < leeway && abs(heightDifference) < leeway {
+            if abs(widthDifference) < leeway && abs(heightDifference) < leeway, canReusePhotoResourceData(from: fromSmallestRepresentation.resource, to: toSmallestRepresentation.resource) {
                 copyOrMoveResourceData(from: fromSmallestRepresentation.resource, to: toSmallestRepresentation.resource, mediaBox: postbox.mediaBox)
             }
         }
         if let fromLargestRepresentation = largestImageRepresentation(fromImage.representations), let toLargestRepresentation = largestImageRepresentation(toImage.representations) {
-            if fromLargestRepresentation.resource is CloudPeerPhotoSizeMediaResource {
-            } else {
+            if canReusePhotoResourceData(from: fromLargestRepresentation.resource, to: toLargestRepresentation.resource) {
                 copyOrMoveResourceData(from: fromLargestRepresentation.resource, to: toLargestRepresentation.resource, mediaBox: postbox.mediaBox)
             }
         }

@@ -55,6 +55,16 @@ public func representationFetchRangeForDisplayAtSize(representation: TelegramMed
     return nil
 }
 
+/// The whole cached file when it is not the server's progressive encoding (its size is not the last scan's): a locally
+/// sent photo, or an older re-uploaded copy moved under the server's id, which the server's scan offsets would cut off.
+/// A file of the server's size keeps the progressive path, which reads only what a small preview needs.
+private func completePhotoResourceData(_ data: MediaResourceData, progressiveSize: Int64) -> Data? {
+    guard data.complete, data.size != progressiveSize else {
+        return nil
+    }
+    return try? Data(contentsOf: URL(fileURLWithPath: data.path), options: .mappedIfSafe)
+}
+
 public func chatMessagePhotoDatas(postbox: Postbox, userLocation: MediaResourceUserLocation, customUserContentType: MediaResourceUserContentType? = nil, photoReference: ImageMediaReference, fullRepresentationSize: CGSize = CGSize(width: 1280.0, height: 1280.0), autoFetchFullSize: Bool = false, tryAdditionalRepresentations: Bool = false, synchronousLoad: Bool = false, useMiniThumbnailIfAvailable: Bool = false, forceThumbnail: Bool = false, automaticFetch: Bool = true) -> Signal<Tuple4<Data?, Data?, ChatMessagePhotoQuality, Bool>, NoError> {
     return chatMessagePhotoDatas(mediaBox: postbox.mediaBox, userLocation: userLocation, customUserContentType: customUserContentType, photoReference: photoReference, fullRepresentationSize: fullRepresentationSize, autoFetchFullSize: autoFetchFullSize, tryAdditionalRepresentations: tryAdditionalRepresentations, synchronousLoad: synchronousLoad, useMiniThumbnailIfAvailable: useMiniThumbnailIfAvailable, forceThumbnail: forceThumbnail, automaticFetch: automaticFetch)
 }
@@ -91,7 +101,7 @@ func chatMessagePhotoDatas(mediaBox: MediaBox, userLocation: MediaResourceUserLo
             sources.insert(.miniThumbnail(data: miniThumbnail), at: 0)
         }
         
-        return Signal { subscriber in
+        let progressiveData = Signal<Tuple4<Data?, Data?, ChatMessagePhotoQuality, Bool>, NoError> { subscriber in
             let signals: [Signal<(SizeSource, Data?), NoError>] = sources.map { source -> Signal<(SizeSource, Data?), NoError> in
                 switch source {
                 case let .miniThumbnail(data):
@@ -145,6 +155,17 @@ func chatMessagePhotoDatas(mediaBox: MediaBox, userLocation: MediaResourceUserLo
                 dataDisposable.dispose()
                 fetchDisposable?.dispose()
             }
+        }
+
+        // A complete cached JPEG of another encoding (locally sent or re-uploaded) is decoded whole: the server's
+        // progressive byte ranges would cut off the bottom of the image.
+        return mediaBox.resourceData(progressiveRepresentation.resource, option: .complete(waitUntilFetchStatus: false), attemptSynchronously: synchronousLoad)
+        |> take(1)
+        |> mapToSignal { data -> Signal<Tuple4<Data?, Data?, ChatMessagePhotoQuality, Bool>, NoError> in
+            if let completeData = completePhotoResourceData(data, progressiveSize: Int64(progressiveRepresentation.progressiveSizes.last!)) {
+                return .single(Tuple4(nil, completeData, .full, true))
+            }
+            return progressiveData
         }
     }
     
