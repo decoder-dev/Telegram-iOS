@@ -65,8 +65,32 @@ class BazelDownloadTests(unittest.TestCase):
         def fail(arguments, **kwargs):
             self.download(b'partial')(arguments, **kwargs)
             raise RuntimeError('download failed')
-        with mock.patch.object(BAZEL, 'call_executable', side_effect=fail):
+        # The API fallback fails too (no network in a test): the link's error is the one raised.
+        api = mock.Mock(side_effect=RuntimeError('api failed'))
+        with mock.patch.object(BAZEL, 'call_executable', side_effect=fail), mock.patch.object(BAZEL, 'download_bazel_release_from_api', api):
             with self.assertRaisesRegex(RuntimeError, 'download failed'):
+                BAZEL.locate_bazel(str(self.root), None, None)
+        api.assert_called_once()
+        self.assert_no_staging_files()
+
+    def test_failed_link_falls_back_to_the_api_and_still_verifies(self):
+        def fail(arguments, **kwargs):
+            raise RuntimeError('download failed')
+        def api_download(version, name, output_path):
+            self.assertEqual((version, name), ('test', 'bazel-test-darwin-arm64'))
+            self.assertNotEqual(pathlib.Path(output_path), self.target)
+            pathlib.Path(output_path).write_bytes(self.payload)
+        with mock.patch.object(BAZEL, 'call_executable', side_effect=fail), mock.patch.object(BAZEL, 'download_bazel_release_from_api', side_effect=api_download):
+            BAZEL.locate_bazel(str(self.root), None, None)
+        self.assertEqual(self.target.read_bytes(), self.payload)
+
+    def test_corrupt_api_download_is_rejected(self):
+        def fail(arguments, **kwargs):
+            raise RuntimeError('download failed')
+        def api_download(version, name, output_path):
+            pathlib.Path(output_path).write_bytes(b'corrupted')
+        with mock.patch.object(BAZEL, 'call_executable', side_effect=fail), mock.patch.object(BAZEL, 'download_bazel_release_from_api', side_effect=api_download):
+            with self.assertRaisesRegex(RuntimeError, 'SHA256'):
                 BAZEL.locate_bazel(str(self.root), None, None)
         self.assert_no_staging_files()
 

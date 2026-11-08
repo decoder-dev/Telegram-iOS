@@ -61,8 +61,8 @@ def download_bazel_release(version, name, output_path):
     """Downloads a Bazel release binary; the caller verifies its SHA256.
 
     The release's download link answered 504 for hours on 2026-11-08 while the GitHub API served the same asset, so a
-    failed link (after curl's own retries) falls back to the API. A token from GH_TOKEN or GITHUB_TOKEN, when set, is
-    sent to api.github.com only: the asset's redirect to the storage host does not carry it.
+    failed link (after curl's own retries) falls back to the API. When the API fails too, the link's error is raised:
+    it is the one that says what went wrong with the usual path.
     """
     try:
         call_executable([
@@ -71,10 +71,18 @@ def download_bazel_release(version, name, output_path):
             'https://github.com/bazelbuild/bazel/releases/download/{version}/{name}'.format(version=version, name=name),
             '--output', output_path
         ])
-        return
-    except RuntimeError as error:
-        print('Bazel release link failed ({}), trying the GitHub API'.format(error))
+    except RuntimeError as link_error:
+        print('Bazel release link failed ({}), trying the GitHub API'.format(link_error))
+        try:
+            download_bazel_release_from_api(version, name, output_path)
+        except Exception as api_error:
+            print('Bazel download through the GitHub API failed too: {}'.format(api_error))
+            raise link_error
 
+
+def download_bazel_release_from_api(version, name, output_path, attempts=5, retry_delay=10.0):
+    """The release asset through api.github.com. A token from GH_TOKEN or GITHUB_TOKEN, when set, is sent to the API
+    host only: the asset's redirect to the storage host does not carry it."""
     import json
     import time
     import urllib.request
@@ -88,7 +96,7 @@ def download_bazel_release(version, name, output_path):
         return request
 
     last_error = None
-    for attempt in range(5):
+    for attempt in range(attempts):
         try:
             with urllib.request.urlopen(api_request('https://api.github.com/repos/bazelbuild/bazel/releases/tags/{}'.format(version), 'application/vnd.github+json'), timeout=60) as response:
                 release = json.load(response)
@@ -99,8 +107,9 @@ def download_bazel_release(version, name, output_path):
         except Exception as error:
             last_error = error
             print('Bazel download through the GitHub API failed (attempt {}): {}'.format(attempt + 1, error))
-            time.sleep(10)
-    raise RuntimeError('Could not download {} {}: {}'.format(name, version, last_error))
+            if attempt + 1 < attempts:
+                time.sleep(retry_delay)
+    raise RuntimeError('Could not download {} {} through the GitHub API: {}'.format(name, version, last_error))
 
 
 def locate_bazel(base_path, cache_host_or_path, cache_dir):
