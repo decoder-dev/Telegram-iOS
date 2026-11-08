@@ -344,6 +344,18 @@ jobs:
               extras*|archive-settings|banana-security|accounts|chats|url:tg://settings/data/proxy) capture ru day "$target" ru ;;
             esac
           done
+          # Accessibility passes (Apple HIG: layouts hold at the largest text size and with Increase Contrast). The app
+          # follows the system text size by default (Text Size: System). The screens a person reads most, plus the fork's
+          # own pages, where long Russian strings meet large type first; prefixes "xl-" and "contrast-".
+          A11Y=(chats chat:user:1001 settings extras extras:messages extras:messagesMore extras:privacy extras:profile extras:voice banana-security archive-settings)
+          xcrun simctl ui "$UDID" content_size accessibility-extra-extra-extra-large || true
+          for target in "${A11Y[@]}"; do capture xl day "$target"; done
+          for target in chats extras extras:privacy banana-security; do capture xl-ru day "$target" ru; done
+          xcrun simctl ui "$UDID" content_size large || true
+          xcrun simctl ui "$UDID" increase_contrast enabled || true
+          for target in chats chat:user:1001 extras extras:privacy; do capture contrast day "$target"; done
+          for target in chats chat:user:1001; do capture contrast-cream cream "$target"; done
+          xcrun simctl ui "$UDID" increase_contrast disabled || true
           ls qa-artifacts/screens | wc -l
           # The app's own Logger files, so a screen stuck loading can be read from what the app did.
           mkdir -p qa-artifacts/app-logs

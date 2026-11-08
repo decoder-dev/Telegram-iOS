@@ -20,6 +20,11 @@
 ### Changed — Apple HIG pass
 - Extras › Messages and Profile keep the switches people change; the rest moved to "More Message Settings" and "More Profile Settings" (Messages: 46 → 20 switches, Profile: 32 → 14). Links, search and Settings search reach the new pages.
 - Every Extras block ends with its footer; Voice and Round Videos is split into Recording round videos and Playback and sending. The longest footers are cut to 2–3 lines.
+- BananaGram Cream: one's own messages have a banana-yellow bubble with a thin edge; they used to be the wallpaper's colour.
+- Extras › Privacy and Messages › Display group related switches into one block; footers that only repeated a switch's title are gone. Long switch titles are shorter; English titles use title case. Tab bar rows read "Calls Tab" / "Contacts Tab".
+- Protected Archive shows the fixed keep-archived policy as a row with its state instead of a disabled switch. BananaGram Protection keeps one short line under each switch.
+- Network: the connection card opens the page again (it shared an id with a Voice page switch and fell to the end).
+- Simulator QA also captures the main screens at the largest text size and with Increase Contrast.
 - Privacy: a tap that waits for the privacy settings (Settings search, links, Privacy and Security rows while loading) shows a loading indicator, and after 15 s without an answer an alert, instead of doing nothing.
 
 ### Fixed
