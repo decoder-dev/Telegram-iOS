@@ -137,9 +137,17 @@ print("Document picker: actual completion-once delegate passed")
         self.assertIn('attachmentController.dismiss(animated: true, completion:', menu)
         picker = read('submodules/LegacyMediaPickerUI/Sources/LegacyICloudFilePicker.swift')
         self.assertIn('controller.retainedPickerDelegate = legacyController', picker)
-        self.assertIn('guard !self.didComplete else { return }', picker)
-        self.assertIn('self.complete(urls, source: "didPickDocumentsAt")', picker)
-        self.assertIn('self.complete([url], source: "didPickDocumentAt")', picker)
+        # The outcome is delivered once (DocumentPickerPresentation.finish(), the port of upstream's lost-picker fix),
+        # however many of the delegate, the lost-picker check and a touch on the host report it.
+        body = picker.split('private func finish(urls: [URL], source: String) {', 1)[1].split('\n    }\n', 1)[0]
+        self.assertIn('if self.pickerPresentation.finish() {', body)
+        self.assertIn('self.completion(urls)', body)
+        self.assertIn('self.finish(urls: urls, source: "didPickDocumentsAt")', picker)
+        self.assertIn('self.finish(urls: [url], source: "didPickDocumentAt")', picker)
+        self.assertIn('self.finish(urls: [], source: "lost picker")', picker)
+        self.assertNotIn('self.completion(', picker.split('private func finish(urls:', 1)[0].split('class LegacyICloudFileController', 1)[1])
+        presentation = read('submodules/LegacyMediaPickerUI/Sources/DocumentPickerPresentation.swift')
+        self.assertIn('if self.isFinished {\n            return false', presentation)
 
     def test_ghost_restore_reconciles_deleted_counts_and_account_exceptions(self):
         source = read('submodules/TelegramCore/Sources/Arena/BananaGhostLocalRead.swift')
