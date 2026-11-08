@@ -198,10 +198,16 @@ jobs:
         run: git submodule update --init --recursive --depth 1 --jobs 8
 
       - name: Fetch libxray framework for VLESS support
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p third-party/libxray
           if [ ! -d third-party/libxray/LibXray.xcframework ]; then
-            curl -sL -o /tmp/libxray-apple-cgo.zip "https://github.com/XTLS/libxray/releases/download/v26.9.9/libxray-apple-cgo.zip"
+            # The release's download link answered 504 for hours on 2026-11-08 while the API served the same
+            # asset (id 552003020); the checksum below covers either source.
+            curl -fsSL --retry 3 --retry-delay 10 --retry-all-errors -o /tmp/libxray-apple-cgo.zip "https://github.com/XTLS/libxray/releases/download/v26.9.9/libxray-apple-cgo.zip" || \
+              curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors -H "Accept: application/octet-stream" -H "Authorization: Bearer $GH_TOKEN" \
+                -o /tmp/libxray-apple-cgo.zip "https://api.github.com/repos/XTLS/libxray/releases/assets/552003020"
             echo "84a11f0923efb65be7631b3c4cac75bd4351fc13b9cc2394def6af5c1696e9fa  /tmp/libxray-apple-cgo.zip" | shasum -a 256 -c -
             unzip -q -o /tmp/libxray-apple-cgo.zip -d /tmp/libxray-extract
             XCFW=$(find /tmp/libxray-extract -name "LibXray.xcframework" -type d | head -1)
