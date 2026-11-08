@@ -4406,9 +4406,11 @@ func settingsSearchableItems(
             ("bananagram/messages", ForkExtrasControllerFocus.messages.title, [], .messages),
             ("bananagram/sending", ForkExtrasControllerFocus.messageSending.title, [], .messageSending),
             ("bananagram/actions", ForkExtrasControllerFocus.messageActions.title, [], .messageActions),
+            ("bananagram/messages-more", ForkExtrasControllerFocus.messagesMore.title, [], .messagesMore),
             ("bananagram/media", ForkExtrasControllerFocus.media.title, [], .media),
             ("bananagram/voice", ForkExtrasControllerFocus.voiceAndRound.title, [], .voiceAndRound),
             ("bananagram/profile", ForkExtrasControllerFocus.profile.title, [], .profile),
+            ("bananagram/profile-more", ForkExtrasControllerFocus.profileMore.title, [], .profileMore),
             ("bananagram/network", ForkExtrasControllerFocus.network.title, [russian ? "Сеть и загрузки" : "Network and downloads"], .network)
         ]
         // Rows that have their own search entry elsewhere (Data and Storage, Appearance) are not offered twice.

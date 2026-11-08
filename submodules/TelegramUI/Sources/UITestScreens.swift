@@ -98,6 +98,8 @@ func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext
                 case "messages": focus = .messages
                 case "sending": focus = .messageSending
                 case "actions": focus = .messageActions
+                case "messagesMore": focus = .messagesMore
+                case "profileMore": focus = .profileMore
                 case "voice": focus = .voiceAndRound
                 case "media": focus = .media
                 case "profile": focus = .profile

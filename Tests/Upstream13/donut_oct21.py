@@ -46,7 +46,8 @@ class ServiceMessageSettings(unittest.TestCase):
         for row, name in ROWS.items():
             self.assertEqual(source.count('.appearanceToggle(%d,' % row), 1)
             self.assertIn('settings.%s, \\.%s)' % (name, name), source)
-        self.assertIn('[1940, 1941, 1942, 1943]', category(source, 'messages'))
+        # Less used Messages switches live one level deeper, on More Message Settings (Apple HIG).
+        self.assertIn('[1940, 1941, 1942, 1943]', category(source, 'messagesMore'))
 
     def test_filter_only_hides_membership_and_chat_edits(self):
         source = read('submodules/TelegramCore/Sources/Arena/ForkServiceMessageFilter.swift')

@@ -572,6 +572,9 @@ private enum ForkExtrasDestination: Equatable {
     case messageSending
     case messageActions
     case voiceAndRound
+    /// Less used Messages and Profile switches, one level deeper (Apple HIG: few settings up front).
+    case messagesMore
+    case profileMore
 }
 
 private final class ForkExtrasControllerArguments {
@@ -710,7 +713,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         (.appearance, [[1618, 1531, 1532, 1553, 1619], [1900, 1901, 1902, 1903, 1904, 1905, 1906]]),
         // Scene 38: the input panel opens Messages. Scene 39: round videos and voice open Media, calls follow.
         (.messages, [
-            [2200, 2201],
+            [2200, 2201, 2043],
             [1605, 65, 66],
             [1557],
             [1558],
@@ -718,18 +721,20 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [69],
             [1508, 1509, 1735, 54, 1521, 1550, 1519],
             [1720, 1711, 1703, 1713, 1716, 1719, 1717, 1718, 1791],
+            [88, 89],
+            [85, 86, 87],
+            [2036, 2037]
+        ]),
+        (.messagesMore, [
             [1931],
             [1940, 1941, 1942, 1943],
             [1944],
             [1721, 1542, 1712, 1700, 1701, 1702],
             [1533],
-            [88, 89],
             [1518],
             [1607, 1510, 1513, 1517],
             [1825, 1826, 1827, 1828],
-            [85, 86, 87],
-            [1960, 1962, 1964],
-            [2036, 2037]
+            [1960, 1962, 1964]
         ]),
         (.messageSending, [
             [1850, 2101, 2102, 1851, 1852, 1853],
@@ -762,9 +767,12 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         (.profile, [
             [55, 56, 1551, 1714, 2020, 1552, 1543, 58],
             [1739, 1731, 1732, 1730, 1733, 1734, 1980, 1981, 2106],
+            [2034, 2035],
+            [2044]
+        ]),
+        (.profileMore, [
             [1740, 1736, 1737, 1738],
             [1603, 1500, 1501, 1541, 2022, 57],
-            [2034, 2035],
             [1604, 140, 141]
         ]),
         (.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]]),
@@ -834,7 +842,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             case .security: return ForkExtrasSection.hub.rawValue
             case .accountOrder: return ForkExtrasSection.hubLook.rawValue
             case .connectionCheck: return ForkExtrasSection.proxy.rawValue
-            case .messageSending, .messageActions, .voiceAndRound: return ForkExtrasSection.appearance.rawValue
+            case .messageSending, .messageActions, .voiceAndRound, .messagesMore, .profileMore: return ForkExtrasSection.appearance.rawValue
             }
         case .audioHeader, .musicPolicy: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
@@ -985,7 +993,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             // lead on from inside a page (Proxy, Connection check, the Messages and Media sub-pages) have none.
             case .security: icon = renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGreen); detail = nil
             case .accountOrder: icon = renderSettingsSymbolIcon(systemName: "person.2.fill", color: .systemIndigo); detail = nil
-            case .proxy, .connectionCheck, .messageSending, .messageActions, .voiceAndRound: icon = nil; detail = nil
+            case .proxy, .connectionCheck, .messageSending, .messageActions, .voiceAndRound, .messagesMore, .profileMore: icon = nil; detail = nil
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, action: {
                 arguments.openDestination(destination)
@@ -1413,53 +1421,57 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1508, russian ? "Счётчик пересылок в каналах" : "Channel forward count", settings.showChannelForwardCount, \.showChannelForwardCount),
             .appearanceToggle(1557, russian ? "Цитата удалённого сообщения в ответе" : "Quote a deleted message in a reply", settings.quoteRepliesToDeleted, \.quoteRepliesToDeleted),
             .appearanceToggle(1558, russian ? "Точные счётчики (без «1,2K»)" : "Exact counts (no “1.2K”)", settings.exactCounts, \.exactCounts),
-            .appearanceToggle(1533, russian ? "Убрать пинги" : "Remove mention pings", settings.removePings, \.removePings),
             .appearanceToggle(1509, russian ? "Скрыть платные реакции" : "Hide paid reactions", settings.hidePaidReactions, \.hidePaidReactions),
             .appearanceToggle(1735, russian ? "Скрыть кнопку подарка" : "Hide the gift button", settings.hideGiftButton, \.hideGiftButton),
             .settingToggle(54, .privacy, ForkExtrasLocalizedString.hideReactionsBar, settings.hideReactionsBar, \.hideReactionsBar),
             .appearanceToggle(1521, russian ? "Недавние эмодзи в реакциях" : "Recent emoji in reactions", settings.useRecentEmojiInReactions, \.useRecentEmojiInReactions),
             .appearanceToggle(1550, russian ? "Итоги опроса до голосования" : "Poll results before voting", settings.pollResultsBeforeVoting, \.pollResultsBeforeVoting),
-            .appearanceToggle(1542, russian ? "Скрыть время у стикеров" : "Hide time on stickers", settings.hideStickerStatus, \.hideStickerStatus),
-            .appearanceToggle(1700, russian ? "Ответ на стикер: скрыть цвета" : "Sticker replies: hide colors", settings.hideStickerReplyColors, \.hideStickerReplyColors),
-            .appearanceToggle(1701, russian ? "Ответ на стикер: скрыть эмодзи" : "Sticker replies: hide emoji", settings.hideStickerReplyEmoji, \.hideStickerReplyEmoji),
-            .appearanceToggle(1702, russian ? "Ответ на стикер: скрыть фон" : "Sticker replies: hide background", settings.hideStickerReplyBackground, \.hideStickerReplyBackground),
             .appearanceToggle(1703, russian ? "Скрыть премиум-эмодзи в ответах" : "Hide premium emoji in replies", settings.hidePremiumReplyEmoji, \.hidePremiumReplyEmoji),
-            .appearanceToggle(1825, russian ? "Выбор папки после вступления" : "Choose a folder after joining", settings.chooseFolderAfterJoin, \.chooseFolderAfterJoin),
-            .appearanceToggle(1826, russian ? "Недавние чаты (долгое нажатие на «Назад»)" : "Recent chats (long-press Back)", settings.recentChatsMenu, \.recentChatsMenu),
-            .appearanceToggle(1827, russian ? "Закладки сообщений с тегами" : "Message bookmarks with tags", settings.messageBookmarks, \.messageBookmarks),
-            .appearanceToggle(1828, russian ? "Локальное имя группы или канала" : "Local group or channel name", settings.localGroupAlias, \.localGroupAlias),
             .appearanceToggle(1519, russian ? "Дата оригинала у пересланных" : "Original date on forwards", settings.showOriginalForwardDate, \.showOriginalForwardDate),
             .designHeader(1720, russian ? "Вид чата" : "Chat look"),
-            .designHeader(1721, russian ? "Стикеры" : "Stickers"),
             .appearanceToggle(1711, russian ? "Ответы без цвета имени" : "Replies without name colors", settings.disableColoredReplies, \.disableColoredReplies),
-            .appearanceToggle(1712, russian ? "Скрыть галочки у стикеров" : "Hide checks on stickers", settings.hideStickerChecks, \.hideStickerChecks),
             .appearanceToggle(1713, russian ? "Аватарки в упоминаниях" : "Avatars in mentions", settings.mentionAvatars, \.mentionAvatars),
             .appearanceToggle(1719, russian ? "Скрыть кнопку «Поделиться»" : "Hide the share button", settings.hideShareButton, \.hideShareButton),
             .appearanceToggle(1716, russian ? "Без своих фонов у чатов" : "No custom chat backgrounds", settings.disableCustomBackgrounds, \.disableCustomBackgrounds),
             .appearanceToggle(1717, russian ? "Канал: кнопка «Обсудить»" : "Channel: Discuss button", settings.channelBottomDiscuss, \.channelBottomDiscuss),
             .appearanceToggle(1718, russian ? "Канал: скрыть нижнюю кнопку" : "Channel: hide bottom button", settings.hideChannelBottomButton, \.hideChannelBottomButton),
+            .appearanceToggle(1791, russian ? "«В начало чата» в меню аватарки" : "Jump to start in the avatar menu", settings.jumpToStartInChatMenu, \.jumpToStartInChatMenu),
+            .scrollToNextChat(settings.scrollToNextChatDisabled),
+            .settingFooter(89, .navigation, ForkExtrasLocalizedString.scrollToNextChatFooter),
+            .appearanceToggle(2036, russian ? "Показывать скрытых админов" : "Show hidden admin badges", settings.showHiddenAdminBadges, \.showHiddenAdminBadges),
+            .designFooter(2037, russian ? "Админ или владелец с невидимым титулом (пробелы или пустые символы) получает обычную метку «админ» или «владелец»." : "An admin or owner whose title is invisible (spaces or blank characters) gets the standard admin or owner badge."),
+            .translationBackend(settings.translationBackend),
+            .transcriptionBackend(settings.transcriptionBackend),
+            .settingFooter(87, .translation, ForkExtrasLocalizedString.translationFooter),
+            .destination(2043, russian ? "Ещё о сообщениях" : "More Message Settings", .messagesMore),
+        ]
+    case .messagesMore:
+        entries = [
+            .appearanceToggle(1533, russian ? "Убрать пинги" : "Remove mention pings", settings.removePings, \.removePings),
+            .appearanceToggle(1542, russian ? "Скрыть время у стикеров" : "Hide time on stickers", settings.hideStickerStatus, \.hideStickerStatus),
+            .appearanceToggle(1700, russian ? "Ответ на стикер: скрыть цвета" : "Sticker replies: hide colors", settings.hideStickerReplyColors, \.hideStickerReplyColors),
+            .appearanceToggle(1701, russian ? "Ответ на стикер: скрыть эмодзи" : "Sticker replies: hide emoji", settings.hideStickerReplyEmoji, \.hideStickerReplyEmoji),
+            .appearanceToggle(1702, russian ? "Ответ на стикер: скрыть фон" : "Sticker replies: hide background", settings.hideStickerReplyBackground, \.hideStickerReplyBackground),
+            .appearanceToggle(1825, russian ? "Выбор папки после вступления" : "Choose a folder after joining", settings.chooseFolderAfterJoin, \.chooseFolderAfterJoin),
+            .appearanceToggle(1826, russian ? "Недавние чаты (долгое нажатие на «Назад»)" : "Recent chats (long-press Back)", settings.recentChatsMenu, \.recentChatsMenu),
+            .appearanceToggle(1827, russian ? "Закладки сообщений с тегами" : "Message bookmarks with tags", settings.messageBookmarks, \.messageBookmarks),
+            .appearanceToggle(1828, russian ? "Локальное имя группы или канала" : "Local group or channel name", settings.localGroupAlias, \.localGroupAlias),
+            .designHeader(1721, russian ? "Стикеры" : "Stickers"),
+            .appearanceToggle(1712, russian ? "Скрыть галочки у стикеров" : "Hide checks on stickers", settings.hideStickerChecks, \.hideStickerChecks),
             .appearanceToggle(1931, russian ? "Канал: скрыть реакции под постами" : "Channel: hide reactions under posts", settings.hideChannelPostReactions, \.hideChannelPostReactions),
             .appearanceToggle(1940, russian ? "Отключить служебные сообщения" : "Hide service messages", settings.hideServiceMessages, \.hideServiceMessages),
             .appearanceToggle(1941, russian ? "Подтверждать реакции без вступления" : "Confirm reactions before joining", settings.confirmReactionsInUnjoinedChats, \.confirmReactionsInUnjoinedChats),
             .appearanceToggle(1942, russian ? "Подтверждать переход по ссылкам Telegram" : "Confirm Telegram link opens", settings.confirmTelegramLinks, \.confirmTelegramLinks),
             .appearanceToggle(1944, russian ? "Подтверждать ссылки «поделиться» (tg://msg_url)" : "Confirm share links (tg://msg_url)", settings.confirmShareLinks, \.confirmShareLinks),
             .appearanceToggle(1943, russian ? "Подтверждать вход из предпросмотра" : "Confirm entering a chat preview", settings.confirmChatPreviewEntry, \.confirmChatPreviewEntry),
-            .appearanceToggle(1791, russian ? "«В начало чата» в меню аватарки" : "Jump to start in the avatar menu", settings.jumpToStartInChatMenu, \.jumpToStartInChatMenu),
-            .scrollToNextChat(settings.scrollToNextChatDisabled),
-            .settingFooter(89, .navigation, ForkExtrasLocalizedString.scrollToNextChatFooter),
             .appearanceToggle(1518, russian ? "Хэштег ищет в этом чате" : "Hashtags search this chat", settings.hashtagsPreferCurrentChat, \.hashtagsPreferCurrentChat),
             .appearanceToggle(1960, russian ? "Отзыв всех пригласительных ссылок" : "Bulk revoke invite links", settings.inviteLinksBulkRevoke, \.inviteLinksBulkRevoke),
             .appearanceToggle(1962, russian ? "Подтверждать открепление сообщений" : "Confirm before unpinning messages", settings.confirmUnpin, \.confirmUnpin),
             .appearanceToggle(1964, russian ? "Оставаться на последнем сообщении после обновления" : "Stay at the latest message after a refresh", settings.stayAtLatestMessageAfterRefresh, \.stayAtLatestMessageAfterRefresh),
-            .appearanceToggle(2036, russian ? "Показывать скрытых админов" : "Show hidden admin badges", settings.showHiddenAdminBadges, \.showHiddenAdminBadges),
-            .designFooter(2037, russian ? "Админ или владелец с невидимым титулом (пробелы или пустые символы) получает обычную метку «админ» или «владелец»." : "An admin or owner whose title is invisible (spaces or blank characters) gets the standard admin or owner badge."),
             .designHeader(1607, russian ? "Боты и служебные сообщения" : "Bots and service messages"),
             .appearanceToggle(1510, russian ? "Скрыть «через бота»" : "Hide \"via bot\"", settings.hideViaBot, \.hideViaBot),
             .appearanceToggle(1513, russian ? "Скрыть панель автоматизации бота" : "Hide bot automation panel", settings.hideBotAutomation, \.hideBotAutomation),
             .appearanceToggle(1517, russian ? "Без приветственного стикера" : "No greeting sticker", settings.hideGreetingSticker, \.hideGreetingSticker),
-            .translationBackend(settings.translationBackend),
-            .transcriptionBackend(settings.transcriptionBackend),
-            .settingFooter(87, .translation, ForkExtrasLocalizedString.translationFooter),
         ]
     case .messageSending:
         entries = [
@@ -1568,12 +1580,16 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1730, russian ? "Дата создания чата" : "Chat creation date", settings.showChatCreationDate, \.showChatCreationDate),
             .appearanceToggle(1733, russian ? "Скрыть премиум-статусы" : "Hide premium statuses", settings.hidePremiumStatuses, \.hidePremiumStatuses),
             .appearanceToggle(1734, russian ? "Скрыть верификацию" : "Hide verification", settings.hideVerification, \.hideVerification),
-            .designHeader(1740, russian ? "Мой номер" : "My number"),
-            .appearanceToggle(1736, russian ? "Показывать другой номер" : "Show a different number", settings.visualPhoneEnabled, \.visualPhoneEnabled),
-            .visualPhoneNumber(settings.visualPhoneNumber),
             .appearanceToggle(1980, russian ? "Не открывать звёзды после продажи подарка" : "Keep the current screen after selling a gift", settings.disableGiftStarsRedirect, \.disableGiftStarsRedirect),
             .intChoice(1981, russian ? "Визуальная метка (только у вас)" : "Visual label (only visible to you)", forkIntChoiceLabel(forkVisualLabelOptions(russian: russian), settings.visualLabels[accountPeerId ?? 0] ?? 0)),
             .intChoice(2106, russian ? "Локальный значок верификации" : "Local verification badge", forkIntChoiceLabel(forkLocalVerificationOptions(russian: russian), accountRecordId.flatMap { settings.localVerificationBadges[$0] } ?? 0)),
+            .destination(2044, russian ? "Ещё о профиле" : "More Profile Settings", .profileMore),
+        ]
+    case .profileMore:
+        entries = [
+            .designHeader(1740, russian ? "Мой номер" : "My number"),
+            .appearanceToggle(1736, russian ? "Показывать другой номер" : "Show a different number", settings.visualPhoneEnabled, \.visualPhoneEnabled),
+            .visualPhoneNumber(settings.visualPhoneNumber),
             .designFooter(1738, russian ? "Меняется только номер, показанный в вашем профиле на этом устройстве. Настоящий номер не меняется." : "Only the number shown in your own profile on this device changes. Your real number stays the same."),
             .designHeader(1603, russian ? "Эффекты" : "Effects"),
             .appearanceToggle(1500, ForkExtrasLocalizedString.string(forKey: "ForkExtras.AvatarGlow"), settings.avatarGlowEnabled, \.avatarGlowEnabled),
@@ -1653,9 +1669,11 @@ public enum ForkExtrasControllerFocus {
     case messages
     case messageSending
     case messageActions
+    case messagesMore
     case voiceAndRound
     case media
     case profile
+    case profileMore
     case network
     case messageSaving
     case messageFilters
@@ -1691,6 +1709,10 @@ public enum ForkExtrasControllerFocus {
             return ForkPresentationLanguage.prefersRussianStrings ? "Действия с сообщениями" : "Message Actions"
         case .voiceAndRound:
             return ForkPresentationLanguage.prefersRussianStrings ? "Голосовые и кружки" : "Voice and Round Videos"
+        case .messagesMore:
+            return ForkPresentationLanguage.prefersRussianStrings ? "Ещё о сообщениях" : "More Message Settings"
+        case .profileMore:
+            return ForkPresentationLanguage.prefersRussianStrings ? "Ещё о профиле" : "More Profile Settings"
         case .media:
             return ForkExtrasLocalizedString.hubMedia
         case .profile:
@@ -1707,7 +1729,7 @@ public enum ForkExtrasControllerFocus {
 func forkExtrasSearchableRows(strings: PresentationStrings) -> [(id: Int32, title: String, focus: ForkExtrasControllerFocus)] {
     var result: [(id: Int32, title: String, focus: ForkExtrasControllerFocus)] = []
     var seen = Set<Int32>()
-    let categories: [ForkExtrasControllerFocus] = [.ninja, .ghost, .privacy, .appearance, .chatList, .tabBar, .messages, .messageSending, .messageActions, .voiceAndRound, .media, .profile, .network]
+    let categories: [ForkExtrasControllerFocus] = [.ninja, .ghost, .privacy, .appearance, .chatList, .tabBar, .messages, .messageSending, .messageActions, .messagesMore, .voiceAndRound, .media, .profile, .profileMore, .network]
     for focus in categories {
         let entries = forkExtrasControllerEntries(settings: .defaultSettings, autoFetchPublicMtProxy: false, showCallsTab: true, mediaInputSettings: .defaultSettings, focus: focus)
         for entry in entries {
@@ -1936,6 +1958,8 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             case .messageSending: pushControllerImpl?(forkExtrasController(context: context, focus: .messageSending))
             case .messageActions: pushControllerImpl?(forkExtrasController(context: context, focus: .messageActions))
             case .voiceAndRound: pushControllerImpl?(forkExtrasController(context: context, focus: .voiceAndRound))
+            case .messagesMore: pushControllerImpl?(forkExtrasController(context: context, focus: .messagesMore))
+            case .profileMore: pushControllerImpl?(forkExtrasController(context: context, focus: .profileMore))
             case .connectionCheck:
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                 let proxySettings: Signal<ProxySettings, NoError> = context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings])

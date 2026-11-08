@@ -17,6 +17,11 @@
 - Extras › Profile: Don't autoplay profile music.
 - Extras › Messages › Input panel: "Hide AI button" is now "Hide AI features" and also hides message summaries; Copy takes the original text.
 
+### Changed — Apple HIG pass
+- Extras › Messages and Profile keep the switches people change; the rest moved to "More Message Settings" and "More Profile Settings" (Messages: 46 → 20 switches, Profile: 32 → 14). Links, search and Settings search reach the new pages.
+- Every Extras block ends with its footer; Voice and Round Videos is split into Recording round videos and Playback and sending. The longest footers are cut to 2–3 lines.
+- Privacy: a tap that waits for the privacy settings (Settings search, links, Privacy and Security rows while loading) shows a loading indicator, and after 15 s without an answer an alert, instead of doing nothing.
+
 ### Fixed
 - Photos: no grey band at the bottom of a profile photo after sharing it to a chat (Donutgram).
 - Attach › File: the app no longer stops responding when the Files picker is dropped by the system, e.g. with Face ID on for Files (Telegram 13.1.3).

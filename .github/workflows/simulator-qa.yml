@@ -257,7 +257,7 @@ jobs:
             "app chat:user:1001" "app chat:user:1002" "app chat:channel:2001" "app chat:channel:2004"
             "app url:tg://user?id=1001" "app url:tg://settings/edit" "app url:tg://settings/my-profile"
             "app extras" "app extras:appearance" "app extras:ninja" "app extras:ghost" "app extras:privacy"
-            "app extras:chatList" "app extras:tabBar" "app extras:messages" "app extras:sending" "app extras:actions" "app extras:media" "app extras:voice" "app extras:profile"
+            "app extras:chatList" "app extras:tabBar" "app extras:messages" "app extras:messagesMore" "app extras:sending" "app extras:actions" "app extras:media" "app extras:voice" "app extras:profile" "app extras:profileMore"
             "app extras:network" "app archive-settings" "app banana-security" "app accounts"
             "app url:tg://settings/appearance" "app url:tg://settings/appearance/themes" "app url:tg://settings/appearance/text-size"
             "app url:tg://settings/appearance/message-corners" "app url:tg://settings/appearance/app-icon"
@@ -291,7 +291,7 @@ jobs:
           # First the screens under work right now, in English and Russian, uploaded on their own a few minutes in
           # (the next step) so they can be looked at long before the full set is done.
           PRIORITY=(chats saved chat:user:1001 chat:user:1002 chat:channel:2001 settings extras extras:messages extras:sending
-            extras:actions extras:media extras:voice extras:profile extras:privacy extras:ninja extras:ghost extras:network
+            extras:actions extras:messagesMore extras:media extras:voice extras:profile extras:profileMore extras:privacy extras:ninja extras:ghost extras:network
             banana-security archive-settings accounts)
           xcrun simctl ui "$UDID" appearance light
           for target in "${PRIORITY[@]}"; do capture light day "$target"; done
