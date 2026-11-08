@@ -140,7 +140,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ShowDC": "Show Data Center & Registration Date",
             "ForkExtras.ShowProfileId": "Show Profile ID",
             "ForkExtras.PrivacyFooter": "Shows extra details on profiles.",
-            "ForkExtras.AccentSaturation": "Accent Color Saturation",
+            "ForkExtras.AccentSaturation": "Accent Saturation",
             "ForkExtras.ConfirmBeforeCall": "Confirm Before Calling",
             "ForkExtras.SendWithReturnKey": "Send With Return Key",
             "ForkExtras.SendWithReturnKeyFooter": "Return sends the message instead of starting a new line.",
@@ -293,7 +293,7 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.ShowDC": "Показать DC и дату регистрации",
             "ForkExtras.ShowProfileId": "Показать ID профиля",
             "ForkExtras.PrivacyFooter": "Показывает дополнительные сведения в профилях.",
-            "ForkExtras.AccentSaturation": "Насыщенность акцентного цвета",
+            "ForkExtras.AccentSaturation": "Насыщенность акцента",
             "ForkExtras.ConfirmBeforeCall": "Подтверждать перед звонком",
             "ForkExtras.SendWithReturnKey": "Отправка по Enter",
             "ForkExtras.SendWithReturnKeyFooter": "Enter отправляет сообщение, а не переносит строку.",
@@ -1186,7 +1186,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .visualPhoneNumber(value):
             let accountManager = arguments.context.sharedContext.accountManager
-            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: ForkPresentationLanguage.prefersRussianStrings ? "Номер" : "Number"), text: value, placeholder: "+888 0156 2794", type: .regular(capitalization: false, autocorrection: false), clearType: .always, maxLength: 24, tag: BananaSettingsItemTag(id: self.stableId), sectionId: self.section, textUpdated: { value in
+            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: ForkPresentationLanguage.prefersRussianStrings ? "Номер" : "Number", textColor: presentationData.theme.list.itemPrimaryTextColor), text: value, placeholder: "+888 0156 2794", type: .regular(capitalization: false, autocorrection: false), spacing: 10.0, clearType: .always, maxLength: 24, tag: BananaSettingsItemTag(id: self.stableId), sectionId: self.section, textUpdated: { value in
                 let _ = updateForkExtrasSettingsInteractively(accountManager: accountManager) { current in
                     var updated = current
                     updated.visualPhoneNumber = value

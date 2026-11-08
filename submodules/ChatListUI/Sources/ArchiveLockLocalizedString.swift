@@ -16,6 +16,7 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.LockArchive": "Lock Archive and Saved Messages",
             "ArchiveLock.KeepArchivedPolicy": "Archived chats always stay in the archive and remain muted. This is automatic and cannot be switched off here.",
             "ArchiveLock.LockNow": "Lock Now",
+            "ArchiveLock.KeepInArchive": "Stay in Archive",
             "ArchiveLock.Footer": "Archive and Saved Messages are hidden. Tap Settings 10 times to reveal access, then enter the password or use biometrics. Access closes when leaving or backgrounding the app. Archived chats remain muted.",
             "ArchiveLock.EnterTitle": "Archive Password",
             "ArchiveLock.EnterText": "Enter the password to open Archive and Saved Messages",
@@ -94,6 +95,7 @@ public enum ArchiveLockLocalizedString {
             "ArchiveLock.LockArchive": "Блокировать архив и «Избранное»",
             "ArchiveLock.KeepArchivedPolicy": "Архивированные чаты всегда остаются в архиве и без звука. Это происходит автоматически и не отключается здесь.",
             "ArchiveLock.LockNow": "Заблокировать сейчас",
+            "ArchiveLock.KeepInArchive": "Оставаться в архиве",
             "ArchiveLock.Footer": "Архив и «Избранное» скрыты. Нажмите «Настройки» 10 раз, чтобы показать вход, затем введите пароль или используйте биометрию. При выходе или сворачивании приложения доступ закрывается. Архивированные чаты остаются без звука.",
             "ArchiveLock.EnterTitle": "Пароль архива",
             "ArchiveLock.EnterText": "Введите пароль, чтобы открыть архив и «Избранное»",
@@ -196,6 +198,7 @@ public enum ArchiveLockLocalizedString {
     }
     
     public static var keepArchivedPolicy: String { string(forKey: "ArchiveLock.KeepArchivedPolicy") }
+    public static var keepInArchive: String { string(forKey: "ArchiveLock.KeepInArchive") }
     public static var passwordSection: String { string(forKey: "ArchiveLock.PasswordSection") }
     public static var storageError: String { string(forKey: "ArchiveLock.StorageError") }
     public static var lockArchive: String { string(forKey: "ArchiveLock.LockArchive") }

@@ -282,7 +282,7 @@ private enum ArchiveSettingsControllerEntry: ItemListNodeEntry {
             // switched (Apple HIG: don't show a control people can't use).
             let russian = ForkPresentationLanguage.prefersRussianStrings
             let state = value ? (russian ? "Всегда" : "Always") : (russian ? "Выкл." : "Off")
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: presentationData.strings.ArchiveSettings_KeepArchived, label: state, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ArchiveLockLocalizedString.keepInArchive, label: state, sectionId: self.section, style: .blocks, disclosureStyle: .none, action: nil)
         case .unmutedFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(ArchiveLockLocalizedString.keepArchivedPolicy), sectionId: self.section)
         case .unknownHeader:

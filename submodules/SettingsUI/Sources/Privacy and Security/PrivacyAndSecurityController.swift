@@ -796,7 +796,7 @@ private func privacyAndSecurityControllerEntries(
         entries.append(.phoneNumberPrivacy(presentationData.theme, presentationData.strings.PrivacySettings_PhoneNumber, presentationData.strings.Channel_NotificationLoading))
         entries.append(.lastSeenPrivacy(presentationData.theme, presentationData.strings.PrivacySettings_LastSeen, presentationData.strings.Channel_NotificationLoading))
         entries.append(.profilePhotoPrivacy(presentationData.theme, presentationData.strings.Privacy_ProfilePhoto, presentationData.strings.Channel_NotificationLoading))
-        entries.append(.bioPrivacy(presentationData.theme, presentationData.strings.Privacy_GroupsAndChannels, presentationData.strings.Channel_NotificationLoading))
+        entries.append(.bioPrivacy(presentationData.theme, presentationData.strings.Privacy_Bio, presentationData.strings.Channel_NotificationLoading))
         entries.append(.giftsAutoSavePrivacy(presentationData.theme, presentationData.strings.Privacy_Gifts, presentationData.strings.Channel_NotificationLoading))
         entries.append(.birthdayPrivacy(presentationData.theme, presentationData.strings.Privacy_Birthday, presentationData.strings.Channel_NotificationLoading))
         entries.append(.savedMusicPrivacy(presentationData.theme, presentationData.strings.Privacy_SavedMusic, presentationData.strings.Channel_NotificationLoading))
@@ -806,7 +806,7 @@ private func privacyAndSecurityControllerEntries(
             entries.append(.voiceMessagePrivacy(presentationData.theme, presentationData.strings.Privacy_VoiceMessages, presentationData.strings.Channel_NotificationLoading, isPremium))
             entries.append(.messagePrivacy(presentationData.theme, presentationData.strings.Channel_NotificationLoading, isPremium))
         }
-        entries.append(.groupPrivacy(presentationData.theme, presentationData.strings.Privacy_GroupsAndChannels, presentationData.strings.Channel_NotificationLoading))
+        entries.append(.groupPrivacy(presentationData.theme, presentationData.strings.PrivacySettings_InviteItem, presentationData.strings.Channel_NotificationLoading))
         entries.append(.groupPrivacyFooter)
         //entries.append(.selectivePrivacyInfo(presentationData.theme, presentationData.strings.PrivacyLastSeenSettings_GroupsAndChannelsHelp))
     }

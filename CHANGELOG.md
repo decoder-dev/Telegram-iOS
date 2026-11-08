@@ -33,6 +33,9 @@
 - Calls: tgcalls from Telegram 13.1.3 (works with 13.0.0 and unchanged 8.0.0 clients, server SCTP timers, a pending-channel removal fix); the VLESS media patch follows it.
 - 16 fixes from Telegram 13.1.3: voice messages record again after a pause, a slight swipe no longer navigates back or jumps the history, no custom emoji in notifications while locked, the slow mode "0:00" stays no longer, and more.
 - Build: libxray and Bazel are fetched through the GitHub API when their release links fail (they answered 504 for hours on 2026-11-08).
+- Privacy and Security: while loading, the Bio row no longer reads "Groups" and the invites row has its usual title.
+- Extras › More Profile Settings: the custom number no longer runs into its "Number" label; "Accent Saturation" fits on one line.
+- Protected Archive: the fixed archive policy reads "Stay in Archive — Always" instead of repeating "Always".
 
 ## [v13.1.2-4505]
 
