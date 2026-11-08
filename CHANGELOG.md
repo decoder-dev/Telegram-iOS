@@ -9,6 +9,21 @@
 ### Security
 - Calls: a short audio frame from the other side right after silence (comfort noise) no longer overruns a heap buffer in WebRTC's NetEq (CVE-2026-9119, ported from Telegram 13.1.3). The WebRTC submodule moves to 590a8b23dd; `//third-party/webrtc:neteq_normal_test` pins the fix.
 
+### Added — from Donutgram (all off by default)
+- Extras › Sending: Bypass sticker restrictions. Where stickers are banned but videos are allowed, a sticker goes out as a short silent video made on the device.
+- Extras › Messages: Show hidden admin badges. An admin or owner with an invisible title gets the standard badge.
+- Extras › Chat list: Hide empty reply drafts. A reply chosen without text no longer turns the row into "Draft".
+- Extras › Privacy: Hide phone number in chat title.
+- Extras › Profile: Don't autoplay profile music.
+- Extras › Messages › Input panel: "Hide AI button" is now "Hide AI features" and also hides message summaries; Copy takes the original text.
+
+### Fixed
+- Photos: no grey band at the bottom of a profile photo after sharing it to a chat (Donutgram).
+- Attach › File: the app no longer stops responding when the Files picker is dropped by the system, e.g. with Face ID on for Files (Telegram 13.1.3).
+- Calls: tgcalls from Telegram 13.1.3 (works with 13.0.0 and unchanged 8.0.0 clients, server SCTP timers, a pending-channel removal fix); the VLESS media patch follows it.
+- 16 fixes from Telegram 13.1.3: voice messages record again after a pause, a slight swipe no longer navigates back or jumps the history, no custom emoji in notifications while locked, the slow mode "0:00" stays no longer, and more.
+- Build: libxray and Bazel are fetched through the GitHub API when their release links fail (they answered 504 for hours on 2026-11-08).
+
 ## [v13.1.2-4505]
 
 ### Fixed — Archive protection
