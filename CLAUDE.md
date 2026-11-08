@@ -44,7 +44,8 @@ stack overflow (a remote DoS: the block is highlighted on receipt). `SyntaxHighl
 (128; ~1.1 KiB of stack per level, measured) caps it and degrades gracefully to plain text at the cap.
 Upstream `TelegramMessenger/libprisma` does **not** fix this (checked at HEAD 07ff1fcc, 2026-09-21):
 the recursion has no bound there and the regenerated `grammars.dat` still ships the cycle, so pulling
-upstream is not a substitute for the cap. They follow a plain `CHECK_TRUE` + `main()` pattern, are listed
+upstream is not a substitute for the cap. `//third-party/webrtc:neteq_normal_test` (CVE-2026-9119, NetEq in our
+WebRTC fork) is another; its header gives the ASan flags it needs. They follow a plain `CHECK_TRUE` + `main()` pattern, are listed
 explicitly in `submodules/TgVoipWebrtc/BUILD` (group sources are not globbed), and must be added to the
 `exclude:` list in `tgcalls/Package.swift` so SwiftPM does not compile their `main()`. The first run compiles
 WebRTC for the host (~2.5 min); later runs take seconds. Note the binary is version-stamped and

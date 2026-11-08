@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Security
+- Calls: a short audio frame from the other side right after silence (comfort noise) no longer overruns a heap buffer in WebRTC's NetEq (CVE-2026-9119, ported from Telegram 13.1.3). The WebRTC submodule moves to 590a8b23dd; `//third-party/webrtc:neteq_normal_test` pins the fix.
+
 ## [v13.1.2-4505]
 
 ### Fixed — Archive protection
