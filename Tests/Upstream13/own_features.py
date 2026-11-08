@@ -1124,7 +1124,15 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation/overrid
         self.assertIn('CFAbsoluteTimeGetCurrent() - self.serverStateLastFailureTimestamp < self.serverStateCooldown() - 0.5', request)
         self.assertIn('self.scheduleServerStateRetry()', request)
         cooldown = src.split('func serverStateCooldown() -> TimeInterval {', 1)[1].split('func requestServerWalletState', 1)[0]
-        self.assertIn('self.walletScreenCount > 0 ? base : min(base * 4.0, 900.0)', cooldown)
+        self.assertIn('if self.walletScreenCount > 0 {\n            return base', cooldown)
+        self.assertIn('return min(base * 4.0, 900.0)', cooldown)
+        # Device log (8 Nov, build 4505): the 15-minute cap still asked every ~11 min per account for two days, every
+        # answer the same 400. A refusal is left alone for hours while no wallet screen is open.
+        self.assertIn('if self.serverStateLastFailureWasRefusal {\n            return WalletContextImpl.serverStateIdleRefusalCooldown', cooldown)
+        self.assertIn('static let serverStateIdleRefusalCooldown: TimeInterval = 6.0 * 60.0 * 60.0', src)
+        self.assertIn('static let serverStateRefusalMemory: CFAbsoluteTime = WalletContextImpl.serverStateIdleRefusalCooldown', src)
+        demand = src.split('func updateWalletScreenDemand(_ demand: WalletScreenDemand) {', 1)[1].split('self.evaluateRuntimeDemand()', 1)[0]
+        self.assertIn('if previousWalletCount == 0 && self.walletScreenCount > 0, self.serverStateLastFailureWasRefusal {', demand)
         self.assertIn('let failedAt = CFAbsoluteTimeGetCurrent()', src)
         self.assertIn('self.serverStateLastFailureTimestamp = failedAt', src)
         self.assertIn('let delaySeconds = self.serverStateCooldown()', src)
@@ -1184,6 +1192,7 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation/overrid
         failure = src.split('self.logger.error("wallet_state_failed", error)', 1)[1].split('self.scheduleServerStateRetry()', 1)[0]
         self.assertIn('if WalletContextImpl.isServerStateRefusal(error) {', failure)
         self.assertIn('self.serverStateRetryFailureCount = WalletContextImpl.serverStateMaximumFailureCount', failure)
+        self.assertIn('self.serverStateLastFailureWasRefusal = true', failure)
         self.assertIn('UserDefaults.standard.set(failedAt, forKey: self.serverStateRefusalDefaultsKey)', failure)
         init = src.split('self.streamingURLProvider = WalletStreamingURLProvider(engine: engine, logger: logger)', 1)[1].split('self.currentState = initialState', 1)[0]
         self.assertIn('UserDefaults.standard.double(forKey: refusalDefaultsKey)', init)
