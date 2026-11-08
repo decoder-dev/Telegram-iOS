@@ -887,14 +887,14 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
         self.assertIn('Namespaces.Peer.SecretChat', quote)
         enqueue = read('submodules/TelegramCore/Sources/PendingMessages/EnqueueMessage.swift')
         self.assertIn('BananaDeletedReplyQuote.quotedMessage(transaction: transaction, peerId: peerId, message: updatedMessage)', enqueue)
-        self.assertIn('[1605, 65, 66],\n            [1557],', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
+        self.assertIn('[1605, 65, 1557, 1558, 67, 69, 68],', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))
 
     def test_exact_counts_and_voice_send_confirmation(self):
         fmt = read('submodules/TelegramPresentationData/Sources/NumericFormat.swift')
         # Exact counts bypass the "1.2K" shortening, and the flag is a plain atomic.
         self.assertIn('if BananaExactCounts.enabled {\n        return presentationStringsFormattedNumber(Int64(count), "\\u{2009}")', fmt)
         ctl = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
-        self.assertIn('[1557],\n            [1558],', ctl)
+        self.assertIn('[1605, 65, 1557, 1558, 67, 69, 68],', ctl)
         self.assertIn('[2042, 1515, 1516, 1559, 1612]', ctl)
         shared = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertIn('BananaExactCounts.enabled = settings.exactCounts', shared)

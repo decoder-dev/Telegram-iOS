@@ -714,11 +714,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         // Scene 38: the input panel opens Messages. Scene 39: round videos and voice open Media, calls follow.
         (.messages, [
             [2200, 2201, 2043],
-            [1605, 65, 66],
-            [1557],
-            [1558],
-            [67, 68],
-            [69],
+            [1605, 65, 1557, 1558, 67, 69, 68],
             [1508, 1509, 1735, 54, 1521, 1550, 1519],
             [1720, 1711, 1703, 1713, 1716, 1719, 1717, 1718, 1791],
             [88, 89],
@@ -776,7 +772,14 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1604, 140, 141]
         ]),
         (.ghost, [[1560, 1561, 1562], [1770, 1771, 1772]]),
-        (.privacy, [[2030, 2031], [2032, 2033]])
+        (.privacy, [
+            [28, 2032, 29],
+            [30, 31],
+            [2045, 32, 34],
+            [2046, 38, 1775, 40, 39, 41],
+            [42, 43],
+            [1530, 2030, 2031]
+        ])
     ]
 
     private static let interfaceGroups: [[Int32]] = regroupedCategories.flatMap { $0.groups }
@@ -898,7 +901,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .hubProfile: return 23
         case .hubNetwork: return 5
         case .hubCard: return 1996
-        case .connectionStatus: return 2110
+        // Not 2110: that id is the round video countdown, whose block placed this card at the end of the Network page.
+        case .connectionStatus: return 2109
         case .hubSectionsHeader: return 1997
         case .hubLookHeader: return 1998
         case .ghostModeMaster: return 9
@@ -931,7 +935,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         1998: 5.2,     // "Interface" follows Network.
         3: 5.3,        // Chat list and folders opens Interface.
         2100: 5.5,     // Account order.
-        2110: 137.0,   // The Network page's connection card opens the page.
+        2109: 137.0,   // The Network page's connection card opens the page.
         2105: 137.5,
         2103: 144.3,
         2104: 144.5,
@@ -1321,7 +1325,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .ghostReadOnInteract(settings.ghostReadOnInteract),
             .settingFooter(17, .ghost, ForkExtrasLocalizedString.ghostReadOnInteractFooter),
             .settingToggle(18, .ghost, ForkExtrasLocalizedString.ghostAlertBeforeOpeningStory, settings.ghostAlertBeforeOpeningStory, \.ghostAlertBeforeOpeningStory),
-            .settingFooter(19, .ghost, ForkExtrasLocalizedString.ghostAlertBeforeOpeningStoryFooter),
             .ghostScheduleMessages(settings.ghostScheduleMessages),
             .settingFooter(21, .ghost, ForkExtrasLocalizedString.ghostScheduleMessagesFooter),
             .settingFooter(22, .ghost, ForkExtrasLocalizedString.ghostModeFooter),
@@ -1335,15 +1338,14 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(2030, russian ? "Убирать отслеживание из ссылок" : "Remove tracking from sent links", settings.stripTrackingParameters, \.stripTrackingParameters),
             .designFooter(2031, russian ? "Очищать ссылки в текстовых сообщениях. Код и подписанные ссылки сохраняются без изменений." : "Clean links in text messages. Code and signed links remain unchanged."),
             .appearanceToggle(2032, russian ? "Скрыть номер в заголовке чата" : "Hide phone number in chat title", settings.hidePhoneNumberInChatTitle, \.hidePhoneNumberInChatTitle),
-            .designFooter(2033, russian ? "Чат с человеком не из контактов называется его именем, а не номером телефона. Открытый чат обновится, когда вы откроете его снова." : "A chat with someone outside your contacts is titled with their name instead of their phone number. An open chat updates when you open it again."),
             .settingToggle(28, .lock, ForkExtrasLocalizedString.streamerMode, settings.streamerMode, \.streamerMode),
             .settingFooter(29, .lock, ForkExtrasLocalizedString.streamerModeFooter),
             .settingToggle(30, .lock, ForkExtrasLocalizedString.instantPasscode, settings.instantPasscodeLock, \.instantPasscodeLock),
             .settingFooter(31, .lock, ForkExtrasLocalizedString.instantPasscodeFooter),
+            .designHeader(2045, russian ? "Уведомления" : "Notifications"),
             .settingToggle(32, .notifications, ForkExtrasLocalizedString.hideMentions, settings.hideMentionNotifications, \.hideMentionNotifications),
-            .settingFooter(33, .notifications, ForkExtrasLocalizedString.hideMentionsFooter),
             .settingToggle(34, .notifications, ForkExtrasLocalizedString.hidePinned, settings.hidePinnedNotifications, \.hidePinnedNotifications),
-            .settingFooter(35, .notifications, ForkExtrasLocalizedString.hidePinnedFooter),
+            .designHeader(2046, russian ? "Секретные чаты и исчезающие медиа" : "Secret chats and disappearing media"),
             .settingToggle(38, .smallThings, ForkExtrasLocalizedString.allowSecretScreenshots, settings.allowSecretScreenshots, \.allowSecretScreenshots),
             .settingFooter(39, .smallThings, ForkExtrasLocalizedString.allowSecretScreenshotsFooter),
             .appearanceToggle(1775, russian ? "Скриншоты в защищённых чатах" : "Screenshots in protected chats", settings.allowProtectedScreenshots, \.allowProtectedScreenshots),
@@ -1414,7 +1416,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .destination(2201, russian ? "Действия с сообщениями" : "Message Actions", .messageActions),
             .designHeader(1605, russian ? "Отображение" : "Display"),
             .settingToggle(65, .appearance, ForkExtrasLocalizedString.showMessageSeconds, settings.showMessageSeconds, \.showMessageSeconds),
-            .settingFooter(66, .appearance, ForkExtrasLocalizedString.showMessageSecondsFooter),
             .settingToggle(67, .appearance, ForkExtrasLocalizedString.wideChannelPosts, settings.wideChannelPosts, \.wideChannelPosts),
             .settingFooter(68, .appearance, ForkExtrasLocalizedString.wideChannelPostsFooter),
             .stickerSize(settings.stickerSizePercent),
@@ -1512,7 +1513,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .destination(2202, russian ? "Голосовые и кружки" : "Voice and Round Videos", .voiceAndRound),
             .designHeader(1608, russian ? "Звонки" : "Calls"),
             .settingToggle(80, .calls, ForkExtrasLocalizedString.confirmBeforeCall, settings.confirmBeforeCall, \.confirmBeforeCall),
-            .settingFooter(84, .calls, ForkExtrasLocalizedString.forceBuiltInMicFooter + "\n\n" + ForkExtrasLocalizedString.callsFooter),
+            .settingFooter(84, .calls, ForkExtrasLocalizedString.forceBuiltInMicFooter),
             .settingToggle(83, .calls, ForkExtrasLocalizedString.forceBuiltInMic, settings.forceBuiltInMic, \.forceBuiltInMic),
             .designHeader(1613, russian ? "Ссылки TikTok и Shorts" : "TikTok and Shorts links"),
             .appearanceToggle(1554, russian ? "Скачивать TikTok" : "Download TikTok", settings.downloadTikTok, \.downloadTikTok),

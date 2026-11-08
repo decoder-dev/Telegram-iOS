@@ -103,6 +103,10 @@ class NewSwitches(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertIn('.appearanceToggle(%d, ' % row, controller)
                 self.assertIn('settings.%s, \\.%s)' % (name, name), controller)
+                if row == 2032:
+                    # Hide phone number shares the Streamer Mode block and its footer (Apple HIG pass).
+                    self.assertIn('[28, 2032, 29]', groups)
+                    continue
                 self.assertIn('.designFooter(%d, ' % (row + 1), controller)
                 self.assertIn('%d, %d' % (row, row + 1), groups)
 
