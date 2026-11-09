@@ -669,6 +669,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
     public let mainContextSourceNode: ContextExtractedContentContainingNode
     // Messages look: "Delivered" / "Read" under one's own newest message.
     private var messagesStyleReceiptNode: ImmediateTextNode?
+    private var messagesStyleReceiptBackgroundNode: ASDisplayNode?
     private let mainContainerNode: ContextControllerSourceNode
 
     /// The vertical offset the LIST last asked this node to hold, via `updateTrailingItemSpace`.
@@ -3945,6 +3946,10 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 self.messagesStyleReceiptNode = nil
                 receiptNode.removeFromSupernode()
             }
+            if let backgroundNode = self.messagesStyleReceiptBackgroundNode {
+                self.messagesStyleReceiptBackgroundNode = nil
+                backgroundNode.removeFromSupernode()
+            }
             return
         }
         let receiptNode: ImmediateTextNode
@@ -3957,11 +3962,36 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
             self.messagesStyleReceiptNode = receiptNode
             self.addSubnode(receiptNode)
         }
-        let color = bubbleVariableColor(variableColor: item.presentationData.theme.theme.chat.serviceMessage.dateTextColor, wallpaper: item.presentationData.theme.wallpaper)
+        let theme = item.presentationData.theme.theme
+        let wallpaper = item.presentationData.theme.wallpaper
+        // On a plain chat background it is grey caption text, as in Messages. Over a wallpaper the service text
+        // colour is made for a pill, so it gets one.
+        let hasWallpaper = wallpaper.hasWallpaper
+        let color = hasWallpaper ? bubbleVariableColor(variableColor: theme.chat.serviceMessage.dateTextColor, wallpaper: wallpaper) : theme.list.itemSecondaryTextColor
         receiptNode.attributedText = NSAttributedString(string: text, font: Font.medium(11.0), textColor: color)
         let size = receiptNode.updateLayout(CGSize(width: max(1.0, layoutSize.width - 20.0), height: 20.0))
         let originY = layoutSize.height - bottomInset - ChatMessageBubbleItemNode.messagesStyleReceiptHeight + 2.0
-        receiptNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels(bubbleFrame.maxX - size.width - 4.0), y: originY), size: size)
+        let horizontalPadding: CGFloat = hasWallpaper ? 6.0 : 0.0
+        let receiptFrame = CGRect(origin: CGPoint(x: floorToScreenPixels(bubbleFrame.maxX - size.width - 4.0 - horizontalPadding), y: originY), size: size)
+        receiptNode.frame = receiptFrame
+        if hasWallpaper {
+            let backgroundNode: ASDisplayNode
+            if let current = self.messagesStyleReceiptBackgroundNode {
+                backgroundNode = current
+            } else {
+                backgroundNode = ASDisplayNode()
+                backgroundNode.isLayerBacked = true
+                self.messagesStyleReceiptBackgroundNode = backgroundNode
+                self.insertSubnode(backgroundNode, belowSubnode: receiptNode)
+            }
+            backgroundNode.backgroundColor = selectDateFillStaticColor(theme: theme, wallpaper: wallpaper)
+            let backgroundFrame = receiptFrame.insetBy(dx: -horizontalPadding, dy: -1.0)
+            backgroundNode.frame = backgroundFrame
+            backgroundNode.cornerRadius = backgroundFrame.height / 2.0
+        } else if let backgroundNode = self.messagesStyleReceiptBackgroundNode {
+            self.messagesStyleReceiptBackgroundNode = nil
+            backgroundNode.removeFromSupernode()
+        }
     }
 
     private static func applyLayout(selfReference: Weak<ChatMessageBubbleItemNode>,
@@ -4139,6 +4169,19 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                 let bubble = item.presentationData.theme.theme.chat.message.outgoing.bubble
                 glassBubbleTint = (hasWallpaper ? bubble.withWallpaper.fill : bubble.withoutWallpaper.fill).first
             }
+        }
+        if var style = glassBubbleStyle, let tint = glassBubbleTint {
+            // A faint tint over a light chat leaves white text on a pale bubble. Raise the tint until the
+            // bubble's text reads at the HIG/WCAG 4.5:1 contrast over the chat behind it.
+            let theme = item.presentationData.theme.theme
+            let textColor: UIColor
+            if case .outgoing = backgroundType {
+                textColor = theme.chat.message.outgoing.primaryTextColor
+            } else {
+                textColor = theme.chat.message.incoming.primaryTextColor
+            }
+            style.tintAlpha = chatGlassBubbleReadableTintAlpha(tint: tint, textColor: textColor, isDark: theme.overallDarkAppearance, minimum: style.tintAlpha)
+            glassBubbleStyle = style
         }
         let isGlassBubble = strongSelf.backgroundNode.setGlass(tint: glassBubbleTint, isDark: item.presentationData.theme.theme.overallDarkAppearance, style: glassBubbleStyle)
         strongSelf.backgroundWallpaperNode.hidesContentForGlass = isGlassBubble
@@ -8244,4 +8287,39 @@ public final class NameNavigateButton: HighlightableButton {
             self.titleTopicIconComponent = nil
         }
     }
+}
+
+private func chatGlassRelativeLuminance(_ color: UIColor) -> CGFloat {
+    var r: CGFloat = 0.0, g: CGFloat = 0.0, b: CGFloat = 0.0, a: CGFloat = 0.0
+    if !color.getRed(&r, green: &g, blue: &b, alpha: &a) {
+        var white: CGFloat = 0.0
+        color.getWhite(&white, alpha: &a)
+        r = white; g = white; b = white
+    }
+    func channel(_ c: CGFloat) -> CGFloat {
+        return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+    }
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+}
+
+/// The smallest tint alpha, not below `minimum`, at which `textColor` reads at 4.5:1 on the tint laid over the
+/// plain chat background (white, or black in a dark theme).
+func chatGlassBubbleReadableTintAlpha(tint: UIColor, textColor: UIColor, isDark: Bool, minimum: CGFloat) -> CGFloat {
+    var tr: CGFloat = 0.0, tg: CGFloat = 0.0, tb: CGFloat = 0.0, ta: CGFloat = 0.0
+    if !tint.getRed(&tr, green: &tg, blue: &tb, alpha: &ta) {
+        return minimum
+    }
+    let base: CGFloat = isDark ? 0.0 : 1.0
+    let textLuminance = chatGlassRelativeLuminance(textColor)
+    var alpha = max(0.0, min(1.0, minimum))
+    while alpha < 1.0 {
+        let blended = UIColor(red: tr * alpha + base * (1.0 - alpha), green: tg * alpha + base * (1.0 - alpha), blue: tb * alpha + base * (1.0 - alpha), alpha: 1.0)
+        let bubbleLuminance = chatGlassRelativeLuminance(blended)
+        let contrast = (max(textLuminance, bubbleLuminance) + 0.05) / (min(textLuminance, bubbleLuminance) + 0.05)
+        if contrast >= 4.5 {
+            return alpha
+        }
+        alpha = min(1.0, alpha + 0.05)
+    }
+    return 1.0
 }

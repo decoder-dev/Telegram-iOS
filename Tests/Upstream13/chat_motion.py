@@ -158,8 +158,12 @@ class MessagesLook(unittest.TestCase):
 
     def test_dates_are_plain_on_a_plain_background(self):
         header = read(CHAT + 'ChatMessageItemImpl/Sources/ChatMessageDateHeader.swift')
-        self.assertIn('if !self.presentationData.theme.wallpaper.hasWallpaper {\n            self.backgroundNode.isHidden = true', header)
-        self.assertIn('} else if self.backgroundContent == nil {\n            self.backgroundNode.isHidden = false', header)
+        self.assertIn('return !self.presentationData.theme.wallpaper.hasWallpaper && !self.isStuck', header)
+        # Without its pill the date must not keep the white service colour: on white it was invisible.
+        self.assertIn('textColor = self.presentationData.theme.theme.list.itemSecondaryTextColor', header)
+        # A date floating over the bubbles while scrolling gets its pill back.
+        self.assertIn('let isStuck = factor >= 0.5', header)
+        self.assertEqual(header.count('self.updatePlainLookBackground()'), 3)
 
     def test_receipt_under_the_newest_own_message(self):
         item = read(CHAT + 'ChatMessageItem/Sources/ChatMessageItem.swift')
@@ -174,6 +178,14 @@ class MessagesLook(unittest.TestCase):
             self.assertIn(word, bubble)
         self.assertIn('layoutSize.height += ChatMessageBubbleItemNode.messagesStyleReceiptHeight', bubble)
         self.assertIn('selfReference.value?.updateMessagesStyleReceipt(', bubble)
+        # Grey on a plain background (the white service colour was invisible there), a pill over a wallpaper.
+        self.assertIn('let color = hasWallpaper ? bubbleVariableColor(variableColor: theme.chat.serviceMessage.dateTextColor, wallpaper: wallpaper) : theme.list.itemSecondaryTextColor', bubble)
+        self.assertIn('backgroundNode.backgroundColor = selectDateFillStaticColor(theme: theme, wallpaper: wallpaper)', bubble)
+
+    def test_glass_bubble_text_stays_readable(self):
+        bubble = read(CHAT + 'ChatMessageBubbleItemNode/Sources/ChatMessageBubbleItemNode.swift')
+        self.assertIn('style.tintAlpha = chatGlassBubbleReadableTintAlpha(tint: tint, textColor: textColor, isDark: theme.overallDarkAppearance, minimum: style.tintAlpha)', bubble)
+        self.assertIn('if contrast >= 4.5 {', bubble)
 
 
 class TypingBubble(unittest.TestCase):
@@ -238,6 +250,12 @@ class Header(unittest.TestCase):
         self.assertIn('if case let .peer(_, _, _, _, isScheduledMessages, _, customMessageCount, _, isEnabled) = component.content, isEnabled, !isScheduledMessages, customMessageCount == nil {', title)
         self.assertIn('UIImage(systemName: "chevron.right"', title)
         self.assertIn('titleRightIconsWidth += disclosureSize.width + disclosureSpacing', title)
+
+    def test_title_does_not_outgrow_its_capsule(self):
+        title = read('submodules/TelegramUI/Components/ChatTitleView/Sources/ChatTitleComponent.swift')
+        self.assertIn('return min(size, 19.0)', title)
+        self.assertNotIn('Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)', title)
+        self.assertNotIn('Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 12.0 / 17.0))', title)
 
 
 if __name__ == '__main__':

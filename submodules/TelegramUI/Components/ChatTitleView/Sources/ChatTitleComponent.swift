@@ -847,7 +847,7 @@ public final class ChatTitleComponent: Component {
                 inputActivitiesAllowed = false
             }
             
-            let subtitleFont = Font.regular(floor(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize * 12.0 / 17.0))
+            let subtitleFont = Font.regular(floor(chatTitleCappedFontSize(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize) * 12.0 / 17.0))
             var state: ChatTitleActivityNodeState = .none
             switch component.networkState {
             case .waitingForNetwork, .connecting, .updating:
@@ -1292,7 +1292,7 @@ public final class ChatTitleComponent: Component {
             let titleSize = self.title.update(
                 transition: transition,
                 component: AnyComponent(AnimatedTextComponent(
-                    font: Font.semibold(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize),
+                    font: Font.semibold(chatTitleCappedFontSize(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)),
                     color: component.theme.chat.inputPanel.panelControlColor,
                     items: titleSegments,
                     noDelay: false,
@@ -1510,4 +1510,10 @@ public final class ChatTitleComponent: Component {
     public func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
     }
+}
+
+/// The title capsule has a fixed height, as navigation bar titles do in iOS, which do not grow with Dynamic Type.
+/// Past a little growth the title and its status line stop scaling, so the status line is never cut off.
+private func chatTitleCappedFontSize(_ size: CGFloat) -> CGFloat {
+    return min(size, 19.0)
 }
