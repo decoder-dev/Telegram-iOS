@@ -411,3 +411,15 @@ private func makePBKDF2StoredBlob(password: String) -> String? {
     }
     return string
 }
+
+/// A verifier in the Archive password's format for another local secret (the duress passcode).
+func makeLocalSecretVerifier(_ secret: String) -> String? {
+    return makePBKDF2StoredBlob(password: secret)
+}
+
+func localSecretMatchesVerifier(_ secret: String, verifier: String) -> Bool {
+    guard let blob = decodePBKDF2StoredBlob(verifier), let expected = pbkdf2HexHash(password: secret, saltHex: blob.salt, iterations: blob.iterations) else {
+        return false
+    }
+    return hexStringsEqual(expected, blob.hash)
+}

@@ -14,6 +14,7 @@ import TooltipComponent
 import Markdown
 import PlainButtonComponent
 import TextFieldComponent
+import TelegramUIPreferences
 
 private let languageRecognizer = NLLanguageRecognizer()
 
@@ -279,10 +280,14 @@ final class TextProcessingTranslateContentComponent: Component {
                 
                 if let mappedMode {
                     component.externalState.isProcessing = true
-                    self.processDisposable = (component.context.engine.messages.composeAIMessage(
+                    var processSignal = component.context.engine.messages.composeAIMessage(
                         text: component.inputText,
                         mode: mappedMode
-                    ) |> deliverOnMainQueue).startStrict(next: { [weak self] processedText in
+                    )
+                    if case .translate = component.mode, case let .plain(text, entities) = component.inputText, !component.externalState.emojify, component.externalState.style == .neutral {
+                        processSignal = forkTranslationSignal(context: component.context, telegram: processSignal, text: text, entities: entities, toLang: result.language)
+                    }
+                    self.processDisposable = (processSignal |> deliverOnMainQueue).startStrict(next: { [weak self] processedText in
                         guard let self, let component = self.component else {
                             return
                         }
@@ -989,5 +994,29 @@ final class TextProcessingTranslateContentComponent: Component {
 
     func update(view: View, availableSize: CGSize, state: EmptyComponentState, environment: Environment<Empty>, transition: ComponentTransition) -> CGSize {
         return view.update(component: self, availableSize: availableSize, state: state, environment: environment, transition: transition)
+    }
+}
+
+/// Extras › Translation on this screen: Google, DeepL or Yandex translate instead of Telegram when chosen, and step in
+/// when Telegram fails if Automatic Fallback is on. They return plain text.
+private func forkTranslationSignal(context: AccountContext, telegram: Signal<TelegramAIComposeMessageResult, TelegramAIComposeMessageError>, text: String, entities: [MessageTextEntity], toLang: String) -> Signal<TelegramAIComposeMessageResult, TelegramAIComposeMessageError> {
+    let backends = forkTranslationBackends(settings: context.sharedContext.immediateForkExtrasSettings)
+    let thirdParty = backends.filter { $0.isThirdParty }
+    if thirdParty.isEmpty {
+        return telegram
+    }
+    let translated = forkTranslateText(context: context, text: text, entities: entities, toLang: toLang, backends: thirdParty)
+    |> map { result -> TelegramAIComposeMessageResult in
+        return TelegramAIComposeMessageResult(text: .plain(text: result.0, entities: result.1), diffRanges: [])
+    }
+    |> mapError { _ -> TelegramAIComposeMessageError in
+        return .generic
+    }
+    if !backends[0].isThirdParty {
+        return telegram |> `catch` { _ in translated }
+    } else if backends.contains(.default) {
+        return translated |> `catch` { _ in telegram }
+    } else {
+        return translated
     }
 }

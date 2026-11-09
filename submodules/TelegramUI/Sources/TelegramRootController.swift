@@ -261,7 +261,10 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         accountSettingsController.tabBarItemDebugTapAction = {
             // 10 rapid taps on Settings → reveal the secret Archive folder and the accounts this one hides (listed in
             // Settings). This account's Archive password is still required to open either. With nothing hidden the gesture does nothing at all rather
-            // than buzzing with no visible effect.
+            // than buzzing with no visible effect. After the duress passcode it does nothing either, until the real one.
+            if HiddenAccountsSession.shared.state.revealBlocked {
+                return
+            }
             var revealed = false
             if ArchiveLockSession.shared.isPasswordConfigured || ArchiveLockSession.shared.isSavedMessagesLocked {
                 ArchiveLockSession.shared.reveal()

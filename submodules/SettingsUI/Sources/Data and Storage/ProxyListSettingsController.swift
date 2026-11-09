@@ -678,7 +678,7 @@ public func proxySettingsController(accountManager: AccountManager<TelegramAccou
     })
     
     openConnectionStatusImpl = {
-        pushControllerImpl?(proxyConnectionStatusController(presentationData: presentationData, updatedPresentationData: updatedPresentationData, proxySettings: proxySettings.get(), statuses: statusesContext.statuses(), connectionStatus: network.connectionStatus))
+        pushControllerImpl?(proxyConnectionStatusController(presentationData: presentationData, updatedPresentationData: updatedPresentationData, proxySettings: proxySettings.get(), statuses: statusesContext.statuses(), connectionStatus: network.connectionStatus, network: network))
     }
 
     let signal = combineLatest(updatedPresentationData, statePromise.get(), proxySettings.get(), statusesContext.statuses(), network.connectionStatus)

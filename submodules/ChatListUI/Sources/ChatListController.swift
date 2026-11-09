@@ -1343,6 +1343,13 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         self.openFilterSettings()
                     })
                 })))
+                items.append(.action(ContextMenuActionItem(text: ForkPresentationLanguage.prefersRussianStrings ? "Прочитать все чаты" : "Read All Chats", icon: { theme in
+                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/ReadAll"), color: theme.contextMenu.primaryColor)
+                }, action: { [weak self] c, _ in
+                    c?.dismiss(completion: {
+                        self?.presentReadAllChats()
+                    })
+                })))
             }
             
             if filters.count > 1 {
@@ -6539,6 +6546,13 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         return
                     }
                     strongSelf.openFilterSettings()
+                })
+            })))
+            items.append(.action(ContextMenuActionItem(text: ForkPresentationLanguage.prefersRussianStrings ? "Прочитать все чаты" : "Read All Chats", icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/ReadAll"), color: theme.contextMenu.primaryColor)
+            }, action: { c, _ in
+                c?.dismiss(completion: {
+                    self?.presentReadAllChats()
                 })
             })))
             

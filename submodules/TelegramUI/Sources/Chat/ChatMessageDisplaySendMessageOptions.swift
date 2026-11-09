@@ -251,7 +251,8 @@ func chatMessageDisplaySendMessageOptions(selfController: ChatControllerImpl, no
                     currentPrice: nil,
                     hasTimers: false,
                     sendPaidMessageStars: selfController.presentationInterfaceState.sendPaidMessageStars,
-                    isMonoforum: selfController.presentationInterfaceState.renderedPeer?.peer?.isMonoForum ?? false
+                    isMonoforum: selfController.presentationInterfaceState.renderedPeer?.peer?.isMonoForum ?? false,
+                    draftTranslation: mediaPreview == nil ? selfController.forkDraftTranslation() : nil
                 )),
                 hasEntityKeyboard: hasEntityKeyboard,
                 gesture: gesture,

@@ -204,7 +204,22 @@ public func translateMessageIds(context: AccountContext, messageIds: [EngineMess
         if #available(iOS 18.0, *), context.sharedContext.immediateForkExtrasSettings.translationBackend == .system {
             enableLocalIfPossible = true
         }
-        return context.engine.messages.translateMessages(messageIds: messageIdsToTranslate, fromLang: fromLang, toLang: toLang, enableLocalIfPossible: enableLocalIfPossible)
+        let telegramTranslation = context.engine.messages.translateMessages(messageIds: messageIdsToTranslate, fromLang: fromLang, toLang: toLang, enableLocalIfPossible: enableLocalIfPossible)
+        // Extras › Translation: Google, DeepL or Yandex, either chosen or as Automatic Fallback after Telegram. Polls
+        // and voice transcriptions still go through Telegram.
+        let forkSettings = context.sharedContext.immediateForkExtrasSettings
+        var translation = telegramTranslation
+        if let thirdPartyService = forkThirdPartyTranslationService(settings: forkSettings) {
+            let thirdPartyTranslation = context.engine.messages.translateMessages(messageIds: messageIdsToTranslate, fromLang: fromLang, toLang: toLang, enableLocalIfPossible: false, translationService: thirdPartyService)
+            if !forkSettings.translationBackend.isThirdParty {
+                translation = telegramTranslation |> `catch` { _ in thirdPartyTranslation }
+            } else if forkSettings.translationFallback {
+                translation = thirdPartyTranslation |> `catch` { _ in telegramTranslation }
+            } else {
+                translation = thirdPartyTranslation
+            }
+        }
+        return translation
         |> `catch` { _ -> Signal<Never, NoError> in
             return .complete()
         }

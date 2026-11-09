@@ -99,13 +99,16 @@ public final class TelegramSimpleSettings {
         /// Messages the server counts as unread that are read here; nil when that is not known
         /// (the server read part of them on another device).
         public var readCount: Int32?
+        /// Read here by «Только на этом устройстве» in Read All: kept even while read receipts aren't hidden.
+        public var deviceOnly: Bool
 
-        public init(maxIncomingReadId: Int32, serverMaxIncomingReadId: Int32, serverMarkedUnread: Bool, readsServerMark: Bool, readCount: Int32?) {
+        public init(maxIncomingReadId: Int32, serverMaxIncomingReadId: Int32, serverMarkedUnread: Bool, readsServerMark: Bool, readCount: Int32?, deviceOnly: Bool = false) {
             self.maxIncomingReadId = maxIncomingReadId
             self.serverMaxIncomingReadId = serverMaxIncomingReadId
             self.serverMarkedUnread = serverMarkedUnread
             self.readsServerMark = readsServerMark
             self.readCount = readCount
+            self.deviceOnly = deviceOnly
         }
     }
 
@@ -123,14 +126,14 @@ public final class TelegramSimpleSettings {
         }
         var reads: [Int64: GhostLocalRead] = [:]
         for (key, value) in self.defaults.dictionary(forKey: ghostLocalReadsKey(accountPeerId: accountPeerId)) ?? [:] {
-            guard let peerId = Int64(key), let values = value as? [Int], values.count == 5 else {
+            guard let peerId = Int64(key), let values = value as? [Int], values.count == 5 || values.count == 6 else {
                 continue
             }
             let ids = values.prefix(3).compactMap { Int32(exactly: $0) }
             guard ids.count == 3 else {
                 continue
             }
-            reads[peerId] = GhostLocalRead(maxIncomingReadId: ids[0], serverMaxIncomingReadId: ids[1], serverMarkedUnread: values[3] != 0, readsServerMark: values[4] != 0, readCount: ids[2] >= 0 ? ids[2] : nil)
+            reads[peerId] = GhostLocalRead(maxIncomingReadId: ids[0], serverMaxIncomingReadId: ids[1], serverMarkedUnread: values[3] != 0, readsServerMark: values[4] != 0, readCount: ids[2] >= 0 ? ids[2] : nil, deviceOnly: values.count == 6 && values[5] != 0)
         }
         self.ghostLocalReadCache[accountPeerId] = reads
         return reads
@@ -166,7 +169,12 @@ public final class TelegramSimpleSettings {
         self.ghostLocalReadCache[accountPeerId] = reads
         var stored: [String: [Int]] = [:]
         for (peerId, read) in reads {
-            stored[String(peerId)] = [Int(read.maxIncomingReadId), Int(read.serverMaxIncomingReadId), Int(read.readCount ?? -1), read.serverMarkedUnread ? 1 : 0, read.readsServerMark ? 1 : 0]
+            var values = [Int(read.maxIncomingReadId), Int(read.serverMaxIncomingReadId), Int(read.readCount ?? -1), read.serverMarkedUnread ? 1 : 0, read.readsServerMark ? 1 : 0]
+            // Older builds read five values; only device-only reads carry the sixth.
+            if read.deviceOnly {
+                values.append(1)
+            }
+            stored[String(peerId)] = values
         }
         self.defaults.set(stored, forKey: ghostLocalReadsKey(accountPeerId: accountPeerId))
     }

@@ -103,7 +103,7 @@ for russian in [false,true] {
       precondition(!titled.isEmpty && !titled.contains(""),"No searchable titles: \(category)")
       if category == .tabBar { precondition(titled.contains(ForkPresentationLanguage.prefersRussianStrings ? "Вкладка «Звонки»" : "Calls Tab")) }
      }
-     if category == .top { precondition(ids == [1997,0,1,2,1995,4,8,23,5,1998,3,7,2100,1540,6]) }
+     if category == .top { precondition(ids == [1997,0,1,2,1995,4,8,23,5,1998,3,7,2100,1540,6,2380]) }
      if category == .media {
       var values: [Int32:Bool]=[:]
       for entry in entries { if case let .musicPolicy(id,_,value)=entry { values[id]=value } }

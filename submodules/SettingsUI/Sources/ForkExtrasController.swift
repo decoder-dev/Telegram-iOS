@@ -30,7 +30,7 @@ private func forkExtrasKeyWindow() -> UIWindow? {
     return scenes.first?.windows.first
 }
 
-private func forkExtrasPresentNativeController(_ controller: UIViewController, context: AccountContext) {
+func forkExtrasPresentNativeController(_ controller: UIViewController, context: AccountContext) {
     let window = context.sharedContext.mainWindow?.viewController?.view.window ?? forkExtrasKeyWindow()
     forkExtrasAnchorPopover(controller, window: window)
     context.sharedContext.applicationBindings.presentNativeController(controller)
@@ -569,6 +569,12 @@ private enum ForkExtrasDestination: Equatable {
     /// Less used Messages and Profile switches, one level deeper (Apple HIG: few settings up front).
     case messagesMore
     case profileMore
+    /// The message long-press menu editor, its own screen (ForkMessageMenuController).
+    case messageMenu
+    /// Version, updates from GitHub, settings backup and the local data reset (BananaAboutController).
+    case about
+    /// The Deleted Messages page: saved deleted messages of every chat.
+    case deletedMessages
 }
 
 private final class ForkExtrasControllerArguments {
@@ -673,6 +679,8 @@ private enum ForkExtrasSection: Int32 {
     case hubLook
     // The Network page's connection card (scene 40).
     case connectionStatus
+    // Message Saving opens with the link to Deleted Messages, a block of its own.
+    case deletedMessages
 }
 
 private enum ForkExtrasEntry: ItemListNodeEntry {
@@ -697,7 +705,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1773, 1774, 1790],
             [1930],
             [2038, 2039],
-            [1961, 1963]
+            [1961, 1963],
+            [2420, 2421]
         ]),
         (.tabBar, [
             [63, 64],
@@ -712,7 +721,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1508, 1509, 1735, 54, 1521, 1550, 1519],
             [1720, 1711, 1703, 1713, 1716, 1719, 1717, 1718, 1791],
             [88, 89],
-            [85, 86, 87],
+            [85, 2300, 2301, 2302, 86, 87],
             [2036, 2037]
         ]),
         (.messagesMore, [
@@ -730,9 +739,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1850, 2101, 2102, 1851, 1852, 1853],
             [1606, 1710, 81, 82],
             [98, 99],
-            [1511, 1520, 2040, 2041]
+            [1511, 1520, 2040, 2041],
+            [2304, 2305]
         ]),
         (.messageActions, [
+            [2320],
             [1802],
             [1800, 1801, 1803],
             [92, 93],
@@ -752,12 +763,14 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1750, 1751, 1752, 1753, 1754, 1755, 1756, 2021, 1757, 1758],
             [1860, 1861, 1862, 1863, 1864, 1865],
             [1912, 1913, 1914],
+            [2381, 2382],
             [2000, 2001, 2002, 2003, 2004]
         ]),
         (.profile, [
             [55, 56, 1551, 1714, 2020, 1552, 1543, 58],
             [1739, 1731, 1732, 1730, 1733, 1734, 1980, 1981, 2106],
             [2034, 2035],
+            [2362, 2363, 2364],
             [2044]
         ]),
         (.profileMore, [
@@ -769,6 +782,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         (.privacy, [
             [28, 2032, 29],
             [30, 31],
+            [2360, 2361],
             [2045, 32, 34],
             [2046, 38, 1775, 40, 39, 41],
             [42, 43]
@@ -803,6 +817,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case ghostScheduleMessages(Bool)
     case accentSaturation(Int32)
     case translationBackend(ForkTranslationBackend)
+    /// A translation service's API key: id, title, the stored key and the setting it writes.
+    case translationApiKey(Int32, String, String, WritableKeyPath<ForkExtrasSettings, String>)
     case transcriptionBackend(ForkTranscriptionBackend)
     case scrollToNextChat(Bool)
     case deletedMessageMark(String)
@@ -838,7 +854,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             case .security: return ForkExtrasSection.hub.rawValue
             case .accountOrder: return ForkExtrasSection.hubLook.rawValue
             case .connectionCheck: return ForkExtrasSection.proxy.rawValue
-            case .messageSending, .messageActions, .voiceAndRound, .messagesMore, .profileMore: return ForkExtrasSection.appearance.rawValue
+            case .messageSending, .messageActions, .voiceAndRound, .messagesMore, .profileMore, .messageMenu: return ForkExtrasSection.appearance.rawValue
+            case .about: return ForkExtrasSection.backup.rawValue
+            case .deletedMessages: return ForkExtrasSection.deletedMessages.rawValue
             }
         case .audioHeader, .musicPolicy: return ForkExtrasSection.audio.rawValue
         case .designHeader, .designFooter, .brandTheme: return 100
@@ -854,7 +872,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.ghost.rawValue
         case .accentSaturation:
             return ForkExtrasSection.privacy.rawValue
-        case .translationBackend, .transcriptionBackend:
+        case .translationBackend, .translationApiKey, .transcriptionBackend:
             return ForkExtrasSection.translation.rawValue
         case .scrollToNextChat:
             return ForkExtrasSection.navigation.rawValue
@@ -904,6 +922,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .accentSaturation: return 57
         case .stickerSize: return 69
         case .translationBackend: return 85
+        case let .translationApiKey(id, _, _, _): return id
         case .transcriptionBackend: return 86
         case .scrollToNextChat: return 88
         case .outgoingPhotoQuality: return 98
@@ -938,6 +957,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         // 146 now belongs to Network; its original stable order is appropriate there.
         147: 133.3,     // Show 18+ Content, after Hide Blocked Messages
         148: 133.6,
+        2340: 109.0,    // Deleted Messages opens Message Saving.
+        2341: 111.2,    // Save My Deleted Messages and Save Messages from Notifications follow Save Deleted Messages.
+        2342: 111.4,
+        2343: 111.6,
+        2344: 111.8,
     ]
     
     private var sortPosition: Double {
@@ -989,7 +1013,9 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             // lead on from inside a page (Proxy, Connection check, the Messages and Media sub-pages) have none.
             case .security: icon = renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGreen); detail = nil
             case .accountOrder: icon = renderSettingsSymbolIcon(systemName: "person.2.fill", color: .systemIndigo); detail = nil
-            case .proxy, .connectionCheck, .messageSending, .messageActions, .voiceAndRound, .messagesMore, .profileMore: icon = nil; detail = nil
+            case .proxy, .connectionCheck, .messageSending, .messageActions, .voiceAndRound, .messagesMore, .profileMore, .messageMenu: icon = nil; detail = nil
+            case .about: icon = renderSettingsSymbolIcon(systemName: "info.circle.fill", color: .systemGray); detail = nil
+            case .deletedMessages: icon = nil; detail = nil
             }
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, icon: icon, title: title, label: "", additionalDetailLabel: detail, sectionId: self.section, style: .blocks, action: {
                 arguments.openDestination(destination)
@@ -1100,16 +1126,19 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
                 arguments.openAccentSaturation()
             }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .translationBackend(backend):
-            let label: String
-            switch backend {
-            case .default:
-                label = ForkExtrasLocalizedString.backendDefault
-            case .system:
-                label = ForkExtrasLocalizedString.backendSystem
-            }
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.translationBackend, label: label, sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.translationBackend, label: forkTranslationBackendTitle(backend), sectionId: self.section, style: .blocks, action: {
                 arguments.openTranslationBackend()
             }, tag: BananaSettingsItemTag(id: self.stableId))
+        case let .translationApiKey(_, title, value, keyPath):
+            // Typed in a secure field: the key is the user's own and should not show up in screenshots or recordings.
+            let accountManager = arguments.context.sharedContext.accountManager
+            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: title, textColor: presentationData.theme.list.itemPrimaryTextColor), text: value, placeholder: ForkPresentationLanguage.prefersRussianStrings ? "Ключ API" : "API Key", type: .password, spacing: 10.0, clearType: .always, maxLength: 128, tag: BananaSettingsItemTag(id: self.stableId), sectionId: self.section, textUpdated: { value in
+                let _ = updateForkExtrasSettingsInteractively(accountManager: accountManager) { current in
+                    var updated = current
+                    updated[keyPath: keyPath] = value
+                    return updated
+                }.start()
+            }, action: {})
         case let .transcriptionBackend(backend):
             let label: String
             switch backend {
@@ -1184,6 +1213,21 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
                 }.start()
             }, action: {})
         }
+    }
+}
+
+private func forkTranslationBackendTitle(_ backend: ForkTranslationBackend) -> String {
+    switch backend {
+    case .default:
+        return ForkExtrasLocalizedString.backendDefault
+    case .system:
+        return ForkExtrasLocalizedString.backendSystem
+    case .google:
+        return "Google"
+    case .deepl:
+        return "DeepL"
+    case .yandex:
+        return ForkPresentationLanguage.prefersRussianStrings ? "Яндекс" : "Yandex"
     }
 }
 
@@ -1295,6 +1339,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .destination(2100, ForkPresentationLanguage.prefersRussianStrings ? "Порядок аккаунтов" : "Account Order", .accountOrder),
             .hubAppearance,
             .settingFooter(6, .hubLook, ForkExtrasLocalizedString.hubFooter),
+            .destination(2380, ForkPresentationLanguage.prefersRussianStrings ? "О BananaGram" : "About BananaGram", .about),
         ]
     }
 
@@ -1330,6 +1375,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingFooter(29, .lock, ForkExtrasLocalizedString.streamerModeFooter),
             .settingToggle(30, .lock, ForkExtrasLocalizedString.instantPasscode, settings.instantPasscodeLock, \.instantPasscodeLock),
             .settingFooter(31, .lock, ForkExtrasLocalizedString.instantPasscodeFooter),
+            .appearanceToggle(2360, russian ? "API ID в «Устройствах»" : "API ID in Devices", settings.showSessionApiId, \.showSessionApiId),
+            .designFooter(2361, russian ? "В «Устройствах» у каждого сеанса виден API ID приложения. Приложения, которые Telegram не считает официальными, помечены." : "In Devices, each session shows its app's API ID. Apps that Telegram doesn't consider official are marked."),
             .designHeader(2045, russian ? "Уведомления" : "Notifications"),
             .settingToggle(32, .notifications, ForkExtrasLocalizedString.hideMentions, settings.hideMentionNotifications, \.hideMentionNotifications),
             .settingToggle(34, .notifications, ForkExtrasLocalizedString.hidePinned, settings.hidePinnedNotifications, \.hidePinnedNotifications),
@@ -1368,6 +1415,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designFooter(2039, russian ? "Если выбран ответ, но текст не введён, в списке чатов видно последнее сообщение вместо «Черновик». Выбранный ответ сохраняется." : "When a reply is chosen without any text, the chat list shows the last message instead of Draft. The reply stays chosen."),
             .appearanceToggle(1961, russian ? "Без счётчиков на папках" : "No Unread Counts on Folders", settings.hideFolderUnreadCount, \.hideFolderUnreadCount),
             .appearanceToggle(1963, russian ? "Скрыть «печатает…» в личных чатах" : "Hide Typing Status in Private Chats", settings.hidePrivateChatActivities, \.hidePrivateChatActivities),
+            .appearanceToggle(2420, russian ? "Закреплять сверх лимита" : "Pin Beyond the Limit", settings.pinBeyondLimit, \.pinBeyondLimit),
+            .designFooter(2421, russian ? "Когда лимит закреплённых чатов исчерпан, чат закрепляется только на этом устройстве — под остальными закреплёнными во «Всех чатах»." : "Once Telegram's pinned chat limit is reached, a chat is pinned on this device only, below the other pinned chats in All Chats."),
         ]
     case .tabBar:
         entries = []
@@ -1430,10 +1479,18 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(2036, russian ? "Показывать скрытых админов" : "Show Hidden Admin Badges", settings.showHiddenAdminBadges, \.showHiddenAdminBadges),
             .designFooter(2037, russian ? "Админ или владелец с невидимым титулом (пробелы или пустые символы) получает обычную метку «админ» или «владелец»." : "An admin or owner whose title is invisible (spaces or blank characters) gets the standard admin or owner badge."),
             .translationBackend(settings.translationBackend),
+            .appearanceToggle(2302, russian ? "Резервный переводчик" : "Automatic Fallback", settings.translationFallback, \.translationFallback),
             .transcriptionBackend(settings.transcriptionBackend),
-            .settingFooter(87, .translation, ForkExtrasLocalizedString.translationFooter),
+            .settingFooter(87, .translation, settings.translationBackend.isThirdParty || settings.translationFallback ? (russian ? "Текст для перевода уходит в Google, DeepL или Яндекс, когда переводят они. Если переводчик не сработал, резервный пробует следующий." : "Text you translate goes to Google, DeepL or Yandex when they translate it. If a translator fails, Automatic Fallback tries the next one.") : ForkExtrasLocalizedString.translationFooter),
             .destination(2043, russian ? "Ещё о сообщениях" : "More Message Settings", .messagesMore),
         ]
+        // A key row shows while its service can be used: chosen above, or next in line with Automatic Fallback.
+        if settings.translationBackend == .deepl || settings.translationFallback {
+            entries.append(.translationApiKey(2300, "DeepL", settings.deeplApiKey, \.deeplApiKey))
+        }
+        if settings.translationBackend == .yandex || settings.translationFallback {
+            entries.append(.translationApiKey(2301, russian ? "Яндекс" : "Yandex", settings.yandexApiKey, \.yandexApiKey))
+        }
     case .messagesMore:
         entries = [
             .appearanceToggle(1533, russian ? "Убрать пинги" : "Remove Mention Pings", settings.removePings, \.removePings),
@@ -1480,9 +1537,12 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .intChoice(1851, russian ? "Формат по умолчанию" : "Default Formatting", forkIntChoiceLabel(forkSendFormattingOptions(russian: russian), settings.defaultSendFormatting)),
             .appearanceToggle(1852, russian ? "Упоминание долгим нажатием на аватар" : "Mention by Long-Pressing an Avatar", settings.avatarLongPressMention, \.avatarLongPressMention),
             .designFooter(1853, russian ? "При скрытом ИИ копируется исходный текст. Формат по умолчанию применяется только к обычному тексту." : "With AI hidden, Copy takes the original text. Default formatting applies only to plain text."),
+            .appearanceToggle(2304, russian ? "Перевод перед отправкой" : "Translate Before Sending", settings.translateBeforeSending, \.translateBeforeSending),
+            .designFooter(2305, russian ? "В меню кнопки «Отправить» появляется «Перевести»: текст заменяется переводом, язык запоминается для чата. Перевод выполняет выбранный переводчик." : "Adds Translate to the Send button's menu: the text is replaced with its translation, and the language is remembered for the chat. Uses your chosen translator."),
         ]
     case .messageActions:
         entries = [
+            .destination(2320, russian ? "Меню сообщения" : "Message Menu", .messageMenu),
             .intChoice(1802, russian ? "Двойное касание" : "Double-Tap Action", forkIntChoiceLabel(forkDoubleTapActionOptions(russian: russian), settings.doubleTapAction)),
             .appearanceToggle(1800, russian ? "ID сообщения в группах и каналах" : "Message ID in Groups and Channels", settings.showMessageId, \.showMessageId),
             .appearanceToggle(1801, russian ? "Раскрывать спойлеры сразу" : "Reveal Spoilers Automatically", settings.autoRevealSpoilers, \.autoRevealSpoilers),
@@ -1533,6 +1593,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1912, russian ? "Энергосбережение" : "Power saving"),
             .appearanceToggle(1913, russian ? "Режим энергосбережения всегда" : "Always Use Power Saving", settings.powerSaving, \.powerSaving),
             .designFooter(1914, russian ? "Как «Данные и память → Энергосбережение», но при любом заряде: без автовоспроизведения, анимаций и фоновых загрузок." : "Like Data and Storage → Power Saving, at any battery level: no autoplay, animations or background downloads."),
+            .appearanceToggle(2381, russian ? "Усиленное энергосбережение" : "Enhanced Power Saving", settings.enhancedPowerSaving, \.enhancedPowerSaving),
+            .designFooter(2382, russian ? "Выключает автовоспроизведение, анимированные стикеры и эмодзи, эффекты сообщений, движение обоев, размытие, снег и свечение. Выключите — всё вернётся." : "Turns off autoplay, animated stickers and emoji, message effects, wallpaper motion, blur, snow and glow. Turn it off to get your settings back."),
         ]
     case .voiceAndRound:
         entries = [
@@ -1572,6 +1634,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(1980, russian ? "Оставаться после продажи подарка" : "Stay After Selling a Gift", settings.disableGiftStarsRedirect, \.disableGiftStarsRedirect),
             .intChoice(1981, russian ? "Визуальная метка (только у вас)" : "Visual Label (Only Visible to You)", forkIntChoiceLabel(forkVisualLabelOptions(russian: russian), settings.visualLabels[accountPeerId ?? 0] ?? 0)),
             .intChoice(2106, russian ? "Локальный значок верификации" : "Local Verification Badge", forkIntChoiceLabel(forkLocalVerificationOptions(russian: russian), accountRecordId.flatMap { settings.localVerificationBadges[$0] } ?? 0)),
+            .appearanceToggle(2362, russian ? "Дата вступления в группу" : "Group Join Date", settings.showGroupJoinDate, \.showGroupJoinDate),
+            .appearanceToggle(2363, russian ? "Сообщения человека в группах" : "Person's Messages in Groups", settings.showMessagesFromMember, \.showMessagesFromMember),
+            .designFooter(2364, russian ? "В информации о группе видно, когда вы вступили. В профиле из группы есть «Сообщения в этом чате», а «Сообщения в общих группах» ищет по общим группам." : "A group's info shows when you joined it. A profile opened from a group offers Messages in This Chat; Messages in Common Groups searches the groups you share."),
             .destination(2044, russian ? "Ещё о профиле" : "More Profile Settings", .profileMore),
         ]
     case .profileMore:
@@ -1592,8 +1657,13 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ]
     case .ninja, .messageSaving, .messageFilters:
         entries = [
+            .destination(2340, russian ? "Удалённые сообщения" : "Deleted Messages", .deletedMessages),
             .settingToggle(110, .messageSaving, ForkExtrasLocalizedString.saveDeletedMessages, settings.saveDeletedMessages, \.saveDeletedMessages),
             .settingFooter(111, .messageSaving, ForkExtrasLocalizedString.saveDeletedMessagesFooter),
+            .settingToggle(2341, .messageSaving, russian ? "Сохранять мои удалённые" : "Save My Deleted Messages", settings.saveMyDeletedMessages, \.saveMyDeletedMessages),
+            .settingFooter(2342, .messageSaving, russian ? "Ваши сообщения, удалённые на этом устройстве, тоже попадут в «Удалённые сообщения», но из чата исчезнут. Удалённые в другом месте сохраняются всегда." : "Your messages that you delete on this device also go to Deleted Messages, but still leave the chat. Ones deleted elsewhere are always kept."),
+            .settingToggle(2343, .messageSaving, russian ? "Сохранять из уведомлений" : "Save Messages from Notifications", settings.saveMessagesFromNotifications, \.saveMessagesFromNotifications),
+            .settingFooter(2344, .messageSaving, russian ? "Сообщения, удалённые пока приложение закрыто, сохраняются по уведомлению о них. Работает вместе с «Сохранять удалённые»." : "Messages deleted while the app is closed are kept using their notification. Works together with Save Deleted Messages."),
             .settingToggle(112, .messageSaving, ForkExtrasLocalizedString.saveMessagesHistory, settings.saveMessagesHistory, \.saveMessagesHistory),
             .settingFooter(113, .messageSaving, ForkExtrasLocalizedString.saveMessagesHistoryFooter),
             .settingToggle(114, .messageSaving, ForkExtrasLocalizedString.saveMedia, settings.saveMedia, \.saveMedia),
@@ -1808,26 +1878,22 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             }, selected: "\(context.sharedContext.immediateForkExtrasSettings.accentColorSaturation)%")
         },
         openTranslationBackend: {
-            var options: [(String, () -> Void)] = [
-                (ForkExtrasLocalizedString.backendDefault, {
+            var backends: [ForkTranslationBackend] = [.default]
+            // Apple's on-device translation needs iOS 18; offering it earlier selected an engine that never ran.
+            if #available(iOS 18.0, *) {
+                backends.append(.system)
+            }
+            backends.append(contentsOf: [.google, .deepl, .yandex])
+            let options: [(String, () -> Void)] = backends.map { backend in
+                (forkTranslationBackendTitle(backend), {
                     updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                         var updated = current
-                        updated.translationBackend = .default
+                        updated.translationBackend = backend
                         return updated
                     }.start())
                 })
-            ]
-            // Apple's on-device translation needs iOS 18; offering it earlier selected an engine that never ran.
-            if #available(iOS 18.0, *) {
-                options.append((ForkExtrasLocalizedString.backendSystem, {
-                    updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                        var updated = current
-                        updated.translationBackend = .system
-                        return updated
-                    }.start())
-                }))
             }
-            let translationBackend = context.sharedContext.immediateForkExtrasSettings.translationBackend == .system ? ForkExtrasLocalizedString.backendSystem : ForkExtrasLocalizedString.backendDefault
+            let translationBackend = forkTranslationBackendTitle(context.sharedContext.immediateForkExtrasSettings.translationBackend)
             presentPicker(title: ForkExtrasLocalizedString.translationBackend, options: options, selected: translationBackend)
         },
         openTranscriptionBackend: {
@@ -1952,9 +2018,12 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             case .accountOrder: pushControllerImpl?(accountOrderController(context: context))
             case .messageSending: pushControllerImpl?(forkExtrasController(context: context, focus: .messageSending))
             case .messageActions: pushControllerImpl?(forkExtrasController(context: context, focus: .messageActions))
+            case .messageMenu: pushControllerImpl?(forkMessageMenuController(context: context))
             case .voiceAndRound: pushControllerImpl?(forkExtrasController(context: context, focus: .voiceAndRound))
             case .messagesMore: pushControllerImpl?(forkExtrasController(context: context, focus: .messagesMore))
             case .profileMore: pushControllerImpl?(forkExtrasController(context: context, focus: .profileMore))
+            case .about: pushControllerImpl?(bananaAboutController(context: context))
+            case .deletedMessages: pushControllerImpl?(messageSavingDeletedChatsController(context: context))
             case .connectionCheck:
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
                 let proxySettings: Signal<ProxySettings, NoError> = context.sharedContext.accountManager.sharedData(keys: [SharedDataKeys.proxySettings])
@@ -1971,7 +2040,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                     let _ = statusesContext
                     return value
                 }
-                pushControllerImpl?(proxyConnectionStatusController(presentationData: presentationData, updatedPresentationData: context.sharedContext.presentationData, proxySettings: proxySettings, statuses: statuses, connectionStatus: context.account.network.connectionStatus))
+                pushControllerImpl?(proxyConnectionStatusController(presentationData: presentationData, updatedPresentationData: context.sharedContext.presentationData, proxySettings: proxySettings, statuses: statuses, connectionStatus: context.account.network.connectionStatus, network: context.account.network))
             }
         },
         updateMusicPolicy: { id, value in
@@ -1997,6 +2066,11 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
             updateDisposable.set(updateCallListSettingsInteractively(accountManager: context.sharedContext.accountManager) { $0.withUpdatedShowTab(value) }.start())
         },
         updateAppearance: { keyPath, value in
+            // Also writes Power Saving and Reduce Motion, and keeps what they were to put them back.
+            if keyPath == \ForkExtrasSettings.enhancedPowerSaving {
+                updateDisposable.set(setForkEnhancedPowerSaving(accountManager: context.sharedContext.accountManager, enabled: value).start())
+                return
+            }
             updateDisposable.set(updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
                 var updated = current
                 updated[keyPath: keyPath] = value

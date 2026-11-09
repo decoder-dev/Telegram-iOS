@@ -12,6 +12,20 @@ import ReactionSelectionNode
 import WallpaperBackgroundNode
 
 public enum SendMessageActionSheetControllerParams {
+    /// Fork (Translate Before Sending): the draft's translation items. `languageTitle` ("Translate to Spanish") is set
+    /// when the chat has a remembered language, which `translate` uses; `chooseLanguage` asks for another one.
+    public final class DraftTranslation {
+        public let languageTitle: String?
+        public let translate: () -> Void
+        public let chooseLanguage: () -> Void
+
+        public init(languageTitle: String?, translate: @escaping () -> Void, chooseLanguage: @escaping () -> Void) {
+            self.languageTitle = languageTitle
+            self.translate = translate
+            self.chooseLanguage = chooseLanguage
+        }
+    }
+
     public final class SendMessage {
         public let isScheduledMessages: Bool
         public let mediaPreview: ChatSendMessageContextScreenMediaPreview?
@@ -25,6 +39,7 @@ public enum SendMessageActionSheetControllerParams {
         public let hasTimers: Bool
         public let sendPaidMessageStars: StarsAmount?
         public let isMonoforum: Bool
+        public let draftTranslation: DraftTranslation?
         
         public init(
             isScheduledMessages: Bool,
@@ -38,7 +53,8 @@ public enum SendMessageActionSheetControllerParams {
             currentPrice: Int64?,
             hasTimers: Bool,
             sendPaidMessageStars: StarsAmount?,
-            isMonoforum: Bool
+            isMonoforum: Bool,
+            draftTranslation: DraftTranslation? = nil
         ) {
             self.isScheduledMessages = isScheduledMessages
             self.mediaPreview = mediaPreview
@@ -52,6 +68,7 @@ public enum SendMessageActionSheetControllerParams {
             self.hasTimers = hasTimers
             self.sendPaidMessageStars = sendPaidMessageStars
             self.isMonoforum = isMonoforum
+            self.draftTranslation = draftTranslation
         }
     }
     

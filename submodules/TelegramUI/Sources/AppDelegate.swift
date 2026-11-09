@@ -1261,7 +1261,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
         }
         
-        let sharedContextSignal = currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: systemUserInterfaceStyle)
+        // The cache or message database reset asked for in iOS Settings (or Extras › About) runs here, before
+        // SharedAccountContextImpl opens any account's postbox.
+        let sharedContextSignal = ForkLocalDataReset.performIfRequested(accountManager: accountManager, rootPath: rootPath)
+        |> mapToSignal { _ -> Signal<InitialPresentationDataAndSettings, NoError> in
+            return currentPresentationDataAndSettings(accountManager: accountManager, systemUserInterfaceStyle: systemUserInterfaceStyle)
+        }
         |> map { initialPresentationDataAndSettings -> (AccountManager, InitialPresentationDataAndSettings) in
             return (accountManager, initialPresentationDataAndSettings)
         }
@@ -1790,6 +1795,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
         
         self.maybeCheckForUpdates()
+        // Extras › About › Check Automatically (off by default): GitHub Releases at most once a day.
+        let _ = (self.sharedContextPromise.get()
+        |> take(1)
+        |> deliverOnMainQueue).start(next: { sharedApplicationContext in
+            bananaCheckForUpdatesAutomatically(sharedContext: sharedApplicationContext.sharedContext)
+        })
 
         #if canImport(AppCenter)
         if !buildConfig.isAppStoreBuild, let appCenterId = buildConfig.appCenterId, !appCenterId.isEmpty {

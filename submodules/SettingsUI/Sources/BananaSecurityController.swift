@@ -65,6 +65,16 @@ public enum BananaSecurityStrings {
         ru ? "Telegram никогда не просит код, пароль, номер или скан QR в чате, на сайте или в боте. Любая такая просьба — попытка угона."
            : "Telegram never asks for a code, a password, your number or a QR scan in a chat, on a site or in a bot. Any such request is a takeover attempt."
     }
+    static var lockHeader: String { ru ? "ЕСЛИ ТЕЛЕФОН ОТНИМУТ" : "IF YOUR PHONE IS TAKEN" }
+    static var panicShake: String { ru ? "Блокировка встряхиванием" : "Shake to Lock" }
+    static var panicShakeText: String {
+        ru ? "Три встряхивания заблокируют приложение и спрячут скрытые аккаунты."
+           : "Three shakes lock the app and hide hidden accounts."
+    }
+    static var lockFooter: String {
+        ru ? "Код под принуждением открывает приложение как обычно, но сначала прячет или удаляет то, что вы выбрали. Встряхивание только блокирует, ничего не удаляя."
+           : "The duress passcode opens the app as usual, but first hides or removes what you chose. Shaking only locks; nothing is deleted."
+    }
 
     public static var blockedTitle: String { ru ? "Заблокировано" : "Blocked" }
     public static var openSettings: String { ru ? "Настройки безопасности" : "Security Settings" }
@@ -150,17 +160,20 @@ private final class BananaSecurityArguments {
     let update: (WritableKeyPath<ForkExtrasSettings, Bool>, Bool) -> Void
     let openTwoStep: () -> Void
     let openSessions: () -> Void
+    let openDuressPasscode: () -> Void
 
-    init(update: @escaping (WritableKeyPath<ForkExtrasSettings, Bool>, Bool) -> Void, openTwoStep: @escaping () -> Void, openSessions: @escaping () -> Void) {
+    init(update: @escaping (WritableKeyPath<ForkExtrasSettings, Bool>, Bool) -> Void, openTwoStep: @escaping () -> Void, openSessions: @escaping () -> Void, openDuressPasscode: @escaping () -> Void) {
         self.update = update
         self.openTwoStep = openTwoStep
         self.openSessions = openSessions
+        self.openDuressPasscode = openDuressPasscode
     }
 }
 
 private enum BananaSecuritySection: Int32 {
     case protections
     case status
+    case lock
 }
 
 private enum BananaSecurityEntry: ItemListNodeEntry {
@@ -171,6 +184,10 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
     case protectionsHeader
     case toggle(id: Int32, title: String, text: String, value: Bool, keyPath: WritableKeyPath<ForkExtrasSettings, Bool>)
     case protectionsFooter
+    case lockHeader
+    case duressPasscode(Bool)
+    case panicShake(Bool)
+    case lockFooter
 
     var section: ItemListSectionId {
         switch self {
@@ -178,6 +195,8 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
             return BananaSecuritySection.status.rawValue
         case .protectionsHeader, .toggle, .protectionsFooter:
             return BananaSecuritySection.protections.rawValue
+        case .lockHeader, .duressPasscode, .panicShake, .lockFooter:
+            return BananaSecuritySection.lock.rawValue
         }
     }
 
@@ -189,6 +208,14 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
             return 10 + id
         case .protectionsFooter:
             return 100
+        case .lockHeader:
+            return 200
+        case .duressPasscode:
+            return 201
+        case .panicShake:
+            return 202
+        case .lockFooter:
+            return 203
         case .statusHeader:
             return 1000
         case .twoStep:
@@ -202,8 +229,12 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
 
     static func ==(lhs: BananaSecurityEntry, rhs: BananaSecurityEntry) -> Bool {
         switch (lhs, rhs) {
-        case (.statusHeader, .statusHeader), (.statusFooter, .statusFooter), (.protectionsHeader, .protectionsHeader), (.protectionsFooter, .protectionsFooter):
+        case (.statusHeader, .statusHeader), (.statusFooter, .statusFooter), (.protectionsHeader, .protectionsHeader), (.protectionsFooter, .protectionsFooter), (.lockHeader, .lockHeader), (.lockFooter, .lockFooter):
             return true
+        case let (.duressPasscode(l), .duressPasscode(r)):
+            return l == r
+        case let (.panicShake(l), .panicShake(r)):
+            return l == r
         case let (.twoStep(l), .twoStep(r)):
             return l == r
         case let (.sessions(l), .sessions(r)):
@@ -256,11 +287,23 @@ private enum BananaSecurityEntry: ItemListNodeEntry {
             })
         case .protectionsFooter:
             return ItemListTextItem(presentationData: presentationData, text: .plain(BananaSecurityStrings.protectionsFooter), sectionId: self.section)
+        case .lockHeader:
+            return ItemListSectionHeaderItem(presentationData: presentationData, text: BananaSecurityStrings.lockHeader, sectionId: self.section)
+        case let .duressPasscode(isSet):
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: DuressPasscodeStrings.title, label: isSet ? DuressPasscodeStrings.on : DuressPasscodeStrings.off, sectionId: self.section, style: .blocks, action: {
+                arguments.openDuressPasscode()
+            })
+        case let .panicShake(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: BananaSecurityStrings.panicShake, text: BananaSecurityStrings.panicShakeText, value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
+                arguments.update(\.panicShakeLock, value)
+            })
+        case .lockFooter:
+            return ItemListTextItem(presentationData: presentationData, text: .plain(BananaSecurityStrings.lockFooter), sectionId: self.section)
         }
     }
 }
 
-private func bananaSecurityEntries(settings: ForkExtrasSettings, hasTwoStep: Bool?, sessionsCount: Int?) -> [BananaSecurityEntry] {
+private func bananaSecurityEntries(settings: ForkExtrasSettings, hasTwoStep: Bool?, sessionsCount: Int?, hasDuressPasscode: Bool) -> [BananaSecurityEntry] {
     var entries: [BananaSecurityEntry] = []
     entries.append(.protectionsHeader)
     entries.append(.toggle(id: 0, title: BananaSecurityStrings.blockQrLogin, text: BananaSecurityStrings.blockQrLoginText, value: settings.securityBlockQrLogin, keyPath: \.securityBlockQrLogin))
@@ -270,6 +313,10 @@ private func bananaSecurityEntries(settings: ForkExtrasSettings, hasTwoStep: Boo
     entries.append(.toggle(id: 4, title: BananaSecurityStrings.confirmExternalLinks, text: BananaSecurityStrings.confirmExternalLinksText, value: settings.securityConfirmExternalLinks, keyPath: \.securityConfirmExternalLinks))
     entries.append(.toggle(id: 5, title: BananaSecurityStrings.flagFakeSupport, text: BananaSecurityStrings.flagFakeSupportText, value: settings.securityFlagFakeSupport, keyPath: \.securityFlagFakeSupport))
     entries.append(.protectionsFooter)
+    entries.append(.lockHeader)
+    entries.append(.duressPasscode(hasDuressPasscode))
+    entries.append(.panicShake(settings.panicShakeLock))
+    entries.append(.lockFooter)
     entries.append(.statusHeader)
     entries.append(.twoStep(hasTwoStep))
     entries.append(.sessions(sessionsCount))
@@ -308,8 +355,14 @@ public func bananaSecurityController(context: AccountContext) -> ViewController 
         },
         openSessions: {
             pushControllerImpl?(recentSessionsController(context: context, activeSessionsContext: activeSessionsContext, webSessionsContext: webSessionsContext, websitesOnly: false))
+        },
+        openDuressPasscode: {
+            pushControllerImpl?(duressPasscodeController(context: context))
         }
     )
+
+    // The duress passcode lives in the Keychain; its row is read again whenever this screen comes back into view.
+    let duressPasscodeIsSet = ValuePromise<Bool>(DuressPasscodeKeychain.kind() != nil, ignoreRepeated: true)
 
     let signal = combineLatest(queue: .mainQueue(),
         context.sharedContext.presentationData,
@@ -317,11 +370,12 @@ public func bananaSecurityController(context: AccountContext) -> ViewController 
         hasTwoStep.get(),
         activeSessionsContext.state |> map { state -> Int? in
             return state.sessions.isEmpty ? nil : state.sessions.count
-        } |> distinctUntilChanged
+        } |> distinctUntilChanged,
+        duressPasscodeIsSet.get()
     )
-    |> map { presentationData, settings, hasTwoStep, sessionsCount -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, settings, hasTwoStep, sessionsCount, hasDuressPasscode -> (ItemListControllerState, (ItemListNodeState, Any)) in
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(BananaSecurityStrings.screenTitle), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: bananaSecurityEntries(settings: settings, hasTwoStep: hasTwoStep, sessionsCount: sessionsCount), style: .blocks, animateChanges: false)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: bananaSecurityEntries(settings: settings, hasTwoStep: hasTwoStep, sessionsCount: sessionsCount, hasDuressPasscode: hasDuressPasscode), style: .blocks, animateChanges: false)
         return (controllerState, (listState, arguments))
     }
     |> afterDisposed {
@@ -329,6 +383,9 @@ public func bananaSecurityController(context: AccountContext) -> ViewController 
     }
 
     let controller = ItemListController(context: context, state: signal)
+    controller.didAppear = { _ in
+        duressPasscodeIsSet.set(DuressPasscodeKeychain.kind() != nil)
+    }
     pushControllerImpl = { [weak controller] c in
         (controller?.navigationController as? NavigationController)?.pushViewController(c)
     }

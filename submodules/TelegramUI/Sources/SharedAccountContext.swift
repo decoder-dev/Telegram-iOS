@@ -576,6 +576,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         MessageSavingStore.applySettings(immediateForkExtrasSettingsValue.with { $0 })
         if applicationBindings.isMainApp {
             MessageSavingStore.scheduleAttachmentCleanup()
+            MessageSavingStore.installNotificationStaging(rootPath: rootPath)
         }
         // Eager Core / filter pushdown from current immediate defaults (sharedData signal is async).
         do {

@@ -23,6 +23,7 @@ load(
 )
 
 load("@build_bazel_rules_apple//apple:resources.bzl",
+    "apple_bundle_import",
     "swift_intent_library",
 )
 
@@ -1934,6 +1935,11 @@ apple_prebuilt_watchos_application(
     tags = ["manual"],
 )
 
+apple_bundle_import(
+    name = "SettingsBundle",
+    bundle_imports = glob(["Telegram-iOS/Settings.bundle/**"]),
+)
+
 ios_application(
     name = "Telegram",
     bundle_id = "{telegram_bundle_id}".format(
@@ -1961,6 +1967,8 @@ ios_application(
         ":LaunchScreen",
         #":DefaultAppIcon",
     ],
+    # The app's page in iOS Settings: the "reset on next launch" switches (ForkLocalDataReset).
+    settings_bundle = ":SettingsBundle",
     frameworks = [
         ":MtProtoKitFramework",
         ":SwiftSignalKitFramework",

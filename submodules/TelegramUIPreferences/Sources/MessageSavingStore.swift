@@ -483,6 +483,53 @@ public enum MessageSavingStore {
         })
     }
 
+    private static var notificationStagingInstalled = false
+
+    /// Folds in the deletions the notification extension kept while the app was not running (Save Messages from
+    /// Notifications), at launch and every time the app comes back to the foreground. Main app only.
+    public static func installNotificationStaging(rootPath: String) {
+        if self.notificationStagingInstalled {
+            return
+        }
+        self.notificationStagingInstalled = true
+        queue.async {
+            mergeNotificationStaging(rootPath: rootPath)
+        }
+        // Process-lifetime observer, never removed, like the background flush in installBridge.
+        NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: nil, using: { _ in
+            queue.async {
+                mergeNotificationStaging(rootPath: rootPath)
+            }
+        })
+    }
+
+    private static func mergeNotificationStaging(rootPath: String) {
+        loadIfNeeded()
+        // The files wait for a later launch rather than go into a store that cannot be written.
+        if historyReadFailed {
+            return
+        }
+        for (url, record) in MessageSavingNotificationStaging.stagedRecords(rootPath: rootPath) {
+            // The app may have seen the same deletion itself, with the full text rather than the push's.
+            if !hasDeletedSnapshot(of: record) {
+                append(record)
+            }
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    private static func hasDeletedSnapshot(of record: MessageSavingRecord) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return memory.contains(where: {
+            $0.kind == .deleted
+                && $0.accountPeerId == record.accountPeerId
+                && $0.peerId == record.peerId
+                && $0.messageId == record.messageId
+                && $0.namespace == record.namespace
+        })
+    }
+
     public static func append(_ record: MessageSavingRecord) {
         loadIfNeeded()
         lock.lock()
@@ -596,15 +643,39 @@ public enum MessageSavingStore {
         return deletedIndex[DeletedIndexKey(accountPeerId: accountPeerId, peerId: peerId)] != nil
     }
 
+    /// Every saved deleted message of one account, newest first. For the Deleted Messages page, which groups them by
+    /// chat and searches them.
+    public static func allDeleted(accountPeerId: Int64) -> [MessageSavingRecord] {
+        loadIfNeeded()
+        lock.lock()
+        defer { lock.unlock() }
+        return memory.filter { record in
+            record.kind == .deleted && record.accountPeerId == accountPeerId
+        }
+        .sorted { $0.date > $1.date }
+    }
+
     public static func clearDeleted(accountPeerId: Int64, peerId: Int64, topicId: Int64? = nil) {
+        removeDeleted { record in
+            record.accountPeerId == accountPeerId
+                && record.peerId == peerId
+                && (topicId == nil || topicId == 0 || record.topicId == topicId)
+        }
+    }
+
+    /// Deleted messages of every chat of one account. Edit history stays.
+    public static func clearAllDeleted(accountPeerId: Int64) {
+        removeDeleted { record in
+            record.accountPeerId == accountPeerId
+        }
+    }
+
+    private static func removeDeleted(where predicate: (MessageSavingRecord) -> Bool) {
         loadIfNeeded()
         lock.lock()
         var removedPaths: [String] = []
         memory.removeAll { record in
-            let matches = record.kind == .deleted
-                && record.accountPeerId == accountPeerId
-                && record.peerId == peerId
-                && (topicId == nil || topicId == 0 || record.topicId == topicId)
+            let matches = record.kind == .deleted && predicate(record)
             if matches {
                 if let path = record.mediaPath {
                     removedPaths.append(path)
@@ -669,7 +740,8 @@ public enum MessageSavingStore {
             saveMedia: settings.saveMedia,
             proactiveSaveMedia: settings.proactiveSaveMedia,
             deletedMark: settings.deletedMessageMark,
-            editedMark: settings.editedMessageMark
+            editedMark: settings.editedMessageMark,
+            saveMyDeleted: settings.saveMyDeletedMessages
         ))
     }
 

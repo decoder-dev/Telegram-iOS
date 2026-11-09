@@ -54,3 +54,18 @@ let authoritative = PeerReadState.idBased(maxIncomingReadId: 10, maxOutgoingRead
 bananaResetIncomingReadStates(transaction: transaction, accountPeerId: account, [peer: [0: authoritative]])
 precondition(transaction.states[peer] == authoritative, "Authoritative count must replace local estimate")
 print("Ghost local read: exception restore and authoritative count reconciliation passed")
+
+// Read All, only on this device: the read stays through a server sync and a restore while read receipts
+// aren't hidden, and an explicit read still brings back the server's state to push.
+transaction.states[peer] = server
+transaction.operations[peer] = nil
+precondition(bananaApplyDeviceOnlyRead(transaction: transaction, accountPeerId: account, index: index))
+precondition(bananaGhostLocalReadState(accountPeerId: account, peerId: peer)?.deviceOnly == true)
+bananaResetIncomingReadStates(transaction: transaction, accountPeerId: account, [peer: [0: server]])
+precondition(transaction.states[peer]?.isUnread == false, "Server sync lost a device-only read")
+bananaRestoreGhostLocalReads(transaction: transaction, accountPeerId: account)
+precondition(transaction.states[peer]?.isUnread == false, "Restore must keep device-only reads")
+bananaGhostLocalReadWillReadOnServer(transaction: transaction, accountPeerId: account, peerId: peer)
+precondition(transaction.states[peer] == server)
+precondition(bananaGhostLocalReadState(accountPeerId: account, peerId: peer) == nil)
+print("Ghost local read: device-only reads from Read All passed")

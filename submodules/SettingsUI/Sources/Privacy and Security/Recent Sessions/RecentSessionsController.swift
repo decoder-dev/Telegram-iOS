@@ -365,7 +365,7 @@ private enum RecentSessionsEntry: ItemListNodeEntry {
         case let .currentSessionHeader(_, text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
         case let .currentSession(_, _, dateTimeFormat, session):
-            return ItemListRecentSessionItem(presentationData: presentationData, systemStyle: .glass, dateTimeFormat: dateTimeFormat, session: session, enabled: true, editable: false, editing: false, revealed: false, sectionId: self.section, setSessionIdWithRevealedOptions: { _, _ in
+            return ItemListRecentSessionItem(presentationData: presentationData, systemStyle: .glass, dateTimeFormat: dateTimeFormat, session: session, showsApiId: arguments.context.sharedContext.immediateForkExtrasSettings.showSessionApiId, enabled: true, editable: false, editing: false, revealed: false, sectionId: self.section, setSessionIdWithRevealedOptions: { _, _ in
             }, removeSession: { _ in
             }, action: {
                 arguments.openSession(session)
@@ -392,7 +392,7 @@ private enum RecentSessionsEntry: ItemListNodeEntry {
         case let .pendingSessionsHeader(_, text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: self.section)
         case let .pendingSession(_, _, _, dateTimeFormat, session, enabled, editing, revealed):
-            return ItemListRecentSessionItem(presentationData: presentationData, systemStyle: .glass, dateTimeFormat: dateTimeFormat, session: session, enabled: enabled, editable: true, editing: editing, revealed: revealed, sectionId: self.section, setSessionIdWithRevealedOptions: { previousId, id in
+            return ItemListRecentSessionItem(presentationData: presentationData, systemStyle: .glass, dateTimeFormat: dateTimeFormat, session: session, showsApiId: arguments.context.sharedContext.immediateForkExtrasSettings.showSessionApiId, enabled: enabled, editable: true, editing: editing, revealed: revealed, sectionId: self.section, setSessionIdWithRevealedOptions: { previousId, id in
                 arguments.setSessionIdWithRevealedOptions(previousId, id)
             }, removeSession: { id in
                 arguments.removeSession(id)
@@ -423,7 +423,7 @@ private enum RecentSessionsEntry: ItemListNodeEntry {
                 }
             )
         case let .session(_, _, _, dateTimeFormat, session, enabled, editing, revealed):
-            return ItemListRecentSessionItem(presentationData: presentationData, systemStyle: .glass, dateTimeFormat: dateTimeFormat, session: session, enabled: enabled, editable: true, editing: editing, revealed: revealed, sectionId: self.section, setSessionIdWithRevealedOptions: { previousId, id in
+            return ItemListRecentSessionItem(presentationData: presentationData, systemStyle: .glass, dateTimeFormat: dateTimeFormat, session: session, showsApiId: arguments.context.sharedContext.immediateForkExtrasSettings.showSessionApiId, enabled: enabled, editable: true, editing: editing, revealed: revealed, sectionId: self.section, setSessionIdWithRevealedOptions: { previousId, id in
                 arguments.setSessionIdWithRevealedOptions(previousId, id)
             }, removeSession: { id in
                 arguments.removeSession(id)

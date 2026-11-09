@@ -83,6 +83,21 @@ func bananaApplyGhostLocalRead(transaction: Transaction, accountPeerId: PeerId, 
     return true
 }
 
+/// «Только на этом устройстве» in Read All: the chat is read here the way ghost mode reads it,
+/// and stays read here whether or not read receipts are hidden, until it is read or marked
+/// unread on purpose, or the server reads it (another device).
+@discardableResult
+func bananaApplyDeviceOnlyRead(transaction: Transaction, accountPeerId: PeerId, index: MessageIndex) -> Bool {
+    guard bananaApplyGhostLocalRead(transaction: transaction, accountPeerId: accountPeerId, index: index) else {
+        return false
+    }
+    if var read = bananaGhostLocalReadState(accountPeerId: accountPeerId, peerId: index.id.peerId), !read.deviceOnly {
+        read.deviceOnly = true
+        bananaSetGhostLocalRead(read, accountPeerId: accountPeerId, peerId: index.id.peerId)
+    }
+    return true
+}
+
 /// Forgets the chat's local read and brings the chat back to the server's read state.
 /// Returns false when that state isn't known exactly: the chat needs a validation.
 @discardableResult
@@ -132,7 +147,8 @@ func bananaGhostLocalReadMarkUnread(transaction: Transaction, accountPeerId: Pee
 func bananaRestoreGhostLocalReads(transaction: Transaction, accountPeerId: PeerId) {
     for (peerId, read) in TelegramSimpleSettings.shared.ghostLocalReads(accountPeerId: accountPeerId.toInt64()) {
         let peerId = PeerId(peerId)
-        if ForkGhostModeSettings.suppressMessageReads && !ForkGhostModeSettings.isException(accountPeerId: accountPeerId, peerId: peerId) {
+        // Read All's device-only reads don't depend on ghost mode.
+        if read.deviceOnly || (ForkGhostModeSettings.suppressMessageReads && !ForkGhostModeSettings.isException(accountPeerId: accountPeerId, peerId: peerId)) {
             continue
         }
         // A chat that left the chat list may have no dialog on the server, and its
@@ -196,7 +212,7 @@ func bananaGhostLocalReadDidApplyServerState(transaction: Transaction, accountPe
     // A mark the server got after the local read is shown.
     let readsServerMark = serverMarkedUnread && read.serverMarkedUnread && read.readsServerMark
     let isCovered = !readsServerMark && (serverCount == 0 || serverMaxIncomingReadId >= read.maxIncomingReadId)
-    if isCovered || !ForkGhostModeSettings.suppressMessageReads || ForkGhostModeSettings.isException(accountPeerId: accountPeerId, peerId: peerId) {
+    if isCovered || (!read.deviceOnly && (!ForkGhostModeSettings.suppressMessageReads || ForkGhostModeSettings.isException(accountPeerId: accountPeerId, peerId: peerId))) {
         // The server has read what was read here, or read receipts are no longer hidden:
         // the server's state stays. Some server updates keep the higher of the local and the
         // server id together with the server's count; the server's id goes with that count.
@@ -235,7 +251,7 @@ func bananaGhostLocalReadDidApplyServerState(transaction: Transaction, accountPe
         }
         count = max(0, min(count, serverCount))
     }
-    bananaSetGhostLocalRead(TelegramSimpleSettings.GhostLocalRead(maxIncomingReadId: maxIncomingReadId, serverMaxIncomingReadId: serverMaxIncomingReadId, serverMarkedUnread: serverMarkedUnread, readsServerMark: readsServerMark, readCount: serverCount - count), accountPeerId: accountPeerId, peerId: peerId)
+    bananaSetGhostLocalRead(TelegramSimpleSettings.GhostLocalRead(maxIncomingReadId: maxIncomingReadId, serverMaxIncomingReadId: serverMaxIncomingReadId, serverMarkedUnread: serverMarkedUnread, readsServerMark: readsServerMark, readCount: serverCount - count, deviceOnly: read.deviceOnly), accountPeerId: accountPeerId, peerId: peerId)
     // This is the server's state with the local read on top: there is nothing left to sync
     // (resetIncomingReadStates drops the pending synchronization), and a validation would
     // only end up here again.

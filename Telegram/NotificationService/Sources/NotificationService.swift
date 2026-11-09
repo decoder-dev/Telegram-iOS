@@ -996,7 +996,10 @@ private final class NotificationServiceHandler {
                     return
                 }
                 strongSelf.stateManager = stateManager
-                
+                // Before anything below can delete a message: Save Messages from Notifications keeps what the poll
+                // and delete pushes remove, for the app to merge later.
+                MessageSavingNotificationStaging.configureExtension(rootPath: rootPath)
+
                 let accountPeerId = stateManager.accountPeerId
                 
                 let settings = stateManager.postbox.transaction { transaction -> NotificationSoundList? in
@@ -1196,6 +1199,8 @@ private final class NotificationServiceHandler {
                     }
 
                     var action: Action?
+                    // The push's own copy of a message, for Save Messages from Notifications (see the poll below).
+                    var pushedMessage: (id: MessageId, authorName: String, text: String)?
 
                     if let callData = callData {
                         action = .call(callData)
@@ -1434,6 +1439,7 @@ private final class NotificationServiceHandler {
                                 // are left out: their category never routes through the search
                                 // intent, and the link would read the reacted-to message as new.
                                 if let messageIdValue, !isReaction {
+                                    pushedMessage = (messageIdValue, content.subtitle ?? content.title ?? "", content.body ?? "")
                                     recordNotificationLink = stateManager.postbox.transaction { transaction -> Void in
                                         _internal_setNotificationRequestMessageId(transaction: transaction, requestIdentifier: requestIdentifier, messageId: messageIdValue)
                                     }
@@ -2252,6 +2258,12 @@ private final class NotificationServiceHandler {
                                     |> mapToSignal { content, _ -> Signal<(NotificationContent, Media?), NoError> in
                                         return stateManager.postbox.transaction { transaction -> (NotificationContent, Media?) in
                                             var content = content
+
+                                            // The poll normally stores the message, and its deletion is then kept from
+                                            // Postbox. When it could not, the push is the only copy there is.
+                                            if let pushedMessage, transaction.getMessage(pushedMessage.id) == nil {
+                                                MessageSavingNotificationStaging.rememberPushedMessage(rootPath: rootPath, accountPeerId: stateManager.accountPeerId, messageId: pushedMessage.id, authorName: pushedMessage.authorName, text: pushedMessage.text)
+                                            }
                                             
                                             var parsedMedia: Media?
                                             if let messageId, let message = transaction.getMessage(messageId), !message.containsSecretMedia, !message.attributes.contains(where: { $0 is MediaSpoilerMessageAttribute }) {
@@ -2681,6 +2693,8 @@ private final class NotificationServiceHandler {
                             Logger.shared.log("NotificationService \(episode)", "Will delete messages \(ids)")
                             let mediaBox = stateManager.postbox.mediaBox
                             let _ = (stateManager.postbox.transaction { transaction -> Void in
+                                let missingIds = Set(ids.filter { transaction.getMessage($0) == nil })
+                                MessageSavingNotificationStaging.saveDeletedPushedMessages(rootPath: rootPath, accountPeerId: stateManager.accountPeerId, ids: ids, missingIds: missingIds)
                                 _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: ids, deleteMedia: true)
                             }
                             |> deliverOn(strongSelf.queue)).start(completed: {

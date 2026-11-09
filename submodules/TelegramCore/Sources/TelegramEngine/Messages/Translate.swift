@@ -216,10 +216,10 @@ func _internal_translateTexts(network: Network, texts: [(String, [MessageTextEnt
     }
 }
 
-func _internal_translateMessages(account: Account, messageIds: [EngineMessage.Id], fromLang: String?, toLang: String, enableLocalIfPossible: Bool, tone: TranslationTone = .neutral) -> Signal<Never, TranslationError> {
+func _internal_translateMessages(account: Account, messageIds: [EngineMessage.Id], fromLang: String?, toLang: String, enableLocalIfPossible: Bool, tone: TranslationTone = .neutral, translationService: ExperimentalInternalTranslationService? = nil) -> Signal<Never, TranslationError> {
     var signals: [Signal<Void, TranslationError>] = []
     for (peerId, messageIds) in messagesIdsGroupedByPeerId(messageIds) {
-        signals.append(_internal_translateMessagesByPeerId(account: account, peerId: peerId, messageIds: messageIds, fromLang: fromLang, toLang: toLang, enableLocalIfPossible: enableLocalIfPossible, tone: tone))
+        signals.append(_internal_translateMessagesByPeerId(account: account, peerId: peerId, messageIds: messageIds, fromLang: fromLang, toLang: toLang, enableLocalIfPossible: enableLocalIfPossible, tone: tone, translationService: translationService))
     }
     return combineLatest(signals)
     |> ignoreValues
@@ -280,7 +280,7 @@ func _internal_translateRichMessages(account: Account, inputPeer: Api.InputPeer,
     }
 }
 
-private func _internal_translateMessagesByPeerId(account: Account, peerId: EnginePeer.Id, messageIds: [EngineMessage.Id], fromLang: String?, toLang: String, enableLocalIfPossible: Bool, tone: TranslationTone = .neutral) -> Signal<Void, TranslationError> {
+private func _internal_translateMessagesByPeerId(account: Account, peerId: EnginePeer.Id, messageIds: [EngineMessage.Id], fromLang: String?, toLang: String, enableLocalIfPossible: Bool, tone: TranslationTone = .neutral, translationService: ExperimentalInternalTranslationService? = nil) -> Signal<Void, TranslationError> {
     return account.postbox.transaction { transaction -> (Api.InputPeer?, [Message]) in
         return (transaction.getPeer(peerId).flatMap(apiInputPeer), messageIds.compactMap({ transaction.getMessage($0) }))
     }
@@ -341,11 +341,19 @@ private func _internal_translateMessagesByPeerId(account: Account, peerId: Engin
 
         let id: [Int32] = plainMessageIds.map { $0.id }
 
+        // A service passed in by the caller (the fork's Google, DeepL or Yandex) detects the language on its own.
+        var localTranslation: (service: ExperimentalInternalTranslationService, fromLang: String)?
+        if let translationService {
+            localTranslation = (translationService, fromLang ?? "")
+        } else if enableLocalIfPossible, let engineExperimentalInternalTranslationService, let fromLang {
+            localTranslation = (engineExperimentalInternalTranslationService, fromLang)
+        }
+
         let msgs: Signal<Api.messages.TranslatedText?, TranslationError>
         if id.isEmpty {
             msgs = .single(nil)
         } else {
-            if enableLocalIfPossible, let engineExperimentalInternalTranslationService, let fromLang {
+            if let localTranslation {
                 msgs = account.postbox.transaction { transaction -> [MessageId: String] in
                     var texts: [MessageId: String] = [:]
                     for messageId in plainMessageIds {
@@ -361,7 +369,7 @@ private func _internal_translateMessagesByPeerId(account: Account, peerId: Engin
                     for (id, text) in messageTexts {
                         mappedTexts[AnyHashable(id)] = text
                     }
-                    return engineExperimentalInternalTranslationService.translate(texts: mappedTexts, fromLang: fromLang, toLang: toLang)
+                    return localTranslation.service.translate(texts: mappedTexts, fromLang: localTranslation.fromLang, toLang: toLang)
                     |> castError(TranslationError.self)
                     |> mapToSignal { resultTexts -> Signal<Api.messages.TranslatedText?, TranslationError> in
                         guard let resultTexts else {

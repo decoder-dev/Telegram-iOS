@@ -139,10 +139,11 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
         return combineLatest(
             context.engine.peers.updatedChatListFilters()
             |> take(1),
-            context.engine.peers.getPinnedItemIds(location: location)
+            context.engine.peers.getPinnedItemIds(location: location),
+            isChatListItemPinnedLocally(context: context, location: location, peerId: peerId)
         )
-        |> mapToSignal { filters, pinnedItemIds -> Signal<[ContextMenuItem], NoError> in
-            let isPinned = pinnedItemIds.contains(.peer(peerId))
+        |> mapToSignal { filters, pinnedItemIds, isPinnedLocally -> Signal<[ContextMenuItem], NoError> in
+            let isPinned = pinnedItemIds.contains(.peer(peerId)) || isPinnedLocally
             
             let renderedPeer = context.engine.data.get(TelegramEngine.EngineData.Item.Peer.RenderedPeer(id: peerId))
             
@@ -512,7 +513,7 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                             }
                             
                             items.append(.action(ContextMenuActionItem(text: isPinned ? strings.ChatList_Context_Unpin : strings.ChatList_Context_Pin, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: isPinned ? "Chat/Context Menu/Unpin" : "Chat/Context Menu/Pin"), color: theme.contextMenu.primaryColor) }, action: { c, f in
-                                let _ = (context.engine.peers.toggleItemPinned(location: location, itemId: .peer(peerId))
+                                let _ = (toggleChatListItemPinned(context: context, location: location, itemId: .peer(peerId))
                                          |> deliverOnMainQueue).startStandalone(next: { result in
                                     switch result {
                                     case .done:

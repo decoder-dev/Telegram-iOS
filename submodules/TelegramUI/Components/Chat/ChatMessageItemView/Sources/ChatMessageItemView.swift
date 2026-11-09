@@ -4,6 +4,7 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
+import TelegramUIPreferences
 import AccountContext
 import LocalizedPeerData
 import ContextUI
@@ -1275,6 +1276,10 @@ open class ChatMessageItemView: ListViewItemNode, ChatMessageItemNodeProtocol {
     }
     
     public func playMessageEffect(force: Bool) {
+        // Enhanced Power Saving: an effect plays when it is tapped, never on its own.
+        if !force, let item = self.item, item.context.sharedContext.immediateForkExtrasSettings.enhancedPowerSaving {
+            return
+        }
         if let messageEffect = self.currentMessageEffect() {
             self.playEffectAnimation(effect: messageEffect, force: force)
         }

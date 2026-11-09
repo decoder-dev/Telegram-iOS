@@ -8,6 +8,7 @@ import TelegramPresentationData
 import ItemListUI
 import PresentationDataUtils
 import TelegramStringFormatting
+import TelegramUIPreferences
 
 struct ItemListRecentSessionItemEditing: Equatable {
     let editable: Bool
@@ -39,6 +40,7 @@ final class ItemListRecentSessionItem: ListViewItem, ItemListItem, ItemListRevea
     let systemStyle: ItemListSystemStyle
     let dateTimeFormat: PresentationDateTimeFormat
     let session: RecentAccountSession
+    let showsApiId: Bool
     let enabled: Bool
     let editable: Bool
     let editing: Bool
@@ -52,11 +54,12 @@ final class ItemListRecentSessionItem: ListViewItem, ItemListItem, ItemListRevea
         return self.revealed
     }
     
-    init(presentationData: ItemListPresentationData, systemStyle: ItemListSystemStyle, dateTimeFormat: PresentationDateTimeFormat, session: RecentAccountSession, enabled: Bool, editable: Bool, editing: Bool, revealed: Bool, sectionId: ItemListSectionId, setSessionIdWithRevealedOptions: @escaping (Int64?, Int64?) -> Void, removeSession: @escaping (Int64) -> Void, action: (() -> Void)?) {
+    init(presentationData: ItemListPresentationData, systemStyle: ItemListSystemStyle, dateTimeFormat: PresentationDateTimeFormat, session: RecentAccountSession, showsApiId: Bool = false, enabled: Bool, editable: Bool, editing: Bool, revealed: Bool, sectionId: ItemListSectionId, setSessionIdWithRevealedOptions: @escaping (Int64?, Int64?) -> Void, removeSession: @escaping (Int64) -> Void, action: (() -> Void)?) {
         self.presentationData = presentationData
         self.systemStyle = systemStyle
         self.dateTimeFormat = dateTimeFormat
         self.session = session
+        self.showsApiId = showsApiId
         self.enabled = enabled
         self.editable = editable
         self.editing = editing
@@ -316,7 +319,19 @@ class ItemListRecentSessionItemNode: ItemListRevealOptionsItemNode {
             let appString = "\(item.session.appName) \(appVersion)"
             
             titleAttributedString = NSAttributedString(string: deviceString, font: titleFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor)
-            appAttributedString = NSAttributedString(string: appString, font: textFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor)
+            if item.showsApiId && item.session.apiId != 0 {
+                // The server marks Telegram's own apps; any other api_id belongs to a third-party client.
+                let isOfficial = item.session.flags.contains(.isOfficial)
+                let appText = NSMutableAttributedString(attributedString: NSAttributedString(string: appString, font: textFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor))
+                appText.append(NSAttributedString(string: " · API ID \(item.session.apiId)", font: textFont, textColor: item.presentationData.theme.list.itemSecondaryTextColor))
+                if !isOfficial {
+                    let unofficial = ForkPresentationLanguage.prefersRussianStrings ? "неофициальное" : "unofficial"
+                    appText.append(NSAttributedString(string: " · \(unofficial)", font: textFont, textColor: item.presentationData.theme.list.itemDestructiveColor))
+                }
+                appAttributedString = appText
+            } else {
+                appAttributedString = NSAttributedString(string: appString, font: textFont, textColor: item.presentationData.theme.list.itemPrimaryTextColor)
+            }
             
             let label: String
             if item.session.isCurrent {

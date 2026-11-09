@@ -147,10 +147,12 @@ func bananaIndexRetainedMessages(transaction: Transaction, accountPeerId: PeerId
 ///   (user interactive delete), always hard-remove — including existing markers.
 public func _internal_deleteMessages(transaction: Transaction, mediaBox: MediaBox, ids: [MessageId], deleteMedia: Bool = true, allowDeletedMarkers: Bool = true, manualAddMessageThreadStatsDifference: ((MessageThreadKey, Int, Int) -> Void)? = nil) {
     // Snapshot before any hard delete / conversion. Duplicates are deduped in MessageSavingStore.
-    // A user's own interactive delete (allowDeletedMarkers == false) is not a deletion to preserve: it used to land in
-    // "View Deleted" although the bubble was removed for good.
+    // A user's own interactive delete (allowDeletedMarkers == false) is only kept when they asked for it with
+    // Save My Deleted Messages, and then only their own sent messages; the bubble is removed either way.
     if allowDeletedMarkers {
         MessageSavingBridge.snapshotDeletedMessages(transaction: transaction, messageIds: ids, mediaBox: mediaBox)
+    } else {
+        MessageSavingBridge.snapshotLocallyDeletedMessages(transaction: transaction, messageIds: ids, mediaBox: mediaBox)
     }
 
     var hardDeleteIds = ids

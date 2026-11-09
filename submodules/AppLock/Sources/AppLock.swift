@@ -120,6 +120,9 @@ public final class AppLockContextImpl: AppLockContext {
     private var lastForegroundValue: Bool = true
     private var biometricAuthenticationState = AppLockBiometricAuthenticationState()
     private var suppressAutomaticBiometrics = false
+    private var panicShakeEnabled = false
+    private var isLockable = false
+    private var recentShakeTimestamps: [Double] = []
     
     public init(rootPath: String, window: Window1?, rootController: UIViewController?, applicationBindings: TelegramApplicationBindings, accountManager: AccountManager<TelegramAccountManagerTypes>, presentationDataSignal: Signal<PresentationData, NoError>, lockIconInitialFrame: @escaping () -> CGRect?) {
         assert(Queue.mainQueue().isCurrent())
@@ -155,6 +158,12 @@ public final class AppLockContextImpl: AppLockContext {
             
             let passcodeSettings: PresentationPasscodeSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.presentationPasscodeSettings]?.get(PresentationPasscodeSettings.self) ?? .defaultSettings
             let forkExtras: ForkExtrasSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.forkExtrasSettings]?.get(ForkExtrasSettings.self) ?? .defaultSettings
+            strongSelf.panicShakeEnabled = forkExtras.panicShakeLock
+            if strongSelf.isLockable && !accessChallengeData.data.isLockable {
+                // The duress passcode was set beside this passcode; it must not come back with a passcode set later.
+                DuressPasscodeKeychain.clear()
+            }
+            strongSelf.isLockable = accessChallengeData.data.isLockable
 
             if !isApplicationInForeground {
                 strongSelf.suppressAutomaticBiometrics = false
@@ -317,6 +326,10 @@ public final class AppLockContextImpl: AppLockContext {
         
         self.currentState.set(.single(self.currentStateValue))
         
+        window?.motionShake = { [weak self] in
+            self?.deviceShaken()
+        }
+        
         self.autolockTimeoutDisposable = (self.autolockTimeout.get()
         |> deliverOnMainQueue).startStrict(next: { [weak self] autolockTimeout in
             self?.updateLockState { state in
@@ -433,6 +446,26 @@ public final class AppLockContextImpl: AppLockContext {
             } else {
                 return nil
             }
+        }
+    }
+    
+    /// Panic gesture (Extras › Protection): three shakes within a few seconds lock the app, when it has a passcode, and
+    /// hide the hidden accounts and the locked Archive again. Nothing is deleted.
+    private func deviceShaken() {
+        guard self.panicShakeEnabled else {
+            self.recentShakeTimestamps = []
+            return
+        }
+        let timestamp = CFAbsoluteTimeGetCurrent()
+        self.recentShakeTimestamps = self.recentShakeTimestamps.filter { timestamp - $0 < 5.0 } + [timestamp]
+        if self.recentShakeTimestamps.count < 3 {
+            return
+        }
+        self.recentShakeTimestamps = []
+        ArchiveLockSession.shared.relock()
+        HiddenAccountsSession.shared.relock()
+        if self.isLockable {
+            self.lock()
         }
     }
     

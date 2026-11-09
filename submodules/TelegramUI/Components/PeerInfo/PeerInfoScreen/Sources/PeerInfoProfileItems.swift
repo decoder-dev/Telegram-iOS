@@ -67,7 +67,8 @@ func infoItems(
     callMessages: [EngineMessage],
     chatLocation: ChatLocation,
     isOpenedFromChat: Bool,
-    isMyProfile: Bool
+    isMyProfile: Bool,
+    sourceGroupId: EnginePeer.Id? = nil
 ) -> [(AnyHashable, [PeerInfoScreenItem])] {
     guard let data = data else {
         return []
@@ -118,6 +119,8 @@ func infoItems(
         let ItemReport = 6002
         let ItemBlock = 6003
         let ItemEncryptionKey = 6004
+        let ItemMessagesInChat = 6005
+        let ItemMessagesInCommonGroups = 6006
         let ItemBalanceHeader = 7000
         let ItemBalanceTon = 7001
         let ItemBalanceStars = 7002
@@ -410,6 +413,31 @@ func infoItems(
                 items[currentPeerInfoSection]!.append(PeerInfoScreenActionItem(id: ItemAddToContacts, text: presentationData.strings.PeerInfo_AddToContacts, action: {
                     interaction.openAddContact()
                 }))
+            }
+
+            // Extras ▸ Profile ▸ a person's messages in groups.
+            if context.sharedContext.immediateForkExtrasSettings.showMessagesFromMember && user.id != context.account.peerId {
+                let russian = ForkPresentationLanguage.prefersRussianStrings
+                if let sourceGroupId {
+                    items[currentPeerInfoSection]!.append(PeerInfoScreenActionItem(id: ItemMessagesInChat, text: russian ? "Сообщения в этом чате" : "Messages in This Chat", action: {
+                        guard let navigationController = interaction.getController()?.navigationController as? NavigationController else {
+                            return
+                        }
+                        let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: sourceGroupId))
+                        |> deliverOnMainQueue).startStandalone(next: { groupPeer in
+                            guard let groupPeer else {
+                                return
+                            }
+                            // Goes back to the group's chat if it is open, and searches it by sender.
+                            context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(groupPeer), activateMessageSearch: (.member(user), "")))
+                        })
+                    }))
+                }
+                if let cachedData = data.cachedData as? CachedUserData, cachedData.commonGroupCount > 0 {
+                    items[currentPeerInfoSection]!.append(PeerInfoScreenActionItem(id: ItemMessagesInCommonGroups, text: russian ? "Сообщения в общих группах" : "Messages in Common Groups", action: {
+                        interaction.getController()?.push(peerInfoCommonGroupMessagesController(context: context, user: EnginePeer(user)))
+                    }))
+                }
             }
 
             if let reactionSourceMessageId = reactionSourceMessageId {
@@ -973,6 +1001,38 @@ func infoItems(
                 interaction.openPeerInfoContextMenu(.genericCopy(creationText), sourceNode, nil)
             }, longTapAction: { sourceNode in
                 interaction.openPeerInfoContextMenu(.genericCopy(creationText), sourceNode, nil)
+            }))
+        }
+    }
+    // Extras ▸ Profile ▸ group join date. Nothing is fetched for it: a channel's `date` is the join date while the
+    // account is a member, and a basic group's cached participant list has the account's own invite date.
+    if forkExtras.showGroupJoinDate {
+        var joinTimestamp: Int32?
+        switch data.peer {
+        case let .channel(channel)?:
+            if case .member = channel.participationStatus, !channel.isMonoForum {
+                joinTimestamp = channel.creationDate
+            }
+        case let .legacyGroup(group)?:
+            if case .Member = group.membership, let participants = (data.cachedData as? CachedGroupData)?.participants {
+                for participant in participants.participants where participant.peerId == context.account.peerId {
+                    switch participant {
+                    case let .member(_, _, invitedAt, _), let .admin(_, _, invitedAt, _):
+                        joinTimestamp = invitedAt
+                    case .creator:
+                        joinTimestamp = group.creationDate
+                    }
+                }
+            }
+        default:
+            break
+        }
+        if let joinTimestamp, joinTimestamp > 0 {
+            let joinText = stringForDate(timestamp: joinTimestamp, timeZone: TimeZone.current, strings: presentationData.strings)
+            items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_join_date"), label: ForkPresentationLanguage.prefersRussianStrings ? "вы вступили" : "joined", text: joinText, textColor: .primary, action: { sourceNode, _ in
+                interaction.openPeerInfoContextMenu(.genericCopy(joinText), sourceNode, nil)
+            }, longTapAction: { sourceNode in
+                interaction.openPeerInfoContextMenu(.genericCopy(joinText), sourceNode, nil)
             }))
         }
     }

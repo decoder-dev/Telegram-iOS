@@ -125,8 +125,10 @@ public struct MessageSavingBridgeSettings: Equatable {
     public var deletedMark: String
     /// Optional customizable edited-message mark. Empty keeps Telegram's own "edited" label.
     public var editedMark: String
+    /// Also keep the user's own messages that they delete on this device (they still leave the chat).
+    public var saveMyDeleted: Bool
 
-    public init(saveDeleted: Bool, saveEdits: Bool, saveForBots: Bool, saveMedia: Bool = false, proactiveSaveMedia: Bool = false, deletedMark: String = MessageSavingBridge.defaultDeletedMark, editedMark: String = "") {
+    public init(saveDeleted: Bool, saveEdits: Bool, saveForBots: Bool, saveMedia: Bool = false, proactiveSaveMedia: Bool = false, deletedMark: String = MessageSavingBridge.defaultDeletedMark, editedMark: String = "", saveMyDeleted: Bool = false) {
         self.saveDeleted = saveDeleted
         self.saveEdits = saveEdits
         self.saveForBots = saveForBots
@@ -134,6 +136,7 @@ public struct MessageSavingBridgeSettings: Equatable {
         self.proactiveSaveMedia = proactiveSaveMedia
         self.deletedMark = deletedMark
         self.editedMark = editedMark
+        self.saveMyDeleted = saveMyDeleted
     }
 
     /// Matches ForkExtrasSettings.defaultSettings so the engine does not capture deletes/edits
@@ -582,6 +585,37 @@ public enum MessageSavingBridge {
         })
         if !ids.isEmpty {
             snapshotDeletedMessages(transaction: transaction, messageIds: ids, mediaBox: mediaBox)
+        }
+    }
+
+    /// The user's own deletion on this device. The messages leave the chat as asked; with Save My Deleted Messages on,
+    /// the user's own sent ones are kept in Deleted Messages as well. Unsent, scheduled and Saved Messages ones never are:
+    /// those are drafts and notes, not conversation.
+    public static func snapshotLocallyDeletedMessages(
+        transaction: Transaction,
+        messageIds: [MessageId],
+        mediaBox: MediaBox? = nil
+    ) {
+        guard settings.with({ $0.saveDeleted && $0.saveMyDeleted }) else {
+            return
+        }
+        guard let accountPeerId = (transaction.getState() as? AuthorizedAccountState)?.peerId else {
+            return
+        }
+        let ownIds = messageIds.filter { id in
+            if id.peerId == accountPeerId {
+                return false
+            }
+            if id.namespace != Namespaces.Message.Cloud && id.peerId.namespace != Namespaces.Peer.SecretChat {
+                return false
+            }
+            guard let message = transaction.getMessage(id) else {
+                return false
+            }
+            return !message.flags.contains(.Incoming) && !message.flags.contains(.Unsent) && !message.flags.contains(.Failed)
+        }
+        if !ownIds.isEmpty {
+            snapshotMessages(transaction: transaction, accountPeerId: accountPeerId, messageIds: ownIds, kind: .deleted, mediaBox: mediaBox)
         }
     }
 

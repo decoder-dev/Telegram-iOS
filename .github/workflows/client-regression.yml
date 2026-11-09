@@ -99,7 +99,7 @@ jobs:
           python3 Tests/Upstream13/audio_rich_text.py
           python3 -m unittest discover -s Tests/Upstream13 -p 'donut*.py'
           python3 -m unittest discover -s Tests/Upstream13 -p 'regram*.py'
-          python3 -m unittest Tests.Upstream13.madgram_features Tests.Upstream13.whitegram_features Tests.Upstream13.glass_bubbles Tests.Upstream13.share_link_guard
+          python3 -m unittest Tests.Upstream13.madgram_features Tests.Upstream13.whitegram_features Tests.Upstream13.glass_bubbles Tests.Upstream13.share_link_guard Tests.Upstream13.message_menu_editor Tests.Upstream13.translate_before_sending Tests.Upstream13.read_all_and_member_extras Tests.Upstream13.app_tools Tests.Upstream13.duress_and_local_pins
           python3 Tests/Upstream13/sticker_settings.py
           python3 Tests/Upstream13/queued_reads.py
           python3 Tests/Customization/greeting_live.py

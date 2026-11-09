@@ -620,6 +620,43 @@ final class ChatSendMessageContextScreenComponent: Component {
                         }
                     )))
                 }
+                if let draftTranslation = sendMessage.draftTranslation {
+                    let translateIcon: (PresentationTheme) -> UIImage? = { theme in
+                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Translate"), color: theme.contextMenu.primaryColor)
+                    }
+                    if let languageTitle = draftTranslation.languageTitle {
+                        items.append(.action(ContextMenuActionItem(
+                            id: AnyHashable("translateDraft"),
+                            text: languageTitle,
+                            icon: translateIcon, action: { [weak self] _, _ in
+                                self?.environment?.controller()?.dismiss()
+                                draftTranslation.translate()
+                            }
+                        )))
+                    }
+                    let chooseLanguageTitle: String
+                    let chooseLanguageIcon: (PresentationTheme) -> UIImage?
+                    if draftTranslation.languageTitle == nil {
+                        chooseLanguageTitle = environment.strings.Conversation_ContextMenuTranslate
+                        chooseLanguageIcon = translateIcon
+                    } else {
+                        chooseLanguageTitle = environment.strings.Conversation_Translation_ChooseLanguage
+                        chooseLanguageIcon = { _ in
+                            return nil
+                        }
+                    }
+                    items.append(.action(ContextMenuActionItem(
+                        id: AnyHashable("translateDraftLanguage"),
+                        text: chooseLanguageTitle,
+                        icon: chooseLanguageIcon, action: { [weak self] _, _ in
+                            self?.environment?.controller()?.dismiss()
+                            // The language list is pushed once the menu has gone, as with the paid content screen.
+                            Queue.mainQueue().after(0.45) {
+                                draftTranslation.chooseLanguage()
+                            }
+                        }
+                    )))
+                }
                 if canMakePaidContent {
                     let title: String
                     let titleLayout: ContextMenuActionItemTextLayout

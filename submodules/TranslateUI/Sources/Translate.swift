@@ -179,6 +179,9 @@ public func canTranslateChats(context: AccountContext) -> Bool {
         // The user forced Apple's on-device translation, which does not depend on the server's translation config.
         return true
     }
+    if context.sharedContext.immediateForkExtrasSettings.translationBackend.isThirdParty {
+        return true
+    }
     var chatTranslationAvailable = true
     switch translationConfiguration.auto {
     case .system:
@@ -212,6 +215,9 @@ public func canTranslateText(context: AccountContext, text: String, showTranslat
         break
     }
     if #available(iOS 18.0, *), context.sharedContext.immediateForkExtrasSettings.translationBackend == .system {
+        translateButtonAvailable = true
+    }
+    if context.sharedContext.immediateForkExtrasSettings.translationBackend.isThirdParty {
         translateButtonAvailable = true
     }
     

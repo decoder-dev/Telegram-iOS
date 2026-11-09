@@ -104,6 +104,8 @@ public final class HiddenAccountsSession {
         public var revealedOwnerId: Int64?
         /// Hidden accounts opened with their owner's password since the app last came to the foreground.
         public var unlockedAccountIds: Set<Int64> = []
+        /// Set by the duress passcode: Settings × 10 reveals nothing until the app is next unlocked with the real passcode.
+        public var revealBlocked: Bool = false
 
         public init() {
         }
@@ -191,7 +193,7 @@ public final class HiddenAccountsSession {
     public func reveal(ownerAccountId: Int64) -> Bool {
         var revealed = false
         self.update { state in
-            if state.owners.values.contains(ownerAccountId) {
+            if !state.revealBlocked && state.owners.values.contains(ownerAccountId) {
                 state.revealedOwnerId = ownerAccountId
                 revealed = true
             }
@@ -220,6 +222,22 @@ public final class HiddenAccountsSession {
         self.update { state in
             state.revealedOwnerId = nil
             state.unlockedAccountIds = []
+        }
+    }
+
+    /// The duress passcode opened the app: hide everything and keep it hidden until `allowReveal()`.
+    public func blockReveal() {
+        self.update { state in
+            state.revealedOwnerId = nil
+            state.unlockedAccountIds = []
+            state.revealBlocked = true
+        }
+    }
+
+    /// The real passcode opened the app.
+    public func allowReveal() {
+        self.update { state in
+            state.revealBlocked = false
         }
     }
 }

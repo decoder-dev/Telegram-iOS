@@ -239,6 +239,9 @@ public final class PasscodeEntryController: ViewController {
         let challenge = self.challengeData
         let scope = self.authenticationScope
         let lifetime = self.authenticationLifetime
+        // Only the app's own lock screen takes the duress passcode, and only after the real passcode was checked and
+        // rejected: the real one always wins, even if both ever became the same.
+        let acceptsDuressPasscode = self.authenticated == nil && self.completed == nil && self.applicationBindings.isMainApp
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let result: Result<PasscodeSession, Error> = Result {
                 switch challenge {
@@ -255,9 +258,19 @@ public final class PasscodeEntryController: ViewController {
                 let reference = passcodeCredentialReference(from: challenge)
                 return try PasscodeCredentialStore.shared.verify(code, reference: reference, scope: scope, lifetime: lifetime)
             }
+            let isDuressPasscode: Bool
+            if acceptsDuressPasscode, case let .failure(error) = result, (error as? PasscodeError) == .invalidCode, let kind = challenge.passcodeKind {
+                isDuressPasscode = DuressPasscodeKeychain.matches(code, kind: kind)
+            } else {
+                isDuressPasscode = false
+            }
             DispatchQueue.main.async {
                 guard let self, self.authenticationLifecycle.acceptsResult(generation: generation) else {
                     if case let .success(session) = result { session.invalidate() }
+                    return
+                }
+                if isDuressPasscode {
+                    self.unlockWithDuressPasscode()
                     return
                 }
                 self.checkingCode = false
@@ -271,6 +284,7 @@ public final class PasscodeEntryController: ViewController {
                         if self.completed != nil {
                             self.finishAuthentication(.success(nil))
                         } else {
+                            HiddenAccountsSession.shared.allowReveal()
                             self.appLockContext.unlock()
                         }
                         let isMainApp = self.applicationBindings.isMainApp
@@ -293,6 +307,16 @@ public final class PasscodeEntryController: ViewController {
                 }
             }
         }
+    }
+
+    /// Opens the app the way the real passcode does, once the chosen duress action is done. Input stays off until the lock
+    /// screen goes away; nothing tells the duress passcode apart on screen.
+    private func unlockWithDuressPasscode() {
+        let appLockContext = self.appLockContext
+        let _ = (performDuressPasscodeAction(accountManager: self.accountManager)
+        |> deliverOnMainQueue).start(completed: {
+            appLockContext.unlock()
+        })
     }
 
     func requestBiometricsBeforePresentation(fallback: @escaping @MainActor () -> Void) {

@@ -6,6 +6,19 @@ import Postbox
 public enum ForkTranslationBackend: String, Codable {
     case `default`
     case system
+    case google
+    case deepl
+    case yandex
+
+    /// Google, DeepL and Yandex: the text leaves Telegram and goes to that company's servers.
+    public var isThirdParty: Bool {
+        switch self {
+        case .google, .deepl, .yandex:
+            return true
+        case .default, .system:
+            return false
+        }
+    }
 }
 
 public enum ForkTranscriptionBackend: String, Codable {
@@ -76,6 +89,15 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var forceBuiltInMic: Bool
     public var keepAliveInBackground: Bool
     public var translationBackend: ForkTranslationBackend
+    /// When the chosen translator fails, the others are tried in turn: Telegram, Google, then DeepL and Yandex if they have a key.
+    public var translationFallback: Bool
+    /// The user's own API keys. They only ever go into the Authorization header of a request to that service.
+    public var deeplApiKey: String
+    public var yandexApiKey: String
+    /// Swiftgram port: "Translate" in the send button's menu replaces the draft with its translation.
+    public var translateBeforeSending: Bool
+    /// The language each chat's drafts were last translated into, by peer id.
+    public var draftTranslationLanguages: [Int64: String]
     public var transcriptionBackend: ForkTranscriptionBackend
     public var scrollToNextChatDisabled: Bool
     /// AyuGram-style: keep text of remotely deleted messages (View Deleted).
@@ -84,6 +106,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var saveMessagesHistory: Bool
     /// Also snapshot messages from bots when saving deleted/edited.
     public var saveForBots: Bool
+    /// Donutgram: the user's own sent messages they delete on this device are kept in Deleted Messages too.
+    public var saveMyDeletedMessages: Bool
+    /// Donutgram: the notification extension keeps messages it was pushed, so a deletion seen there is saved as well.
+    public var saveMessagesFromNotifications: Bool
     /// AyuGram Android parity: copy attachments into Saved Attachments on delete.
     public var saveMedia: Bool
     /// AyuGram Android: actively fetch not-yet-local media before TTL/delete can race the cache.
@@ -184,6 +210,12 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var securityConfirmExternalLinks: Bool
     /// Security: opening a chat with an unverified account named like Telegram's staff warns about it once. On by default.
     public var securityFlagFakeSupport: Bool
+    /// Security: what the duress passcode does before it opens the app (`DuressPasscodeAction`), and the accounts its
+    /// "log out" choice signs out. The passcode itself is in the Keychain (`DuressPasscodeKeychain`).
+    public var duressPasscodeAction: Int32
+    public var duressLogOutAccountIds: [Int64]
+    /// Security: three shakes lock the app and hide the hidden accounts again. Off by default.
+    public var panicShakeLock: Bool
     /// Donutgram: ask before a tap on a previewed chat (long press in the list) opens it. Off by default.
     public var confirmChatPreviewEntry: Bool
     public var disableGiftStarsRedirect: Bool
@@ -288,8 +320,21 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideTypingFiles: Bool
     /// Fork (MadGram): adds a "Screenshot" action to the message menu that renders the messages as an image. A menu entry only, so it defaults on.
     public var messageShot: Bool
+    /// Message menu editor: raw values of ForkMessageMenuItem the user hid, and the order they arranged (empty: stock).
+    public var messageMenuHiddenItems: [String]
+    public var messageMenuOrder: [String]
+    /// Fork (Swiftgram): "Message JSON" in the message menu shows the message's raw data. Off by default.
+    public var messageJsonMenu: Bool
     /// Fork (MadGram): applies Telegram's own power-saving profile (EnergyUsageSettings.powerSavingDefault) regardless of battery level. Off by default.
     public var powerSaving: Bool
+    /// Fork (Regram): Check for Updates in Extras › About also offers GitHub pre-releases. On by default: this fork ships them.
+    public var updateCheckIncludesPrereleases: Bool
+    /// Fork (Regram): look for a newer build on GitHub at most once a day when the app starts. Off by default.
+    public var updateCheckAutomatically: Bool
+    /// Fork (Donutgram): Enhanced Power Saving. Turning it on keeps the animation settings it turns off in the snapshot;
+    /// turning it off puts them back (`setForkEnhancedPowerSaving`). Off by default.
+    public var enhancedPowerSaving: Bool
+    public var enhancedPowerSavingSnapshot: ForkPowerSavingSnapshot?
     public var showsOfflineDot: Bool
     /// Hide paid (star) reactions from messages and the reaction picker.
     public var hidePaidReactions: Bool
@@ -330,12 +375,21 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideFolderUnreadCount: Bool
     /// Unpinning a message, or all pinned messages, asks first even when Telegram would not.
     public var confirmUnpin: Bool
+    /// Forkgram/Nekogram: past the server's pinned chat limit a chat is pinned on this device only (`LocalPinnedChats`),
+    /// under the server pins of All Chats. Off by default.
+    public var pinBeyondLimit: Bool
     /// No "typing..." style status in the list or title of private and secret chats.
     public var hidePrivateChatActivities: Bool
     /// A chat history reload that began at the newest message stays at the newest message.
     public var stayAtLatestMessageAfterRefresh: Bool
     /// The quality a gallery video starts in when the player offers several: 0 auto, 1 highest, 2 lowest.
     public var defaultVideoQuality: Int32
+    /// Devices shows each session's api_id after the app name; ids the server doesn't mark official are flagged.
+    public var showSessionApiId: Bool
+    /// A group or channel's info shows when the account joined it.
+    public var showGroupJoinDate: Bool
+    /// A person's profile offers their messages in the group it was opened from and in the groups in common.
+    public var showMessagesFromMember: Bool
 
     public static var defaultSettings: ForkExtrasSettings {
         return ForkExtrasSettings(
@@ -541,9 +595,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.inviteLinksBulkRevoke = false
         self.hideFolderUnreadCount = false
         self.confirmUnpin = false
+        self.pinBeyondLimit = false
         self.hidePrivateChatActivities = false
         self.stayAtLatestMessageAfterRefresh = false
         self.defaultVideoQuality = 0
+        self.showSessionApiId = true
+        self.showGroupJoinDate = false
+        self.showMessagesFromMember = false
         self.ghostDontReadMessages = ghostDontReadMessages
         self.ghostDontReadStories = ghostDontReadStories
         self.ghostDontSendOnline = ghostDontSendOnline
@@ -568,11 +626,18 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.forceBuiltInMic = forceBuiltInMic
         self.keepAliveInBackground = keepAliveInBackground
         self.translationBackend = translationBackend
+        self.translationFallback = false
+        self.deeplApiKey = ""
+        self.yandexApiKey = ""
+        self.translateBeforeSending = false
+        self.draftTranslationLanguages = [:]
         self.transcriptionBackend = transcriptionBackend
         self.scrollToNextChatDisabled = scrollToNextChatDisabled
         self.saveDeletedMessages = saveDeletedMessages
         self.saveMessagesHistory = saveMessagesHistory
         self.saveForBots = saveForBots
+        self.saveMyDeletedMessages = false
+        self.saveMessagesFromNotifications = false
         self.saveMedia = saveMedia
         self.proactiveSaveMedia = proactiveSaveMedia
         self.deletedMessageMark = deletedMessageMark
@@ -605,7 +670,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.streamerMode = streamerMode
         self.hideStickerStatus = hideStickerStatus
         self.messageShot = true
+        self.messageMenuHiddenItems = []
+        self.messageMenuOrder = []
+        self.messageJsonMenu = false
         self.powerSaving = false
+        self.updateCheckIncludesPrereleases = true
+        self.updateCheckAutomatically = false
+        self.enhancedPowerSaving = false
+        self.enhancedPowerSavingSnapshot = nil
         self.hideStickerReplyColors = false
         self.chooseFolderAfterJoin = false
         self.recentChatsMenu = false
@@ -623,6 +695,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.securityWarnMiniApps = true
         self.securityConfirmExternalLinks = true
         self.securityFlagFakeSupport = true
+        self.duressPasscodeAction = 0
+        self.duressLogOutAccountIds = []
+        self.panicShakeLock = false
         self.confirmChatPreviewEntry = false
         self.disableGiftStarsRedirect = false
         self.visualLabels = [:]
@@ -746,10 +821,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.inviteLinksBulkRevoke = try container.decodeIfPresent(Bool.self, forKey: "inviteLinksBulkRevoke") ?? false
         self.hideFolderUnreadCount = try container.decodeIfPresent(Bool.self, forKey: "hideFolderUnreadCount") ?? false
         self.confirmUnpin = try container.decodeIfPresent(Bool.self, forKey: "confirmUnpin") ?? false
+        self.pinBeyondLimit = try container.decodeIfPresent(Bool.self, forKey: "pinBeyondLimit") ?? false
         self.hidePrivateChatActivities = try container.decodeIfPresent(Bool.self, forKey: "hidePrivateChatActivities") ?? false
         self.stayAtLatestMessageAfterRefresh = try container.decodeIfPresent(Bool.self, forKey: "stayAtLatestMessageAfterRefresh") ?? false
         let decodedVideoQuality = try container.decodeIfPresent(Int32.self, forKey: "defaultVideoQuality") ?? 0
         self.defaultVideoQuality = (0 ... 2).contains(decodedVideoQuality) ? decodedVideoQuality : 0
+        self.showSessionApiId = try container.decodeIfPresent(Bool.self, forKey: "showSessionApiId") ?? true
+        self.showGroupJoinDate = try container.decodeIfPresent(Bool.self, forKey: "showGroupJoinDate") ?? false
+        self.showMessagesFromMember = try container.decodeIfPresent(Bool.self, forKey: "showMessagesFromMember") ?? false
         // As with the banana island: every install stored the old default (true), so the stored value is read only
         // once the off-by-default migration has run.
         let glowDefaultOff = try container.decodeIfPresent(Bool.self, forKey: "glowDefaultOff") ?? false
@@ -784,11 +863,18 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.forceBuiltInMic = try container.decodeIfPresent(Bool.self, forKey: "forceBuiltInMic") ?? false
         self.keepAliveInBackground = try container.decodeIfPresent(Bool.self, forKey: "keepAliveInBackground") ?? false
         self.translationBackend = (try container.decodeIfPresent(String.self, forKey: "translationBackend")).flatMap(ForkTranslationBackend.init(rawValue:)) ?? .default
+        self.translationFallback = try container.decodeIfPresent(Bool.self, forKey: "translationFallback") ?? false
+        self.deeplApiKey = try container.decodeIfPresent(String.self, forKey: "deeplApiKey") ?? ""
+        self.yandexApiKey = try container.decodeIfPresent(String.self, forKey: "yandexApiKey") ?? ""
+        self.translateBeforeSending = try container.decodeIfPresent(Bool.self, forKey: "translateBeforeSending") ?? false
+        self.draftTranslationLanguages = try container.decodeIfPresent([Int64: String].self, forKey: "draftTranslationLanguages") ?? [:]
         self.transcriptionBackend = (try container.decodeIfPresent(String.self, forKey: "transcriptionBackend")).flatMap(ForkTranscriptionBackend.init(rawValue:)) ?? .default
         self.scrollToNextChatDisabled = try container.decodeIfPresent(Bool.self, forKey: "scrollToNextChatDisabled") ?? false
         self.saveDeletedMessages = try container.decodeIfPresent(Bool.self, forKey: "saveDeletedMessages") ?? false
         self.saveMessagesHistory = try container.decodeIfPresent(Bool.self, forKey: "saveMessagesHistory") ?? false
         self.saveForBots = try container.decodeIfPresent(Bool.self, forKey: "saveForBots") ?? false
+        self.saveMyDeletedMessages = try container.decodeIfPresent(Bool.self, forKey: "saveMyDeletedMessages") ?? false
+        self.saveMessagesFromNotifications = try container.decodeIfPresent(Bool.self, forKey: "saveMessagesFromNotifications") ?? false
         self.saveMedia = try container.decodeIfPresent(Bool.self, forKey: "saveMedia") ?? false
         // Default off: proactive gallery fetch on every open was a major thermal/IO load.
         self.proactiveSaveMedia = try container.decodeIfPresent(Bool.self, forKey: "proactiveSaveMedia") ?? false
@@ -838,6 +924,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.securityWarnMiniApps = try container.decodeIfPresent(Bool.self, forKey: "securityWarnMiniApps") ?? true
         self.securityConfirmExternalLinks = try container.decodeIfPresent(Bool.self, forKey: "securityConfirmExternalLinks") ?? true
         self.securityFlagFakeSupport = try container.decodeIfPresent(Bool.self, forKey: "securityFlagFakeSupport") ?? true
+        let decodedDuressAction = try container.decodeIfPresent(Int32.self, forKey: "duressPasscodeAction") ?? 0
+        self.duressPasscodeAction = (0 ... 2).contains(decodedDuressAction) ? decodedDuressAction : 0
+        self.duressLogOutAccountIds = try container.decodeIfPresent([Int64].self, forKey: "duressLogOutAccountIds") ?? []
+        self.panicShakeLock = try container.decodeIfPresent(Bool.self, forKey: "panicShakeLock") ?? false
         self.confirmChatPreviewEntry = try container.decodeIfPresent(Bool.self, forKey: "confirmChatPreviewEntry") ?? false
         self.disableGiftStarsRedirect = try container.decodeIfPresent(Bool.self, forKey: "disableGiftStarsRedirect") ?? false
         self.visualLabels = (try container.decodeIfPresent([Int64: Int32].self, forKey: "visualLabels") ?? [:]).filter { (1...4).contains($0.value) }
@@ -913,7 +1003,15 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideTypingVoice = try container.decodeIfPresent(Bool.self, forKey: "hideTypingVoice") ?? false
         self.hideTypingFiles = try container.decodeIfPresent(Bool.self, forKey: "hideTypingFiles") ?? false
         self.messageShot = try container.decodeIfPresent(Bool.self, forKey: "messageShot") ?? true
+        self.messageMenuHiddenItems = try container.decodeIfPresent([String].self, forKey: "messageMenuHiddenItems") ?? []
+        self.messageMenuOrder = try container.decodeIfPresent([String].self, forKey: "messageMenuOrder") ?? []
+        self.messageJsonMenu = try container.decodeIfPresent(Bool.self, forKey: "messageJsonMenu") ?? false
         self.powerSaving = try container.decodeIfPresent(Bool.self, forKey: "powerSaving") ?? false
+        self.updateCheckIncludesPrereleases = try container.decodeIfPresent(Bool.self, forKey: "updateCheckIncludesPrereleases") ?? true
+        self.updateCheckAutomatically = try container.decodeIfPresent(Bool.self, forKey: "updateCheckAutomatically") ?? false
+        self.enhancedPowerSaving = try container.decodeIfPresent(Bool.self, forKey: "enhancedPowerSaving") ?? false
+        // A snapshot that no longer decodes must not cost the user every other setting.
+        self.enhancedPowerSavingSnapshot = try? container.decodeIfPresent(ForkPowerSavingSnapshot.self, forKey: "enhancedPowerSavingSnapshot")
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -962,9 +1060,13 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.inviteLinksBulkRevoke, forKey: "inviteLinksBulkRevoke")
         try container.encode(self.hideFolderUnreadCount, forKey: "hideFolderUnreadCount")
         try container.encode(self.confirmUnpin, forKey: "confirmUnpin")
+        try container.encode(self.pinBeyondLimit, forKey: "pinBeyondLimit")
         try container.encode(self.hidePrivateChatActivities, forKey: "hidePrivateChatActivities")
         try container.encode(self.stayAtLatestMessageAfterRefresh, forKey: "stayAtLatestMessageAfterRefresh")
         try container.encode(self.defaultVideoQuality, forKey: "defaultVideoQuality")
+        try container.encode(self.showSessionApiId, forKey: "showSessionApiId")
+        try container.encode(self.showGroupJoinDate, forKey: "showGroupJoinDate")
+        try container.encode(self.showMessagesFromMember, forKey: "showMessagesFromMember")
         try container.encode(self.avatarGlowEnabled, forKey: "avatarGlowEnabled")
         try container.encode(true, forKey: "glowDefaultOff")
         try container.encode(self.snowEnabled, forKey: "snowEnabled")
@@ -996,11 +1098,18 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.forceBuiltInMic, forKey: "forceBuiltInMic")
         try container.encode(self.keepAliveInBackground, forKey: "keepAliveInBackground")
         try container.encode(self.translationBackend.rawValue, forKey: "translationBackend")
+        try container.encode(self.translationFallback, forKey: "translationFallback")
+        try container.encode(self.deeplApiKey, forKey: "deeplApiKey")
+        try container.encode(self.yandexApiKey, forKey: "yandexApiKey")
+        try container.encode(self.translateBeforeSending, forKey: "translateBeforeSending")
+        try container.encode(self.draftTranslationLanguages, forKey: "draftTranslationLanguages")
         try container.encode(self.transcriptionBackend.rawValue, forKey: "transcriptionBackend")
         try container.encode(self.scrollToNextChatDisabled, forKey: "scrollToNextChatDisabled")
         try container.encode(self.saveDeletedMessages, forKey: "saveDeletedMessages")
         try container.encode(self.saveMessagesHistory, forKey: "saveMessagesHistory")
         try container.encode(self.saveForBots, forKey: "saveForBots")
+        try container.encode(self.saveMyDeletedMessages, forKey: "saveMyDeletedMessages")
+        try container.encode(self.saveMessagesFromNotifications, forKey: "saveMessagesFromNotifications")
         try container.encode(self.saveMedia, forKey: "saveMedia")
         try container.encode(self.proactiveSaveMedia, forKey: "proactiveSaveMedia")
         try container.encode(self.deletedMessageMark, forKey: "deletedMessageMark")
@@ -1049,6 +1158,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.securityWarnMiniApps, forKey: "securityWarnMiniApps")
         try container.encode(self.securityConfirmExternalLinks, forKey: "securityConfirmExternalLinks")
         try container.encode(self.securityFlagFakeSupport, forKey: "securityFlagFakeSupport")
+        try container.encode(self.duressPasscodeAction, forKey: "duressPasscodeAction")
+        try container.encode(self.duressLogOutAccountIds, forKey: "duressLogOutAccountIds")
+        try container.encode(self.panicShakeLock, forKey: "panicShakeLock")
         try container.encode(self.confirmChatPreviewEntry, forKey: "confirmChatPreviewEntry")
         try container.encode(self.disableGiftStarsRedirect, forKey: "disableGiftStarsRedirect")
         try container.encode(self.visualLabels, forKey: "visualLabels")
@@ -1121,7 +1233,14 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hideTypingVoice, forKey: "hideTypingVoice")
         try container.encode(self.hideTypingFiles, forKey: "hideTypingFiles")
         try container.encode(self.messageShot, forKey: "messageShot")
+        try container.encode(self.messageMenuHiddenItems, forKey: "messageMenuHiddenItems")
+        try container.encode(self.messageMenuOrder, forKey: "messageMenuOrder")
+        try container.encode(self.messageJsonMenu, forKey: "messageJsonMenu")
         try container.encode(self.powerSaving, forKey: "powerSaving")
+        try container.encode(self.updateCheckIncludesPrereleases, forKey: "updateCheckIncludesPrereleases")
+        try container.encode(self.updateCheckAutomatically, forKey: "updateCheckAutomatically")
+        try container.encode(self.enhancedPowerSaving, forKey: "enhancedPowerSaving")
+        try container.encodeIfPresent(self.enhancedPowerSavingSnapshot, forKey: "enhancedPowerSavingSnapshot")
     }
 
     /// Whether message/reaction read receipts should be suppressed right now.
@@ -1624,6 +1743,7 @@ public enum ForkExtrasNotificationBridge {
     /// Project notification-hide flags into App Group / standard defaults for NSE.
     /// Change-gated and without `synchronize()` — `set` is enough and avoids main-thread disk stalls.
     public static func sync(_ settings: ForkExtrasSettings) {
+        syncMessageSaving(settings)
         let next = (hideMentions: settings.hideMentionNotifications, hidePinned: settings.hidePinnedNotifications, removePings: settings.removePings)
         var shouldWrite = false
         let _ = lastSynced.modify { previous in
@@ -1672,6 +1792,48 @@ public enum ForkExtrasNotificationBridge {
     
     public static var hidePinnedNotifications: Bool {
         return bool(forKey: hidePinnedKey)
+    }
+
+    private static let saveDeletedKey = "ForkExtras.saveDeletedMessages"
+    private static let saveForBotsKey = "ForkExtras.saveForBots"
+    private static let saveFromNotificationsKey = "ForkExtras.saveMessagesFromNotifications"
+    private static let lastSyncedSaving = Atomic<(saveDeleted: Bool, saveForBots: Bool, fromNotifications: Bool)?>(value: nil)
+
+    /// The notification extension cannot read AccountManager, so the switches it needs to keep deleted messages travel
+    /// the same way as the notification flags above.
+    private static func syncMessageSaving(_ settings: ForkExtrasSettings) {
+        let next = (saveDeleted: settings.saveDeletedMessages, saveForBots: settings.saveForBots, fromNotifications: settings.saveMessagesFromNotifications)
+        var shouldWrite = false
+        let _ = lastSyncedSaving.modify { previous in
+            if let previous, previous == next {
+                return previous
+            }
+            shouldWrite = true
+            return next
+        }
+        guard shouldWrite else {
+            return
+        }
+        var stores: [UserDefaults] = [UserDefaults.standard]
+        for suite in candidateSuites() {
+            if let shared = UserDefaults(suiteName: suite) {
+                stores.append(shared)
+            }
+        }
+        for store in stores {
+            store.set(next.saveDeleted, forKey: saveDeletedKey)
+            store.set(next.saveForBots, forKey: saveForBotsKey)
+            store.set(next.fromNotifications, forKey: saveFromNotificationsKey)
+        }
+    }
+
+    /// Read in the notification extension: both Save Deleted Messages and Save Messages from Notifications are on.
+    public static var savesMessagesFromNotifications: Bool {
+        return bool(forKey: saveDeletedKey) && bool(forKey: saveFromNotificationsKey)
+    }
+
+    public static var saveForBots: Bool {
+        return bool(forKey: saveForBotsKey)
     }
 }
 

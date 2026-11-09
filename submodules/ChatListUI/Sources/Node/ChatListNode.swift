@@ -1613,7 +1613,7 @@ public final class ChatListNode: ListViewImpl {
                     } else {
                         location = .group(groupId._asGroup())
                     }
-                    let _ = (context.engine.peers.toggleItemPinned(location: location, itemId: itemId)
+                    let _ = (toggleChatListItemPinned(context: context, location: location, itemId: itemId)
                     |> deliverOnMainQueue).startStandalone(next: { result in
                         if let strongSelf = self {
                             switch result {
@@ -1959,12 +1959,31 @@ public final class ChatListNode: ListViewImpl {
             shouldLoadCanMessagePeer = false
         }
         
+        // Pin Beyond the Limit: All Chats lists the chats pinned on this device under the server pins.
+        let showsLocalPins: Bool
+        if case .chatList = mode, location == .chatList(groupId: .root) {
+            showsLocalPins = true
+        } else {
+            showsLocalPins = false
+        }
+        let localPinnedItems = Promise<[EngineChatList.Item]>([])
+        if showsLocalPins {
+            localPinnedItems.set(localPinnedChatListItems(context: context) |> distinctUntilChanged)
+        }
+        
         let chatListViewUpdate = combineLatest(
             self.chatListLocation.get() |> distinctUntilChanged,
             bananaRemovePingsEnabled()
         )
         |> mapToSignal { listLocation, _ -> Signal<(ChatListNodeViewUpdate, ChatListFilter?), NoError> in
-            return chatListViewForLocation(chatListLocation: location, location: listLocation, account: context.account, shouldLoadCanMessagePeer: shouldLoadCanMessagePeer)
+            var viewUpdate = chatListViewForLocation(chatListLocation: location, location: listLocation, account: context.account, shouldLoadCanMessagePeer: shouldLoadCanMessagePeer)
+            if showsLocalPins && listLocation.filter == nil {
+                viewUpdate = viewUpdate
+                |> mapToSignal { update -> Signal<ChatListNodeViewUpdate, NoError> in
+                    return chatListNodeViewUpdateWithLocalPins(update: update, localPinnedItems: localPinnedItems.get())
+                }
+            }
+            return viewUpdate
             |> map { update in
                 return (update, listLocation.filter)
             }
@@ -3111,6 +3130,10 @@ public final class ChatListNode: ListViewImpl {
                         }
                         
                         if let itemId = itemId {
+                            // A chat pinned on this device only (Pin Beyond the Limit) is not the server's to reorder.
+                            if case .group(.root) = location, !itemIds.contains(itemId) {
+                                return .single(false)
+                            }
                             itemIds = itemIds.filter({ $0 != itemId })
                             if let referenceId = referenceId {
                                 var inserted = false
