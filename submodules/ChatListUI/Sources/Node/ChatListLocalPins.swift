@@ -1,19 +1,12 @@
 import Foundation
-import Postbox
 import TelegramCore
 import SwiftSignalKit
 import TelegramUIPreferences
 import AccountContext
 
-// Postbox keeps the pinned peers of a filtered list in a space of their own. The group spaces it adds beside it are
-// pointed at a group no chat is ever in, so they hold neither chats nor holes: a hole there would start loading the
-// whole chat list just to show a few pinned chats.
-private let localPinsEmptyGroupId = PeerGroupId(rawValue: Int32.max)
-
 /// Pin Beyond the Limit: the chats pinned on this device only, in their stored order (pinning index 0 on top). A chat
 /// that is no longer in the main list (deleted, left or archived) is dropped from the stored list.
 func localPinnedChatListItems(context: AccountContext) -> Signal<[EngineChatList.Item], NoError> {
-    let account = context.account
     let engine = context.engine
     return combineLatest(
         forkExtrasSettings(accountManager: context.sharedContext.accountManager)
@@ -25,14 +18,11 @@ func localPinnedChatListItems(context: AccountContext) -> Signal<[EngineChatList
         if !isEnabled || peerIds.isEmpty {
             return .single([])
         }
-        let predicate = ChatListFilterPredicate(includePeerIds: Set(), excludePeerIds: Set(), pinnedPeerIds: peerIds, messageTagSummary: nil, includeAdditionalPeerGroupIds: [], include: { _, _, _, _, _ in
-            return false
-        })
         return combineLatest(
             engine.data.subscribe(EngineDataMap(peerIds.map(TelegramEngine.EngineData.Item.Messages.ChatListGroup.init(id:)))),
-            account.viewTracker.tailChatListView(groupId: localPinsEmptyGroupId, filterPredicate: predicate, count: peerIds.count + 1)
+            engine.messages.bananaChatListItems(pinnedPeerIds: peerIds)
         )
-        |> map { groups, viewAndUpdate -> [EngineChatList.Item] in
+        |> map { groups, pinnedItems -> [EngineChatList.Item] in
             let removedPeerIds = Set(peerIds.filter { peerId in
                 if case .root? = groups[peerId] ?? nil {
                     return false
@@ -44,7 +34,7 @@ func localPinnedChatListItems(context: AccountContext) -> Signal<[EngineChatList
                     return current.filter { !removedPeerIds.contains($0) }
                 }).startStandalone()
             }
-            return EngineChatList(viewAndUpdate.0, accountPeerId: account.peerId).items.filter { item in
+            return pinnedItems.filter { item in
                 if case let .chatList(peerId) = item.id {
                     return !removedPeerIds.contains(peerId)
                 }
@@ -60,7 +50,7 @@ func chatListNodeViewUpdateWithLocalPins(update: ChatListNodeViewUpdate, localPi
     var isFirst = true
     return localPinnedItems
     |> map { localPinnedItems -> ChatListNodeViewUpdate in
-        let type: ViewUpdateType
+        let type: EngineViewUpdateType
         let scrollPosition: ChatListNodeViewScrollPosition?
         if isFirst {
             isFirst = false

@@ -2,7 +2,6 @@ import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
-import Postbox
 import TelegramCore
 import TelegramPresentationData
 import TelegramUIPreferences
@@ -11,7 +10,7 @@ import UndoUI
 // "Message JSON" from the message menu (Swiftgram). The dictionary is built by hand from the fields worth reading;
 // Postbox types are not encodable, and dumping them generically would pull in caches and peer graphs.
 
-private func forkMessageJsonPeer(_ peerId: PeerId, peer: Peer?) -> [String: Any] {
+private func forkMessageJsonPeer(_ peerId: EnginePeer.Id, peer: EngineRawPeer?) -> [String: Any] {
     var result: [String: Any] = ["id": Int64(forkProfileIdText(peerId: peerId, botApiFormat: true)) ?? peerId.toInt64()]
     if let channel = peer as? TelegramChannel {
         if case .broadcast = channel.info {
@@ -35,8 +34,8 @@ private func forkMessageJsonPeer(_ peerId: PeerId, peer: Peer?) -> [String: Any]
     return result
 }
 
-private func forkMessageJsonFlags(_ flags: MessageFlags) -> [String] {
-    let names: [(MessageFlags, String)] = [
+private func forkMessageJsonFlags(_ flags: EngineMessage.Flags) -> [String] {
+    let names: [(EngineMessage.Flags, String)] = [
         (.Incoming, "incoming"),
         (.Unsent, "unsent"),
         (.Sending, "sending"),
@@ -88,7 +87,7 @@ private func forkMessageJsonEntity(_ entity: MessageTextEntity) -> [String: Any]
     return result
 }
 
-private func forkMessageJsonMedia(_ media: Media) -> [String: Any] {
+private func forkMessageJsonMedia(_ media: EngineRawMedia) -> [String: Any] {
     var result: [String: Any] = [:]
     if let id = media.id {
         result["id"] = "\(id.id)"
@@ -167,7 +166,7 @@ private func forkMessageJsonMedia(_ media: Media) -> [String: Any] {
     return result
 }
 
-func forkMessageJson(_ message: Message) -> String {
+func forkMessageJson(_ message: EngineRawMessage) -> String {
     var json: [String: Any] = [
         "id": message.id.id,
         "namespace": message.id.namespace,

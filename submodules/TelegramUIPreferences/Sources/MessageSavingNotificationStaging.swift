@@ -1,5 +1,4 @@
 import Foundation
-import Postbox
 import TelegramCore
 
 /// Hand-off between the notification extension and the app for Save Messages from Notifications.
@@ -66,13 +65,13 @@ public enum MessageSavingNotificationStaging {
         let text: String
     }
 
-    private static func pushedFileName(accountPeerId: PeerId, messageId: MessageId) -> String {
+    private static func pushedFileName(accountPeerId: EnginePeer.Id, messageId: EngineMessage.Id) -> String {
         return "\(accountPeerId.toInt64())_\(messageId.peerId.toInt64())_\(messageId.id).json"
     }
 
     /// Keeps what a push said about a message the extension's poll did not manage to fetch (offline, or out of time).
     /// Normally the poll stores the message in Postbox and this is never needed.
-    public static func rememberPushedMessage(rootPath: String, accountPeerId: PeerId, messageId: MessageId, authorName: String, text: String) {
+    public static func rememberPushedMessage(rootPath: String, accountPeerId: EnginePeer.Id, messageId: EngineMessage.Id, authorName: String, text: String) {
         guard ForkExtrasNotificationBridge.savesMessagesFromNotifications, messageId.namespace == Namespaces.Message.Cloud else {
             return
         }
@@ -97,7 +96,7 @@ public enum MessageSavingNotificationStaging {
 
     /// A delete push arrived. Messages it names that Postbox has no copy of are saved from what their push said; the
     /// rest were kept through MessageSavingBridge already. Either way their pushes are forgotten.
-    public static func saveDeletedPushedMessages(rootPath: String, accountPeerId: PeerId, ids: [MessageId], missingIds: Set<MessageId>) {
+    public static func saveDeletedPushedMessages(rootPath: String, accountPeerId: EnginePeer.Id, ids: [EngineMessage.Id], missingIds: Set<EngineMessage.Id>) {
         guard ForkExtrasNotificationBridge.savesMessagesFromNotifications else {
             return
         }
