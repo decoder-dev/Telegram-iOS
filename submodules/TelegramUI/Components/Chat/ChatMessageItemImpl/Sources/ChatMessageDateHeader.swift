@@ -370,9 +370,15 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
         transition.updatePosition(node: self.labelNode, position: labelFrame.center)
         self.labelNode.bounds = CGRect(origin: CGPoint(), size: labelFrame.size)
                 
+        // Extras › Glass Chat Elements: the pill is Liquid Glass, without its wallpaper-coloured copy.
+        let isGlass = self.backgroundNode.setChatGlass(ArenaSettings.shared.glassChatElementsEnabled)
+        if isGlass, self.backgroundNode.supernode == nil {
+            self.insertSubnode(self.backgroundNode, at: 0)
+        }
+        self.backgroundContent?.isHidden = isGlass
         if let backgroundContent = self.backgroundContent {
             backgroundContent.allowsGroupOpacity = true
-            self.backgroundNode.isHidden = true
+            self.backgroundNode.isHidden = !isGlass
             
             transition.updateFrame(node: backgroundContent, frame: self.backgroundNode.frame)
             backgroundContent.cornerRadius = backgroundFrame.size.height / 2.0
@@ -591,9 +597,15 @@ private final class ChatMessagePeerContentNode: ASDisplayNode {
             transition.updateFrame(view: arrowIcon, frame: arrowFrame)
         }
                 
+        // Extras › Glass Chat Elements: the pill is Liquid Glass, without its wallpaper-coloured copy.
+        let isGlass = self.backgroundNode.setChatGlass(ArenaSettings.shared.glassChatElementsEnabled)
+        if isGlass, self.backgroundNode.supernode == nil {
+            self.insertSubnode(self.backgroundNode, at: 0)
+        }
+        self.backgroundContent?.isHidden = isGlass
         if let backgroundContent = self.backgroundContent {
             backgroundContent.allowsGroupOpacity = true
-            self.backgroundNode.isHidden = true
+            self.backgroundNode.isHidden = !isGlass
             
             transition.updateFrame(node: backgroundContent, frame: self.backgroundNode.frame)
             backgroundContent.cornerRadius = backgroundFrame.size.height / 2.0

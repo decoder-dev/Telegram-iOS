@@ -55,6 +55,12 @@ public class ChatMessageActionBubbleContentNode: ChatMessageBubbleContentNode {
     private var leadingIconView: UIImageView?
 
     private var cachedMaskBackgroundImage: (CGPoint, UIImage, [CGRect])?
+
+    // Extras › Glass Chat Elements (iOS 26+): the service message is Liquid Glass cut to its shape. Nothing is
+    // created while the switch is off.
+    private var serviceGlassView: UIVisualEffectView?
+    private var serviceGlassMaskView: UIImageView?
+    private var serviceGlassTint: UIColor?
     private var absoluteRect: (CGRect, CGSize)?
     
     override public var disablesClipping: Bool {
@@ -791,6 +797,7 @@ public class ChatMessageActionBubbleContentNode: ChatMessageBubbleContentNode {
                                 }
                                 
                                 strongSelf.backgroundMaskNode.image = nil
+                                strongSelf.updateServiceGlass(frame: nil, maskImage: nil, cornerRadius: 0.0, tint: .clear)
 
                                 animation.animator.updateFrame(layer: strongSelf.backgroundColorNode.layer, frame: CGRect(origin: CGPoint(), size: backgroundFrame.size), completion: nil)
 
@@ -849,6 +856,12 @@ public class ChatMessageActionBubbleContentNode: ChatMessageBubbleContentNode {
                                 animation.animator.updateFrame(layer: strongSelf.backgroundColorNode.layer, frame: CGRect(origin: CGPoint(), size: image.size), completion: nil)
 
                                 strongSelf.cachedMaskBackgroundImage = (offset, image, labelRects)
+                                strongSelf.updateServiceGlass(
+                                    frame: CGRect(origin: CGPoint(x: baseBackgroundFrame.minX + offset.x, y: baseBackgroundFrame.minY + offset.y), size: image.size),
+                                    maskImage: labelRects.count == 1 ? nil : image,
+                                    cornerRadius: labelRects.count == 1 ? min(32.0, labelRects[0].height / 2.0) : 0.0,
+                                    tint: selectDateFillStaticColor(theme: item.presentationData.theme.theme, wallpaper: item.presentationData.theme.wallpaper)
+                                )
                                 
                                 switch strongSelf.visibility {
                                 case .none:
@@ -866,6 +879,64 @@ public class ChatMessageActionBubbleContentNode: ChatMessageBubbleContentNode {
                     })
                 })
             })
+        }
+    }
+
+    /// Lays the glass over the service message's shape (`maskImage` for a multi-line message, a rounded rect for
+    /// one line) and hides the stock fill, or removes the glass and shows the stock fill when `frame` is nil.
+    private func updateServiceGlass(frame: CGRect?, maskImage: UIImage?, cornerRadius: CGFloat, tint: UIColor) {
+        if #available(iOS 26.0, *), let frame, ArenaSettings.shared.glassChatElementsEnabled, NavigationBackgroundNode.isChatGlassAvailable {
+            let glassView: UIVisualEffectView
+            if let current = self.serviceGlassView {
+                glassView = current
+            } else {
+                glassView = UIVisualEffectView(effect: nil)
+                glassView.isUserInteractionEnabled = false
+                glassView.layer.cornerCurve = .continuous
+                self.view.insertSubview(glassView, at: 0)
+                self.serviceGlassView = glassView
+                self.serviceGlassTint = nil
+            }
+            if self.serviceGlassTint != tint {
+                self.serviceGlassTint = tint
+                var white: CGFloat = 0.0
+                var alpha: CGFloat = 0.0
+                if !tint.getWhite(&white, alpha: &alpha) {
+                    white = 0.0
+                }
+                glassView.overrideUserInterfaceStyle = white < 0.6 ? .dark : .light
+                let effect = UIGlassEffect(style: .regular)
+                effect.tintColor = tint
+                glassView.effect = effect
+            }
+            glassView.frame = frame
+            if let maskImage {
+                let maskView: UIImageView
+                if let current = self.serviceGlassMaskView {
+                    maskView = current
+                } else {
+                    maskView = UIImageView()
+                    self.serviceGlassMaskView = maskView
+                }
+                maskView.image = maskImage
+                maskView.frame = CGRect(origin: CGPoint(), size: frame.size)
+                if glassView.mask !== maskView {
+                    glassView.mask = maskView
+                }
+                glassView.layer.cornerRadius = 0.0
+            } else {
+                glassView.mask = nil
+                glassView.layer.cornerRadius = cornerRadius
+            }
+            self.backgroundNode?.isHidden = true
+            self.backgroundMaskNode.isHidden = true
+        } else if let glassView = self.serviceGlassView {
+            self.serviceGlassView = nil
+            self.serviceGlassMaskView = nil
+            self.serviceGlassTint = nil
+            glassView.removeFromSuperview()
+            self.backgroundNode?.isHidden = false
+            self.backgroundMaskNode.isHidden = false
         }
     }
 

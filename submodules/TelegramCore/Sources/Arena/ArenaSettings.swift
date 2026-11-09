@@ -184,5 +184,27 @@ public class ArenaSettings {
 
     public var glassBubblesEnabled: Bool { return self.locked { self.glassBubblesValue } }
     public var glassBubbleLevels: (tint: Int32, rimTop: Int32, rimSides: Int32, rimBottom: Int32) { return self.locked { self.glassBubbleLevelsValue } }
+
+    /// Glass chat pills and iMessage-like motion, projected from ForkExtrasSettings by
+    /// `applyForkChatAppearanceSettings`. All off by default. The pills read the glass flag when they lay out;
+    /// the motion flags are read when a drag, an insertion or a send happens.
+    private var glassChatElementsValue = false
+    private var springyScrollingValue = false
+    private var messagePopInValue = false
+    private var messageHapticsValue = false
+
+    public func setChatMotion(glassChatElements: Bool, springyScrolling: Bool, messagePopIn: Bool, messageHaptics: Bool) {
+        self.locked {
+            self.glassChatElementsValue = glassChatElements
+            self.springyScrollingValue = springyScrolling
+            self.messagePopInValue = messagePopIn
+            self.messageHapticsValue = messageHaptics
+        }
+    }
+
+    public var glassChatElementsEnabled: Bool { return self.locked { self.glassChatElementsValue } }
+    public var springyScrollingEnabled: Bool { return self.locked { self.springyScrollingValue } }
+    public var messagePopInEnabled: Bool { return self.locked { self.messagePopInValue } }
+    public var messageHapticsEnabled: Bool { return self.locked { self.messageHapticsValue } }
 }
 

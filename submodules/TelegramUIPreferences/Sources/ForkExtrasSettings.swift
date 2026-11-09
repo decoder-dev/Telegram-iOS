@@ -259,6 +259,15 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var glassBubbleRimTop: Int32
     public var glassBubbleRimSides: Int32
     public var glassBubbleRimBottom: Int32
+    /// Fork: the pills around the bubbles (dates, service messages, the time over media, bot buttons, the share button,
+    /// the reply arrow) are drawn as Liquid Glass instead of the wallpaper-tinted blur. iOS 26+, off by default.
+    public var glassChatElements: Bool
+    /// Fork, iMessage-like motion (off by default, nothing with Reduce Motion): bubbles trail the finger when the
+    /// history is dragged and catch up on a spring; a new message springs in from its tail; a light tap is felt
+    /// when a message is sent or arrives in the open chat.
+    public var springyScrolling: Bool
+    public var messagePopIn: Bool
+    public var messageHaptics: Bool
     /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
     public var showDisappearedGifts: Bool
     /// Fork (Donutgram): round video messages open with the rear camera, or with the one the last one used.
@@ -673,6 +682,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.glassBubbleRimTop = 95
         self.glassBubbleRimSides = 20
         self.glassBubbleRimBottom = 55
+        self.glassChatElements = false
+        self.springyScrolling = false
+        self.messagePopIn = false
+        self.messageHaptics = false
         self.showDisappearedGifts = showDisappearedGifts
         self.roundVideoStartsWithRear = roundVideoStartsWithRear
         self.roundVideoRemembersCamera = roundVideoRemembersCamera
@@ -890,6 +903,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.glassBubbleRimTop = try container.decodeIfPresent(Int32.self, forKey: "glassBubbleRimTop") ?? 95
         self.glassBubbleRimSides = try container.decodeIfPresent(Int32.self, forKey: "glassBubbleRimSides") ?? 20
         self.glassBubbleRimBottom = try container.decodeIfPresent(Int32.self, forKey: "glassBubbleRimBottom") ?? 55
+        self.glassChatElements = try container.decodeIfPresent(Bool.self, forKey: "glassChatElements") ?? false
+        self.springyScrolling = try container.decodeIfPresent(Bool.self, forKey: "springyScrolling") ?? false
+        self.messagePopIn = try container.decodeIfPresent(Bool.self, forKey: "messagePopIn") ?? false
+        self.messageHaptics = try container.decodeIfPresent(Bool.self, forKey: "messageHaptics") ?? false
         self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
         self.roundVideoStartsWithRear = try container.decodeIfPresent(Bool.self, forKey: "roundVideoStartsWithRear") ?? false
         self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
@@ -1098,6 +1115,10 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.glassBubbleRimTop, forKey: "glassBubbleRimTop")
         try container.encode(self.glassBubbleRimSides, forKey: "glassBubbleRimSides")
         try container.encode(self.glassBubbleRimBottom, forKey: "glassBubbleRimBottom")
+        try container.encode(self.glassChatElements, forKey: "glassChatElements")
+        try container.encode(self.springyScrolling, forKey: "springyScrolling")
+        try container.encode(self.messagePopIn, forKey: "messagePopIn")
+        try container.encode(self.messageHaptics, forKey: "messageHaptics")
         try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
         try container.encode(self.roundVideoStartsWithRear, forKey: "roundVideoStartsWithRear")
         try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")
@@ -1691,6 +1712,12 @@ public func applyForkChatAppearanceSettings(_ settings: ForkExtrasSettings) {
         rimTop: settings.glassBubbleRimTop,
         rimSides: settings.glassBubbleRimSides,
         rimBottom: settings.glassBubbleRimBottom
+    )
+    ArenaSettings.shared.setChatMotion(
+        glassChatElements: settings.glassChatElements,
+        springyScrolling: settings.springyScrolling,
+        messagePopIn: settings.messagePopIn,
+        messageHaptics: settings.messageHaptics
     )
 }
 

@@ -291,6 +291,8 @@ public class ChatMessageShareButton: ASDisplayNode {
             enableBlur: controllerInteraction.enableFullTranslucency && dateFillNeedsBlur(theme: presentationData.theme.theme, wallpaper: presentationData.theme.wallpaper),
             transition: .immediate
         )
+        // Extras › Glass Chat Elements: the share and comments button beside a bubble is Liquid Glass.
+        self.backgroundNode.setChatGlass(ArenaSettings.shared.glassChatElementsEnabled)
         self.backgroundNode.frame = CGRect(origin: CGPoint(), size: size)
         self.backgroundNode.update(size: size, cornerRadius: min(size.width, size.height) / 2.0, transition: .immediate)
                 

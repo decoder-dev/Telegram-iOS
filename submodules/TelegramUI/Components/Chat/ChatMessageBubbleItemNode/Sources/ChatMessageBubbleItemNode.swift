@@ -1068,6 +1068,20 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         super.animateInsertion(currentTimestamp, duration: duration, options: options)
         
         self.shadowNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
+
+        // Extras › Message Pop-In and Haptics: a new incoming message springs in from its tail and is felt.
+        // Sent messages fly in from the input field (ChatMessageTransitionNode) and are handled there.
+        if let item = self.item, item.message.effectivelyIncoming(item.context.account.peerId) {
+            if ArenaSettings.shared.messagePopInEnabled {
+                let bubbleFrame = self.backgroundNode.frame
+                if !bubbleFrame.isEmpty {
+                    ChatBubbleMotion.popIn(layer: self.mainContextSourceNode.layer, anchor: CGPoint(x: bubbleFrame.minX, y: bubbleFrame.maxY))
+                }
+            }
+            if ArenaSettings.shared.messageHapticsEnabled {
+                ChatBubbleMotion.receivedHaptic()
+            }
+        }
         
         func process(node: ASDisplayNode) {
             if node === self.accessoryItemNode {
