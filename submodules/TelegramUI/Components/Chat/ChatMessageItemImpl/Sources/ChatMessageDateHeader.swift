@@ -390,6 +390,14 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
                 backgroundContent.update(rect: backgroundFrame, within: containerSize, transition: transition)
             }*/
         }
+
+        // Extras › Messages Style: on a plain chat background the date is grey text without a pill, as in Messages.
+        if ForkExtrasHotFlags.current.messagesStyle && !self.presentationData.theme.wallpaper.hasWallpaper {
+            self.backgroundNode.isHidden = true
+            self.backgroundContent?.isHidden = true
+        } else if self.backgroundContent == nil {
+            self.backgroundNode.isHidden = false
+        }
     }
     
     func updateStickDistanceFactor(_ factor: CGFloat, transition: ContainedViewLayoutTransition) {

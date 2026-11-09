@@ -180,6 +180,8 @@ public enum ForkExtrasHotFlags {
         public var downloadTikTok: Bool = false
         public var downloadYouTubeShorts: Bool = false
         public var signDownloadedMedia: Bool = false
+        /// Extras › Messages Style: read by chat list rows and chat pills when they lay out.
+        public var messagesStyle: Bool = false
 
         public init(
             hideAds: Bool = true,
@@ -275,7 +277,7 @@ public enum ForkExtrasHotFlags {
         if previous != next {
             NotificationCenter.default.post(name: didChangeNotification, object: nil)
         }
-        if previous.compactChatList != next.compactChatList || previous.compactMessagePreview != next.compactMessagePreview || previous.compactFolderNames != next.compactFolderNames {
+        if previous.compactChatList != next.compactChatList || previous.compactMessagePreview != next.compactMessagePreview || previous.compactFolderNames != next.compactFolderNames || previous.messagesStyle != next.messagesStyle {
             NotificationCenter.default.post(name: compactLayoutDidChangeNotification, object: nil)
         }
         if previous.hideAllChats != next.hideAllChats {

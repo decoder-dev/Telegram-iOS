@@ -132,5 +132,39 @@ class Motion(unittest.TestCase):
         self.assertIn('ChatBubbleMotion.sentHaptic()', transition)
 
 
+class MessagesStyle(unittest.TestCase):
+    def test_setting_and_hot_flag(self):
+        settings = read(SETTINGS)
+        self.assertIn('    public var messagesStyle: Bool\n', settings)
+        self.assertIn('        self.messagesStyle = false\n', settings)
+        self.assertIn('self.messagesStyle = try container.decodeIfPresent(Bool.self, forKey: "messagesStyle") ?? false', settings)
+        self.assertIn('try container.encode(self.messagesStyle, forKey: "messagesStyle")', settings)
+        flags = read('submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift')
+        self.assertIn('public var messagesStyle: Bool = false', flags)
+        # Rows are rebuilt when it changes, as for the compact settings.
+        self.assertIn('|| previous.messagesStyle != next.messagesStyle {', flags)
+        self.assertIn('hotFlags.messagesStyle = settings.messagesStyle', read('submodules/TelegramUI/Sources/SharedAccountContext.swift'))
+        extras = read(EXTRAS)
+        self.assertRegex(extras, r'\.appearanceToggle\(1926, [^\n]*settings\.messagesStyle, \\\.messagesStyle\)')
+        self.assertIn('[1925, 1926, 1927], [1907, 1908, 1909]', extras)
+
+    def test_chat_list_row_has_a_dot_and_a_chevron(self):
+        row = read('submodules/ChatListUI/Sources/Node/ChatListItem.swift')
+        self.assertIn('if hotFlags.messagesStyle, useChatListLayout, !item.useCommunityViewLayout, !isPeerGroup, unreadCount.unread {', row)
+        dot = row[row.index('var messagesStyleUnreadDotColor: UIColor?\n            if hotFlags.messagesStyle'):]
+        dot = dot[:dot.index('\n            }\n')]
+        self.assertIn('currentBadgeBackgroundImage = nil', dot)
+        self.assertIn('unreadCount.muted ? theme.unreadBadgeInactiveBackgroundColor : theme.unreadBadgeActiveBackgroundColor', dot)
+        self.assertIn('avatarFrame.minX - avatarLeftEdgeInset * 0.5 - dotDiameter * 0.5', row)
+        # The content is narrowed by the chevron, so the date, checks and badges move left together.
+        self.assertIn('- editingOffset - messagesStyleChevronWidth\n', row)
+        self.assertIn('if hasCustomListDisclosure || messagesStyleChevronWidth > 0.0 {', row)
+
+    def test_dates_are_plain_on_a_plain_background(self):
+        header = read(CHAT + 'ChatMessageItemImpl/Sources/ChatMessageDateHeader.swift')
+        self.assertIn('if ForkExtrasHotFlags.current.messagesStyle && !self.presentationData.theme.wallpaper.hasWallpaper {', header)
+        self.assertIn('} else if self.backgroundContent == nil {\n            self.backgroundNode.isHidden = false', header)
+
+
 if __name__ == '__main__':
     unittest.main()

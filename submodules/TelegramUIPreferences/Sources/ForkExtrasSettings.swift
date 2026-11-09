@@ -268,6 +268,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var springyScrolling: Bool
     public var messagePopIn: Bool
     public var messageHaptics: Bool
+    /// Fork: the chat list and chats take the look of Apple's Messages — an unread dot instead of a count, a chevron
+    /// after the date, plain grey date headers, a round "+" for attachments. Off by default.
+    public var messagesStyle: Bool
     /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
     public var showDisappearedGifts: Bool
     /// Fork (Donutgram): round video messages open with the rear camera, or with the one the last one used.
@@ -686,6 +689,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.springyScrolling = false
         self.messagePopIn = false
         self.messageHaptics = false
+        self.messagesStyle = false
         self.showDisappearedGifts = showDisappearedGifts
         self.roundVideoStartsWithRear = roundVideoStartsWithRear
         self.roundVideoRemembersCamera = roundVideoRemembersCamera
@@ -907,6 +911,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.springyScrolling = try container.decodeIfPresent(Bool.self, forKey: "springyScrolling") ?? false
         self.messagePopIn = try container.decodeIfPresent(Bool.self, forKey: "messagePopIn") ?? false
         self.messageHaptics = try container.decodeIfPresent(Bool.self, forKey: "messageHaptics") ?? false
+        self.messagesStyle = try container.decodeIfPresent(Bool.self, forKey: "messagesStyle") ?? false
         self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
         self.roundVideoStartsWithRear = try container.decodeIfPresent(Bool.self, forKey: "roundVideoStartsWithRear") ?? false
         self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
@@ -1119,6 +1124,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.springyScrolling, forKey: "springyScrolling")
         try container.encode(self.messagePopIn, forKey: "messagePopIn")
         try container.encode(self.messageHaptics, forKey: "messageHaptics")
+        try container.encode(self.messagesStyle, forKey: "messagesStyle")
         try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
         try container.encode(self.roundVideoStartsWithRear, forKey: "roundVideoStartsWithRear")
         try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")

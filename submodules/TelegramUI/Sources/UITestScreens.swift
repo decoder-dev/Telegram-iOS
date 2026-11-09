@@ -51,12 +51,15 @@ func runUITestScreenIfRequested(applicationContext: AuthorizedApplicationContext
     }
     // `--ui-test-glass`: Glass Bubbles and Glass Chat Elements for this launch (both off again without it).
     let glass = arguments.contains("--ui-test-glass")
+    // `--ui-test-messages-style`: Extras › Messages Style for this launch.
+    let messagesStyle = arguments.contains("--ui-test-messages-style")
     let _ = updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager, { settings in
         var settings = settings
         settings.compactChatList = compactList
         settings.compactMessagePreview = compactPreview
         settings.glassBubbles = glass
         settings.glassChatElements = glass
+        settings.messagesStyle = messagesStyle
         return settings
     }).startStandalone()
     Queue.mainQueue().after(3.0) {

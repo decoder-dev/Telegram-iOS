@@ -74,9 +74,9 @@ class GlassBubbleRows(unittest.TestCase):
         factory = source[source.index('    case .appearance:\n        entries = ['):]
         factory = factory[:factory.index('\n        ]\n')]
         ids = [int(value) for value in re.findall(r'\.(?:designHeader|designFooter|appearanceToggle|intChoice)\((19\d\d),', factory)]
-        # The bubble block first, then the glass pills (1907-1909) and Motion (1915-1919) blocks.
-        self.assertEqual(ids, [1900, 1901, 1902, 1903, 1904, 1905, 1906, 1907, 1908, 1909, 1915, 1916, 1917, 1918, 1919])
-        self.assertTrue(all(1900 <= value <= 1919 for value in ids))
+        # The bubble block first, then Style (1925-1927), the glass pills (1907-1909) and Motion (1915-1919).
+        self.assertEqual(ids, [1900, 1901, 1902, 1903, 1904, 1905, 1906, 1925, 1926, 1927, 1907, 1908, 1909, 1915, 1916, 1917, 1918, 1919])
+        self.assertTrue(all(1900 <= value <= 1929 for value in ids))
         self.assertIn('.appearanceToggle(1901, russian ? "Стеклянные пузыри" : "Glass Bubbles", settings.glassBubbles, \\.glassBubbles)', factory)
 
     def test_level_rows_are_int_choices_with_both_languages(self):

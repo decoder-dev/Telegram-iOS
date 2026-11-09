@@ -1556,6 +1556,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     public let dateNode: TextNode
     var dateStatusIconNode: ASImageNode?
     var dateDisclosureIconView: UIImageView?
+    // Extras › Messages Style: the unread dot left of the avatar.
+    private var messagesStyleUnreadDotNode: ASImageNode?
+    private var messagesStyleUnreadDotColor: UIColor?
     public let separatorNode: ASDisplayNode
     let statusNode: ChatListStatusNode
     let badgeNode: ChatListBadgeNode
@@ -3751,6 +3754,15 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 }
             }
 
+            // Extras › Messages Style: unread is a dot left of the avatar, as in Messages, instead of the count badge.
+            // Mentions, reactions and the muted count keep their badges.
+            var messagesStyleUnreadDotColor: UIColor?
+            if hotFlags.messagesStyle, useChatListLayout, !item.useCommunityViewLayout, !isPeerGroup, unreadCount.unread {
+                messagesStyleUnreadDotColor = unreadCount.muted ? theme.unreadBadgeInactiveBackgroundColor : theme.unreadBadgeActiveBackgroundColor
+                currentBadgeBackgroundImage = nil
+                badgeContent = .none
+            }
+
             if !isPeerGroup {
                 let hasUnreadIncomingGramTransfer = messages.last.map { message in
                     guard let combinedReadState, combinedReadState.count > 0, !combinedReadState.isIncomingMessageIndexRead(message.index) else {
@@ -3985,7 +3997,13 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             
             let layoutOffset: CGFloat = 0.0
             
-            let rawContentWidth = params.width - leftInset - params.rightInset - 18.0 - higChatListCardInset - editingOffset
+            // Extras › Messages Style: room for a chevron after the date (not while editing, in search, or in the lists
+            // that draw their own).
+            var messagesStyleChevronWidth: CGFloat = 0.0
+            if hotFlags.messagesStyle, useChatListLayout, !item.editing, !item.interaction.isInlineMode, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
+                messagesStyleChevronWidth = 12.0
+            }
+            let rawContentWidth = params.width - leftInset - params.rightInset - 18.0 - higChatListCardInset - editingOffset - messagesStyleChevronWidth
             
             let (dateLayout, dateApply) = dateLayout(TextNodeLayoutArguments(attributedString: dateAttributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: rawContentWidth, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             
@@ -4599,6 +4617,31 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     
                     transition.updateFrame(node: strongSelf.avatarContainerNode, frame: avatarFrame)
 
+                    // Extras › Messages Style: the unread dot sits in the gutter left of the avatar.
+                    if let dotColor = messagesStyleUnreadDotColor {
+                        let dotNode: ASImageNode
+                        if let current = strongSelf.messagesStyleUnreadDotNode {
+                            dotNode = current
+                        } else {
+                            dotNode = ASImageNode()
+                            dotNode.isLayerBacked = true
+                            dotNode.displaysAsynchronously = false
+                            dotNode.displayWithoutProcessing = true
+                            strongSelf.messagesStyleUnreadDotNode = dotNode
+                            strongSelf.contextContainer.addSubnode(dotNode)
+                        }
+                        let dotDiameter: CGFloat = 10.0
+                        if dotNode.image == nil || strongSelf.messagesStyleUnreadDotColor != dotColor {
+                            strongSelf.messagesStyleUnreadDotColor = dotColor
+                            dotNode.image = generateFilledCircleImage(diameter: dotDiameter, color: dotColor)
+                        }
+                        transition.updateFrame(node: dotNode, frame: CGRect(origin: CGPoint(x: floorToScreenPixels(avatarFrame.minX - avatarLeftEdgeInset * 0.5 - dotDiameter * 0.5), y: floorToScreenPixels(avatarFrame.midY - dotDiameter * 0.5)), size: CGSize(width: dotDiameter, height: dotDiameter)))
+                    } else if let dotNode = strongSelf.messagesStyleUnreadDotNode {
+                        strongSelf.messagesStyleUnreadDotNode = nil
+                        strongSelf.messagesStyleUnreadDotColor = nil
+                        dotNode.removeFromSupernode()
+                    }
+
                     if useChatListLayout && isCommunity && avatarContentImageSpec == nil, let shadowImage = UIImage(bundleImageName: "Components/CommunityShadow") {
                         strongSelf.communityAvatarShadowNode.isHidden = false
                         strongSelf.communityAvatarShadowNode.image = generateTintedImage(image: shadowImage, color: theme.titleColor.withAlphaComponent(0.9))
@@ -4939,8 +4982,14 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     
                     var dateFrame = CGRect(origin: CGPoint(x: contentRect.maxX - dateLayout.size.width, y: contentRect.origin.y + 2.0), size: dateLayout.size)
                     
+                    var hasCustomListDisclosure = false
                     if case let .peer(peerData) = item.content, let customMessageListData = peerData.customMessageListData, customMessageListData.messageCount != nil, customMessageListData.commandPrefix == nil {
-                        dateFrame.origin.x -= 10.0
+                        hasCustomListDisclosure = true
+                    }
+                    if hasCustomListDisclosure || messagesStyleChevronWidth > 0.0 {
+                        if hasCustomListDisclosure {
+                            dateFrame.origin.x -= 10.0
+                        }
                         
                         let dateDisclosureIconView: UIImageView
                         if let current = strongSelf.dateDisclosureIconView {
@@ -4954,7 +5003,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         let iconScale: CGFloat = 0.7
                         if let image = dateDisclosureIconView.image {
                             let imageSize = CGSize(width: floor(image.size.width * iconScale), height: floor(image.size.height * iconScale))
-                            let iconFrame = CGRect(origin: CGPoint(x: contentRect.origin.x + contentRect.size.width - imageSize.width + 4.0, y: floorToScreenPixels(dateFrame.midY - imageSize.height * 0.5)), size: imageSize)
+                            // Messages Style: the content was narrowed by the chevron's width, so it sits right of the date.
+                            let iconX = hasCustomListDisclosure ? (contentRect.origin.x + contentRect.size.width - imageSize.width + 4.0) : (contentRect.maxX + messagesStyleChevronWidth - imageSize.width)
+                            let iconFrame = CGRect(origin: CGPoint(x: iconX, y: floorToScreenPixels(dateFrame.midY - imageSize.height * 0.5)), size: imageSize)
                             dateDisclosureIconView.frame = iconFrame
                         }
                     } else if let dateDisclosureIconView = strongSelf.dateDisclosureIconView {

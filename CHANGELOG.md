@@ -15,6 +15,7 @@
 - Message Pop-In: a new incoming message springs out of its tail; a sent message lands with a small squash.
 - Send and Receive Haptics: a light tap when a message is sent and a soft one when a message arrives in the open chat, at most one every 0.25 s.
 - Nothing moves with Reduce Motion. Simulator QA captures a chat with glass in day, cream and night ("glass-" shots).
+- Messages Style: the chat list and chats take the look of iOS Messages — a blue dot left of the avatar on unread chats instead of the count (mentions and reactions keep their badges), a chevron after the time, and dates as grey text without a pill on a plain background. Simulator QA: "messages-" shots.
 
 ### Added — from Donutgram (all off by default)
 - Extras › Sending: Bypass sticker restrictions. Where stickers are banned but videos are allowed, a sticker goes out as a short silent video made on the device.
