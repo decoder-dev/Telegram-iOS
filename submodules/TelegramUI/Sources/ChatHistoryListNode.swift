@@ -726,8 +726,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
     
     private var isInteractivelyScrollingValue: Bool = false
 
-    // Extras › Springy Scrolling: bubbles trail the finger and catch up on a spring. Created on the first drag
-    // with the switch on; `didScrollWithOffset` feeds it before handing the offset to whoever set the property.
+    // Messages look: bubbles trail the finger and catch up on a spring (springy scrolling). Created on the first drag;
+    // `didScrollWithOffset` feeds it before handing the offset to whoever set the property.
     private var springyScroll: ChatSpringyScrollController?
     private var didScrollWithOffsetValue: ((CGFloat, ContainedViewLayoutTransition, ListViewItemNode?, Bool) -> Void)?
     private let isInteractivelyScrollingPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
@@ -1392,11 +1392,9 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             guard let self else {
                 return
             }
-            if ArenaSettings.shared.springyScrollingEnabled {
-                let springyScroll = self.springyScroll ?? ChatSpringyScrollController(itemsAreRotated: true)
-                self.springyScroll = springyScroll
-                springyScroll.beganDragging(touchY: point.y)
-            }
+            let springyScroll = self.springyScroll ?? ChatSpringyScrollController(itemsAreRotated: true)
+            self.springyScroll = springyScroll
+            springyScroll.beganDragging(touchY: point.y)
             self.isDraggingForOverscrollAction = true
             self.isInteractivelyScrollingValue = true
             self.isInteractivelyScrollingPromise.set(true)
@@ -6130,7 +6128,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         if case .immediate = transition {
             isImmediate = true
         }
-        guard ArenaSettings.shared.springyScrollingEnabled, isTracking, isImmediate, self.controllerInteraction.selectionState == nil else {
+        guard isTracking, isImmediate, self.controllerInteraction.selectionState == nil else {
             springyScroll.reset()
             return
         }

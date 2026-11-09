@@ -12,16 +12,14 @@
 ### Changed — the iOS Messages look (always on, no switch)
 - Chat list: an unread chat has a blue dot left of the avatar instead of a count (grey when muted; mentions, reactions and the muted count keep their badges), and a chevron follows the time.
 - Chats: on a plain background the date headers are grey text without a pill; one's own newest message has "Delivered", "Read" or "Sending…" under it, which goes as soon as anything arrives below.
+- Motion: while the chat is dragged, bubbles trail the finger by more the farther they are from it and catch up on a spring; a new incoming message springs out of its tail and a sent one lands with a small squash; a light tap is felt when a message is sent and a soft one when one arrives in the open chat (at most one every 0.25 s). Nothing moves with Reduce Motion.
 
 ### Removed — switches for what is always so
 - Hide Ads, Hide Proxy Sponsor, Remove Tracking from Sent Links and Send Statistics to Telegram are no longer switches: ads and the proxy sponsor are always hidden, tracking parameters are always removed from sent links, and statistics are never sent. Values stored by older builds are ignored.
 
-### Added — glass and motion (Extras › Appearance, all off by default)
+### Added — glass chat elements (Extras › Appearance, off by default)
 - Glass Chat Elements: date pills, service messages, the time over photos, videos and stickers, bot buttons and the Share button are Liquid Glass tinted with the theme (iOS 26+; Reduce Transparency keeps the solid pills).
-- Springy Scrolling: while the chat is dragged, bubbles trail the finger by more the farther they are from it and catch up on a spring, as in Messages.
-- Message Pop-In: a new incoming message springs out of its tail; a sent message lands with a small squash.
-- Send and Receive Haptics: a light tap when a message is sent and a soft one when a message arrives in the open chat, at most one every 0.25 s.
-- Nothing moves with Reduce Motion. Simulator QA captures a chat with glass in day, cream and night ("glass-" shots).
+- Simulator QA captures a chat with glass in day, cream and night ("glass-" shots).
 
 ### Added — from Donutgram (all off by default)
 - Extras › Sending: Bypass sticker restrictions. Where stickers are banned but videos are allowed, a sticker goes out as a short silent video made on the device.

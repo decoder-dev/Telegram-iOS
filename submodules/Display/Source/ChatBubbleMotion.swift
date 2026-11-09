@@ -1,9 +1,8 @@
 import Foundation
 import UIKit
 
-/// Fork (Extras › Appearance › Motion): iMessage-like motion for chat bubbles. The switches live in
-/// ForkExtrasSettings and reach the chat through ArenaSettings; the callers check them and pass the result
-/// in, so this file knows nothing about settings. Nothing here moves with Reduce Motion.
+/// Fork (the Messages look): iMessage-like motion for chat bubbles — springy scrolling, pop-in, the landing
+/// squash and send/receive haptics. Always on; nothing here moves with Reduce Motion.
 public enum ChatBubbleMotion {
     public static var allowsMotion: Bool {
         return !UIAccessibility.isReduceMotionEnabled

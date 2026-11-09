@@ -1449,8 +1449,8 @@ public final class ChatMessageTransitionNodeImpl: ASDisplayNode, ChatMessageTran
                 guard let strongSelf = self, let animatingItemNode = animatingItemNode else {
                     return
                 }
-                // Extras › Message Pop-In: the sent message lands with a small squash.
-                if ArenaSettings.shared.messagePopInEnabled, let contextSourceNode {
+                // Messages look: the sent message lands with a small squash.
+                if let contextSourceNode {
                     ChatBubbleMotion.landingSquash(layer: contextSourceNode.layer)
                 }
                 animatingItemNode.removeFromSupernode()
@@ -1468,10 +1468,8 @@ public final class ChatMessageTransitionNodeImpl: ASDisplayNode, ChatMessageTran
             }
 
             animatingItemNode.beginAnimation()
-            // Extras › Send and Receive Haptics: a light tap as the message takes off.
-            if ArenaSettings.shared.messageHapticsEnabled {
-                ChatBubbleMotion.sentHaptic()
-            }
+            // Messages look: a light tap as the message takes off.
+            ChatBubbleMotion.sentHaptic()
 
             self.onTransitionEvent(.animated(duration: self.animationParameters.duration, curve: self.animationParameters.verticalCurve))
         }

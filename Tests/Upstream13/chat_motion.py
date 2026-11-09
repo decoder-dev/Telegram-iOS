@@ -1,5 +1,5 @@
-"""Glass chat pills and iMessage-like motion (Extras › Appearance): settings, projection, rendering hooks.
-Source-text checks; the look is checked in simulator QA ("glass-chat" and "motion" shots)."""
+"""Glass chat pills (Extras › Appearance) and the always-on iOS Messages look: motion, unread dots, plain dates,
+the delivery receipt. Source-text checks; the look is checked in simulator QA ("glass-" shots and the chats)."""
 import pathlib
 import re
 import unittest
@@ -18,7 +18,8 @@ HISTORY = 'submodules/TelegramUI/Sources/ChatHistoryListNode.swift'
 NAV_BACKGROUND = 'submodules/Display/Source/NavigationBackgroundView.swift'
 MOTION = 'submodules/Display/Source/ChatBubbleMotion.swift'
 CHAT = 'submodules/TelegramUI/Components/Chat/'
-FIELDS = ['glassChatElements', 'springyScrolling', 'messagePopIn', 'messageHaptics']
+FIELDS = ['glassChatElements']
+MOTION_KEYS = ['springyScrolling', 'messagePopIn', 'messageHaptics']
 
 
 class Settings(unittest.TestCase):
@@ -34,13 +35,14 @@ class Settings(unittest.TestCase):
         settings = read(SETTINGS)
         apply = settings[settings.index('public func applyForkChatAppearanceSettings('):]
         apply = apply[:apply.index('\n}\n')]
-        self.assertIn('ArenaSettings.shared.setChatMotion(', apply)
-        for name in FIELDS:
-            self.assertIn('settings.%s' % name, apply)
+        self.assertIn('ArenaSettings.shared.setGlassChatElements(settings.glassChatElements)', apply)
         arena = read(ARENA)
-        self.assertIn('public func setChatMotion(glassChatElements: Bool, springyScrolling: Bool, messagePopIn: Bool, messageHaptics: Bool)', arena)
-        for flag in ['glassChatElementsEnabled', 'springyScrollingEnabled', 'messagePopInEnabled', 'messageHapticsEnabled']:
-            self.assertIn('public var %s: Bool' % flag, arena)
+        self.assertIn('public func setGlassChatElements(_ enabled: Bool)', arena)
+        self.assertIn('public var glassChatElementsEnabled: Bool', arena)
+        # Motion is part of the Messages look: no setting, no flag.
+        for key in MOTION_KEYS:
+            self.assertNotIn(key, read(SETTINGS))
+            self.assertNotIn(key, arena)
         # Open chats lay the pills out again when the glass switch changes.
         history = read(HISTORY)
         self.assertIn('var glassChatElements: Bool', history)
@@ -49,9 +51,10 @@ class Settings(unittest.TestCase):
     def test_rows_live_on_the_appearance_screen(self):
         source = read(EXTRAS)
         appearance = re.search(r'\(\.appearance, \[(.*?)\]\),\n', source).group(1)
-        self.assertIn('[1907, 1908, 1909], [1915, 1916, 1917, 1918, 1919]', appearance)
-        for row, key in [(1908, 'glassChatElements'), (1916, 'springyScrolling'), (1917, 'messagePopIn'), (1918, 'messageHaptics')]:
-            self.assertRegex(source, r'\.appearanceToggle\(%d, [^\n]*settings\.%s, \\\.%s\)' % (row, key, key))
+        self.assertTrue(appearance.endswith('[1907, 1908, 1909]'), appearance)
+        self.assertRegex(source, r'\.appearanceToggle\(1908, [^\n]*settings\.glassChatElements, \\\.glassChatElements\)')
+        for row in ['1915', '1916', '1917', '1918', '1919']:
+            self.assertNotIn('(%s,' % row, source)
 
 
 class GlassPills(unittest.TestCase):
@@ -112,7 +115,7 @@ class Motion(unittest.TestCase):
         history = read(HISTORY)
         update = history[history.index('private func updateSpringyScroll('):]
         update = update[:update.index('\n    }\n')]
-        self.assertIn('guard ArenaSettings.shared.springyScrollingEnabled, isTracking, isImmediate, self.controllerInteraction.selectionState == nil else {', update)
+        self.assertIn('guard isTracking, isImmediate, self.controllerInteraction.selectionState == nil else {', update)
         self.assertIn('springyScroll.reset()', update)
         self.assertIn('springyScroll.contentMoved(by: -offset, items: items)', update)
         # Whoever sets didScrollWithOffset still gets every offset.

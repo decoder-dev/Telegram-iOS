@@ -704,7 +704,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1502, 1503, 1504, 1505, 1506],
             [1507]
         ]),
-        (.appearance, [[1618, 1531, 1532, 1553, 1619], [1900, 1901, 1902, 1903, 1904, 1905, 1906], [1907, 1908, 1909], [1915, 1916, 1917, 1918, 1919]]),
+        (.appearance, [[1618, 1531, 1532, 1553, 1619], [1900, 1901, 1902, 1903, 1904, 1905, 1906], [1907, 1908, 1909]]),
         // Scene 38: the input panel opens Messages. Scene 39: round videos and voice open Media, calls follow.
         (.messages, [
             [2200, 2201, 2043],
@@ -1400,11 +1400,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(1907, russian ? "Вокруг пузырей" : "Around the bubbles"),
             .appearanceToggle(1908, russian ? "Стеклянные плашки" : "Glass Chat Elements", settings.glassChatElements, \.glassChatElements),
             .designFooter(1909, russian ? "Даты, служебные сообщения, время на фото и видео, кнопки ботов и кнопка «Поделиться» становятся стеклом. Нужна iOS 26 или новее." : "Dates, service messages, the time on photos and videos, bot buttons and the Share button turn to glass. Requires iOS 26 or later."),
-            .designHeader(1915, russian ? "Движение" : "Motion"),
-            .appearanceToggle(1916, russian ? "Пружинящая прокрутка" : "Springy Scrolling", settings.springyScrolling, \.springyScrolling),
-            .appearanceToggle(1917, russian ? "Появление сообщений" : "Message Pop-In", settings.messagePopIn, \.messagePopIn),
-            .appearanceToggle(1918, russian ? "Отклик при отправке и получении" : "Send and Receive Haptics", settings.messageHaptics, \.messageHaptics),
-            .designFooter(1919, russian ? "Пузыри чуть отстают от пальца и догоняют его, новое сообщение выпрыгивает из хвостика, а своё мягко приземляется. С «Уменьшением движения» пузыри не двигаются." : "Bubbles trail your finger and catch up, a new message springs out of its tail and yours lands softly. Nothing moves with Reduce Motion."),
         ]
     case .messages:
         entries = [
