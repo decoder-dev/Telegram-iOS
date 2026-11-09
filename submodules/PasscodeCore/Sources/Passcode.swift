@@ -507,6 +507,14 @@ public final class PasscodeCredentialStore: @unchecked Sendable {
         return value
     }
 
+    /// Forgets the failed attempts, as a successful unlock does. The duress passcode is first checked as the real one
+    /// and so counts as a failure; once it is recognised the counter has to look exactly as after a real unlock.
+    public func clearFailedAttempts() throws {
+        try self.serialized {
+            try self.storage.remove("attempts")
+        }
+    }
+
     public func cooldownRemaining() throws -> Int {
         try self.serialized { Int(max(0, min(60, ceil(try self.attempts().deadline - self.clock().uptime)))) }
     }

@@ -5,28 +5,40 @@ import TelegramCore
 ///
 /// The extension polls the difference and applies delete pushes into the shared Postbox. It has neither the app's
 /// settings nor its store, so until now every deletion it saw was a hard delete, and a message removed before the app
-/// was opened was gone for good. With the switch on, the extension keeps such a deletion as one small JSON file in the
+/// was opened was gone for good. With the switch on, the extension keeps such deletions as small JSON files in the
 /// app group, and the app folds those into MessageSavingStore when it starts or comes back to the foreground.
 ///
-/// One file per message keeps both processes free of locks: the extension writes atomically, a repeat for the same
-/// message overwrites the same file, and the app removes each file once it has merged it.
+/// Files keep both processes free of locks: the extension writes each batch atomically under a name of its own, and
+/// the app removes a file once it has merged it. A history clear can delete a couple of thousand messages in one
+/// transaction, so the records are collected in memory and written as one file per batch, not one per message.
 public enum MessageSavingNotificationStaging {
     /// How long the text of a push the extension could not fetch is kept in case a delete push for it follows.
     private static let pushedMessageLifetime: TimeInterval = 7 * 24 * 60 * 60
 
+    private static let lock = NSLock()
+    private static var unwrittenRecords: [MessageSavingRecord] = []
+    private static var preparedRootPath: String?
+
     private static func directory(rootPath: String, name: String) -> URL {
+        return URL(fileURLWithPath: rootPath).appendingPathComponent("message-saving", isDirectory: true).appendingPathComponent(name, isDirectory: true)
+    }
+
+    /// Creates the folders the extension writes to, once per process.
+    private static func prepareDirectories(rootPath: String) {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        if self.preparedRootPath == rootPath {
+            return
+        }
         var base = URL(fileURLWithPath: rootPath).appendingPathComponent("message-saving", isDirectory: true)
-        let url = base.appendingPathComponent(name, isDirectory: true)
-        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        for name in ["staged", "pending"] {
+            try? FileManager.default.createDirectory(at: base.appendingPathComponent(name, isDirectory: true), withIntermediateDirectories: true)
+        }
         // Message text stays out of iCloud and computer backups, as the app's own store does.
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try? base.setResourceValues(values)
-        return url
-    }
-
-    private static func stagedFileName(accountPeerId: Int64, peerId: Int64, namespace: Int32, messageId: Int32) -> String {
-        return "\(accountPeerId)_\(peerId)_\(namespace)_\(messageId).json"
+        self.preparedRootPath = rootPath
     }
 
     /// Called by the extension for every push, before it touches Postbox. Mirrors the user's switches into
@@ -45,15 +57,42 @@ public enum MessageSavingNotificationStaging {
             saveEdits: false,
             saveForBots: ForkExtrasNotificationBridge.saveForBots
         ))
-        let stagedDirectory = self.directory(rootPath: rootPath, name: "staged")
+        self.prepareDirectories(rootPath: rootPath)
         let _ = MessageSavingBridge.append.swap({ record in
-            guard record.kind == .deleted, let data = try? JSONEncoder().encode(record) else {
-                return
+            if record.kind == .deleted {
+                self.stage(record)
             }
-            // Written synchronously: the extension can be suspended as soon as it hands over the notification.
-            let name = stagedFileName(accountPeerId: record.accountPeerId, peerId: record.peerId, namespace: record.namespace, messageId: record.messageId)
-            try? data.write(to: stagedDirectory.appendingPathComponent(name), options: .atomic)
         })
+    }
+
+    /// The bridge hands records over one at a time from inside a Postbox transaction. They are held here and written
+    /// together: right after a delete push's transaction, when the extension hands over the notification, or a moment
+    /// after the first one arrives, whichever comes first.
+    private static func stage(_ record: MessageSavingRecord) {
+        self.lock.lock()
+        let startsBatch = self.unwrittenRecords.isEmpty
+        self.unwrittenRecords.append(record)
+        self.lock.unlock()
+        if startsBatch {
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1.0, execute: {
+                self.writeStagedRecords()
+            })
+        }
+    }
+
+    /// Writes whatever has been staged as one file. Synchronous, since the extension can be suspended as soon as it
+    /// hands over the notification. Does nothing when there is nothing to write, so it is safe to call on every push.
+    public static func writeStagedRecords() {
+        self.lock.lock()
+        let records = self.unwrittenRecords
+        self.unwrittenRecords = []
+        let rootPath = self.preparedRootPath
+        self.lock.unlock()
+        guard !records.isEmpty, let rootPath, let data = try? JSONEncoder().encode(records) else {
+            return
+        }
+        let url = self.directory(rootPath: rootPath, name: "staged").appendingPathComponent("batch_\(UUID().uuidString).json")
+        try? data.write(to: url, options: .atomic)
     }
 
     private struct PushedMessage: Codable {
@@ -79,8 +118,9 @@ public enum MessageSavingNotificationStaging {
         if text.isEmpty {
             return
         }
+        self.prepareDirectories(rootPath: rootPath)
         let pendingDirectory = self.directory(rootPath: rootPath, name: "pending")
-        self.removeExpiredPushedMessages(in: pendingDirectory)
+        self.removeExpiredPushedMessages(rootPath: rootPath)
         let pushed = PushedMessage(
             accountPeerId: accountPeerId.toInt64(),
             peerId: messageId.peerId.toInt64(),
@@ -95,13 +135,14 @@ public enum MessageSavingNotificationStaging {
     }
 
     /// A delete push arrived. Messages it names that Postbox has no copy of are saved from what their push said; the
-    /// rest were kept through MessageSavingBridge already. Either way their pushes are forgotten.
+    /// rest were kept through MessageSavingBridge already. Either way their pushes are forgotten. The caller writes
+    /// the batch with `writeStagedRecords()` once the deletion itself has run.
     public static func saveDeletedPushedMessages(rootPath: String, accountPeerId: EnginePeer.Id, ids: [EngineMessage.Id], missingIds: Set<EngineMessage.Id>) {
         guard ForkExtrasNotificationBridge.savesMessagesFromNotifications else {
             return
         }
+        self.prepareDirectories(rootPath: rootPath)
         let pendingDirectory = self.directory(rootPath: rootPath, name: "pending")
-        let stagedDirectory = self.directory(rootPath: rootPath, name: "staged")
         let now = Int32(Date().timeIntervalSince1970)
         for id in ids {
             let url = pendingDirectory.appendingPathComponent(pushedFileName(accountPeerId: accountPeerId, messageId: id))
@@ -112,7 +153,7 @@ public enum MessageSavingNotificationStaging {
             guard missingIds.contains(id), let pushed = try? JSONDecoder().decode(PushedMessage.self, from: data) else {
                 continue
             }
-            let record = MessageSavingRecord(
+            self.stage(MessageSavingRecord(
                 id: UUID().uuidString,
                 accountPeerId: pushed.accountPeerId,
                 peerId: pushed.peerId,
@@ -125,17 +166,15 @@ public enum MessageSavingNotificationStaging {
                 kind: .deleted,
                 savedAt: now,
                 topicId: 0
-            )
-            if let recordData = try? JSONEncoder().encode(record) {
-                let name = stagedFileName(accountPeerId: record.accountPeerId, peerId: record.peerId, namespace: record.namespace, messageId: record.messageId)
-                try? recordData.write(to: stagedDirectory.appendingPathComponent(name), options: .atomic)
-            }
+            ))
         }
     }
 
-    private static func removeExpiredPushedMessages(in directory: URL) {
+    /// Pushed text is plaintext on disk, so it does not outlive the chance of a delete push for it. Run by the
+    /// extension on every remembered push and by the app on every merge, so it expires even when no push comes.
+    public static func removeExpiredPushedMessages(rootPath: String) {
         let cutoff = Date().addingTimeInterval(-self.pushedMessageLifetime)
-        guard let urls = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) else {
+        guard let urls = try? FileManager.default.contentsOfDirectory(at: self.directory(rootPath: rootPath, name: "pending"), includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles]) else {
             return
         }
         for url in urls {
@@ -145,17 +184,37 @@ public enum MessageSavingNotificationStaging {
         }
     }
 
-    /// The app side: every record the extension staged, with the file it came from. A file that no longer decodes is
-    /// removed here, since nothing will ever read it.
-    public static func stagedRecords(rootPath: String) -> [(URL, MessageSavingRecord)] {
-        let stagedDirectory = self.directory(rootPath: rootPath, name: "staged")
-        guard let urls = try? FileManager.default.contentsOfDirectory(at: stagedDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else {
+    /// The app side, for when Save Messages from Notifications or Save Deleted Messages is off: nothing the extension
+    /// kept is wanted any more. Only the files go; the folders stay, since an extension process that is still alive
+    /// has already created them and will write there again if the switch comes back on.
+    public static func removeAll(rootPath: String) {
+        for name in ["staged", "pending"] {
+            guard let urls = try? FileManager.default.contentsOfDirectory(at: self.directory(rootPath: rootPath, name: name), includingPropertiesForKeys: nil, options: []) else {
+                continue
+            }
+            for url in urls {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+    }
+
+    /// The app side: every file the extension staged, with its records. A batch file holds an array; files from
+    /// builds that wrote one record per message hold a single record. A file that decodes as neither is removed here,
+    /// since nothing will ever read it.
+    public static func stagedBatches(rootPath: String) -> [(URL, [MessageSavingRecord])] {
+        guard let urls = try? FileManager.default.contentsOfDirectory(at: self.directory(rootPath: rootPath, name: "staged"), includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else {
             return []
         }
-        var result: [(URL, MessageSavingRecord)] = []
+        let decoder = JSONDecoder()
+        var result: [(URL, [MessageSavingRecord])] = []
         for url in urls where url.pathExtension == "json" {
-            if let data = try? Data(contentsOf: url), let record = try? JSONDecoder().decode(MessageSavingRecord.self, from: data) {
-                result.append((url, record))
+            guard let data = try? Data(contentsOf: url) else {
+                continue
+            }
+            if let records = try? decoder.decode([MessageSavingRecord].self, from: data) {
+                result.append((url, records))
+            } else if let record = try? decoder.decode(MessageSavingRecord.self, from: data) {
+                result.append((url, [record]))
             } else {
                 try? FileManager.default.removeItem(at: url)
             }

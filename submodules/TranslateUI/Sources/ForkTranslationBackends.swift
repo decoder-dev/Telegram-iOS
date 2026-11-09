@@ -71,7 +71,8 @@ public func forkTranslateToTitle(strings: PresentationStrings, language: String)
 }
 
 /// The engine hands over the texts of the messages on screen and stores what comes back like Telegram's own
-/// translations. Empty texts are not sent and keep their original; if every service fails, the engine gets nil.
+/// translations. Empty texts are not sent and keep their original. A text one service fails on goes to the next; one
+/// that every service fails on keeps its original too, and only when nothing was translated does the engine get nil.
 private final class ThirdPartyChatTranslationService: ExperimentalInternalTranslationService {
     private let settings: ForkExtrasSettings
     private let backends: [ForkTranslationBackend]
@@ -88,19 +89,41 @@ private final class ThirdPartyChatTranslationService: ExperimentalInternalTransl
             return .single([:])
         }
         let values = keys.map { texts[$0] ?? "" }
-        let settings = self.settings
-        return firstSuccessful(self.backends, { backend in
-            return translateTexts(backend: backend, settings: settings, texts: values, toLang: toLang)
-        })
+        return translateWithFallback(self.backends, settings: self.settings, texts: values, toLang: toLang)
         |> map { translated -> [AnyHashable: String]? in
+            if !translated.contains(where: { $0 != nil }) {
+                return nil
+            }
             var result: [AnyHashable: String] = [:]
             for (key, text) in zip(keys, translated) {
-                result[key] = text
+                if let text {
+                    result[key] = text
+                }
             }
             return result
         }
-        |> `catch` { _ -> Signal<[AnyHashable: String]?, NoError> in
-            return .single(nil)
+    }
+}
+
+/// Translates with the first service and hands only the texts it failed on to the next one.
+private func translateWithFallback(_ backends: [ForkTranslationBackend], settings: ForkExtrasSettings, texts: [String], toLang: String) -> Signal<[String?], NoError> {
+    guard let backend = backends.first else {
+        return .single(texts.map { _ -> String? in nil })
+    }
+    let rest = Array(backends.dropFirst())
+    return translateTexts(backend: backend, settings: settings, texts: texts, toLang: toLang)
+    |> mapToSignal { translated -> Signal<[String?], NoError> in
+        let failed = translated.indices.filter { translated[$0] == nil }
+        if failed.isEmpty || rest.isEmpty {
+            return .single(translated)
+        }
+        return translateWithFallback(rest, settings: settings, texts: failed.map { texts[$0] }, toLang: toLang)
+        |> map { retried -> [String?] in
+            var result = translated
+            for (index, text) in zip(failed, retried) {
+                result[index] = text
+            }
+            return result
         }
     }
 }
@@ -145,8 +168,12 @@ private func translateText(context: AccountContext, settings: ForkExtrasSettings
         |> timeout(20.0, queue: Queue.concurrentDefaultQueue(), alternate: .fail(.generic))
     case .google, .deepl, .yandex:
         return translateTexts(backend: backend, settings: settings, texts: [text], toLang: toLang)
-        |> map { translated -> (String, [MessageTextEntity]) in
-            return (translated[0], [])
+        |> castError(TelegramCore.TranslationError.self)
+        |> mapToSignal { translated -> Signal<(String, [MessageTextEntity]), TelegramCore.TranslationError> in
+            guard let result = translated.first ?? nil else {
+                return .fail(.generic)
+            }
+            return .single((result, []))
         }
     }
 }
@@ -161,18 +188,95 @@ private func recognizedLanguage(_ text: String) -> String? {
     return supportedTranslationLanguages.contains(code) ? code : nil
 }
 
-private func translateTexts(backend: ForkTranslationBackend, settings: ForkExtrasSettings, texts: [String], toLang: String) -> Signal<[String], TelegramCore.TranslationError> {
+/// One entry per text, in order: its translation, or nil where this service failed on it.
+private func translateTexts(backend: ForkTranslationBackend, settings: ForkExtrasSettings, texts: [String], toLang: String) -> Signal<[String?], NoError> {
     switch backend {
     case .google:
-        // The free endpoint takes one text per request.
-        return combineLatest(texts.map { googleTranslate(text: $0, toLang: toLang) })
+        return googleTranslate(texts: texts, toLang: toLang)
     case .deepl:
-        return deeplTranslate(texts: texts, toLang: toLang, apiKey: settings.deeplApiKey)
+        // DeepL takes at most 50 texts per request.
+        let chunks = stride(from: 0, to: texts.count, by: 50).map { Array(texts[$0 ..< min($0 + 50, texts.count)]) }
+        return translateInChunks(chunks, { chunk in
+            return deeplTranslate(texts: chunk, toLang: toLang, apiKey: settings.deeplApiKey)
+        })
     case .yandex:
-        return yandexTranslate(texts: texts, toLang: toLang, apiKey: settings.yandexApiKey)
+        return translateInChunks(yandexChunks(texts), { chunk in
+            return yandexTranslate(texts: chunk, toLang: toLang, apiKey: settings.yandexApiKey)
+        })
     case .default, .system:
-        return .fail(.generic)
+        return .single(texts.map { _ -> String? in nil })
     }
+}
+
+/// Sends the chunks one after another and puts the results back together in order. A chunk that fails leaves nil
+/// for its texts and does not stop the ones after it.
+private func translateInChunks(_ chunks: [[String]], _ translate: @escaping ([String]) -> Signal<[String], TelegramCore.TranslationError>) -> Signal<[String?], NoError> {
+    var signal: Signal<[String?], NoError> = .single([])
+    for chunk in chunks {
+        signal = signal
+        |> mapToSignal { previous -> Signal<[String?], NoError> in
+            return translate(chunk)
+            |> map { translated -> [String?] in
+                return previous + translated.map { text -> String? in text }
+            }
+            |> `catch` { _ -> Signal<[String?], NoError> in
+                return .single(previous + chunk.map { _ -> String? in nil })
+            }
+        }
+    }
+    return signal
+}
+
+/// Yandex takes at most 10,000 characters per request, all the texts together. A longer text goes alone and fails,
+/// which leaves it to the next service.
+private func yandexChunks(_ texts: [String]) -> [[String]] {
+    var chunks: [[String]] = []
+    var current: [String] = []
+    var length = 0
+    for text in texts {
+        let textLength = text.utf16.count
+        if !current.isEmpty && length + textLength > 10000 {
+            chunks.append(current)
+            current = []
+            length = 0
+        }
+        current.append(text)
+        length += textLength
+    }
+    if !current.isEmpty {
+        chunks.append(current)
+    }
+    return chunks
+}
+
+/// The free endpoint takes one text per request. Firing one for every message on screen at once got the whole batch
+/// rate-limited, so they go three at a time, and a text that fails is left for the next service. When a whole group
+/// fails Google is limiting or unreachable, and the rest is not sent at all.
+private func googleTranslate(texts: [String], toLang: String) -> Signal<[String?], NoError> {
+    let groupSize = 3
+    var signal: Signal<[String?], NoError> = .single([])
+    for start in stride(from: 0, to: texts.count, by: groupSize) {
+        let group = Array(texts[start ..< min(start + groupSize, texts.count)])
+        signal = signal
+        |> mapToSignal { previous -> Signal<[String?], NoError> in
+            if !previous.isEmpty && previous.suffix(groupSize).allSatisfy({ $0 == nil }) {
+                return .single(previous + group.map { _ -> String? in nil })
+            }
+            return combineLatest(group.map { text -> Signal<String?, NoError> in
+                return googleTranslate(text: text, toLang: toLang)
+                |> map { translated -> String? in
+                    return translated
+                }
+                |> `catch` { _ -> Signal<String?, NoError> in
+                    return .single(nil)
+                }
+            })
+            |> map { translated -> [String?] in
+                return previous + translated
+            }
+        }
+    }
+    return signal
 }
 
 private func googleTranslate(text: String, toLang: String) -> Signal<String, TelegramCore.TranslationError> {

@@ -38,9 +38,11 @@ public enum ForkLocalDataReset {
 
         return accountManager.transaction { transaction -> [(id: AccountRecordId, hasKeys: Bool)] in
             return transaction.getRecords().map { record -> (id: AccountRecordId, hasKeys: Bool) in
+                // The attribute can be there with its data missing (it is decoded leniently); then nothing could put
+                // the auth keys back, so that account's database is left alone.
                 let hasKeys = record.attributes.contains(where: { attribute in
-                    if case .backupData = attribute {
-                        return true
+                    if case let .backupData(backup) = attribute {
+                        return backup.data != nil
                     } else {
                         return false
                     }

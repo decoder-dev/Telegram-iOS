@@ -2696,6 +2696,7 @@ private final class NotificationServiceHandler {
                                 let missingIds = Set(ids.filter { transaction.getMessage($0) == nil })
                                 MessageSavingNotificationStaging.saveDeletedPushedMessages(rootPath: rootPath, accountPeerId: stateManager.accountPeerId, ids: ids, missingIds: missingIds)
                                 _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: ids, deleteMedia: true)
+                                MessageSavingNotificationStaging.writeStagedRecords()
                             }
                             |> deliverOn(strongSelf.queue)).start(completed: {
                                 UNUserNotificationCenter.current().getDeliveredNotifications(completionHandler: { notifications in
@@ -2935,6 +2936,8 @@ final class NotificationService: UNNotificationServiceExtension {
                     let _ = content.swap(value)
                 },
                 completed: {
+                    // Deletions the poll kept are still in memory; the process may be suspended right after this.
+                    MessageSavingNotificationStaging.writeStagedRecords()
                     guard let strongSelf = self else {
                         return
                     }
@@ -2960,6 +2963,7 @@ final class NotificationService: UNNotificationServiceExtension {
     
     override func serviceExtensionTimeWillExpire() {
         self.impl = nil
+        MessageSavingNotificationStaging.writeStagedRecords()
         if let contentHandler = self.contentHandler.swap(nil) {
             Logger.shared.log("NotificationService \(self.episode ?? "???")", "Completing due to serviceExtensionTimeWillExpire")
             

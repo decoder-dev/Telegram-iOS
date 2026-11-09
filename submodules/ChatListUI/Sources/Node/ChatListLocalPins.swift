@@ -4,8 +4,8 @@ import SwiftSignalKit
 import TelegramUIPreferences
 import AccountContext
 
-/// Pin Beyond the Limit: the chats pinned on this device only, in their stored order (pinning index 0 on top). A chat
-/// that is no longer in the main list (deleted, left or archived) is dropped from the stored list.
+/// Pin Beyond the Limit: the chats pinned on this device only, in their stored order (pinning index 0 on top). Only chats
+/// in the main list are shown; an archived one is dropped from the stored list.
 func localPinnedChatListItems(context: AccountContext) -> Signal<[EngineChatList.Item], NoError> {
     let engine = context.engine
     return combineLatest(
@@ -23,17 +23,26 @@ func localPinnedChatListItems(context: AccountContext) -> Signal<[EngineChatList
             engine.messages.bananaChatListItems(pinnedPeerIds: peerIds)
         )
         |> map { groups, pinnedItems -> [EngineChatList.Item] in
+            // A chat that isn't in the main list right now is only left out: during a dialogs reload or a state reset a
+            // chat can be missing for a moment, and its pin must still be there afterwards. Only a chat the user moved
+            // to the archive loses its local pin for good, as a server pin does.
+            let archivedPeerIds = Set(peerIds.filter { peerId in
+                if case .archive? = groups[peerId] ?? nil {
+                    return true
+                }
+                return false
+            })
+            if !archivedPeerIds.isEmpty {
+                let _ = updateLocalPinnedChatIds(engine: engine, { current in
+                    return current.filter { !archivedPeerIds.contains($0) }
+                }).startStandalone()
+            }
             let removedPeerIds = Set(peerIds.filter { peerId in
                 if case .root? = groups[peerId] ?? nil {
                     return false
                 }
                 return true
             })
-            if !removedPeerIds.isEmpty {
-                let _ = updateLocalPinnedChatIds(engine: engine, { current in
-                    return current.filter { !removedPeerIds.contains($0) }
-                }).startStandalone()
-            }
             return pinnedItems.filter { item in
                 if case let .chatList(peerId) = item.id {
                     return !removedPeerIds.contains(peerId)

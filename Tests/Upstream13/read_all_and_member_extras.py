@@ -75,6 +75,20 @@ class ReadAll(unittest.TestCase):
         self.assertIn('let batchSize = 20', source)
         self.assertIn('engine.messages.togglePeersUnreadMarkInteractively(peerIds: batch, setToValue: false)', source)
         self.assertIn('read |> delay(1.0,', source)
+        # The batches pace how fast pushes are queued; the call itself sends nothing.
+        self.assertIn('SynchronizePeerReadStates then starts every queued push at once', source)
+        self.assertNotIn('end in FLOOD_WAIT', source)
+
+    def test_comment_matches_the_read_path(self):
+        engine = read('submodules/TelegramCore/Sources/TelegramEngine/Messages/TelegramEngineMessages.swift')
+        toggle = engine[engine.index('public func togglePeersUnreadMarkInteractively('):]
+        toggle = toggle[:toggle.index('\n        }\n')]
+        self.assertIn('return self.account.postbox.transaction { transaction -> Void in', toggle)
+        manager = read('submodules/TelegramCore/Sources/State/ManagedSynchronizePeerReadStates.swift')
+        update = manager[manager.index('    private func update() {'):]
+        # One active operation per chat, started for every chat in the same pass.
+        self.assertIn('for peerId in peerIds {', update)
+        self.assertIn('self.activeOperations[peerId] = activeOperation', update)
 
     def test_server_list_includes_chats_read_only_here(self):
         core = read(READ_ALL_CORE)

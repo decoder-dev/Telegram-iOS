@@ -73,9 +73,11 @@ class Integration(unittest.TestCase):
 
     def test_account_labels_and_gift_switch_round_trip(self):
         source = read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift')
-        for name in ['disableGiftStarsRedirect', 'visualLabels']:
-            self.assertIn('forKey: "' + name + '"', source)
-            self.assertIn('try container.encode(self.' + name, source)
+        self.assertIn('forKey: "disableGiftStarsRedirect"', source)
+        self.assertIn('try container.encode(self.disableGiftStarsRedirect', source)
+        # Keyed by account id, so stored as the ids and the labels side by side (Postbox can't store the flat form).
+        self.assertIn('try encodePeerKeyedDictionary(self.visualLabels, into: &container, idsKey: "visualLabelsIds", valuesKey: "visualLabelsValues")', source)
+        self.assertIn('decodePeerKeyedDictionary(container, Int32.self, idsKey: "visualLabelsIds", valuesKey: "visualLabelsValues")', source)
         runtime = read('submodules/TelegramUI/Sources/SharedAccountContext.swift')
         self.assertIn('BananaVisualLabels.update(settings.visualLabels)', runtime)
         self.assertIn('settings.visualLabels[accountPeerId ?? 0]', read('submodules/SettingsUI/Sources/ForkExtrasController.swift'))

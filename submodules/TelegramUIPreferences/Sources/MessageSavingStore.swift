@@ -483,15 +483,15 @@ public enum MessageSavingStore {
         })
     }
 
-    private static var notificationStagingInstalled = false
+    private static var notificationStagingRootPath: String?
 
     /// Folds in the deletions the notification extension kept while the app was not running (Save Messages from
     /// Notifications), at launch and every time the app comes back to the foreground. Main app only.
     public static func installNotificationStaging(rootPath: String) {
-        if self.notificationStagingInstalled {
+        if self.notificationStagingRootPath != nil {
             return
         }
-        self.notificationStagingInstalled = true
+        self.notificationStagingRootPath = rootPath
         queue.async {
             mergeNotificationStaging(rootPath: rootPath)
         }
@@ -504,15 +504,24 @@ public enum MessageSavingStore {
     }
 
     private static func mergeNotificationStaging(rootPath: String) {
+        // The shared defaults hold the switches as last synced, so this is right at launch too, before the settings
+        // signal has delivered.
+        if !ForkExtrasNotificationBridge.savesMessagesFromNotifications {
+            MessageSavingNotificationStaging.removeAll(rootPath: rootPath)
+            return
+        }
+        MessageSavingNotificationStaging.removeExpiredPushedMessages(rootPath: rootPath)
         loadIfNeeded()
         // The files wait for a later launch rather than go into a store that cannot be written.
         if historyReadFailed {
             return
         }
-        for (url, record) in MessageSavingNotificationStaging.stagedRecords(rootPath: rootPath) {
-            // The app may have seen the same deletion itself, with the full text rather than the push's.
-            if !hasDeletedSnapshot(of: record) {
-                append(record)
+        for (url, records) in MessageSavingNotificationStaging.stagedBatches(rootPath: rootPath) {
+            for record in records {
+                // The app may have seen the same deletion itself, with the full text rather than the push's.
+                if !hasDeletedSnapshot(of: record) {
+                    append(record)
+                }
             }
             try? FileManager.default.removeItem(at: url)
         }
@@ -743,6 +752,13 @@ public enum MessageSavingStore {
             editedMark: settings.editedMessageMark,
             saveMyDeleted: settings.saveMyDeletedMessages
         ))
+        // Turning either switch off drops what the extension kept, pushed message text included, right away rather
+        // than on the next return to the foreground. Before installation this is only the launch-time defaults.
+        if let rootPath = self.notificationStagingRootPath, !(settings.saveDeletedMessages && settings.saveMessagesFromNotifications) {
+            queue.async {
+                MessageSavingNotificationStaging.removeAll(rootPath: rootPath)
+            }
+        }
     }
 
     /// Total retained snapshots (deleted + edited). Used by the Extras export/import UI.

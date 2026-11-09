@@ -8,13 +8,20 @@ enum BananaSettingsBackup {
     static let appName = "BananaGram"
 
     /// Never written to the file and never taken from one:
-    /// - localVerificationBadges: keyed by the account's local record id, which means nothing on another device;
+    /// - localVerificationBadges (stored as the "Ids"/"Values" pair): keyed by the account's local record id, which
+    ///   means nothing on another device;
+    /// - the duress passcode's action and its account ids: also local record ids, and a file must never be able to
+    ///   arm "Erase All Data" without the confirmation the Duress Passcode page asks for;
     /// - enhancedPowerSaving and its snapshot: they describe this device's saved animation settings;
     /// - sessionKeychainBackup: an old switch that was about this device's Keychain;
     /// - anything named like an API key, token or password (the translators' keys, say): those are the user's secrets.
     /// Passcodes and hidden accounts are not Extras settings at all, so they are never in the file.
     private static let excludedKeys: Set<String> = [
         "localVerificationBadges",
+        "localVerificationBadgesIds",
+        "localVerificationBadgesValues",
+        "duressPasscodeAction",
+        "duressLogOutAccountIds",
         "enhancedPowerSaving",
         "enhancedPowerSavingSnapshot",
         "sessionKeychainBackup",

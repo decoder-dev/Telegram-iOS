@@ -20,7 +20,6 @@ FIELDS = [
     ('deeplApiKey', 'String', '""'),
     ('yandexApiKey', 'String', '""'),
     ('translateBeforeSending', 'Bool', 'false'),
-    ('draftTranslationLanguages', '[Int64: String]', '[:]'),
 ]
 
 
@@ -37,6 +36,18 @@ class TranslatorSettings(unittest.TestCase):
                 self.assertIn('        self.%s = %s\n' % (name, default), source)
                 self.assertIn('self.%s = try container.decodeIfPresent(%s.self, forKey: "%s") ?? %s' % (name, kind, name, default), source)
                 self.assertIn('try container.encode(self.%s, forKey: "%s")' % (name, name), source)
+
+    def test_remembered_languages_are_stored_as_two_lists(self):
+        # A [Int64: String] map goes through Postbox's encoder as one mixed list, which stops the app; it is stored as
+        # the peer ids and the languages side by side.
+        source = read(SETTINGS)
+        self.assertIn('    public var draftTranslationLanguages: [Int64: String]\n', source)
+        self.assertIn('        self.draftTranslationLanguages = [:]\n', source)
+        self.assertIn('decodePeerKeyedDictionary(container, String.self, idsKey: "draftTranslationLanguagesIds", valuesKey: "draftTranslationLanguagesValues")', source)
+        self.assertIn('try encodePeerKeyedDictionary(self.draftTranslationLanguages, into: &container, idsKey: "draftTranslationLanguagesIds", valuesKey: "draftTranslationLanguagesValues")', source)
+        for name in ['localVerificationBadges', 'visualLabels']:
+            self.assertIn('try encodePeerKeyedDictionary(self.%s, into: &container' % name, source)
+            self.assertNotIn('try container.encode(self.%s, forKey:' % name, source)
 
     def test_backend_keeps_its_default_and_gains_three_services(self):
         source = read(SETTINGS)
@@ -91,6 +102,38 @@ class TranslatorRequests(unittest.TestCase):
         order = source.split('public func forkTranslationBackends(', 1)[1].split('\n}\n', 1)[0]
         self.assertIn('var result: [ForkTranslationBackend] = [settings.translationBackend]', order)
         self.assertIn('if settings.translationFallback {', order)
+
+
+class TranslatorBatching(unittest.TestCase):
+    def test_google_goes_three_at_a_time(self):
+        source = read(BACKENDS)
+        self.assertNotIn('combineLatest(texts.map { googleTranslate(text: $0', source)
+        google = source.split('private func googleTranslate(texts: [String]', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('let groupSize = 3', google)
+        self.assertIn('for start in stride(from: 0, to: texts.count, by: groupSize) {', google)
+        self.assertIn('return combineLatest(group.map { text -> Signal<String?, NoError> in', google)
+        # One failed text is nil, not a failed batch.
+        self.assertIn('return .single(nil)', google)
+
+    def test_deepl_and_yandex_are_chunked(self):
+        source = read(BACKENDS)
+        texts = source.split('private func translateTexts(', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('stride(from: 0, to: texts.count, by: 50)', texts)
+        self.assertIn('translateInChunks(yandexChunks(texts),', texts)
+        yandex = source.split('private func yandexChunks(', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('if !current.isEmpty && length + textLength > 10000 {', yandex)
+        chunks = source.split('private func translateInChunks(', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('return previous + translated.map { text -> String? in text }', chunks)
+        self.assertIn('return .single(previous + chunk.map { _ -> String? in nil })', chunks)
+
+    def test_only_failed_texts_fall_back(self):
+        source = read(BACKENDS)
+        fallback = source.split('private func translateWithFallback(', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('let failed = translated.indices.filter { translated[$0] == nil }', fallback)
+        self.assertIn('texts: failed.map { texts[$0] }', fallback)
+        service = source.split('private final class ThirdPartyChatTranslationService', 1)[1].split('\n}\n', 1)[0]
+        self.assertIn('translateWithFallback(self.backends, settings: self.settings, texts: values, toLang: toLang)', service)
+        self.assertIn("if !translated.contains(where: { $0 != nil }) {", service)
 
 
 class TranslatorWiring(unittest.TestCase):

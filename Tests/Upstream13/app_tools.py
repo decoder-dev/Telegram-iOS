@@ -87,7 +87,7 @@ class EnhancedPowerSaving(unittest.TestCase):
 class Backup(unittest.TestCase):
     def test_secrets_and_device_bound_values_never_travel(self):
         source = read(BACKUP)
-        for key in ['localVerificationBadges', 'enhancedPowerSaving', 'enhancedPowerSavingSnapshot', 'sessionKeychainBackup']:
+        for key in ['localVerificationBadges', 'localVerificationBadgesIds', 'localVerificationBadgesValues', 'duressPasscodeAction', 'duressLogOutAccountIds', 'enhancedPowerSaving', 'enhancedPowerSavingSnapshot', 'sessionKeychainBackup']:
             self.assertIn('"%s",' % key, source)
         self.assertIn('lowercased.contains("apikey") || lowercased.contains("token") || lowercased.contains("password")', source)
         # Excluded both when writing and when reading.
@@ -96,7 +96,7 @@ class Backup(unittest.TestCase):
 
     def test_nothing_that_looks_secret_is_exported(self):
         # A key, a token or a password added to the settings later is caught by name; the switches named so are plain settings.
-        excluded = {'localVerificationBadges', 'enhancedPowerSaving', 'enhancedPowerSavingSnapshot', 'sessionKeychainBackup'}
+        excluded = {'localVerificationBadges', 'localVerificationBadgesIds', 'localVerificationBadgesValues', 'duressPasscodeAction', 'duressLogOutAccountIds', 'enhancedPowerSaving', 'enhancedPowerSavingSnapshot', 'sessionKeychainBackup'}
         for key in set(re.findall(r'forKey: "(\w+)"', read(SETTINGS))):
             lower = key.lower()
             if key in ('allowSecretScreenshots', 'sendWithReturnKey') or not any(word in lower for word in ['key', 'secret', 'token', 'password']):

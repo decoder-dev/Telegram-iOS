@@ -69,6 +69,9 @@ func bananaApplyGhostLocalRead(transaction: Transaction, accountPeerId: PeerId, 
     if let current = bananaGhostLocalReadState(accountPeerId: accountPeerId, peerId: peerId), current.maxIncomingReadId == previousMaxIncomingReadId {
         read = current
     }
+    // This read is Ghost Mode's: once Ghost Mode is turned off its receipt is sent, even if Read All had read the chat
+    // on this device only before. A device-only Read All marks the record again right after this.
+    read.deviceOnly = false
     read.maxIncomingReadId = maxIncomingReadId
     if let readCount = read.readCount {
         let updatedCount = Int64(readCount) + max(0, Int64(previousCount) - Int64(count))

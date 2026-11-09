@@ -777,7 +777,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideAIButton = try container.decodeIfPresent(Bool.self, forKey: "hideAIButton") ?? false
         self.hideRichTextEditor = try container.decodeIfPresent(Bool.self, forKey: "hideRichTextEditor") ?? false
         self.hideProxySponsor = true
-        self.localVerificationBadges = try container.decodeIfPresent([Int64: Int32].self, forKey: "localVerificationBadges") ?? [:]
+        self.localVerificationBadges = decodePeerKeyedDictionary(container, Int32.self, idsKey: "localVerificationBadgesIds", valuesKey: "localVerificationBadgesValues")
         self.roundVideoCountdown = try container.decodeIfPresent(Bool.self, forKey: "roundVideoCountdown") ?? false
         self.roundVideoRecordAt60FPS = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRecordAt60FPS") ?? false
         self.roundVideoMaximumQuality = try container.decodeIfPresent(Bool.self, forKey: "roundVideoMaximumQuality") ?? false
@@ -867,7 +867,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.deeplApiKey = try container.decodeIfPresent(String.self, forKey: "deeplApiKey") ?? ""
         self.yandexApiKey = try container.decodeIfPresent(String.self, forKey: "yandexApiKey") ?? ""
         self.translateBeforeSending = try container.decodeIfPresent(Bool.self, forKey: "translateBeforeSending") ?? false
-        self.draftTranslationLanguages = try container.decodeIfPresent([Int64: String].self, forKey: "draftTranslationLanguages") ?? [:]
+        self.draftTranslationLanguages = decodePeerKeyedDictionary(container, String.self, idsKey: "draftTranslationLanguagesIds", valuesKey: "draftTranslationLanguagesValues")
         self.transcriptionBackend = (try container.decodeIfPresent(String.self, forKey: "transcriptionBackend")).flatMap(ForkTranscriptionBackend.init(rawValue:)) ?? .default
         self.scrollToNextChatDisabled = try container.decodeIfPresent(Bool.self, forKey: "scrollToNextChatDisabled") ?? false
         self.saveDeletedMessages = try container.decodeIfPresent(Bool.self, forKey: "saveDeletedMessages") ?? false
@@ -930,7 +930,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.panicShakeLock = try container.decodeIfPresent(Bool.self, forKey: "panicShakeLock") ?? false
         self.confirmChatPreviewEntry = try container.decodeIfPresent(Bool.self, forKey: "confirmChatPreviewEntry") ?? false
         self.disableGiftStarsRedirect = try container.decodeIfPresent(Bool.self, forKey: "disableGiftStarsRedirect") ?? false
-        self.visualLabels = (try container.decodeIfPresent([Int64: Int32].self, forKey: "visualLabels") ?? [:]).filter { (1...4).contains($0.value) }
+        self.visualLabels = decodePeerKeyedDictionary(container, Int32.self, idsKey: "visualLabelsIds", valuesKey: "visualLabelsValues").filter { (1...4).contains($0.value) }
         self.hideStickerReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyEmoji") ?? false
         self.hideStickerReplyBackground = try container.decodeIfPresent(Bool.self, forKey: "hideStickerReplyBackground") ?? false
         self.hidePremiumReplyEmoji = try container.decodeIfPresent(Bool.self, forKey: "hidePremiumReplyEmoji") ?? false
@@ -1020,7 +1020,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hideAIButton, forKey: "hideAIButton")
         try container.encode(self.hideRichTextEditor, forKey: "hideRichTextEditor")
         try container.encode(self.hideProxySponsor, forKey: "hideProxySponsor")
-        try container.encode(self.localVerificationBadges, forKey: "localVerificationBadges")
+        try encodePeerKeyedDictionary(self.localVerificationBadges, into: &container, idsKey: "localVerificationBadgesIds", valuesKey: "localVerificationBadgesValues")
         try container.encode(self.roundVideoCountdown, forKey: "roundVideoCountdown")
         try container.encode(self.roundVideoRecordAt60FPS, forKey: "roundVideoRecordAt60FPS")
         try container.encode(self.roundVideoMaximumQuality, forKey: "roundVideoMaximumQuality")
@@ -1102,7 +1102,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.deeplApiKey, forKey: "deeplApiKey")
         try container.encode(self.yandexApiKey, forKey: "yandexApiKey")
         try container.encode(self.translateBeforeSending, forKey: "translateBeforeSending")
-        try container.encode(self.draftTranslationLanguages, forKey: "draftTranslationLanguages")
+        try encodePeerKeyedDictionary(self.draftTranslationLanguages, into: &container, idsKey: "draftTranslationLanguagesIds", valuesKey: "draftTranslationLanguagesValues")
         try container.encode(self.transcriptionBackend.rawValue, forKey: "transcriptionBackend")
         try container.encode(self.scrollToNextChatDisabled, forKey: "scrollToNextChatDisabled")
         try container.encode(self.saveDeletedMessages, forKey: "saveDeletedMessages")
@@ -1163,7 +1163,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.panicShakeLock, forKey: "panicShakeLock")
         try container.encode(self.confirmChatPreviewEntry, forKey: "confirmChatPreviewEntry")
         try container.encode(self.disableGiftStarsRedirect, forKey: "disableGiftStarsRedirect")
-        try container.encode(self.visualLabels, forKey: "visualLabels")
+        try encodePeerKeyedDictionary(self.visualLabels, into: &container, idsKey: "visualLabelsIds", valuesKey: "visualLabelsValues")
         try container.encode(self.hideStickerReplyEmoji, forKey: "hideStickerReplyEmoji")
         try container.encode(self.hideStickerReplyBackground, forKey: "hideStickerReplyBackground")
         try container.encode(self.hidePremiumReplyEmoji, forKey: "hidePremiumReplyEmoji")
@@ -1302,6 +1302,27 @@ public struct ForkExtrasSettings: Codable, Equatable {
         updated.regexMessageFilterPatterns = patterns
         return (updated, true)
     }
+}
+
+// Swift encodes a dictionary with Int64 keys as one flat list of keys and values. Postbox's encoder only stores lists
+// whose items share a type, so [Int64: Int32] or [Int64: String] trips its precondition and the app stops on save, and
+// its decoder can't list the keys of a String-keyed one either. These maps are stored as two plain lists instead: the
+// ids under "<key>Ids" and the values, in the same order, under "<key>Values".
+private func encodePeerKeyedDictionary<Value: Encodable>(_ dictionary: [Int64: Value], into container: inout KeyedEncodingContainer<StringCodingKey>, idsKey: StringCodingKey, valuesKey: StringCodingKey) throws {
+    let ids = dictionary.keys.sorted()
+    try container.encode(ids, forKey: idsKey)
+    try container.encode(ids.map { dictionary[$0]! }, forKey: valuesKey)
+}
+
+private func decodePeerKeyedDictionary<Value: Decodable>(_ container: KeyedDecodingContainer<StringCodingKey>, _ type: Value.Type, idsKey: StringCodingKey, valuesKey: StringCodingKey) -> [Int64: Value] {
+    guard let ids = try? container.decodeIfPresent([Int64].self, forKey: idsKey), let values = try? container.decodeIfPresent([Value].self, forKey: valuesKey), ids.count == values.count else {
+        return [:]
+    }
+    var result: [Int64: Value] = [:]
+    for (id, value) in zip(ids, values) {
+        result[id] = value
+    }
+    return result
 }
 
 /// Last opened chat-list folder. Stored in UserDefaults so swiping folders does not rewrite AccountManager prefs.

@@ -55,8 +55,10 @@ extension ChatListControllerImpl {
         let _ = (engine.messages.bananaReadAllChatPeerIds(includeArchived: includeArchived, onServer: onServer)
         |> mapToSignal { peerIds -> Signal<(Int, Int), NoError> in
             if onServer {
-                // Small batches a second apart: each chat is a request of its own, and hundreds at
-                // once end in FLOOD_WAIT.
+                // The call itself only moves the read state in Postbox and queues a push per chat.
+                // SynchronizePeerReadStates then starts every queued push at once (one in flight per
+                // chat, no overall limit), and forum topics send readDiscussion straight away. Queuing
+                // 20 chats a second keeps hundreds of read requests from going out together.
                 let batchSize = 20
                 var signal: Signal<Never, NoError> = .complete()
                 for start in stride(from: 0, to: peerIds.count, by: batchSize) {

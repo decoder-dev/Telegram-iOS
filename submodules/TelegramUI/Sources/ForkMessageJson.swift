@@ -243,7 +243,9 @@ func forkMessageJson(_ message: EngineRawMessage) -> String {
     }
     json["attributes"] = attributeNames
 
-    guard let data = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]), let text = String(data: data, encoding: .utf8) else {
+    // JSONSerialization raises an Objective-C exception, which `try?` doesn't catch, on a NaN or infinite number
+    // (a broken location or duration would do it).
+    guard JSONSerialization.isValidJSONObject(json), let data = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]), let text = String(data: data, encoding: .utf8) else {
         return "{}"
     }
     return text

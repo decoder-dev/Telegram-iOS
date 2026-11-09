@@ -97,18 +97,88 @@ class SaveMessagesFromNotifications(unittest.TestCase):
         self.assertIn('let _ = MessageSavingBridge.append.swap(nil)', configure)
         self.assertIn('saveEdits: false', configure)
         self.assertNotIn('saveMedia: true', configure)
-        self.assertIn('options: .atomic', configure)
+
+    def test_extension_writes_one_file_per_batch(self):
+        staging = read(STAGING)
+        configure = function(staging, 'public static func configureExtension(')
+        # The sink only collects; nothing is written per message.
+        self.assertIn('self.stage(record)', configure)
+        self.assertNotIn('.write(', configure)
+        write = function(staging, 'public static func writeStagedRecords()')
+        self.assertIn('let records = self.unwrittenRecords', write)
+        self.assertIn('self.unwrittenRecords = []', write)
+        self.assertIn('JSONEncoder().encode(records)', write)
+        self.assertIn('appendingPathComponent("batch_\\(UUID().uuidString).json")', write)
+        self.assertIn('options: .atomic', write)
+        pushed = function(staging, 'public static func saveDeletedPushedMessages(')
+        self.assertIn('self.stage(MessageSavingRecord(', pushed)
+        self.assertNotIn('.write(', pushed)
+
+    def test_folders_are_prepared_once_per_process(self):
+        staging = read(STAGING)
+        prepare = function(staging, 'private static func prepareDirectories(rootPath: String)')
+        self.assertIn('if self.preparedRootPath == rootPath {', prepare)
+        self.assertIn('values.isExcludedFromBackup = true', prepare)
+        directory = function(staging, 'private static func directory(rootPath: String, name: String) -> URL')
+        self.assertNotIn('createDirectory', directory)
+        self.assertEqual(staging.count('createDirectory('), 1)
+
+    def test_extension_writes_the_batch_before_it_can_be_suspended(self):
+        service = read(SERVICE)
+        handler = service[service.index('case let .deleteMessage(ids):'):]
+        handler = handler[:handler.index('|> deliverOn(strongSelf.queue)).start(completed: {')]
+        self.assertLess(handler.index('_internal_deleteMessages('), handler.index('MessageSavingNotificationStaging.writeStagedRecords()'))
+        completed = service[service.index('                completed: {\n'):]
+        self.assertIn('MessageSavingNotificationStaging.writeStagedRecords()', completed[:completed.index('strongSelf.impl = nil')])
+        expire = function(service, 'override func serviceExtensionTimeWillExpire()')
+        self.assertIn('MessageSavingNotificationStaging.writeStagedRecords()', expire)
 
     def test_app_merges_without_duplicates(self):
         store = read(STORE)
         merge = function(store, 'private static func mergeNotificationStaging(')
         self.assertIn('if historyReadFailed {', merge)
+        self.assertIn('for (url, records) in MessageSavingNotificationStaging.stagedBatches(rootPath: rootPath) {', merge)
         self.assertIn('if !hasDeletedSnapshot(of: record) {', merge)
         self.assertIn('try? FileManager.default.removeItem(at: url)', merge)
         context = read(CONTEXT)
         self.assertIn('''        if applicationBindings.isMainApp {
             MessageSavingStore.scheduleAttachmentCleanup()
             MessageSavingStore.installNotificationStaging(rootPath: rootPath)''', context)
+
+    def test_app_reads_batches_and_single_record_files(self):
+        staging = read(STAGING)
+        batches = function(staging, 'public static func stagedBatches(rootPath: String)')
+        self.assertIn('decoder.decode([MessageSavingRecord].self, from: data)', batches)
+        self.assertIn('decoder.decode(MessageSavingRecord.self, from: data)', batches)
+        self.assertIn('result.append((url, [record]))', batches)
+        self.assertLess(batches.index('[MessageSavingRecord].self'), batches.index('decode(MessageSavingRecord.self'))
+
+    def test_staged_text_is_wiped_when_off_and_expires_after_a_week(self):
+        store = read(STORE)
+        merge = function(store, 'private static func mergeNotificationStaging(')
+        off = merge.index('if !ForkExtrasNotificationBridge.savesMessagesFromNotifications {')
+        wipe = merge.index('MessageSavingNotificationStaging.removeAll(rootPath: rootPath)')
+        expire = merge.index('MessageSavingNotificationStaging.removeExpiredPushedMessages(rootPath: rootPath)')
+        self.assertLess(off, wipe)
+        # Both happen even when the store itself could not be read.
+        self.assertLess(wipe, merge.index('if historyReadFailed {'))
+        self.assertLess(expire, merge.index('if historyReadFailed {'))
+        staging = read(STAGING)
+        self.assertIn('private static let pushedMessageLifetime: TimeInterval = 7 * 24 * 60 * 60', staging)
+        remove = function(staging, 'public static func removeAll(rootPath: String)')
+        self.assertIn('for name in ["staged", "pending"] {', remove)
+
+    def test_switching_off_wipes_right_away(self):
+        store = read(STORE)
+        apply = function(store, 'public static func applySettings(')
+        self.assertIn('if let rootPath = self.notificationStagingRootPath, !(settings.saveDeletedMessages && settings.saveMessagesFromNotifications) {', apply)
+        self.assertIn('MessageSavingNotificationStaging.removeAll(rootPath: rootPath)', apply)
+        install = function(store, 'public static func installNotificationStaging(')
+        self.assertIn('self.notificationStagingRootPath = rootPath', install)
+        self.assertIn('UIApplication.willEnterForegroundNotification', install)
+        # The launch-time defaults are applied before staging is installed, so they cannot wipe anything.
+        context = read(CONTEXT)
+        self.assertLess(context.index('MessageSavingStore.applySettings(immediateForkExtrasSettingsValue.with { $0 })'), context.index('MessageSavingStore.installNotificationStaging(rootPath: rootPath)'))
 
     def test_store_test_harness_still_strips_the_app_only_code(self):
         store = read(STORE)

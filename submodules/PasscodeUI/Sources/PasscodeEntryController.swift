@@ -261,6 +261,9 @@ public final class PasscodeEntryController: ViewController {
             let isDuressPasscode: Bool
             if acceptsDuressPasscode, case let .failure(error) = result, (error as? PasscodeError) == .invalidCode, let kind = challenge.passcodeKind {
                 isDuressPasscode = DuressPasscodeKeychain.matches(code, kind: kind)
+                if isDuressPasscode {
+                    try? PasscodeCredentialStore.shared.clearFailedAttempts()
+                }
             } else {
                 isDuressPasscode = false
             }
