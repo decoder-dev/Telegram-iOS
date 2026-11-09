@@ -128,19 +128,12 @@ for russian in [false,true] {
   }
  }
 }
+// Ads, the proxy sponsor, tracking parameters and statistics are fixed defaults: no screen offers a switch for them.
 for russian in [false, true] {
  ForkPresentationLanguage.prefersRussianStrings = russian
- for enabled in [false, true] {
-  var settings = ForkExtrasSettings.defaultSettings
-  settings.stripTrackingParameters = enabled
-  let entries = forkExtrasControllerEntries(settings: settings, autoFetchPublicMtProxy: false, showCallsTab: true, mediaInputSettings: MediaInputSettings(enableRaiseToSpeak: false, pauseMusicOnRecording: true), focus: .privacy)
-  let index = entries.firstIndex(where: { $0.stableId == 2030 })!
-  precondition(index + 1 < entries.count && entries[index + 1].stableId == 2031, "Tracking-link help must follow its switch")
-  precondition(entries[index].section == entries[index + 1].section, "A switch and its help must share the same themed block")
-  if case let .appearanceToggle(_, title, value, path) = entries[index] {
-   precondition(value == enabled && settings[keyPath: path] == enabled)
-   precondition(title == (russian ? "Убирать отслеживание из ссылок" : "Remove Tracking from Sent Links"))
-  } else { preconditionFailure("Missing tracking-link switch") }
+ for focus in [ForkExtrasControllerFocus.privacy, .network, .messageFilters] {
+  let ids = forkExtrasControllerEntries(settings: ForkExtrasSettings.defaultSettings, autoFetchPublicMtProxy: false, showCallsTab: true, mediaInputSettings: MediaInputSettings(enableRaiseToSpeak: false, pauseMusicOnRecording: true), focus: focus).map { $0.stableId }
+  for removed in [Int32(130), 131, 1530, 2030, 2031, 2105] { precondition(!ids.contains(removed), "\(removed) is a fixed default and has no row") }
  }
 }
 ForkPresentationLanguage.prefersRussianStrings=false

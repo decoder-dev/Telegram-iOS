@@ -277,7 +277,10 @@ precondition(boundary?.width == 65535)
 
     def test_island_and_pings_live_wiring(self):
         prefs = read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift')
-        for key in ['bananaIslandEnabled','bananaIslandShowsName','sendTelegramStatistics','removePings']:
+        # Statistics are never sent and have no switch: the stored value is not read back.
+        self.assertIn('        self.sendTelegramStatistics = false\n', prefs)
+        self.assertNotIn('forKey: "sendTelegramStatistics") ??', prefs)
+        for key in ['bananaIslandEnabled','bananaIslandShowsName','removePings']:
             self.assertIn('decodeIfPresent(Bool.self, forKey: "'+key+'")', prefs)
             self.assertIn('container.encode(self.'+key, prefs)
         window = read('submodules/Display/Source/WindowContent.swift')

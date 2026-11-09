@@ -73,7 +73,10 @@ precondition(MediaQualityPreset.videoMessage.maximumDimensions == CGFloat(VideoM
 // Defaults preserve existing installations and settings survive a round trip.
 var preferences = try JSONDecoder().decode(ForkExtrasSettings.self, from: Data("{}".utf8))
 precondition(!preferences.parallelDownloads && !preferences.hideAIButton && !preferences.hideRichTextEditor)
-precondition(!preferences.hideProxySponsor && preferences.localVerificationBadges.isEmpty)
+precondition(preferences.hideProxySponsor && preferences.localVerificationBadges.isEmpty)
+// Fixed defaults: a stored value from an older build is ignored.
+let legacy = try JSONDecoder().decode(ForkExtrasSettings.self, from: Data(#"{"hideAds":false,"hideProxySponsor":false,"stripTrackingParameters":false,"sendTelegramStatistics":true}"#.utf8))
+precondition(legacy.hideAds && legacy.hideProxySponsor && legacy.stripTrackingParameters && !legacy.sendTelegramStatistics)
 precondition(!preferences.roundVideoCountdown && !preferences.roundVideoRecordAt60FPS && !preferences.roundVideoMaximumQuality)
 precondition(!preferences.roundVideoFocusOnTap && !preferences.roundVideoAlwaysResetZoom)
 for requested in [ExperimentalCameraSettings.Mode.legacy, .vga, .hdBilinear, .hdLanczos] {

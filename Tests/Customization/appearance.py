@@ -36,9 +36,9 @@ let decoder = JSONDecoder()
 let encoder = JSONEncoder()
 let old = try decoder.decode(ForkExtrasSettings.self, from: Data("{}".utf8))
 precondition(!old.bottomChatFoldersEnabled, "Existing installations must keep folders at the top")
-precondition(!old.stripTrackingParameters, "Existing installations must not silently rewrite links")
+precondition(old.stripTrackingParameters, "Tracking parameters are always removed; there is no switch")
 let paths: [WritableKeyPath<ForkExtrasSettings, Bool>] = [
-    \.bottomChatFoldersEnabled, \.avatarGlowEnabled, \.reactionGlowEnabled, \.stripTrackingParameters,
+    \.bottomChatFoldersEnabled, \.avatarGlowEnabled, \.reactionGlowEnabled,
     \.showContactsTab, \.wideTabBar, \.integratedTabSearch, \.tabSearchOnLeft
 ]
 for path in paths {

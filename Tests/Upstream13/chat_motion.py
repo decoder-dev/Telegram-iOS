@@ -132,26 +132,19 @@ class Motion(unittest.TestCase):
         self.assertIn('ChatBubbleMotion.sentHaptic()', transition)
 
 
-class MessagesStyle(unittest.TestCase):
-    def test_setting_and_hot_flag(self):
-        settings = read(SETTINGS)
-        self.assertIn('    public var messagesStyle: Bool\n', settings)
-        self.assertIn('        self.messagesStyle = false\n', settings)
-        self.assertIn('self.messagesStyle = try container.decodeIfPresent(Bool.self, forKey: "messagesStyle") ?? false', settings)
-        self.assertIn('try container.encode(self.messagesStyle, forKey: "messagesStyle")', settings)
-        flags = read('submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift')
-        self.assertIn('public var messagesStyle: Bool = false', flags)
-        # Rows are rebuilt when it changes, as for the compact settings.
-        self.assertIn('|| previous.messagesStyle != next.messagesStyle {', flags)
-        self.assertIn('hotFlags.messagesStyle = settings.messagesStyle', read('submodules/TelegramUI/Sources/SharedAccountContext.swift'))
-        extras = read(EXTRAS)
-        self.assertRegex(extras, r'\.appearanceToggle\(1926, [^\n]*settings\.messagesStyle, \\\.messagesStyle\)')
-        self.assertIn('[1925, 1926, 1927], [1907, 1908, 1909]', extras)
+class MessagesLook(unittest.TestCase):
+    """The iOS Messages look is how the app looks: there is no switch and nothing turns it off."""
+
+    def test_there_is_no_switch(self):
+        for path in [SETTINGS, EXTRAS, 'submodules/TelegramCore/Sources/State/ManagedLocalInputActivities.swift', 'submodules/TelegramUI/Sources/UITestScreens.swift']:
+            self.assertNotIn('messagesStyle:', read(path), path)
+            self.assertNotIn('settings.messagesStyle', read(path), path)
+            self.assertNotIn('.messagesStyle', read(path), path)
 
     def test_chat_list_row_has_a_dot_and_a_chevron(self):
         row = read('submodules/ChatListUI/Sources/Node/ChatListItem.swift')
-        self.assertIn('if hotFlags.messagesStyle, useChatListLayout, !item.useCommunityViewLayout, !isPeerGroup, unreadCount.unread {', row)
-        dot = row[row.index('var messagesStyleUnreadDotColor: UIColor?\n            if hotFlags.messagesStyle'):]
+        self.assertIn('if useChatListLayout, !item.useCommunityViewLayout, !isPeerGroup, unreadCount.unread {', row)
+        dot = row[row.index('var messagesStyleUnreadDotColor: UIColor?\n            if useChatListLayout'):]
         dot = dot[:dot.index('\n            }\n')]
         self.assertIn('currentBadgeBackgroundImage = nil', dot)
         self.assertIn('unreadCount.muted ? theme.unreadBadgeInactiveBackgroundColor : theme.unreadBadgeActiveBackgroundColor', dot)
@@ -162,8 +155,22 @@ class MessagesStyle(unittest.TestCase):
 
     def test_dates_are_plain_on_a_plain_background(self):
         header = read(CHAT + 'ChatMessageItemImpl/Sources/ChatMessageDateHeader.swift')
-        self.assertIn('if ForkExtrasHotFlags.current.messagesStyle && !self.presentationData.theme.wallpaper.hasWallpaper {', header)
+        self.assertIn('if !self.presentationData.theme.wallpaper.hasWallpaper {\n            self.backgroundNode.isHidden = true', header)
         self.assertIn('} else if self.backgroundContent == nil {\n            self.backgroundNode.isHidden = false', header)
+
+    def test_receipt_under_the_newest_own_message(self):
+        item = read(CHAT + 'ChatMessageItem/Sources/ChatMessageItem.swift')
+        self.assertIn('var forkIsBottomMost: Bool { get }', item)
+        impl = read(CHAT + 'ChatMessageItemImpl/Sources/ChatMessageItemImpl.swift')
+        self.assertIn('let below = isRotated ? neighbors.previous : neighbors.next', impl)
+        # Both layout paths refresh it from the neighbours they lay out with.
+        self.assertEqual(impl.count('self.updateForkIsBottomMost(neighbors: neighbors, isRotated:'), 2)
+        bubble = read(CHAT + 'ChatMessageBubbleItemNode/Sources/ChatMessageBubbleItemNode.swift')
+        self.assertIn('if !incoming, item.forkIsBottomMost, !item.failed, case .peer = item.chatLocation, item.message.id.peerId != item.context.account.peerId', bubble)
+        for word in ['"Прочитано"', '"Доставлено"', '"Read"', '"Delivered"']:
+            self.assertIn(word, bubble)
+        self.assertIn('layoutSize.height += ChatMessageBubbleItemNode.messagesStyleReceiptHeight', bubble)
+        self.assertIn('selfReference.value?.updateMessagesStyleReceipt(', bubble)
 
 
 if __name__ == '__main__':

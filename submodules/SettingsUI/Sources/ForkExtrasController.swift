@@ -180,8 +180,6 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.LocalPremiumFooter": "Premium features that work on this device only: story Stealth Mode, HD stories, sticker effects. Not a subscription; others see no badge.",
             "ForkExtras.AutoFetchMtProxy": "Auto MTProxy",
             "ForkExtras.AutoFetchMtProxyFooter": "Connects through the fastest public MTProxy automatically. These servers aren't added to your saved list. They can't read your chats but can see your IP address.",
-            "ForkExtras.HideAds": "Hide Ads",
-            "ForkExtras.HideAdsFooter": "Hides sponsored and recommended messages.",
             "ForkExtras.HideBlockedMessages": "Hide Blocked Users",
             "ForkExtras.HideBlockedMessagesFooter": "Hides messages and typing from people you blocked.",
             "ForkExtras.GhostScheduleMessages": "Delay Sending in Ghost Mode",
@@ -333,8 +331,6 @@ private enum ForkExtrasLocalizedString {
             "ForkExtras.LocalPremiumFooter": "Функции Premium, работающие только на этом устройстве: скрытый просмотр историй, HD-истории, эффекты стикеров. Это не подписка, значка у вас никто не увидит.",
             "ForkExtras.AutoFetchMtProxy": "Авто MTProxy",
             "ForkExtras.AutoFetchMtProxyFooter": "Автоматически подключается через самый быстрый публичный MTProxy. Эти серверы не попадают в сохранённые. Они не видят ваши чаты, но видят IP-адрес.",
-            "ForkExtras.HideAds": "Скрыть рекламу",
-            "ForkExtras.HideAdsFooter": "Скрывает спонсорские и рекомендованные сообщения.",
             "ForkExtras.HideBlockedMessages": "Скрыть заблокированных",
             "ForkExtras.HideBlockedMessagesFooter": "Скрывает сообщения и набор текста от заблокированных.",
             "ForkExtras.GhostScheduleMessages": "Задержка отправки в режиме призрака",
@@ -487,8 +483,6 @@ private enum ForkExtrasLocalizedString {
     static var localPremiumFooter: String { string(forKey: "ForkExtras.LocalPremiumFooter") }
     static var autoFetchMtProxy: String { string(forKey: "ForkExtras.AutoFetchMtProxy") }
     static var autoFetchMtProxyFooter: String { string(forKey: "ForkExtras.AutoFetchMtProxyFooter") }
-    static var hideAds: String { string(forKey: "ForkExtras.HideAds") }
-    static var hideAdsFooter: String { string(forKey: "ForkExtras.HideAdsFooter") }
     static var hideBlockedMessages: String { string(forKey: "ForkExtras.HideBlockedMessages") }
     static var hideBlockedMessagesFooter: String { string(forKey: "ForkExtras.HideBlockedMessagesFooter") }
     static var ghostScheduleMessages: String { string(forKey: "ForkExtras.GhostScheduleMessages") }
@@ -710,7 +704,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1502, 1503, 1504, 1505, 1506],
             [1507]
         ]),
-        (.appearance, [[1618, 1531, 1532, 1553, 1619], [1900, 1901, 1902, 1903, 1904, 1905, 1906], [1925, 1926, 1927], [1907, 1908, 1909], [1915, 1916, 1917, 1918, 1919]]),
+        (.appearance, [[1618, 1531, 1532, 1553, 1619], [1900, 1901, 1902, 1903, 1904, 1905, 1906], [1907, 1908, 1909], [1915, 1916, 1917, 1918, 1919]]),
         // Scene 38: the input panel opens Messages. Scene 39: round videos and voice open Media, calls follow.
         (.messages, [
             [2200, 2201, 2043],
@@ -777,8 +771,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [30, 31],
             [2045, 32, 34],
             [2046, 38, 1775, 40, 39, 41],
-            [42, 43],
-            [1530, 2030, 2031]
+            [42, 43]
         ])
     ]
 
@@ -936,7 +929,6 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         3: 5.3,        // Chat list and folders opens Interface.
         2100: 5.5,     // Account order.
         2109: 137.0,   // The Network page's connection card opens the page.
-        2105: 137.5,
         2103: 144.3,
         2104: 144.5,
         7: 5.4,        // Tab bar follows Chat list and folders.
@@ -1032,8 +1024,6 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
                 description = ForkPresentationLanguage.prefersRussianStrings ? "Открывает поиск в текущем чате вместо поиска публичных постов." : "Searches the current chat instead of public posts."
             case 1520:
                 description = ForkPresentationLanguage.prefersRussianStrings ? "Отправляет GIF беззвучным видео, если GIF запрещены, а видео разрешены." : "Sends GIFs as silent videos where GIFs are banned but videos are allowed."
-            case 1530:
-                description = ForkPresentationLanguage.prefersRussianStrings ? "Аналитика, время чтения и прослушивания, служебные логи и качество звонков. По умолчанию выключено." : "Usage analytics, reading and listening times, service logs and call quality. Off by default."
             case 1533:
                 description = ForkPresentationLanguage.prefersRussianStrings ? "Скрывает значки упоминаний. Их уведомления следуют настройкам чата и темы." : "Hides mention badges. Mention notifications follow chat and topic settings."
             default:
@@ -1335,9 +1325,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ]
     case .privacy:
         entries = [
-            .appearanceToggle(1530, russian ? "Отправлять статистику в Telegram" : "Send Statistics to Telegram", settings.sendTelegramStatistics, \.sendTelegramStatistics),
-            .appearanceToggle(2030, russian ? "Убирать отслеживание из ссылок" : "Remove Tracking from Sent Links", settings.stripTrackingParameters, \.stripTrackingParameters),
-            .designFooter(2031, russian ? "Очищать ссылки в текстовых сообщениях. Код и подписанные ссылки сохраняются без изменений." : "Clean links in text messages. Code and signed links remain unchanged."),
             .appearanceToggle(2032, russian ? "Скрыть номер в заголовке чата" : "Hide Phone Number in Chat Title", settings.hidePhoneNumberInChatTitle, \.hidePhoneNumberInChatTitle),
             .settingToggle(28, .lock, ForkExtrasLocalizedString.streamerMode, settings.streamerMode, \.streamerMode),
             .settingFooter(29, .lock, ForkExtrasLocalizedString.streamerModeFooter),
@@ -1410,9 +1397,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .intChoice(1904, russian ? "Блик по бокам" : "Rim: Sides", forkIntChoiceLabel(forkGlassRimOptions(russian: russian), settings.glassBubbleRimSides)),
             .intChoice(1905, russian ? "Блик снизу" : "Rim: Bottom", forkIntChoiceLabel(forkGlassRimOptions(russian: russian), settings.glassBubbleRimBottom)),
             .designFooter(1906, russian ? "Пузыри становятся прозрачным стеклом цвета темы, сквозь которое виден фон чата. Нужна iOS 26 или новее." : "Bubbles become see-through glass tinted with the theme color, with the chat wallpaper showing through. Requires iOS 26 or later."),
-            .designHeader(1925, russian ? "Стиль" : "Style"),
-            .appearanceToggle(1926, russian ? "Стиль «Сообщений»" : "Messages Style", settings.messagesStyle, \.messagesStyle),
-            .designFooter(1927, russian ? "Как в «Сообщениях» iOS: синяя точка у непрочитанных вместо счётчика, стрелка у времени, даты серым текстом. Лучше всего с Classic White или Classic Black." : "Like iOS Messages: a blue dot on unread chats instead of a count, a chevron by the time, dates as grey text. Looks best with Classic White or Classic Black."),
             .designHeader(1907, russian ? "Вокруг пузырей" : "Around the bubbles"),
             .appearanceToggle(1908, russian ? "Стеклянные плашки" : "Glass Chat Elements", settings.glassChatElements, \.glassChatElements),
             .designFooter(1909, russian ? "Даты, служебные сообщения, время на фото и видео, кнопки ботов и кнопка «Поделиться» становятся стеклом. Нужна iOS 26 или новее." : "Dates, service messages, the time on photos and videos, bot buttons and the Share button turn to glass. Requires iOS 26 or later."),
@@ -1636,8 +1620,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .exportMessageSavingDatabase,
             .importMessageSavingDatabase,
             .settingFooter(129, .messageSaving, ForkExtrasLocalizedString.messageSavingDbFooter),
-            .settingToggle(130, .messageFilters, ForkExtrasLocalizedString.hideAds, settings.hideAds, \.hideAds),
-            .settingFooter(131, .messageFilters, ForkExtrasLocalizedString.hideAdsFooter),
             .settingToggle(132, .messageFilters, ForkExtrasLocalizedString.hideBlockedMessages, settings.hideBlockedMessages, \.hideBlockedMessages),
             .settingFooter(133, .messageFilters, ForkExtrasLocalizedString.hideBlockedMessagesFooter),
             .settingToggle(147, .messageFilters, ForkExtrasLocalizedString.showSensitiveContent, settings.showSensitiveContent, \.showSensitiveContent),
@@ -1654,7 +1636,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
     case .network:
         entries = []
         entries += [
-            .settingToggle(2105, .proxy, russian ? "Скрыть спонсора прокси" : "Hide Proxy Sponsor", settings.hideProxySponsor, \.hideProxySponsor),
             .destination(138, ForkPresentationLanguage.prefersRussianStrings ? "Прокси" : "Proxy", .proxy),
             .destination(139, russian ? "Проверка подключения" : "Connection Check", .connectionCheck),
 

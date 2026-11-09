@@ -391,8 +391,8 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
             }*/
         }
 
-        // Extras › Messages Style: on a plain chat background the date is grey text without a pill, as in Messages.
-        if ForkExtrasHotFlags.current.messagesStyle && !self.presentationData.theme.wallpaper.hasWallpaper {
+        // Messages look: on a plain chat background the date is grey text without a pill, as in iOS Messages.
+        if !self.presentationData.theme.wallpaper.hasWallpaper {
             self.backgroundNode.isHidden = true
             self.backgroundContent?.isHidden = true
         } else if self.backgroundContent == nil {

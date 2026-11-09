@@ -18,7 +18,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var parallelDownloads: Bool = false
     public var hideAIButton: Bool = false
     public var hideRichTextEditor: Bool = false
-    public var hideProxySponsor: Bool = false
+    /// Always on: the proxy's sponsored chat is an ad, and BananaGram shows no ads. There is no switch.
+    public var hideProxySponsor: Bool = true
     public var localVerificationBadges: [Int64: Int32] = [:]
     public var roundVideoCountdown: Bool = false
     public var roundVideoRecordAt60FPS: Bool = false
@@ -98,7 +99,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
     /// AyuGram Local Telegram Premium: unlock client-side Premium-gated UX (stealth mode, HD stories,
     /// sticker/emoji cosmetics) without touching the account's real Premium status. Default off — opt-in.
     public var localPremium: Bool
-    /// Hide sponsored / recommended ads in chats (AyuGram disableAds).
+    /// Hide sponsored / recommended ads in chats (AyuGram disableAds). Always on: BananaGram shows no ads, and there
+    /// is no switch; a stored `false` from an older build is ignored.
     public var hideAds: Bool
     /// AyuGram Message Filters: hide messages (and typing) from blocked users.
     public var hideBlockedMessages: Bool
@@ -124,7 +126,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideTabBar: Bool
     /// Append seconds to message timestamps in chat.
     public var showMessageSeconds: Bool
-    /// Remove known tracking parameters from ordinary outgoing text links. Opt-in.
+    /// Remove known tracking parameters from ordinary outgoing text links. Always on; there is no switch.
     public var stripTrackingParameters: Bool
     /// Use a wider bubble fill factor (channel / group posts).
     public var wideChannelPosts: Bool
@@ -268,9 +270,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var springyScrolling: Bool
     public var messagePopIn: Bool
     public var messageHaptics: Bool
-    /// Fork: the chat list and chats take the look of Apple's Messages — an unread dot instead of a count, a chevron
-    /// after the date, plain grey date headers, a round "+" for attachments. Off by default.
-    public var messagesStyle: Bool
     /// Fork (Donutgram): remember another profile's gifts and show the ones that later disappeared (BananaSpyStorage).
     public var showDisappearedGifts: Bool
     /// Fork (Donutgram): round video messages open with the rear camera, or with the one the last one used.
@@ -398,7 +397,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
             rememberLastFolder: false,
             hideTabBar: false,
             showMessageSeconds: false,
-            stripTrackingParameters: false,
+            stripTrackingParameters: true,
             wideChannelPosts: false,
             stickerSizePercent: 100,
             doubleTapToEdit: false,
@@ -481,7 +480,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         rememberLastFolder: Bool = false,
         hideTabBar: Bool = false,
         showMessageSeconds: Bool = false,
-        stripTrackingParameters: Bool = false,
+        stripTrackingParameters: Bool = true,
         wideChannelPosts: Bool = false,
         stickerSizePercent: Int32 = 100,
         doubleTapToEdit: Bool = false,
@@ -590,7 +589,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.ayuForward = ayuForward
         self.bypassDownloadRestrictions = bypassDownloadRestrictions
         self.localPremium = localPremium
-        self.hideAds = hideAds
+        self.hideAds = true
         self.hideBlockedMessages = hideBlockedMessages
         self.allowSecretScreenshots = allowSecretScreenshots
         self.expireTtlButton = expireTtlButton
@@ -603,7 +602,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.rememberLastFolder = rememberLastFolder
         self.hideTabBar = hideTabBar
         self.showMessageSeconds = showMessageSeconds
-        self.stripTrackingParameters = stripTrackingParameters
+        self.stripTrackingParameters = true
         self.wideChannelPosts = wideChannelPosts
         self.stickerSizePercent = min(150, max(50, stickerSizePercent))
         self.doubleTapToEdit = doubleTapToEdit
@@ -689,7 +688,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.springyScrolling = false
         self.messagePopIn = false
         self.messageHaptics = false
-        self.messagesStyle = false
         self.showDisappearedGifts = showDisappearedGifts
         self.roundVideoStartsWithRear = roundVideoStartsWithRear
         self.roundVideoRemembersCamera = roundVideoRemembersCamera
@@ -716,7 +714,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.parallelDownloads = try container.decodeIfPresent(Bool.self, forKey: "parallelDownloads") ?? false
         self.hideAIButton = try container.decodeIfPresent(Bool.self, forKey: "hideAIButton") ?? false
         self.hideRichTextEditor = try container.decodeIfPresent(Bool.self, forKey: "hideRichTextEditor") ?? false
-        self.hideProxySponsor = try container.decodeIfPresent(Bool.self, forKey: "hideProxySponsor") ?? false
+        self.hideProxySponsor = true
         self.localVerificationBadges = try container.decodeIfPresent([Int64: Int32].self, forKey: "localVerificationBadges") ?? [:]
         self.roundVideoCountdown = try container.decodeIfPresent(Bool.self, forKey: "roundVideoCountdown") ?? false
         self.roundVideoRecordAt60FPS = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRecordAt60FPS") ?? false
@@ -737,7 +735,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.stopAfterRoundVideo = try container.decodeIfPresent(Bool.self, forKey: "stopAfterRoundVideo") ?? false
         self.hideGreetingSticker = try container.decodeIfPresent(Bool.self, forKey: "hideGreetingSticker") ?? false
         self.removePings = try container.decodeIfPresent(Bool.self, forKey: "removePings") ?? false
-        self.sendTelegramStatistics = try container.decodeIfPresent(Bool.self, forKey: "sendTelegramStatistics") ?? false
+        // Never sent; there is no switch. A stored `true` from an older build is ignored.
+        self.sendTelegramStatistics = false
         // Every install stored `true` (the old default, written with the rest of the settings), so the stored value is
         // read only once the off-by-default migration has run; after that it is the user's own choice again.
         let bananaIslandStoredValue = try container.decodeIfPresent(Bool.self, forKey: "bananaIslandEnabled") ?? false
@@ -811,7 +810,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.ayuForward = try container.decodeIfPresent(Bool.self, forKey: "ayuForward") ?? true
         self.bypassDownloadRestrictions = try container.decodeIfPresent(Bool.self, forKey: "bypassDownloadRestrictions") ?? false
         self.localPremium = try container.decodeIfPresent(Bool.self, forKey: "localPremium") ?? false
-        self.hideAds = try container.decodeIfPresent(Bool.self, forKey: "hideAds") ?? true
+        self.hideAds = true
         self.hideBlockedMessages = try container.decodeIfPresent(Bool.self, forKey: "hideBlockedMessages") ?? false
         self.allowSecretScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowSecretScreenshots") ?? false
         self.expireTtlButton = try container.decodeIfPresent(Bool.self, forKey: "expireTtlButton") ?? true
@@ -824,7 +823,7 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.rememberLastFolder = try container.decodeIfPresent(Bool.self, forKey: "rememberLastFolder") ?? false
         self.hideTabBar = try container.decodeIfPresent(Bool.self, forKey: "hideTabBar") ?? false
         self.showMessageSeconds = try container.decodeIfPresent(Bool.self, forKey: "showMessageSeconds") ?? false
-        self.stripTrackingParameters = try container.decodeIfPresent(Bool.self, forKey: "stripTrackingParameters") ?? false
+        self.stripTrackingParameters = true
         self.wideChannelPosts = try container.decodeIfPresent(Bool.self, forKey: "wideChannelPosts") ?? false
         self.stickerSizePercent = min(150, max(50, try container.decodeIfPresent(Int32.self, forKey: "stickerSizePercent") ?? 100))
         self.doubleTapToEdit = try container.decodeIfPresent(Bool.self, forKey: "doubleTapToEdit") ?? false
@@ -911,7 +910,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.springyScrolling = try container.decodeIfPresent(Bool.self, forKey: "springyScrolling") ?? false
         self.messagePopIn = try container.decodeIfPresent(Bool.self, forKey: "messagePopIn") ?? false
         self.messageHaptics = try container.decodeIfPresent(Bool.self, forKey: "messageHaptics") ?? false
-        self.messagesStyle = try container.decodeIfPresent(Bool.self, forKey: "messagesStyle") ?? false
         self.showDisappearedGifts = try container.decodeIfPresent(Bool.self, forKey: "showDisappearedGifts") ?? false
         self.roundVideoStartsWithRear = try container.decodeIfPresent(Bool.self, forKey: "roundVideoStartsWithRear") ?? false
         self.roundVideoRemembersCamera = try container.decodeIfPresent(Bool.self, forKey: "roundVideoRemembersCamera") ?? false
@@ -1124,7 +1122,6 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.springyScrolling, forKey: "springyScrolling")
         try container.encode(self.messagePopIn, forKey: "messagePopIn")
         try container.encode(self.messageHaptics, forKey: "messageHaptics")
-        try container.encode(self.messagesStyle, forKey: "messagesStyle")
         try container.encode(self.showDisappearedGifts, forKey: "showDisappearedGifts")
         try container.encode(self.roundVideoStartsWithRear, forKey: "roundVideoStartsWithRear")
         try container.encode(self.roundVideoRemembersCamera, forKey: "roundVideoRemembersCamera")

@@ -667,6 +667,8 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
     }
      
     public let mainContextSourceNode: ContextExtractedContentContainingNode
+    // Messages look: "Delivered" / "Read" under one's own newest message.
+    private var messagesStyleReceiptNode: ImmediateTextNode?
     private let mainContainerNode: ContextControllerSourceNode
 
     /// The vertical offset the LIST last asked this node to hold, via `updateTrailingItemSpace`.
@@ -3803,6 +3805,27 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         if let actionButtonsSizeAndApply = actionButtonsSizeAndApply {
             layoutSize.height += 1.0 + actionButtonsSizeAndApply.0.height
         }
+
+        // Messages look: "Delivered" / "Read" under one's own newest message, as in iOS Messages. It goes as soon as
+        // anything else arrives below it.
+        var messagesStyleReceipt: String?
+        if !incoming, item.forkIsBottomMost, !item.failed, case .peer = item.chatLocation, item.message.id.peerId != item.context.account.peerId, item.message.id.namespace == Namespaces.Message.Cloud || item.message.id.namespace == Namespaces.Message.Local {
+            var isBroadcast = false
+            if let channel = item.message.peers[item.message.id.peerId] as? TelegramChannel, case .broadcast = channel.info {
+                isBroadcast = true
+            }
+            if !isBroadcast {
+                let russian = ForkPresentationLanguage.prefersRussianStrings
+                if item.sending {
+                    messagesStyleReceipt = russian ? "Отправка…" : "Sending…"
+                } else if item.read {
+                    messagesStyleReceipt = russian ? "Прочитано" : "Read"
+                } else {
+                    messagesStyleReceipt = russian ? "Доставлено" : "Delivered"
+                }
+                layoutSize.height += ChatMessageBubbleItemNode.messagesStyleReceiptHeight
+            }
+        }
         
         var layoutInsets = UIEdgeInsets(top: mergedTop.merged ? layoutConstants.bubble.mergedSpacing : layoutConstants.bubble.defaultSpacing, left: 0.0, bottom: mergedBottom.merged ? layoutConstants.bubble.mergedSpacing : layoutConstants.bubble.defaultSpacing, right: 0.0)
         if dateHeaderAtBottom.hasDate && dateHeaderAtBottom.hasTopic {
@@ -3842,6 +3865,9 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         let disablesComments = !hasInstantVideo
         
         return (layout, { animation, applyInfo, synchronousLoads in
+            defer {
+                selfReference.value?.updateMessagesStyleReceipt(text: messagesStyleReceipt, item: item, layoutSize: layoutSize, bottomInset: layoutInsets.bottom, bubbleFrame: backgroundFrame.offsetBy(dx: 0.0, dy: layoutInsets.top))
+            }
             return ChatMessageBubbleItemNode.applyLayout(selfReference: selfReference, animation, synchronousLoads,
                 inputParams: (item, params, mergedTop, mergedBottom, dateHeaderAtBottom),
                 params: params,
@@ -3914,6 +3940,34 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         })
     }
     
+    static let messagesStyleReceiptHeight: CGFloat = 17.0
+
+    /// Lays out (or removes) the Messages look receipt in the band added under the item, right-aligned with the bubble.
+    private func updateMessagesStyleReceipt(text: String?, item: ChatMessageItem, layoutSize: CGSize, bottomInset: CGFloat, bubbleFrame: CGRect) {
+        guard let text else {
+            if let receiptNode = self.messagesStyleReceiptNode {
+                self.messagesStyleReceiptNode = nil
+                receiptNode.removeFromSupernode()
+            }
+            return
+        }
+        let receiptNode: ImmediateTextNode
+        if let current = self.messagesStyleReceiptNode {
+            receiptNode = current
+        } else {
+            receiptNode = ImmediateTextNode()
+            receiptNode.isUserInteractionEnabled = false
+            receiptNode.displaysAsynchronously = false
+            self.messagesStyleReceiptNode = receiptNode
+            self.addSubnode(receiptNode)
+        }
+        let color = bubbleVariableColor(variableColor: item.presentationData.theme.theme.chat.serviceMessage.dateTextColor, wallpaper: item.presentationData.theme.wallpaper)
+        receiptNode.attributedText = NSAttributedString(string: text, font: Font.medium(11.0), textColor: color)
+        let size = receiptNode.updateLayout(CGSize(width: max(1.0, layoutSize.width - 20.0), height: 20.0))
+        let originY = layoutSize.height - bottomInset - ChatMessageBubbleItemNode.messagesStyleReceiptHeight + 2.0
+        receiptNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels(bubbleFrame.maxX - size.width - 4.0), y: originY), size: size)
+    }
+
     private static func applyLayout(selfReference: Weak<ChatMessageBubbleItemNode>,
         _ animation: ListViewItemUpdateAnimation,
         _ synchronousLoads: Bool,

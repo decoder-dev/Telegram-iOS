@@ -1396,7 +1396,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkAdminTitles.showsHiddenBadges = settings.showHiddenAdminBadges
         ForkStickerBypassSettings.enabled = settings.bypassStickerRestrictions
         hotFlags.hideRichTextEditor = settings.hideRichTextEditor
-        hotFlags.messagesStyle = settings.messagesStyle
         ForkExtrasHotFlags.update(hotFlags)
         ForkRegexMessageFilters.apply(
             enabled: settings.regexMessageFiltersEnabled,

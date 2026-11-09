@@ -325,12 +325,6 @@ jobs:
           xcrun simctl ui "$UDID" appearance dark
           capture glass-dark night chat:user:1001
           xcrun simctl ui "$UDID" appearance light
-          # Extras › Messages Style ("messages-"): unread dots, chevrons by the time, plain grey dates.
-          QA_ARGS="--ui-test-messages-style"
-          for target in chats chat:user:1001; do capture messages day "$target"; done
-          xcrun simctl ui "$UDID" appearance dark
-          capture messages-dark night chats
-          xcrun simctl ui "$UDID" appearance light
           QA_ARGS=""
           mkdir -p qa-artifacts/app-logs
           find "$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data/Containers/Shared/AppGroup" -path '*telegram-ui-tests-data*' -name '*.txt' -exec cp {} qa-artifacts/app-logs/ \; 2>/dev/null || true

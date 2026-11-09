@@ -137,6 +137,9 @@ public protocol ChatMessageItem: ListViewItem, ChatHistoryItemWithHeaders {
     var unsent: Bool { get }
     var sending: Bool { get }
     var failed: Bool { get }
+    /// Fork (Messages look): nothing is drawn below this message in the history, so it is the newest one there.
+    /// Set from the item's neighbours right before each layout.
+    var forkIsBottomMost: Bool { get }
     
     func merged(with neighbors: ChatHistoryItemNeighbors, isRotated: Bool) -> (top: ChatMessageMerge, bottom: ChatMessageMerge, dateAtBottom: ChatMessageHeaderSpec)
 }

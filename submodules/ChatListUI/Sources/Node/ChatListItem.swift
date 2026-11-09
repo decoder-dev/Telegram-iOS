@@ -1556,7 +1556,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
     public let dateNode: TextNode
     var dateStatusIconNode: ASImageNode?
     var dateDisclosureIconView: UIImageView?
-    // Extras › Messages Style: the unread dot left of the avatar.
+    // Messages look: the unread dot left of the avatar.
     private var messagesStyleUnreadDotNode: ASImageNode?
     private var messagesStyleUnreadDotColor: UIColor?
     public let separatorNode: ASDisplayNode
@@ -3754,10 +3754,10 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                 }
             }
 
-            // Extras › Messages Style: unread is a dot left of the avatar, as in Messages, instead of the count badge.
+            // Messages look: unread is a dot left of the avatar, as in iOS Messages, instead of the count badge.
             // Mentions, reactions and the muted count keep their badges.
             var messagesStyleUnreadDotColor: UIColor?
-            if hotFlags.messagesStyle, useChatListLayout, !item.useCommunityViewLayout, !isPeerGroup, unreadCount.unread {
+            if useChatListLayout, !item.useCommunityViewLayout, !isPeerGroup, unreadCount.unread {
                 messagesStyleUnreadDotColor = unreadCount.muted ? theme.unreadBadgeInactiveBackgroundColor : theme.unreadBadgeActiveBackgroundColor
                 currentBadgeBackgroundImage = nil
                 badgeContent = .none
@@ -3997,10 +3997,10 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             
             let layoutOffset: CGFloat = 0.0
             
-            // Extras › Messages Style: room for a chevron after the date (not while editing, in search, or in the lists
-            // that draw their own).
+            // Messages look: room for a chevron after the date (not while editing, in search, or in the lists that draw
+            // their own).
             var messagesStyleChevronWidth: CGFloat = 0.0
-            if hotFlags.messagesStyle, useChatListLayout, !item.editing, !item.interaction.isInlineMode, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
+            if useChatListLayout, !item.editing, !item.interaction.isInlineMode, case let .peer(peerData) = item.content, peerData.customMessageListData == nil {
                 messagesStyleChevronWidth = 12.0
             }
             let rawContentWidth = params.width - leftInset - params.rightInset - 18.0 - higChatListCardInset - editingOffset - messagesStyleChevronWidth
@@ -4617,7 +4617,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     
                     transition.updateFrame(node: strongSelf.avatarContainerNode, frame: avatarFrame)
 
-                    // Extras › Messages Style: the unread dot sits in the gutter left of the avatar.
+                    // Messages look: the unread dot sits in the gutter left of the avatar.
                     if let dotColor = messagesStyleUnreadDotColor {
                         let dotNode: ASImageNode
                         if let current = strongSelf.messagesStyleUnreadDotNode {
@@ -5003,7 +5003,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         let iconScale: CGFloat = 0.7
                         if let image = dateDisclosureIconView.image {
                             let imageSize = CGSize(width: floor(image.size.width * iconScale), height: floor(image.size.height * iconScale))
-                            // Messages Style: the content was narrowed by the chevron's width, so it sits right of the date.
+                            // Messages look: the content was narrowed by the chevron's width, so it sits right of the date.
                             let iconX = hasCustomListDisclosure ? (contentRect.origin.x + contentRect.size.width - imageSize.width + 4.0) : (contentRect.maxX + messagesStyleChevronWidth - imageSize.width)
                             let iconFrame = CGRect(origin: CGPoint(x: iconX, y: floorToScreenPixels(dateFrame.midY - imageSize.height * 0.5)), size: imageSize)
                             dateDisclosureIconView.frame = iconFrame
