@@ -255,7 +255,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             }
             let state = self.chatPresentationInterfaceState
             node.update(theme: state.theme, wallpaper: state.chatWallpaper, accessibilityLabel: state.strings.Conversation_typing)
-            let size = node.layout()
+            let size = node.updateBubbleLayout()
             // In a group the incoming bubbles start right of the authors' avatars.
             var isGroup = false
             if let peer = state.renderedPeer?.peer {

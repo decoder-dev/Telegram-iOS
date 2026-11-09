@@ -66,7 +66,7 @@ final class ChatTypingBubbleNode: ASDisplayNode {
         self.accessibilityLabel = accessibilityLabel
     }
 
-    func layout() -> CGSize {
+    func updateBubbleLayout() -> CGSize {
         let size = ChatTypingBubbleNode.size
         // The bubble sits a little right of the tail circles, which trail off its lower-left corner as in Messages.
         let bubbleFrame = CGRect(origin: CGPoint(x: 6.0, y: 0.0), size: size)
