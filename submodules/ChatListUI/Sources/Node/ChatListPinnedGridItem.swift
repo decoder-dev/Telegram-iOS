@@ -5,8 +5,10 @@ import Display
 import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
+import TelegramUIPreferences
 import AccountContext
 import AvatarNode
+import ItemListUI
 
 /// One pinned chat in the grid at the top of the chat list.
 struct ChatListPinnedGridPeer: Equatable {
