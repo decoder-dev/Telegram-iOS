@@ -219,5 +219,22 @@ class PinnedGrid(unittest.TestCase):
         self.assertEqual(node.count('item: ChatListPinnedGridItem(context: context, presentationData: entryPresentationData, peers: peers, interaction: nodeInteraction)'), 2)
 
 
+class RowTypingAndUndoSend(unittest.TestCase):
+    def test_one_to_one_typing_is_a_dots_bubble(self):
+        node = read('submodules/ChatListUI/Sources/Node/ChatListTypingNode.swift')
+        self.assertIn('if activities.count == 1, activities[0].0.id == peerId, case .typingText = activities[0].1 {', node)
+        self.assertIn('if !activities.isEmpty && !showsTypingBubble {', node)
+        # Groups keep the text that says who types.
+        self.assertIn('strings.DialogList_SingleTypingSuffix(peerTitle)', node)
+        self.assertIn('guard !UIAccessibility.isReduceMotionEnabled else {', node)
+
+    def test_undo_send_for_two_minutes(self):
+        menus = read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift')
+        self.assertIn('"Отменить отправку" : "Undo Send"', menus)
+        self.assertIn('data.messageActions.options.contains(.deleteGlobally), !message.flags.isSending, !message.effectivelyIncoming(context.account.peerId)', menus)
+        self.assertIn('Int32(Date().timeIntervalSince1970) - message.timestamp < 120', menus)
+        self.assertIn('deleteMessagesInteractively(messageIds: undoMessageIds, type: .forEveryone)', menus)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -2398,6 +2398,18 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             })))
         }
 
+        // Messages look: "Undo Send" for one's own message in its first two minutes, as in iOS Messages. It deletes the
+        // message for everyone; Delete stays below with its usual choices.
+        if !isReplyThreadHead, data.messageActions.options.contains(.deleteGlobally), !message.flags.isSending, !message.effectivelyIncoming(context.account.peerId), message.id.namespace == Namespaces.Message.Cloud, message.id.peerId != context.account.peerId, Int32(Date().timeIntervalSince1970) - message.timestamp < 120 {
+            let undoMessageIds = (selectAll ? messages : [message]).map(\.id)
+            actions.append(.action(ContextMenuActionItem(text: ForkPresentationLanguage.prefersRussianStrings ? "Отменить отправку" : "Undo Send", icon: { theme in
+                return generateTintedImage(image: UIImage(systemName: "arrow.uturn.backward"), color: theme.contextMenu.primaryColor)
+            }, action: { _, f in
+                f(.default)
+                let _ = context.engine.messages.deleteMessagesInteractively(messageIds: undoMessageIds, type: .forEveryone).startStandalone()
+            })))
+        }
+
         if !isReplyThreadHead, (!data.messageActions.options.intersection([.deleteLocally, .deleteGlobally]).isEmpty || clearCacheAsDelete) {
             var autoremoveDeadline: Int32?
             for attribute in message.attributes {

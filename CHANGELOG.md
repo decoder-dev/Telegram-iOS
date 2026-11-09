@@ -15,6 +15,8 @@
 - Motion: while the chat is dragged, bubbles trail the finger by more the farther they are from it and catch up on a spring; a new incoming message springs out of its tail and a sent one lands with a small squash; a light tap is felt when a message is sent and a soft one when one arrives in the open chat (at most one every 0.25 s). Nothing moves with Reduce Motion.
 - While the other side types, a grey bubble with three bouncing dots sits under the newest message, where the reply will appear; it scrolls with the chat.
 - Pinned chats are a grid of large avatars above the list, three to a row, with a blue dot and the newest message in a small bubble while unread. A tap opens the chat, a long press offers Unpin and Mute; in edit mode the pinned chats are rows again so they can be reordered.
+- A one-to-one chat whose other side types shows a small bubble with bouncing dots in its row instead of the word "typing"; groups keep the text that names who types.
+- Undo Send: for two minutes after sending, a long press on one's own message offers Undo Send, which deletes it for everyone.
 
 ### Removed — switches for what is always so
 - Hide Ads, Hide Proxy Sponsor, Remove Tracking from Sent Links and Send Statistics to Telegram are no longer switches: ads and the proxy sponsor are always hidden, tracking parameters are always removed from sent links, and statistics are never sent. Values stored by older builds are ignored.
