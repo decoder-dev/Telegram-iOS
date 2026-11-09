@@ -176,5 +176,48 @@ class MessagesLook(unittest.TestCase):
         self.assertIn('selfReference.value?.updateMessagesStyleReceipt(', bubble)
 
 
+class TypingBubble(unittest.TestCase):
+    def test_bubble_node(self):
+        node = read('submodules/TelegramUI/Sources/ChatTypingBubbleNode.swift')
+        self.assertIn('final class ChatTypingBubbleNode: ASDisplayNode', node)
+        # Three dots that rise in turn; still with Reduce Motion.
+        self.assertIn('for _ in 0 ..< 3 {', node)
+        self.assertIn('group.repeatCount = .infinity', node)
+        self.assertIn('guard ChatBubbleMotion.allowsMotion else {', node)
+        # The incoming bubble colour of the theme, so it matches the other side's messages.
+        self.assertIn('theme.chat.message.incoming.bubble', node)
+
+    def test_chat_makes_room_and_scrolls_it(self):
+        controller = read('submodules/TelegramUI/Sources/ChatControllerNode.swift')
+        self.assertIn('listInsets.top += ChatTypingBubbleNode.reservedHeight', controller)
+        self.assertIn('self.updateTypingBubbleLayout(contentBounds: contentBounds, bottomInset: typingBubbleBottomInset, layout: layout, transition: transition)', controller)
+        self.assertIn('node.frame = baseFrame.offsetBy(dx: 0.0, dy: self.typingBubbleScrollOffset)', controller)
+        load = read('submodules/TelegramUI/Sources/Chat/ChatControllerLoadDisplayNode.swift')
+        self.assertIn('strongSelf.chatDisplayNode.updateTypingBubble(isVisible: displayActivities.contains(where: { item in', load)
+        self.assertIn('strongSelf.chatDisplayNode.updateTypingBubbleScrollOffset(value)', load)
+
+
+class PinnedGrid(unittest.TestCase):
+    def test_pinned_rows_fold_into_one_grid_entry(self):
+        entries = read('submodules/ChatListUI/Sources/Node/ChatListNodeEntries.swift')
+        self.assertIn('case PinnedGrid(index: EngineChatList.Item.Index, peers: [ChatListPinnedGridPeer], presentationData: ChatListPresentationData)', entries)
+        fold = entries[entries.index('private func foldPinnedChatsIntoGrid('):]
+        fold = fold[:fold.index('\n}\n')]
+        # Main list only, and never while editing: pinned rows are reordered there.
+        self.assertIn('guard case .chatList = mode, case .chatList(groupId: .root) = chatListLocation, !state.editing else {', fold)
+        self.assertIn('index.pinningIndex != nil, peerEntry.promoInfo == nil', fold)
+        self.assertIn('return (foldPinnedChatsIntoGrid(result, state: state, mode: mode, chatListLocation: chatListLocation, accountPeerId: accountPeerId), view.isLoading)', entries)
+
+    def test_grid_item_keeps_the_pinned_actions(self):
+        grid = read('submodules/ChatListUI/Sources/Node/ChatListPinnedGridItem.swift')
+        self.assertIn('item.interaction.peerSelected(gridPeer.peer, nil, nil, nil, false)', grid)
+        self.assertIn('interaction.setItemPinned(.peer(peerId), false)', grid)
+        self.assertIn('interaction.setPeerMuted(peerId, !gridPeer.isMuted)', grid)
+        self.assertIn('static let columns = 3', grid)
+        self.assertIn('overrideImage: gridPeer.isSavedMessages ? .savedMessagesIcon : nil', grid)
+        node = read('submodules/ChatListUI/Sources/Node/ChatListNode.swift')
+        self.assertEqual(node.count('item: ChatListPinnedGridItem(context: context, presentationData: entryPresentationData, peers: peers, interaction: nodeInteraction)'), 2)
+
+
 if __name__ == '__main__':
     unittest.main()

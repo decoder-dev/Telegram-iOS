@@ -215,6 +215,74 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             self.overlayNavigationBar?.titleActivities = self.overlayTitleActivities
         }
     }
+
+    // Messages look: the "typing…" bubble under the newest message. The history leaves room for it at the bottom,
+    // and it moves with the history while that scrolls.
+    private var typingBubbleNode: ChatTypingBubbleNode?
+    private var isTypingBubbleVisible = false
+    private var typingBubbleBaseFrame: CGRect?
+    private var typingBubbleScrollOffset: CGFloat = 0.0
+
+    func updateTypingBubble(isVisible: Bool) {
+        if self.isTypingBubbleVisible == isVisible {
+            return
+        }
+        self.isTypingBubbleVisible = isVisible
+        self.requestLayout(.animated(duration: 0.35, curve: .spring))
+    }
+
+    /// The history's distance from its bottom, or nil when it is not known (the bubble then stays out of sight).
+    func updateTypingBubbleScrollOffset(_ offset: CGFloat?) {
+        self.typingBubbleScrollOffset = offset.map { max(0.0, $0) } ?? 10000.0
+        if let node = self.typingBubbleNode, let baseFrame = self.typingBubbleBaseFrame {
+            node.frame = baseFrame.offsetBy(dx: 0.0, dy: self.typingBubbleScrollOffset)
+        }
+    }
+
+    private func updateTypingBubbleLayout(contentBounds: CGRect, bottomInset: CGFloat, layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
+        if self.isTypingBubbleVisible {
+            let node: ChatTypingBubbleNode
+            var animateIn = false
+            if let current = self.typingBubbleNode {
+                node = current
+            } else {
+                node = ChatTypingBubbleNode()
+                self.typingBubbleNode = node
+                if let parent = self.historyNodeContainer.supernode {
+                    parent.insertSubnode(node, aboveSubnode: self.historyNodeContainer)
+                }
+                animateIn = true
+            }
+            let state = self.chatPresentationInterfaceState
+            node.update(theme: state.theme, wallpaper: state.chatWallpaper, accessibilityLabel: state.strings.Conversation_typing)
+            let size = node.layout()
+            // In a group the incoming bubbles start right of the authors' avatars.
+            var isGroup = false
+            if let peer = state.renderedPeer?.peer {
+                if peer is TelegramGroup {
+                    isGroup = true
+                } else if let channel = peer as? TelegramChannel, case .group = channel.info {
+                    isGroup = true
+                }
+            }
+            let x = contentBounds.minX + layout.safeInsets.left + (isGroup ? 46.0 : 8.0)
+            let baseFrame = CGRect(origin: CGPoint(x: x, y: contentBounds.maxY - bottomInset - ChatTypingBubbleNode.reservedHeight + 4.0), size: size)
+            self.typingBubbleBaseFrame = baseFrame
+            let frame = baseFrame.offsetBy(dx: 0.0, dy: self.typingBubbleScrollOffset)
+            if animateIn {
+                node.frame = frame
+                node.animateIn()
+            } else {
+                transition.updateFrame(node: node, frame: frame)
+            }
+        } else if let node = self.typingBubbleNode {
+            self.typingBubbleNode = nil
+            self.typingBubbleBaseFrame = nil
+            node.animateOut(completion: { [weak node] in
+                node?.removeFromSupernode()
+            })
+        }
+    }
     
     let wrappingNode: SpaceWarpNode
     let contentContainerNode: ChatNodeContainer
@@ -2664,6 +2732,13 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                 listInsets.top += 6.0
             }
         }
+        
+        // Messages look: room under the newest message for the "typing…" bubble.
+        let typingBubbleBottomInset = listInsets.top
+        if self.isTypingBubbleVisible {
+            listInsets.top += ChatTypingBubbleNode.reservedHeight
+        }
+        self.updateTypingBubbleLayout(contentBounds: contentBounds, bottomInset: typingBubbleBottomInset, layout: layout, transition: transition)
         
         if !self.historyNode.rotated {
             let current = listInsets
