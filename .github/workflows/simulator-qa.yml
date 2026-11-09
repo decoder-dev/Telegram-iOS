@@ -317,14 +317,6 @@ jobs:
           capture compact-preview day chats
           QA_ARGS="--ui-test-compact all"
           capture compact-all day chats
-          # Extras › Glass Bubbles and Glass Chat Elements ("glass-"): the bubbles, the date pills, service messages and
-          # the time over media as Liquid Glass, in day, cream and night.
-          QA_ARGS="--ui-test-glass"
-          for target in chat:user:1001 saved; do capture glass day "$target"; done
-          capture glass-cream cream chat:user:1001
-          xcrun simctl ui "$UDID" appearance dark
-          capture glass-dark night chat:user:1001
-          xcrun simctl ui "$UDID" appearance light
           QA_ARGS=""
           mkdir -p qa-artifacts/app-logs
           find "$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data/Containers/Shared/AppGroup" -path '*telegram-ui-tests-data*' -name '*.txt' -exec cp {} qa-artifacts/app-logs/ \; 2>/dev/null || true

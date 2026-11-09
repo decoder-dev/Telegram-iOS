@@ -93,15 +93,6 @@ public final class ChatMessageItemImpl: ChatMessageItem, CustomStringConvertible
         }
     }
     
-    /// Fork (Messages look): see `ChatMessageItem.forkIsBottomMost`. The history is rotated, so the item below is
-    /// the previous neighbour there and the next one in a list that is not.
-    public private(set) var forkIsBottomMost: Bool = false
-
-    private func updateForkIsBottomMost(neighbors: ListViewItemNeighbors, isRotated: Bool) {
-        let below = isRotated ? neighbors.previous : neighbors.next
-        self.forkIsBottomMost = below == nil
-    }
-
     public var pinToEdgeWithInset: Bool {
         switch self.content {
         case let .message(_, _, _, attributes, _):
@@ -382,7 +373,6 @@ public final class ChatMessageItemImpl: ChatMessageItem, CustomStringConvertible
             
             let nodeLayout = node.asyncLayout()
             let (top, bottom, dateAtBottom) = self.merged(with: ChatHistoryItemNeighbors(neighbors), isRotated: self.controllerInteraction.chatIsRotated)
-            self.updateForkIsBottomMost(neighbors: neighbors, isRotated: self.controllerInteraction.chatIsRotated)
             
             var disableDate = self.disableDate
             if let subject = self.associatedData.subject, case let .messageOptions(_, _, info) = subject {
@@ -487,7 +477,6 @@ public final class ChatMessageItemImpl: ChatMessageItem, CustomStringConvertible
                 
                 async {
                     let (top, bottom, dateAtBottom) = self.merged(with: ChatHistoryItemNeighbors(neighbors), isRotated: isRotated)
-                    self.updateForkIsBottomMost(neighbors: neighbors, isRotated: isRotated)
                     
                     var disableDate = self.disableDate
                     if let subject = self.associatedData.subject, case let .messageOptions(_, _, info) = subject {

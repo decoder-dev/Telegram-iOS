@@ -244,48 +244,6 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
     
     private var backgroundContent: WallpaperBubbleBackgroundNode?
     private var text: String
-    /// True while the date floats at the top of the history during a scroll rather than sitting between messages.
-    private var isStuck = false
-
-    /// Messages look: on a plain chat background a date between messages is grey text without a pill, as in iOS
-    /// Messages. Once it floats over the bubbles it gets its pill back so it stays readable.
-    private var isPlainLook: Bool {
-        return !self.presentationData.theme.wallpaper.hasWallpaper && !self.isStuck
-    }
-
-    private func labelString() -> NSAttributedString {
-        let titleFont = Font.medium(min(18.0, floor(self.presentationData.fontSize.baseDisplaySize * 12.0 / 17.0)))
-        let textColor: UIColor
-        if self.isPlainLook {
-            textColor = self.presentationData.theme.theme.list.itemSecondaryTextColor
-        } else {
-            textColor = bubbleVariableColor(variableColor: self.presentationData.theme.theme.chat.serviceMessage.dateTextColor, wallpaper: self.presentationData.theme.wallpaper)
-        }
-        return NSAttributedString(string: self.text, font: titleFont, textColor: textColor)
-    }
-
-    @discardableResult
-    private func layoutLabel() -> CGSize {
-        let labelLayout = TextNode.asyncLayout(self.labelNode)
-        let (size, apply) = labelLayout(TextNodeLayoutArguments(attributedString: self.labelString(), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: 320.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
-        let _ = apply()
-        return size.size
-    }
-
-    private func updatePlainLookBackground() {
-        if self.isPlainLook {
-            self.backgroundNode.isHidden = true
-            self.backgroundContent?.isHidden = true
-        } else if self.backgroundNode.isChatGlass {
-            self.backgroundNode.isHidden = false
-            self.backgroundContent?.isHidden = true
-        } else if let backgroundContent = self.backgroundContent {
-            self.backgroundNode.isHidden = true
-            backgroundContent.isHidden = false
-        } else {
-            self.backgroundNode.isHidden = false
-        }
-    }
     
     init(presentationData: ChatPresentationData, controllerInteraction: ChatControllerInteraction?, localTimestamp: Int32, scheduled: Bool) {
         self.presentationData = presentationData
@@ -357,8 +315,14 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
         }
         self.addSubnode(self.labelNode)
                 
-        let size = self.layoutLabel()
-        self.labelNode.frame = CGRect(origin: CGPoint(), size: size)
+        let titleFont = Font.medium(min(18.0, floor(presentationData.fontSize.baseDisplaySize * 12.0 / 17.0)))
+        
+        let attributedString = NSAttributedString(string: text, font: titleFont, textColor: bubbleVariableColor(variableColor: presentationData.theme.theme.chat.serviceMessage.dateTextColor, wallpaper: presentationData.theme.wallpaper))
+        let labelLayout = TextNode.asyncLayout(self.labelNode)
+                
+        let (size, apply) = labelLayout(TextNodeLayoutArguments(attributedString: attributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: 320.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+        let _ = apply()
+        self.labelNode.frame = CGRect(origin: CGPoint(), size: size.size)
     }
     
     func updatePresentationData(_ presentationData: ChatPresentationData, context: AccountContext) {
@@ -372,12 +336,17 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
         self.backgroundNode.updateColor(color: selectDateFillStaticColor(theme: presentationData.theme.theme, wallpaper: presentationData.theme.wallpaper), enableBlur: fullTranslucency && dateFillNeedsBlur(theme: presentationData.theme.theme, wallpaper: presentationData.theme.wallpaper), transition: .immediate)
         self.stickBackgroundNode.image = graphics.dateFloatingBackground
         
-        let size = self.layoutLabel()
+        let titleFont = Font.medium(min(18.0, floor(presentationData.fontSize.baseDisplaySize * 12.0 / 17.0)))
+        
+        let attributedString = NSAttributedString(string: self.text, font: titleFont, textColor: bubbleVariableColor(variableColor: presentationData.theme.theme.chat.serviceMessage.dateTextColor, wallpaper: presentationData.theme.wallpaper))
+        let labelLayout = TextNode.asyncLayout(self.labelNode)
+        
+        let (size, apply) = labelLayout(TextNodeLayoutArguments(attributedString: attributedString, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: 320.0, height: CGFloat.greatestFiniteMagnitude), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
+        let _ = apply()
         
         if presentationData.fontSize != previousPresentationData.fontSize {
-            self.labelNode.bounds = CGRect(origin: CGPoint(), size: size)
+            self.labelNode.bounds = CGRect(origin: CGPoint(), size: size.size)
         }
-        self.updatePlainLookBackground()
     }
     
     func updateBackgroundColor(color: UIColor, enableBlur: Bool) {
@@ -401,15 +370,9 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
         transition.updatePosition(node: self.labelNode, position: labelFrame.center)
         self.labelNode.bounds = CGRect(origin: CGPoint(), size: labelFrame.size)
                 
-        // Extras › Glass Chat Elements: the pill is Liquid Glass, without its wallpaper-coloured copy.
-        let isGlass = self.backgroundNode.setChatGlass(ArenaSettings.shared.glassChatElementsEnabled)
-        if isGlass, self.backgroundNode.supernode == nil {
-            self.insertSubnode(self.backgroundNode, at: 0)
-        }
-        self.backgroundContent?.isHidden = isGlass
         if let backgroundContent = self.backgroundContent {
             backgroundContent.allowsGroupOpacity = true
-            self.backgroundNode.isHidden = !isGlass
+            self.backgroundNode.isHidden = true
             
             transition.updateFrame(node: backgroundContent, frame: self.backgroundNode.frame)
             backgroundContent.cornerRadius = backgroundFrame.size.height / 2.0
@@ -421,24 +384,10 @@ private final class ChatMessageDateContentNode: ASDisplayNode {
                 backgroundContent.update(rect: backgroundFrame, within: containerSize, transition: transition)
             }*/
         }
-
-        self.updatePlainLookBackground()
     }
     
     func updateStickDistanceFactor(_ factor: CGFloat, transition: ContainedViewLayoutTransition) {
         self.stickBackgroundNode.alpha = factor
-        let isStuck = factor >= 0.5
-        if self.isStuck != isStuck {
-            let wasPlain = self.isPlainLook
-            self.isStuck = isStuck
-            if wasPlain != self.isPlainLook {
-                self.layoutLabel()
-                self.updatePlainLookBackground()
-                if case .animated = transition {
-                    self.layer.animateAlpha(from: 0.6, to: 1.0, duration: 0.2)
-                }
-            }
-        }
     }
 }
 
@@ -642,15 +591,9 @@ private final class ChatMessagePeerContentNode: ASDisplayNode {
             transition.updateFrame(view: arrowIcon, frame: arrowFrame)
         }
                 
-        // Extras › Glass Chat Elements: the pill is Liquid Glass, without its wallpaper-coloured copy.
-        let isGlass = self.backgroundNode.setChatGlass(ArenaSettings.shared.glassChatElementsEnabled)
-        if isGlass, self.backgroundNode.supernode == nil {
-            self.insertSubnode(self.backgroundNode, at: 0)
-        }
-        self.backgroundContent?.isHidden = isGlass
         if let backgroundContent = self.backgroundContent {
             backgroundContent.allowsGroupOpacity = true
-            self.backgroundNode.isHidden = !isGlass
+            self.backgroundNode.isHidden = true
             
             transition.updateFrame(node: backgroundContent, frame: self.backgroundNode.frame)
             backgroundContent.cornerRadius = backgroundFrame.size.height / 2.0

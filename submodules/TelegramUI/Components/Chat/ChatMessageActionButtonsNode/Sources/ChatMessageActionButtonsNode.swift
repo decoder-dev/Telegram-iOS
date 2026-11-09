@@ -83,10 +83,6 @@ private final class ChatMessageActionButtonNode: ASDisplayNode {
     
     private var maskPath: CGPath?
     private var loadingEffectView: TextLoadingEffectView?
-
-    // Extras › Glass Chat Elements (iOS 26+): the button is Liquid Glass; its own corner mask shapes it.
-    private var glassView: UIVisualEffectView?
-    private var glassTint: UIColor?
     
     private var absolutePosition: (CGRect, CGSize)?
     
@@ -228,41 +224,6 @@ private final class ChatMessageActionButtonNode: ASDisplayNode {
         
     }
     
-    private func updateGlass(size: CGSize, tint: UIColor) {
-        if #available(iOS 26.0, *), ArenaSettings.shared.glassChatElementsEnabled, NavigationBackgroundNode.isChatGlassAvailable {
-            let glassView: UIVisualEffectView
-            if let current = self.glassView {
-                glassView = current
-            } else {
-                glassView = UIVisualEffectView(effect: nil)
-                glassView.isUserInteractionEnabled = false
-                self.view.insertSubview(glassView, at: 0)
-                self.glassView = glassView
-                self.glassTint = nil
-            }
-            if self.glassTint != tint {
-                self.glassTint = tint
-                var white: CGFloat = 0.0
-                var alpha: CGFloat = 0.0
-                if !tint.getWhite(&white, alpha: &alpha) {
-                    white = 0.0
-                }
-                glassView.overrideUserInterfaceStyle = white < 0.6 ? .dark : .light
-                let effect = UIGlassEffect(style: .regular)
-                effect.tintColor = tint.alpha > 0.01 ? tint : nil
-                glassView.effect = effect
-            }
-            glassView.frame = CGRect(origin: CGPoint(), size: size)
-            self.backgroundBlurView?.view.isHidden = true
-            self.backgroundContent?.isHidden = true
-        } else if let glassView = self.glassView {
-            self.glassView = nil
-            self.glassTint = nil
-            glassView.removeFromSuperview()
-            self.backgroundContent?.isHidden = false
-        }
-    }
-
     class func asyncLayout(_ maybeNode: ChatMessageActionButtonNode?) -> (_ context: AccountContext, _ theme: ChatPresentationThemeData, _ bubbleCorners: PresentationChatBubbleCorners, _ strings: PresentationStrings, _ backgroundNode: WallpaperBackgroundNode?, _ message: EngineMessage, _ button: ReplyMarkupButton, _ customInfo: ChatMessageActionButtonsNode.CustomInfo?, _ constrainedWidth: CGFloat, _ position: MessageBubbleActionButtonPosition) -> (minimumWidth: CGFloat, layout: ((CGFloat) -> (CGSize, (ListViewItemUpdateAnimation) -> ChatMessageActionButtonNode))) {
         let titleLayout = TextNode.asyncLayout(maybeNode?.titleNode)
         
@@ -457,7 +418,6 @@ private final class ChatMessageActionButtonNode: ASDisplayNode {
                     } else {
                         node.backgroundBlurView?.view.isHidden = false
                     }
-                    node.updateGlass(size: CGSize(width: max(0.0, width), height: 42.0), tint: bubbleVariableColor(variableColor: messageTheme.actionButtonsFillColor, wallpaper: theme.wallpaper))
                     
                     let rect = CGRect(origin: CGPoint(), size: CGSize(width: max(0.0, width), height: 42.0))
                     let maskPath: CGPath?

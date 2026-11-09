@@ -1445,13 +1445,9 @@ public final class ChatMessageTransitionNodeImpl: ASDisplayNode, ChatMessageTran
                 itemNode.addSubnode(animatingItemNode)
             }
 
-            animatingItemNode.animationEnded = { [weak self, weak animatingItemNode, weak contextSourceNode] in
+            animatingItemNode.animationEnded = { [weak self, weak animatingItemNode] in
                 guard let strongSelf = self, let animatingItemNode = animatingItemNode else {
                     return
-                }
-                // Messages look: the sent message lands with a small squash.
-                if let contextSourceNode {
-                    ChatBubbleMotion.landingSquash(layer: contextSourceNode.layer)
                 }
                 animatingItemNode.removeFromSupernode()
                 animatingItemNode.overlayController?.dismiss()
@@ -1468,8 +1464,6 @@ public final class ChatMessageTransitionNodeImpl: ASDisplayNode, ChatMessageTran
             }
 
             animatingItemNode.beginAnimation()
-            // Messages look: a light tap as the message takes off.
-            ChatBubbleMotion.sentHaptic()
 
             self.onTransitionEvent(.animated(duration: self.animationParameters.duration, curve: self.animationParameters.verticalCurve))
         }

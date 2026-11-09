@@ -392,8 +392,6 @@ public struct ChatListNodeState: Equatable {
 private func mappedInsertEntries(context: AccountContext, nodeInteraction: ChatListNodeInteraction, location: ChatListControllerLocation, isPremium: Bool, filterData: ChatListItemFilterData?, chatListFilters: [ChatListFilter]?, mode: ChatListNodeMode, isPeerEnabled: ((EnginePeer) -> Bool)?, entries: [ChatListNodeViewTransitionInsertEntry], presentationData: ChatListPresentationData) -> [ListViewInsertItem] {
     return entries.map { entry -> ListViewInsertItem in
         switch entry.entry {
-        case let .PinnedGrid(_, peers, entryPresentationData):
-            return ListViewInsertItem(index: entry.index, previousIndex: entry.previousIndex, item: ChatListPinnedGridItem(context: context, presentationData: entryPresentationData, peers: peers, interaction: nodeInteraction), directionHint: entry.directionHint)
         case .HeaderEntry:
             return ListViewInsertItem(index: entry.index, previousIndex: entry.previousIndex, item: ChatListEmptyHeaderItem(), directionHint: entry.directionHint)
         case let .AdditionalCategory(_, id, title, image, appearance, selected, presentationData):
@@ -1128,8 +1126,6 @@ private func mappedUpdateEntries(context: AccountContext, nodeInteraction: ChatL
                 return ListViewUpdateItem(index: entry.index, previousIndex: entry.previousIndex, item: ChatListSectionHeaderItem(theme: presentationData.theme, strings: presentationData.strings, hide: displayHide ? {
                     hideChatListContacts(context: context)
                 } : nil), directionHint: entry.directionHint)
-            case let .PinnedGrid(_, peers, entryPresentationData):
-                return ListViewUpdateItem(index: entry.index, previousIndex: entry.previousIndex, item: ChatListPinnedGridItem(context: context, presentationData: entryPresentationData, peers: peers, interaction: nodeInteraction), directionHint: entry.directionHint)
             case .HeaderEntry:
                 return ListViewUpdateItem(index: entry.index, previousIndex: entry.previousIndex, item: ChatListEmptyHeaderItem(), directionHint: entry.directionHint)
             case let .TopPeer(_, peer):
@@ -1305,7 +1301,7 @@ public final class ChatListNode: ListViewImpl {
                     return nil
                 case let .PeerId(value):
                     return EnginePeer.Id(value)
-                case .ThreadId, .GroupId, .ContactId, .ArchiveIntro, .EmptyIntro, .SectionHeader, .Notice, .additionalCategory, .TopPeer, .PinnedGrid:
+                case .ThreadId, .GroupId, .ContactId, .ArchiveIntro, .EmptyIntro, .SectionHeader, .Notice, .additionalCategory, .TopPeer:
                     return nil
                 }
             }
@@ -3690,7 +3686,7 @@ public final class ChatListNode: ListViewImpl {
                         var hasArchive = false
                         loop: for entry in transition.chatListView.filteredEntries {
                             switch entry {
-                            case .GroupReferenceEntry, .HoleEntry, .PeerEntry, .ContactEntry, .PinnedGrid:
+                            case .GroupReferenceEntry, .HoleEntry, .PeerEntry, .ContactEntry:
                                 if case .GroupReferenceEntry = entry {
                                     hasArchive = true
                                 } else {

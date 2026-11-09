@@ -725,11 +725,6 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
     }
     
     private var isInteractivelyScrollingValue: Bool = false
-
-    // Messages look: bubbles trail the finger and catch up on a spring (springy scrolling). Created on the first drag;
-    // `didScrollWithOffset` feeds it before handing the offset to whoever set the property.
-    private var springyScroll: ChatSpringyScrollController?
-    private var didScrollWithOffsetValue: ((CGFloat, ContainedViewLayoutTransition, ListViewItemNode?, Bool) -> Void)?
     private let isInteractivelyScrollingPromise = ValuePromise<Bool>(false, ignoreRepeated: true)
     var isInteractivelyScrolling: Signal<Bool, NoError> {
         return self.isInteractivelyScrollingPromise.get()
@@ -1267,14 +1262,6 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         
         self.beginPresentationDataManagement(updated: updatedPresentationData.signal)
         
-        self.listView.didScrollWithOffset = { [weak self] offset, transition, itemNode, isTracking in
-            guard let self else {
-                return
-            }
-            self.updateSpringyScroll(offset: offset, transition: transition, isTracking: isTracking)
-            self.didScrollWithOffsetValue?(offset, transition, itemNode, isTracking)
-        }
-
         self.listView.visibleContentOffsetChanged = { [weak self] offset, _ in
             if let strongSelf = self {
                 strongSelf.contentPositionChanged(offset)
@@ -1388,13 +1375,10 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             }
         }).startStrict()
         
-        self.beganInteractiveDragging = { [weak self] point in
+        self.beganInteractiveDragging = { [weak self] _ in
             guard let self else {
                 return
             }
-            let springyScroll = self.springyScroll ?? ChatSpringyScrollController(itemsAreRotated: true)
-            self.springyScroll = springyScroll
-            springyScroll.beganDragging(touchY: point.y)
             self.isDraggingForOverscrollAction = true
             self.isInteractivelyScrollingValue = true
             self.isInteractivelyScrollingPromise.set(true)
@@ -2185,8 +2169,6 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             var chatAppearance: [Bool]
             // Liquid Glass bubbles: the switch and its four levels, read by the bubble node at layout time.
             var glassBubbles: [Int32]
-            // Glass dates, service messages and badges: the pills read the switch when they lay out.
-            var glassChatElements: Bool
             // Regram port: message id in the status line, spoilers shown without a tap.
             var regramChat: [Bool]
             // "Hide AI features": the bubbles drop the summary button and any open summary.
@@ -2235,7 +2217,6 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 stickerShape: settings.stickerShape,
                 chatAppearance: [settings.disableColoredReplies, settings.hideStickerChecks, settings.mentionAvatars, settings.hideShareButton],
                 glassBubbles: [settings.glassBubbles ? 1 : 0, settings.glassBubbleTint, settings.glassBubbleRimTop, settings.glassBubbleRimSides, settings.glassBubbleRimBottom],
-                glassChatElements: settings.glassChatElements,
                 regramChat: [settings.showMessageId, settings.autoRevealSpoilers],
                 hidesAIFeatures: settings.hideAIButton,
                 showsHiddenAdminBadges: settings.showHiddenAdminBadges
@@ -6114,31 +6095,8 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         set { self.listView.updateFloatingHeaderOffset = newValue }
     }
     public var didScrollWithOffset: ((CGFloat, ContainedViewLayoutTransition, ListViewItemNode?, Bool) -> Void)? {
-        get { self.didScrollWithOffsetValue }
-        set { self.didScrollWithOffsetValue = newValue }
-    }
-
-    /// ListView moves every item frame by `-offset` on a scroll; a user drag or its deceleration moves the springs.
-    /// Anything else (insertions, programmatic jumps, selection mode) puts the items straight back.
-    private func updateSpringyScroll(offset: CGFloat, transition: ContainedViewLayoutTransition, isTracking: Bool) {
-        guard let springyScroll = self.springyScroll else {
-            return
-        }
-        var isImmediate = false
-        if case .immediate = transition {
-            isImmediate = true
-        }
-        guard isTracking, isImmediate, self.controllerInteraction.selectionState == nil else {
-            springyScroll.reset()
-            return
-        }
-        var items: [(layer: CALayer, centerY: CGFloat)] = []
-        self.listView.forEachVisibleItemNode { itemNode in
-            if itemNode is ChatMessageItemView {
-                items.append((layer: itemNode.layer, centerY: itemNode.frame.midY))
-            }
-        }
-        springyScroll.contentMoved(by: -offset, items: items)
+        get { self.listView.didScrollWithOffset }
+        set { self.listView.didScrollWithOffset = newValue }
     }
     public var addContentOffset: ((CGFloat, ListViewItemNode?) -> Void)? {
         get { self.listView.addContentOffset }

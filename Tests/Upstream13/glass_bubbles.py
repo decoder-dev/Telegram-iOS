@@ -74,9 +74,8 @@ class GlassBubbleRows(unittest.TestCase):
         factory = source[source.index('    case .appearance:\n        entries = ['):]
         factory = factory[:factory.index('\n        ]\n')]
         ids = [int(value) for value in re.findall(r'\.(?:designHeader|designFooter|appearanceToggle|intChoice)\((19\d\d),', factory)]
-        # The bubble block first, then the glass pills (1907-1909).
-        self.assertEqual(ids, [1900, 1901, 1902, 1903, 1904, 1905, 1906, 1907, 1908, 1909])
-        self.assertTrue(all(1900 <= value <= 1919 for value in ids))
+        self.assertEqual(ids, [1900, 1901, 1902, 1903, 1904, 1905, 1906])
+        self.assertTrue(all(1900 <= value <= 1909 for value in ids))
         self.assertIn('.appearanceToggle(1901, russian ? "Стеклянные пузыри" : "Glass Bubbles", settings.glassBubbles, \\.glassBubbles)', factory)
 
     def test_level_rows_are_int_choices_with_both_languages(self):
@@ -168,6 +167,33 @@ class GlassBubbleRendering(unittest.TestCase):
         self.assertNotIn('self.mask = ', src)
         self.assertIn('final class GlassRimView: UIImageView', src)
         self.assertIn('.withRenderingMode(.alwaysTemplate)', src)
+
+    def test_text_stays_readable_on_a_light_chat(self):
+        # Simulator QA: white text sat on a pale blue bubble in a light theme. The tint rises to 4.5:1.
+        bubble = read(BUBBLE)
+        self.assertIn('style.tintAlpha = chatGlassBubbleReadableTintAlpha(tint: tint, textColor: textColor, isDark: theme.overallDarkAppearance, minimum: style.tintAlpha)', bubble)
+        self.assertIn('if contrast >= 4.5 {', bubble)
+
+
+class ChatTitleSize(unittest.TestCase):
+    def test_title_does_not_outgrow_its_capsule(self):
+        # Simulator QA: at the largest text size the status line under the chat name was cut off.
+        title = read('submodules/TelegramUI/Components/ChatTitleView/Sources/ChatTitleComponent.swift')
+        self.assertIn('return min(size, 19.0)', title)
+        self.assertEqual(title.count('chatTitleCappedFontSize(component.context.sharedContext.currentPresentationData.with { $0 }.listsFontSize.baseDisplaySize)'), 2)
+
+
+class NoMessagesLook(unittest.TestCase):
+    def test_the_messages_look_and_glass_pills_are_gone(self):
+        # The iOS Messages look, its motion and the glass pills were taken out again before 4511.
+        for path in ['submodules/Display/Source/ChatBubbleMotion.swift',
+                     'submodules/TelegramUI/Sources/ChatTypingBubbleNode.swift',
+                     'submodules/ChatListUI/Sources/Node/ChatListPinnedGridItem.swift']:
+            self.assertFalse((ROOT / path).exists(), path)
+        self.assertNotIn('glassChatElements', read(SETTINGS))
+        self.assertNotIn('glassChatElements', read(EXTRAS))
+        self.assertNotIn('forkIsBottomMost', read(BUBBLE))
+
 
 if __name__ == '__main__':
     unittest.main()

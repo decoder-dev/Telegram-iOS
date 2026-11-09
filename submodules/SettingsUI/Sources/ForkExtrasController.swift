@@ -704,7 +704,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1502, 1503, 1504, 1505, 1506],
             [1507]
         ]),
-        (.appearance, [[1618, 1531, 1532, 1553, 1619], [1900, 1901, 1902, 1903, 1904, 1905, 1906], [1907, 1908, 1909]]),
+        (.appearance, [[1618, 1531, 1532, 1553, 1619], [1900, 1901, 1902, 1903, 1904, 1905, 1906]]),
         // Scene 38: the input panel opens Messages. Scene 39: round videos and voice open Media, calls follow.
         (.messages, [
             [2200, 2201, 2043],
@@ -1397,9 +1397,6 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .intChoice(1904, russian ? "Блик по бокам" : "Rim: Sides", forkIntChoiceLabel(forkGlassRimOptions(russian: russian), settings.glassBubbleRimSides)),
             .intChoice(1905, russian ? "Блик снизу" : "Rim: Bottom", forkIntChoiceLabel(forkGlassRimOptions(russian: russian), settings.glassBubbleRimBottom)),
             .designFooter(1906, russian ? "Пузыри становятся прозрачным стеклом цвета темы, сквозь которое виден фон чата. Нужна iOS 26 или новее." : "Bubbles become see-through glass tinted with the theme color, with the chat wallpaper showing through. Requires iOS 26 or later."),
-            .designHeader(1907, russian ? "Вокруг пузырей" : "Around the bubbles"),
-            .appearanceToggle(1908, russian ? "Стеклянные плашки" : "Glass Chat Elements", settings.glassChatElements, \.glassChatElements),
-            .designFooter(1909, russian ? "Даты, служебные сообщения, время на фото и видео, кнопки ботов и кнопка «Поделиться» становятся стеклом. Нужна iOS 26 или новее." : "Dates, service messages, the time on photos and videos, bot buttons and the Share button turn to glass. Requires iOS 26 or later."),
         ]
     case .messages:
         entries = [

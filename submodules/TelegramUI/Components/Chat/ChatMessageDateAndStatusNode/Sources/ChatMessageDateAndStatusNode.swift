@@ -1187,14 +1187,11 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
                         if let blurredBackgroundColor = blurredBackgroundColor {
                             if let blurredBackgroundNode = strongSelf.blurredBackgroundNode {
                                 blurredBackgroundNode.updateColor(color: blurredBackgroundColor.0, enableBlur: blurredBackgroundColor.1, transition: .immediate)
-                                // Extras › Glass Chat Elements: the time over media and stickers is Liquid Glass.
-                                blurredBackgroundNode.setChatGlass(ArenaSettings.shared.glassChatElementsEnabled)
                                 animation.animator.updateFrame(layer: blurredBackgroundNode.layer, frame: CGRect(origin: CGPoint(), size: layoutSize), completion: nil)
                                 blurredBackgroundNode.update(size: blurredBackgroundNode.bounds.size, cornerRadius: blurredBackgroundNode.bounds.height / 2.0, animator: animation.animator)
                             } else {
                                 let blurredBackgroundNode = NavigationBackgroundNode(color: blurredBackgroundColor.0, enableBlur: blurredBackgroundColor.1)
                                 strongSelf.blurredBackgroundNode = blurredBackgroundNode
-                                blurredBackgroundNode.setChatGlass(ArenaSettings.shared.glassChatElementsEnabled)
                                 strongSelf.insertSubnode(blurredBackgroundNode, at: 0)
                                 blurredBackgroundNode.frame = CGRect(origin: CGPoint(), size: layoutSize)
                                 blurredBackgroundNode.update(size: blurredBackgroundNode.bounds.size, cornerRadius: blurredBackgroundNode.bounds.height / 2.0, transition: .immediate)

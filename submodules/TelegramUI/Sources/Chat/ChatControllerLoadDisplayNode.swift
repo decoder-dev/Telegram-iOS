@@ -5202,13 +5202,6 @@ extension ChatControllerImpl {
                                 transition: .spring(duration: 0.4)
                             )
                             strongSelf.chatDisplayNode.overlayTitleActivities = titleActivities
-                            // Messages look: the "typing…" bubble under the newest message while someone types.
-                            strongSelf.chatDisplayNode.updateTypingBubble(isVisible: displayActivities.contains(where: { item in
-                                if case .typingText = item.1 {
-                                    return true
-                                }
-                                return false
-                            }))
                             
                             strongSelf.peerInputActivitiesPromise.set(.single(activities))
                             
@@ -5374,12 +5367,6 @@ extension ChatControllerImpl {
         historyNode.contentPositionChanged = { [weak self, weak historyNode] offset in
             guard let strongSelf = self, let historyNode, strongSelf.chatDisplayNode.historyNode === historyNode else {
                 return
-            }
-            // Messages look: the "typing…" bubble scrolls with the history.
-            if case let .known(value) = offset {
-                strongSelf.chatDisplayNode.updateTypingBubbleScrollOffset(value)
-            } else {
-                strongSelf.chatDisplayNode.updateTypingBubbleScrollOffset(nil)
             }
 
             // While a scroll target is held, an arrival below it lands under the input panel instead of

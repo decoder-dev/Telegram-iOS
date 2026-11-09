@@ -32,85 +32,6 @@ public final class NavigationBackgroundNode: ASDisplayNode {
         }
     }
 
-    // Fork (Extras › Glass Chat Elements): Liquid Glass tinted with the node's colour in place of the
-    // tinted blur, on iOS 26+. Only chat pills turn it on; nothing here is created while it is off.
-    private var chatGlassRequested = false
-    private var chatGlassView: UIVisualEffectView?
-    private var appliedChatGlassTint: UIColor?
-
-    /// Liquid Glass needs iOS 26; with Reduce Transparency the pill keeps its solid fill.
-    public static var isChatGlassAvailable: Bool {
-        if #available(iOS 26.0, *) {
-            return !UIAccessibility.isReduceTransparencyEnabled
-        } else {
-            return false
-        }
-    }
-
-    /// Draws the node as Liquid Glass tinted with its colour. Returns whether the glass is on, so a caller
-    /// that shows a wallpaper-coloured copy of the pill instead of this node can hide that copy.
-    @discardableResult
-    public func setChatGlass(_ enabled: Bool) -> Bool {
-        let effective = enabled && NavigationBackgroundNode.isChatGlassAvailable
-        if self.chatGlassRequested != effective {
-            self.chatGlassRequested = effective
-            self.updateChatGlass()
-        }
-        return effective
-    }
-
-    public var isChatGlass: Bool {
-        return self.chatGlassRequested
-    }
-
-    private func updateChatGlass() {
-        guard self.isNodeLoaded else {
-            return
-        }
-        if #available(iOS 26.0, *), self.chatGlassRequested {
-            let glassView: UIVisualEffectView
-            if let current = self.chatGlassView {
-                glassView = current
-            } else {
-                glassView = UIVisualEffectView(effect: nil)
-                glassView.isUserInteractionEnabled = false
-                glassView.layer.cornerCurve = .continuous
-                self.view.insertSubview(glassView, at: 0)
-                self.chatGlassView = glassView
-                self.appliedChatGlassTint = nil
-            }
-            // The pills carry light text on a dark fill (or dark text on a light one): the glass follows the fill.
-            var white: CGFloat = 0.0
-            var alpha: CGFloat = 0.0
-            if !self._color.getWhite(&white, alpha: &alpha) {
-                white = 0.0
-            }
-            let interfaceStyle: UIUserInterfaceStyle = white < 0.6 ? .dark : .light
-            if glassView.overrideUserInterfaceStyle != interfaceStyle {
-                glassView.overrideUserInterfaceStyle = interfaceStyle
-                self.appliedChatGlassTint = nil
-            }
-            if self.appliedChatGlassTint != self._color {
-                let effect = UIGlassEffect(style: .regular)
-                effect.tintColor = self._color.alpha > 0.01 ? self._color : nil
-                glassView.effect = effect
-                self.appliedChatGlassTint = self._color
-            }
-            if let (size, cornerRadius) = self.validLayout {
-                glassView.frame = CGRect(origin: CGPoint(), size: size)
-                glassView.layer.cornerRadius = cornerRadius
-            }
-            self.backgroundNode.isHidden = true
-            self.effectView?.isHidden = true
-        } else if let glassView = self.chatGlassView {
-            self.chatGlassView = nil
-            self.appliedChatGlassTint = nil
-            glassView.removeFromSuperview()
-            self.backgroundNode.isHidden = false
-            self.effectView?.isHidden = false
-        }
-    }
-
     public init(color: UIColor, enableBlur: Bool = true, enableSaturation: Bool = true, customBlurRadius: CGFloat? = nil) {
         self._color = .clear
         self.enableBlur = enableBlur
@@ -133,9 +54,6 @@ public final class NavigationBackgroundNode: ASDisplayNode {
         if self.scheduledUpdate {
             self.scheduledUpdate = false
             self.updateBackgroundBlur(forceKeepBlur: false)
-        }
-        if self.chatGlassRequested {
-            self.updateChatGlass()
         }
     }
     
@@ -187,10 +105,6 @@ public final class NavigationBackgroundNode: ASDisplayNode {
                 }
                 self.effectView = effectView
                 self.view.insertSubview(effectView, at: 0)
-                if let chatGlassView = self.chatGlassView {
-                    effectView.isHidden = true
-                    self.view.insertSubview(chatGlassView, at: 0)
-                }
             }
         } else if let effectView = self.effectView {
             self.effectView = nil
@@ -216,17 +130,10 @@ public final class NavigationBackgroundNode: ASDisplayNode {
         }
 
         self.updateBackgroundBlur(forceKeepBlur: forceKeepBlur)
-        if self.chatGlassView != nil {
-            self.updateChatGlass()
-        }
     }
 
     public func update(size: CGSize, cornerRadius: CGFloat = 0.0, transition: ContainedViewLayoutTransition, beginWithCurrentState: Bool = true) {
         self.validLayout = (size, cornerRadius)
-        if let chatGlassView = self.chatGlassView {
-            transition.updateFrame(view: chatGlassView, frame: CGRect(origin: CGPoint(), size: size))
-            transition.updateCornerRadius(layer: chatGlassView.layer, cornerRadius: cornerRadius)
-        }
 
         let contentFrame = CGRect(origin: CGPoint(), size: size)
         transition.updateFrame(node: self.backgroundNode, frame: contentFrame, beginWithCurrentState: true)
@@ -248,10 +155,6 @@ public final class NavigationBackgroundNode: ASDisplayNode {
     
     public func update(size: CGSize, cornerRadius: CGFloat = 0.0, animator: ControlledTransitionAnimator) {
         self.validLayout = (size, cornerRadius)
-        if let chatGlassView = self.chatGlassView {
-            animator.updateFrame(layer: chatGlassView.layer, frame: CGRect(origin: CGPoint(), size: size), completion: nil)
-            animator.updateCornerRadius(layer: chatGlassView.layer, cornerRadius: cornerRadius, completion: nil)
-        }
 
         let contentFrame = CGRect(origin: CGPoint(), size: size)
         animator.updateFrame(layer: self.backgroundNode.layer, frame: contentFrame, completion: nil)

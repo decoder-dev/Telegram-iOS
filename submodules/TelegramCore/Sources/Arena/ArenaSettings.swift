@@ -184,17 +184,5 @@ public class ArenaSettings {
 
     public var glassBubblesEnabled: Bool { return self.locked { self.glassBubblesValue } }
     public var glassBubbleLevels: (tint: Int32, rimTop: Int32, rimSides: Int32, rimBottom: Int32) { return self.locked { self.glassBubbleLevelsValue } }
-
-    /// Glass chat pills, projected from ForkExtrasSettings by `applyForkChatAppearanceSettings`. Off by default;
-    /// the pills read it when they lay out.
-    private var glassChatElementsValue = false
-
-    public func setGlassChatElements(_ enabled: Bool) {
-        self.locked {
-            self.glassChatElementsValue = enabled
-        }
-    }
-
-    public var glassChatElementsEnabled: Bool { return self.locked { self.glassChatElementsValue } }
 }
 

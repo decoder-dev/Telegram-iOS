@@ -4,7 +4,6 @@ import TelegramCore
 import TelegramPresentationData
 import MergeLists
 import AccountContext
-import LocalizedPeerData
 
 enum ChatListNodeEntryId: Hashable {
     case Header
@@ -19,7 +18,6 @@ enum ChatListNodeEntryId: Hashable {
     case Notice
     case additionalCategory(Int)
     case TopPeer(EnginePeer.Id)
-    case PinnedGrid
 }
 
 enum ChatListNodeEntrySortIndex: Comparable {
@@ -434,13 +432,9 @@ enum ChatListNodeEntry: Comparable, Identifiable {
     case SectionHeader(presentationData: ChatListPresentationData, displayHide: Bool)
     case AdditionalCategory(index: Int, id: Int, title: String, image: UIImage?, appearance: ChatListNodeAdditionalCategory.Appearance, selected: Bool, presentationData: ChatListPresentationData)
     case TopPeer(index: Int, peer: EnginePeer)
-    /// The Messages look: the pinned chats as a grid of avatars, in place of their rows (see `ChatListPinnedGridItem`).
-    case PinnedGrid(index: EngineChatList.Item.Index, peers: [ChatListPinnedGridPeer], presentationData: ChatListPresentationData)
     
     var sortIndex: ChatListNodeEntrySortIndex {
         switch self {
-        case let .PinnedGrid(index, _, _):
-            return .index(index)
         case .HeaderEntry:
             return .index(.chatList(.absoluteUpperBound))
         case let .PeerEntry(peerEntry):
@@ -466,8 +460,6 @@ enum ChatListNodeEntry: Comparable, Identifiable {
     
     var stableId: ChatListNodeEntryId {
         switch self {
-        case .PinnedGrid:
-            return .PinnedGrid
         case .HeaderEntry:
             return .Header
         case let .PeerEntry(peerEntry):
@@ -596,63 +588,8 @@ enum ChatListNodeEntry: Comparable, Identifiable {
                 } else {
                     return false
                 }
-            case let .PinnedGrid(lhsIndex, lhsPeers, lhsPresentationData):
-                if case let .PinnedGrid(rhsIndex, rhsPeers, rhsPresentationData) = rhs {
-                    return lhsIndex == rhsIndex && lhsPeers == rhsPeers && lhsPresentationData === rhsPresentationData
-                } else {
-                    return false
-                }
         }
     }
-}
-
-/// The Messages look: in the main chat list the pinned chats become one grid of avatars at their place in the list.
-/// Not while editing (pinned rows are reordered there), not in the archive, folders keep it.
-private func foldPinnedChatsIntoGrid(_ entries: [ChatListNodeEntry], state: ChatListNodeState, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, accountPeerId: EnginePeer.Id) -> [ChatListNodeEntry] {
-    guard case .chatList = mode, case .chatList(groupId: .root) = chatListLocation, !state.editing else {
-        return entries
-    }
-    var gridPeers: [ChatListPinnedGridPeer] = []
-    var topIndex: EngineChatList.Item.Index?
-    var remaining: [ChatListNodeEntry] = []
-    for entry in entries {
-        if case let .PeerEntry(peerEntry) = entry, case let .chatList(index) = peerEntry.index, index.pinningIndex != nil, peerEntry.promoInfo == nil, peerEntry.threadInfo == nil, let mainPeer = peerEntry.peer.chatMainPeer {
-            let isSavedMessages = peerEntry.peer.peerId == accountPeerId
-            let title = isSavedMessages ? state.presentationData.strings.DialogList_SavedMessages : mainPeer.compactDisplayTitle
-            let text = peerEntry.messages.last?.text ?? ""
-            let isTyping = (peerEntry.inputActivities ?? []).contains(where: { item in
-                if case .typingText = item.1 {
-                    return true
-                }
-                return false
-            })
-            gridPeers.append(ChatListPinnedGridPeer(
-                peer: mainPeer,
-                isSavedMessages: isSavedMessages,
-                title: title,
-                isUnread: peerEntry.readState?.isUnread ?? false,
-                unreadCount: peerEntry.readState?.count ?? 0,
-                isMuted: peerEntry.isRemovedFromTotalUnreadCount,
-                preview: text.isEmpty ? nil : String(text.prefix(120)).replacingOccurrences(of: "\n", with: " "),
-                isTyping: isTyping
-            ))
-            if let current = topIndex {
-                if peerEntry.index > current {
-                    topIndex = peerEntry.index
-                }
-            } else {
-                topIndex = peerEntry.index
-            }
-        } else {
-            remaining.append(entry)
-        }
-    }
-    guard let topIndex, !gridPeers.isEmpty else {
-        return entries
-    }
-    // Entries run from the bottom of the list up; the grid reads left to right, top row first, as the rows did.
-    remaining.append(.PinnedGrid(index: topIndex, peers: gridPeers.reversed(), presentationData: state.presentationData))
-    return remaining.sorted()
 }
 
 private func offsetPinnedIndex(_ index: EngineChatList.Item.Index, offset: UInt16) -> EngineChatList.Item.Index {
@@ -1082,5 +1019,5 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
     } else if result.count == 1, case .HoleEntry = result[0] {
         return ([.HeaderEntry], true)
     }
-    return (foldPinnedChatsIntoGrid(result, state: state, mode: mode, chatListLocation: chatListLocation, accountPeerId: accountPeerId), view.isLoading)
+    return (result, view.isLoading)
 }

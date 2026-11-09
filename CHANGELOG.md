@@ -9,21 +9,13 @@
 ### Security
 - Calls: a short audio frame from the other side right after silence (comfort noise) no longer overruns a heap buffer in WebRTC's NetEq (CVE-2026-9119, ported from Telegram 13.1.3). The WebRTC submodule moves to 590a8b23dd; `//third-party/webrtc:neteq_normal_test` pins the fix.
 
-### Changed — the iOS Messages look (always on, no switch)
-- Chat list: an unread chat has a blue dot left of the avatar instead of a count (grey when muted; mentions, reactions and the muted count keep their badges), and a chevron follows the time.
-- Chats: on a plain background the date headers are grey text without a pill; one's own newest message has "Delivered", "Read" or "Sending…" under it, which goes as soon as anything arrives below.
-- Motion: while the chat is dragged, bubbles trail the finger by more the farther they are from it and catch up on a spring; a new incoming message springs out of its tail and a sent one lands with a small squash; a light tap is felt when a message is sent and a soft one when one arrives in the open chat (at most one every 0.25 s). Nothing moves with Reduce Motion.
-- While the other side types, a grey bubble with three bouncing dots sits under the newest message, where the reply will appear; it scrolls with the chat.
-- Pinned chats are a grid of large avatars above the list, three to a row, with a blue dot and the newest message in a small bubble while unread. A tap opens the chat, a long press offers Unpin and Mute; in edit mode the pinned chats are rows again so they can be reordered.
-- A one-to-one chat whose other side types shows a small bubble with bouncing dots in its row instead of the word "typing"; groups keep the text that names who types.
-- A chat's name in its header is followed by a small chevron: the name opens the chat's info, as in iOS Messages.
-
 ### Removed — switches for what is always so
 - Hide Ads, Hide Proxy Sponsor, Remove Tracking from Sent Links and Send Statistics to Telegram are no longer switches: ads and the proxy sponsor are always hidden, tracking parameters are always removed from sent links, and statistics are never sent. Values stored by older builds are ignored.
+- The iOS Messages look tried in 4510 (unread dots, pinned grid, typing bubble, plain dates, Delivered/Read, springy scrolling, glass chat pills) is gone again; chats and the chat list look as in 4509.
 
-### Added — glass chat elements (Extras › Appearance, off by default)
-- Glass Chat Elements: date pills, service messages, the time over photos, videos and stickers, bot buttons and the Share button are Liquid Glass tinted with the theme (iOS 26+; Reduce Transparency keeps the solid pills).
-- Simulator QA captures a chat with glass in day, cream and night ("glass-" shots).
+### Fixed — readability
+- Glass Bubbles: in a light theme the tint rises until the bubble's text reads at 4.5:1, so white text no longer sits on a pale blue bubble.
+- At the largest text sizes the status line under a chat's name was cut off; the name and status stop growing past 19 pt, as navigation titles do in iOS.
 
 ### Added — from Donutgram (all off by default)
 - Extras › Sending: Bypass sticker restrictions. Where stickers are banned but videos are allowed, a sticker goes out as a short silent video made on the device.
