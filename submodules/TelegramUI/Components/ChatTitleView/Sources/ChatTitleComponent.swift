@@ -384,6 +384,8 @@ public final class ChatTitleComponent: Component {
     public final class View: UIView {
         private var backgroundView: GlassBackgroundView?
         private let contentContainer: UIView
+        // Messages look: a small chevron after a chat's name says the name opens the chat's info, as in iOS Messages.
+        private var disclosureView: UIImageView?
         /// While a navigation transition draws the pill, the pill is hidden and what it shows is lent to the transition
         /// (`lendGlassPillContent`); it is taken back when the pill is attached again.
         var isGlassPillDetached: Bool = false {
@@ -1268,6 +1270,16 @@ public final class ChatTitleComponent: Component {
             if let rightIconSize {
                 titleRightIconsWidth += rightIconSize.width + rightTitleIconSpacing
             }
+            // Messages look: the chevron after the name of a chat whose title opens its info.
+            var showsDisclosure = false
+            if case let .peer(_, _, _, _, isScheduledMessages, _, customMessageCount, _, isEnabled) = component.content, isEnabled, !isScheduledMessages, customMessageCount == nil {
+                showsDisclosure = true
+            }
+            let disclosureSize = CGSize(width: 8.0, height: 13.0)
+            let disclosureSpacing: CGFloat = 4.0
+            if showsDisclosure {
+                titleRightIconsWidth += disclosureSize.width + disclosureSpacing
+            }
             if let credibilityIconSize {
                 titleRightIconsWidth += credibilityIconSize.width + statusIconsSpacing
             }
@@ -1406,6 +1418,28 @@ public final class ChatTitleComponent: Component {
                 transition.setAlpha(view: statusIconView, alpha: 1.0)
                 transition.setScale(view: statusIconView, scale: 1.0)
                 nextRightIconX += statusIconsSpacing + statusIconSize.width
+            }
+            
+            if showsDisclosure {
+                let disclosureView: UIImageView
+                if let current = self.disclosureView {
+                    disclosureView = current
+                } else {
+                    disclosureView = UIImageView(image: UIImage(systemName: "chevron.right", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11.0, weight: .semibold))?.withRenderingMode(.alwaysTemplate))
+                    disclosureView.contentMode = .center
+                    disclosureView.isUserInteractionEnabled = false
+                    self.disclosureView = disclosureView
+                    self.contentContainer.addSubview(disclosureView)
+                }
+                disclosureView.tintColor = component.theme.rootController.navigationBar.secondaryTextColor
+                var disclosureX = nextRightIconX + disclosureSpacing
+                if let rightIconSize {
+                    disclosureX += rightTitleIconSpacing + rightIconSize.width
+                }
+                transition.setFrame(view: disclosureView, frame: CGRect(origin: CGPoint(x: disclosureX, y: titleFrame.minY + floorToScreenPixels((titleFrame.height - disclosureSize.height) * 0.5)), size: disclosureSize))
+            } else if let disclosureView = self.disclosureView {
+                self.disclosureView = nil
+                disclosureView.removeFromSuperview()
             }
             
             if let rightIconSize, let rightIconView = self.rightIcon?.view {

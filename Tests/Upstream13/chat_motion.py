@@ -219,7 +219,7 @@ class PinnedGrid(unittest.TestCase):
         self.assertEqual(node.count('item: ChatListPinnedGridItem(context: context, presentationData: entryPresentationData, peers: peers, interaction: nodeInteraction)'), 2)
 
 
-class RowTypingAndUndoSend(unittest.TestCase):
+class RowTyping(unittest.TestCase):
     def test_one_to_one_typing_is_a_dots_bubble(self):
         node = read('submodules/ChatListUI/Sources/Node/ChatListTypingNode.swift')
         self.assertIn('if activities.count == 1, activities[0].0.id == peerId, case .typingText = activities[0].1 {', node)
@@ -228,12 +228,16 @@ class RowTypingAndUndoSend(unittest.TestCase):
         self.assertIn('strings.DialogList_SingleTypingSuffix(peerTitle)', node)
         self.assertIn('guard !UIAccessibility.isReduceMotionEnabled else {', node)
 
-    def test_undo_send_for_two_minutes(self):
-        menus = read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift')
-        self.assertIn('"Отменить отправку" : "Undo Send"', menus)
-        self.assertIn('data.messageActions.options.contains(.deleteGlobally), !message.flags.isSending, !message.effectivelyIncoming(context.account.peerId)', menus)
-        self.assertIn('Int32(Date().timeIntervalSince1970) - message.timestamp < 120', menus)
-        self.assertIn('deleteMessagesInteractively(messageIds: undoMessageIds, type: .forEveryone)', menus)
+    def test_there_is_no_undo_send(self):
+        self.assertNotIn('Undo Send', read('submodules/TelegramUI/Sources/ChatInterfaceStateContextMenus.swift'))
+
+
+class Header(unittest.TestCase):
+    def test_chevron_after_a_chat_name(self):
+        title = read('submodules/TelegramUI/Components/ChatTitleView/Sources/ChatTitleComponent.swift')
+        self.assertIn('if case let .peer(_, _, _, _, isScheduledMessages, _, customMessageCount, _, isEnabled) = component.content, isEnabled, !isScheduledMessages, customMessageCount == nil {', title)
+        self.assertIn('UIImage(systemName: "chevron.right"', title)
+        self.assertIn('titleRightIconsWidth += disclosureSize.width + disclosureSpacing', title)
 
 
 if __name__ == '__main__':
