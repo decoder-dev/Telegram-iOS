@@ -743,7 +743,9 @@ print("File preparation: actual success/error/timeout/cancellation lifecycle pas
 
     def test_snow_is_a_wired_extras_toggle(self):
         settings = read('submodules/TelegramUIPreferences/Sources/ForkExtrasSettings.swift')
-        self.assertEqual(settings.count('snowEnabled'), 6)
+        # Only the settings struct itself; the Enhanced Power Saving snapshot below it keeps its own copy.
+        extras = settings[:settings.index('public struct ForkPowerSavingSnapshot')]
+        self.assertEqual(extras.count('snowEnabled'), 6)
         self.assertIn('?? false', settings[settings.index('decodeIfPresent(Bool.self, forKey: "snowEnabled")'):][:120])
         controller = read('submodules/SettingsUI/Sources/ForkExtrasController.swift')
         self.assertIn('.appearanceToggle(1541,', controller)

@@ -1325,6 +1325,31 @@ private func decodePeerKeyedDictionary<Value: Decodable>(_ container: KeyedDecod
     return result
 }
 
+/// The values Enhanced Power Saving turned off, as they were before it did. They are put back exactly as kept here.
+public struct ForkPowerSavingSnapshot: Codable, Equatable {
+    public var autoplayVideo: Bool
+    public var autoplayGif: Bool
+    public var loopStickers: Bool
+    public var loopEmoji: Bool
+    public var fullTranslucency: Bool
+    public var reduceMotion: Bool
+    public var snowEnabled: Bool
+    public var avatarGlowEnabled: Bool
+    public var reactionGlowEnabled: Bool
+
+    public init(autoplayVideo: Bool, autoplayGif: Bool, loopStickers: Bool, loopEmoji: Bool, fullTranslucency: Bool, reduceMotion: Bool, snowEnabled: Bool, avatarGlowEnabled: Bool, reactionGlowEnabled: Bool) {
+        self.autoplayVideo = autoplayVideo
+        self.autoplayGif = autoplayGif
+        self.loopStickers = loopStickers
+        self.loopEmoji = loopEmoji
+        self.fullTranslucency = fullTranslucency
+        self.reduceMotion = reduceMotion
+        self.snowEnabled = snowEnabled
+        self.avatarGlowEnabled = avatarGlowEnabled
+        self.reactionGlowEnabled = reactionGlowEnabled
+    }
+}
+
 /// Last opened chat-list folder. Stored in UserDefaults so swiping folders does not rewrite AccountManager prefs.
 public enum ForkLastChatListFilter {
     private static let legacyKey = "ForkExtras.lastChatListFilterId"

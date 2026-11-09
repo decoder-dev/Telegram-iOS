@@ -2,31 +2,6 @@ import Foundation
 import SwiftSignalKit
 import TelegramCore
 
-/// The values Enhanced Power Saving turned off, as they were before it did. They are put back exactly as kept here.
-public struct ForkPowerSavingSnapshot: Codable, Equatable {
-    public var autoplayVideo: Bool
-    public var autoplayGif: Bool
-    public var loopStickers: Bool
-    public var loopEmoji: Bool
-    public var fullTranslucency: Bool
-    public var reduceMotion: Bool
-    public var snowEnabled: Bool
-    public var avatarGlowEnabled: Bool
-    public var reactionGlowEnabled: Bool
-
-    public init(autoplayVideo: Bool, autoplayGif: Bool, loopStickers: Bool, loopEmoji: Bool, fullTranslucency: Bool, reduceMotion: Bool, snowEnabled: Bool, avatarGlowEnabled: Bool, reactionGlowEnabled: Bool) {
-        self.autoplayVideo = autoplayVideo
-        self.autoplayGif = autoplayGif
-        self.loopStickers = loopStickers
-        self.loopEmoji = loopEmoji
-        self.fullTranslucency = fullTranslucency
-        self.reduceMotion = reduceMotion
-        self.snowEnabled = snowEnabled
-        self.avatarGlowEnabled = avatarGlowEnabled
-        self.reactionGlowEnabled = reactionGlowEnabled
-    }
-}
-
 /// Donutgram's Enhanced Power Saving. Each value stays where its own screen keeps it (Power Saving, Reduce Motion in
 /// Appearance, the Extras switches), so all three are written in one transaction together with the snapshot: a crash
 /// can't leave the animations off with nothing to restore them from. Telegram's own automatic power saving (the
