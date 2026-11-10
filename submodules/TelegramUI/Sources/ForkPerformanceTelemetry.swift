@@ -46,6 +46,11 @@ public enum ForkPerformanceTelemetry {
             return
         }
         self.installed = true
+        // A `static let` is initialised on first use, and the first use of this one was the first
+        // heartbeat line, so every process reported its uptime from then: "uptime=0s" a minute in,
+        // or eight minutes in for a launch into the background (device log, 9 Nov 03:06). Pin it
+        // to launch.
+        _ = self.installedAt
 
         self.thermalState = ProcessInfo.processInfo.thermalState
         Logger.shared.log("Perf", "thermal state at launch: \(ForkPerformanceTelemetry.describe(self.thermalState))")
@@ -116,6 +121,12 @@ public enum ForkPerformanceTelemetry {
     /// instance one that sat in the main queue while the process was suspended) is ignored.
     private static var stallGeneration = 0
     private static var stallTimerSuspended = false
+    /// When the watchdog's own timer last fired. The timer runs on a utility queue that a busy
+    /// main thread does not hold up, so a tick that arrives far later than its 1 s period means
+    /// the whole process was not running: suspended, or not yet scheduled after a wakeup.
+    private static var stallLastTick: Double = 0.0
+    /// A tick this late is a process that was not running, not a main thread that was busy.
+    private static let stallTimerGapThreshold: Double = 3.0
 
     /// Monotonic seconds. `CFAbsoluteTimeGetCurrent()` is wall-clock: an NTP or manual clock change
     /// read as a stall of that size.
@@ -127,6 +138,20 @@ public enum ForkPerformanceTelemetry {
         let timer = DispatchSource.makeTimerSource(queue: self.stallQueue)
         timer.schedule(deadline: .now() + 1.0, repeating: 1.0)
         timer.setEventHandler {
+            // The foreground/background notifications below do not cover every way the process
+            // stops running. A launch straight into the background (a push, a background fetch)
+            // posts no didEnterBackground, so the timer was running when iOS suspended the
+            // process; the reply to the ping in flight came back on resume and read as "main
+            // thread unresponsive, 191.8s" (device log, 9 Nov 03:06). A suspended process also
+            // stops this timer, so a late tick is the tell: drop the outstanding ping instead.
+            let tick = self.stallClock()
+            let previousTick = self.stallLastTick
+            if previousTick > 0.0, tick - previousTick > self.stallTimerGapThreshold {
+                self.resetStallWatchdog()
+                self.stallLastTick = tick
+                return
+            }
+            self.stallLastTick = tick
             if self.stallAwaitingReply {
                 // The previous ping has not come back yet: the main thread is still busy. Say so
                 // once, then keep waiting rather than piling on pings or repeating the line.
@@ -155,7 +180,14 @@ public enum ForkPerformanceTelemetry {
                 }
             }
         }
-        timer.resume()
+        // A launch into the background (a push, a background fetch) gets no didEnterBackground,
+        // so the timer would otherwise run until iOS suspends the process with a ping in flight.
+        // Start it the way didEnterBackground would leave it; willEnterForeground resumes it.
+        if UIApplication.shared.applicationState == .background {
+            self.stallTimerSuspended = true
+        } else {
+            timer.resume()
+        }
         self.stallTimer = timer
 
         // A suspended process can't answer pings, and the time it spends suspended is not a
@@ -186,6 +218,7 @@ public enum ForkPerformanceTelemetry {
         self.stallGeneration += 1
         self.stallAwaitingReply = false
         self.stallReported = false
+        self.stallLastTick = 0.0
     }
 
     private static var stallTimer: DispatchSourceTimer?
