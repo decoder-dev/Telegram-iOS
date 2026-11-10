@@ -595,8 +595,10 @@ public final class PeerSelectionControllerImpl: ViewController, PeerSelectionCon
                     strongSelf.ready.set(mainContainerNode.currentItemNode.ready)
                 } else if !strongSelf.initializedFilters {
                     if selectedEntryId != mainContainerNode.currentItemFilter {
-                        mainContainerNode.switchToFilter(id: selectedEntryId, animated: false, completion: { [weak self] in
-                            if let strongSelf = self {
+                        // Weak: the completion is held by the container's pending item until that item is
+                        // ready, so a strong capture of the container is a cycle if it never becomes ready.
+                        mainContainerNode.switchToFilter(id: selectedEntryId, animated: false, completion: { [weak self, weak mainContainerNode] in
+                            if let strongSelf = self, let mainContainerNode {
                                 strongSelf.ready.set(mainContainerNode.currentItemNode.ready)
                             }
                         })

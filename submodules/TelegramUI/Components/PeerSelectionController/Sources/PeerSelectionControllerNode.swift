@@ -763,8 +763,15 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                 return
             }
 
+            // Nothing in here may name the initializer's `controller` parameter: this closure is stored in
+            // `interfaceInteraction`, which the node keeps for its whole life, so a capture of the picker from
+            // here (it was `[controller]`, for the paywall push below) closed the cycle picker → node →
+            // interfaceInteraction → picker. Every picker ever opened stayed alive with its chat lists and
+            // their Postbox subscriptions; device logs showed two more chat list nodes after every forward
+            // (3 → 14 live in one session, list rows 60 → 229, heap 300 → 700 MB). Reach the picker through
+            // the node's weak `controller` instead.
             let _ = (ChatSendMessageContextScreen.initialData(context: strongSelf.context, currentMessageEffectId: nil)
-            |> deliverOnMainQueue).start(next: { [controller] initialData in
+            |> deliverOnMainQueue).start(next: { initialData in
                 guard let strongSelf = self, let textInputPanelNode = strongSelf.textInputPanelNode else {
                     return
                 }
@@ -778,7 +785,7 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                     hasEntityKeyboard = true
                 }
 
-                let controller = makeChatSendMessageActionSheetController(
+                let actionSheetController = makeChatSendMessageActionSheetController(
                     initialData: initialData,
                     context: strongSelf.context,
                     peerId: strongSelf.presentationInterfaceState.chatLocation.peerId,
@@ -817,14 +824,14 @@ final class PeerSelectionControllerNode: ASDisplayNode {
                         textInputPanelNode?.sendMessage(.schedule, messageEffect)
                     },
                     editPrice: { _ in },
-                    openPremiumPaywall: { [weak controller] c in
-                        guard let controller else {
+                    openPremiumPaywall: { c in
+                        guard let controller = self?.controller else {
                             return
                         }
                         controller.push(c)
                     }
                 )
-                strongSelf.presentInGlobalOverlay(controller, nil)
+                strongSelf.presentInGlobalOverlay(actionSheetController, nil)
             })
         }, openScheduledMessages: {
         }, displaySearchResultsTooltip: { _, _ in
