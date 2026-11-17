@@ -24,8 +24,11 @@ Statuses: **fixed** (changed, source checks pass), **verified** (seen working in
   `Tests/Customization/appearance.py`). Cause: the Swift test stubs read `ForkExtrasSettings.swift` only up to a
   marker, and `ForkPowerSavingSnapshot` had moved to another file. Fixed by a7ec1ecf; the run on a7ec1ecf is green.
 - Last fully green set on `main`: a59d8ebc (Build sideload IPA, Simulator QA, CodeQL; 10 Nov).
-- 550246240b (Ghostgram: kept self-destructing media, content restrictions) has not been built yet: its client
-  regression and CodeQL runs were in progress when this audit started.
+- 550246240b (Ghostgram: kept self-destructing media, content restrictions): `Client regression tests` **failed**
+  (run 44000212608, step `python3 -m unittest discover -s Tests/Branding`): the Keep Self-Destructing Media footer
+  (row 2431) was 250 characters, over the 170 that `test_extras_density.test_footers_stay_a_few_lines` allows.
+  Fixed on this branch (both new footers shortened); `Tests/Branding` passes locally. That build itself (IPA) has not
+  run yet. Lesson: a check that fails in the local baseline is not automatically environmental; compare with CI.
 
 ## Subsystem map
 
