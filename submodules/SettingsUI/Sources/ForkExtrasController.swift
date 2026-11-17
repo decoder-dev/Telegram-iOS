@@ -1441,7 +1441,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingFooter(39, .smallThings, ForkExtrasLocalizedString.allowSecretScreenshotsFooter),
             .appearanceToggle(1775, russian ? "Скриншоты в защищённых чатах" : "Screenshots in Protected Chats", settings.allowProtectedScreenshots, \.allowProtectedScreenshots),
             .appearanceToggle(2430, russian ? "Не сжигать исчезающие медиа" : "Keep Self-Destructing Media", settings.keepSelfDestructingMedia, \.keepSelfDestructingMedia),
-            .designFooter(2431, russian ? "Одноразовые и короткие по таймеру фото, видео и голосовые открываются без размытия, не исчезают, а отправитель не узнаёт, что вы их открыли. Чтобы сообщить ему, удерживайте медиа в чате и выберите «Отметить открытым». Секретные чаты не затрагиваются." : "View-once and short-timer photos, videos and voice messages open without the blur and don't disappear, and the sender isn't told you opened them. To tell them, press and hold the media in the chat and choose Mark as Opened. Secret chats aren't affected."),
+            .designFooter(2431, russian ? "Одноразовые и короткие по таймеру медиа открываются без размытия и не исчезают, а отправитель об этом не узнаёт. Сообщить: удерживайте медиа → «Отметить открытым»." : "View-once and short-timer media open without the blur and stay, and the sender isn’t told. To tell them, press and hold the media and choose Mark as Opened."),
             .settingToggle(40, .smallThings, ForkExtrasLocalizedString.expireTtlButton, settings.expireTtlButton, \.expireTtlButton),
             .settingFooter(41, .smallThings, ForkExtrasLocalizedString.expireTtlButtonFooter),
             .settingToggle(42, .smallThings, ForkExtrasLocalizedString.keepBannedChats, settings.keepBannedChats, \.keepBannedChats),
@@ -1600,7 +1600,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designHeader(2450, russian ? "Правила текста" : "Text rules"),
             .appearanceToggle(2451, russian ? "Антикапс" : "Anti-Caps", settings.antiCaps, \.antiCaps),
             .textReplacementRules(settings.textReplacementRules.joined(separator: "\n")),
-            .designFooter(2453, russian ? "Антикапс превращает ТЕКСТ КАПСОМ в обычный. Замена слов: по правилу в строке, «слово = замена», только целые слова, без учёта регистра. Ссылки, упоминания, команды и код не меняются, ботам текст уходит как есть." : "Anti-Caps turns ALL CAPS into normal text. Word replacement: one rule per line, “word = replacement”, whole words only, any case. Links, mentions, commands and code stay as they are; bots get the text as typed."),
+            .designFooter(2453, russian ? "Антикапс: ТЕКСТ КАПСОМ становится обычным. Замена: одно правило в строке, «слово = замена». Ссылки, упоминания и код не меняются, ботам текст уходит как есть." : "Anti-Caps turns ALL CAPS into normal text. Replacement: one “word = replacement” rule per line. Links, mentions and code stay as they are; bots get it as typed."),
         ]
     case .messageActions:
         entries = [
@@ -1783,7 +1783,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingToggle(147, .messageFilters, ForkExtrasLocalizedString.showSensitiveContent, settings.showSensitiveContent, \.showSensitiveContent),
             .settingFooter(148, .messageFilters, ForkExtrasLocalizedString.showSensitiveContentFooter),
             .settingToggle(2432, .messageFilters, russian ? "Обходить ограничения контента" : "Bypass Content Restrictions", settings.bypassContentRestrictions, \.bypassContentRestrictions),
-            .settingFooter(2433, .messageFilters, russian ? "Чаты, боты и сообщения с пометкой «недоступно на вашем устройстве» открываются как обычно, по любой причине ограничения. Открытые чаты обновятся, когда вы зайдёте в них снова." : "Chats, bots and messages marked “unavailable on your device” open as usual, whatever the reason. Chats already open update when you open them again."),
+            .settingFooter(2433, .messageFilters, russian ? "Чаты, боты и сообщения с пометкой «недоступно на вашем устройстве» открываются при любой причине. Открытые чаты обновятся при следующем входе." : "Chats, bots and messages marked “unavailable on your device” open as usual, whatever the reason. Chats already open update when you open them again."),
             .settingToggle(134, .messageFilters, ForkExtrasLocalizedString.regexFilters, settings.regexMessageFiltersEnabled, \.regexMessageFiltersEnabled),
         ]
         if settings.regexMessageFiltersEnabled {
