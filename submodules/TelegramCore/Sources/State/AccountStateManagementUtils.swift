@@ -5397,6 +5397,8 @@ func replayFinalState(
             case .UpdateRecentGifs:
                 syncRecentGifs = true
             case let .UpdateChatInputState(peerId, threadId, inputState):
+                // Lost-draft reports: shows whether the server's draft update emptied a chat's input.
+                Logger.shared.log("ChatDraft", "server draft peer \(peerId.id._internalGetInt64Value()) thread \(threadId ?? 0): \(inputState.flatMap { "\($0.text.count) chars at \($0.timestamp)" } ?? "empty")")
                 _internal_updateChatInputState(transaction: transaction, peerId: peerId, threadId: threadId, inputState: inputState)
             case let .UpdateCall(call):
                 updatedCalls.append(call)

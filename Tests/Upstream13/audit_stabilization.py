@@ -120,5 +120,21 @@ class TitleStickerFollowsLargeTitle(unittest.TestCase):
         self.assertIn('self.updateLargeTitleStatus(component: component, labelFrame: largeTitleLabelFrame, transition: transition)', nav)
         self.assertIn('"//submodules/TelegramUI/Components/EmojiStatusComponent"', read('submodules/TelegramUI/Components/ChatListHeaderComponent/BUILD'))
 
+
+class SystemTranslatorReplaces(unittest.TestCase):
+    def test_composer_translation_gets_the_replace_button(self):
+        source = read('submodules/TranslateUI/Sources/TranslateScreen.swift')
+        self.assertIn('presentSystemTranslateScreen(context: context, text: text, replaceText: replaceText)', source)
+        self.assertIn('replaceText(translated, [])', source)
+        self.assertIn('TranslateScreenHostingView(text: text, replacementAction: replacement,', source)
+        self.assertIn('text: text,\n                replacementAction: replacementAction\n            )', source)
+
+
+class DraftSavedFromTheInputField(unittest.TestCase):
+    def test_leaving_the_chat_saves_what_the_field_shows(self):
+        body = function_body(read('submodules/TelegramUI/Sources/ChatController.swift'), 'func saveInterfaceState(includeScrollState: Bool = true)')
+        merge = body.index('interfaceState = interfaceState.withUpdatedEffectiveInputState(textInputPanelNode.inputTextState)')
+        self.assertLess(merge, body.index('ChatInterfaceState.update(engine: self.context.engine, peerId: peerId, threadId: threadId'))
+
 if __name__ == '__main__':
     unittest.main()
