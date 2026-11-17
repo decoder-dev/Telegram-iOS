@@ -41,15 +41,24 @@ public func presentTranslateScreen(
     }
 
     if useSystemTranslation {
-        presentSystemTranslateScreen(context: context, text: text)
+        presentSystemTranslateScreen(context: context, text: text, replaceText: replaceText)
     } else {
     }
 }
 
-private func presentSystemTranslateScreen(context: AccountContext, text: String) {
+private func presentSystemTranslateScreen(context: AccountContext, text: String, replaceText: ((String, [MessageTextEntity]) -> Void)?) {
     if #available(iOS 18.0, *), let rootViewController = context.sharedContext.mainWindow?.viewController?.view.window?.rootViewController {
         var dismissImpl: (() -> Void)?
-        let pickerView = TranslateScreenHostingView(text: text, completionHandler: { [weak rootViewController] in
+        // The composer's Translate passes `replaceText`: the system sheet then shows Replace with Translation, which
+        // puts the translation into the input field. Without it the sheet could only show and copy the result.
+        let replacement: ((String) -> Void)? = replaceText.flatMap { replaceText in
+            return { translated in
+                DispatchQueue.main.async {
+                    replaceText(translated, [])
+                }
+            }
+        }
+        let pickerView = TranslateScreenHostingView(text: text, replacementAction: replacement, completionHandler: { [weak rootViewController] in
             DispatchQueue.main.async(execute: {
                 guard let presentedController = rootViewController?.presentedViewController, presentedController.isBeingDismissed == false else { return }
                 dismissImpl?()
@@ -71,10 +80,12 @@ private func presentSystemTranslateScreen(context: AccountContext, text: String)
 struct TranslateScreenHostingView: View {
     @State var presented = true
     var text: String
+    var replacementAction: ((String) -> Void)?
     var handler: () -> Void
-    
-    init(text: String, completionHandler: @escaping () -> Void) {
+
+    init(text: String, replacementAction: ((String) -> Void)?, completionHandler: @escaping () -> Void) {
         self.text = text
+        self.replacementAction = replacementAction
         self.handler = completionHandler
     }
     
@@ -82,7 +93,8 @@ struct TranslateScreenHostingView: View {
         Spacer()
             .translationPresentation(
                 isPresented: $presented,
-                text: text
+                text: text,
+                replacementAction: replacementAction
             )
             .onChange(of: presented) { newValue in
                 if newValue == false {
