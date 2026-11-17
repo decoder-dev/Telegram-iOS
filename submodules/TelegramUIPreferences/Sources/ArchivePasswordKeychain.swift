@@ -382,10 +382,12 @@ private func pbkdf2HexHash(password: String, salt: Data, iterations: Int) -> Str
     let duration = CFAbsoluteTimeGetCurrent() - startTime
     
     if duration > 0.016 {
+        // Debug builds only. The duress passcode is checked with this hash after every wrong passcode,
+        // and only when one is set, so a release NSLog line in the system log after each wrong
+        // passcode told anyone reading a sysdiagnose that a duress passcode exists.
         #if DEBUG
         print("ArchivePassword PBKDF2 hash took \(duration * 1000.0) ms for \(iterations) iterations")
         #endif
-        NSLog("ArchivePassword PBKDF2 hash took %.2f ms for %d iterations", duration * 1000.0, iterations)
     }
     
     return archivePasswordHexString(derived)
