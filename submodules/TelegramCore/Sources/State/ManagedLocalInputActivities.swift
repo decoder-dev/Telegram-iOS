@@ -112,6 +112,39 @@ public enum ForkExpireTtlSettings {
     }
 }
 
+/// Fork (Ghostgram) "Keep Self-Destructing Media": view-once and short-timer media (`containsSecretMedia`) in cloud
+/// chats is not consumed when it is opened or played: no "opened" flag, no countdown, no deletion and nothing sent to
+/// the sender. It is drawn without the blur. The sender learns of it only through "Mark as Opened"
+/// (`TelegramEngine.Messages.reportSelfDestructingMediaOpened`). Secret chats are left as they are.
+public enum ForkKeepSelfDestructingMediaSettings {
+    private static let value = Atomic<Bool>(value: false)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
+    }
+
+    /// Whether opening `message` must leave it unconsumed.
+    public static func keeps(_ message: Message) -> Bool {
+        guard self.enabled else {
+            return false
+        }
+        guard message.flags.contains(.Incoming), message.id.namespace == Namespaces.Message.Cloud, message.id.peerId.namespace != Namespaces.Peer.SecretChat else {
+            return false
+        }
+        return message.containsSecretMedia
+    }
+}
+
+/// Fork (Ghostgram) "Bypass Content Restrictions": platform restrictions of chats, bots and messages
+/// ("unavailable on your device") are ignored for every reason, not only the ones `ForkSensitiveContentSettings` lifts.
+public enum ForkContentRestrictionsBypassSettings {
+    private static let value = Atomic<Bool>(value: false)
+    public static var enabled: Bool {
+        get { return value.with { $0 } }
+        set { let _ = value.swap(newValue) }
+    }
+}
+
 /// AyuGram: keep banned/kicked chats in the chat list instead of dropping them.
 public enum ForkKeepBannedChatsSettings {
     private static let defaults = UserDefaults(suiteName: "group.ph.teleg.Telegrapf") ?? .standard

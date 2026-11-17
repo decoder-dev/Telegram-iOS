@@ -20,6 +20,10 @@ public extension Peer {
     }
     
     func restrictionText(platform: String, contentSettings: ContentSettings) -> String? {
+        // Fork (Ghostgram) "Bypass Content Restrictions": the chat opens as on any other platform.
+        if ForkContentRestrictionsBypassSettings.enabled {
+            return nil
+        }
         var restrictionInfo: PeerAccessRestrictionInfo?
         switch self {
         case let user as TelegramUser:

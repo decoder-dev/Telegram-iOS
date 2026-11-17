@@ -18,6 +18,7 @@ public enum ForkMessageMenuItem: String, CaseIterable {
     case forward
     case saveStickerToPhotos
     case mediaInfo
+    case markMediaOpened
     case saveToSavedMessages
     case screenshot
     case bookmarks

@@ -6,6 +6,11 @@ import SwiftSignalKit
 func _internal_markMessageContentAsConsumedInteractively(postbox: Postbox, accountPeerId: PeerId, messageId: MessageId) -> Signal<Void, NoError> {
     return postbox.transaction { transaction -> Void in
         if let message = transaction.getMessage(messageId), message.flags.contains(.Incoming) {
+            // Fork (Ghostgram) "Keep Self-Destructing Media": opening or playing kept media changes nothing,
+            // here or on the sender's side. "Mark as Opened" reports it (`reportSelfDestructingMediaOpened`).
+            if ForkKeepSelfDestructingMediaSettings.keeps(message) {
+                return
+            }
             // AyuGram Ghost "Don't Read": keep the local consumed=true UI update,
             // TTL countdown, and MessageSaving preserve — skip the network read packets
             // (`messages.readMessageContents` / secret-chat `readMessagesContent`) and

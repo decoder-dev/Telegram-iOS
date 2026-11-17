@@ -82,6 +82,8 @@ private func forkMessageMenuItemTitle(_ item: ForkMessageMenuItem, strings: Pres
         return russian ? "Сохранить стикер в Фото" : "Save Sticker to Photos"
     case .mediaInfo:
         return russian ? "Сведения о медиа" : "Media Info"
+    case .markMediaOpened:
+        return russian ? "Отметить открытым" : "Mark as Opened"
     case .saveToSavedMessages:
         return forkSavedMessagesMenuTitle(strings)
     case .screenshot:

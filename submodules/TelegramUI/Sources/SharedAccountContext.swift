@@ -1348,6 +1348,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkLocalPremiumSettings.enabled = settings.localPremium
         ForkSecretScreenshotSettings.allow = settings.allowSecretScreenshots
         ForkProtectedScreenshotSettings.allow = settings.allowProtectedScreenshots
+        ForkKeepSelfDestructingMediaSettings.enabled = settings.keepSelfDestructingMedia
+        ForkContentRestrictionsBypassSettings.enabled = settings.bypassContentRestrictions
         ForkExpireTtlSettings.enabled = settings.expireTtlButton
         ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
         BananaVisualLabels.update(settings.visualLabels)

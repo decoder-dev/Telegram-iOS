@@ -238,6 +238,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var hideStories: Bool
     public var hideArchive: Bool
     public var allowProtectedScreenshots: Bool
+    /// Fork (Ghostgram): view-once and short-timer media is kept: opening it marks nothing as opened, starts no
+    /// timer and tells the sender nothing; "Mark as Opened" in the message menu tells the sender on request.
+    public var keepSelfDestructingMedia: Bool
+    /// Fork (Ghostgram): chats, bots and messages marked "unavailable on your device" for any reason open as usual.
+    public var bypassContentRestrictions: Bool
     /// Fork (Donutgram): media, sticker and playback options, projected into `BananaMediaTweaks`.
     public var accelerateUpload: Bool
     public var infiniteRecentStickers: Bool
@@ -717,6 +722,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideStories = false
         self.hideArchive = false
         self.allowProtectedScreenshots = false
+        self.keepSelfDestructingMedia = false
+        self.bypassContentRestrictions = false
         self.accelerateUpload = false
         self.infiniteRecentStickers = false
         self.onlyAddedStickers = false
@@ -948,6 +955,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.hideStories = try container.decodeIfPresent(Bool.self, forKey: "hideStories") ?? false
         self.hideArchive = try container.decodeIfPresent(Bool.self, forKey: "hideArchive") ?? false
         self.allowProtectedScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowProtectedScreenshots") ?? false
+        self.keepSelfDestructingMedia = try container.decodeIfPresent(Bool.self, forKey: "keepSelfDestructingMedia") ?? false
+        self.bypassContentRestrictions = try container.decodeIfPresent(Bool.self, forKey: "bypassContentRestrictions") ?? false
         self.accelerateUpload = try container.decodeIfPresent(Bool.self, forKey: "accelerateUpload") ?? false
         self.infiniteRecentStickers = try container.decodeIfPresent(Bool.self, forKey: "infiniteRecentStickers") ?? false
         self.onlyAddedStickers = try container.decodeIfPresent(Bool.self, forKey: "onlyAddedStickers") ?? false
@@ -1180,6 +1189,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.hideStories, forKey: "hideStories")
         try container.encode(self.hideArchive, forKey: "hideArchive")
         try container.encode(self.allowProtectedScreenshots, forKey: "allowProtectedScreenshots")
+        try container.encode(self.keepSelfDestructingMedia, forKey: "keepSelfDestructingMedia")
+        try container.encode(self.bypassContentRestrictions, forKey: "bypassContentRestrictions")
         try container.encode(self.accelerateUpload, forKey: "accelerateUpload")
         try container.encode(self.infiniteRecentStickers, forKey: "infiniteRecentStickers")
         try container.encode(self.onlyAddedStickers, forKey: "onlyAddedStickers")

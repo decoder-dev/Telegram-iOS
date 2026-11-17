@@ -2079,6 +2079,23 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 })
             })))
         }
+        // Fork (Ghostgram): kept self-destructing media stays unopened for the sender until the user says otherwise.
+        // View-once media exists in private chats and basic groups, both read with messages.readMessageContents.
+        // In chats where ghost mode holds content reads the report would wait for it, so the item stays out.
+        if ForkKeepSelfDestructingMediaSettings.keeps(message), message.id.peerId.namespace == Namespaces.Peer.CloudUser || message.id.peerId.namespace == Namespaces.Peer.CloudGroup, !ForkGhostModeSettings.shouldSuppressMessageReads(accountPeerId: context.account.peerId, peerId: message.id.peerId), !message.attributes.contains(where: { ($0 as? ConsumableContentMessageAttribute)?.consumed == true }), !ForkReportedKeptMedia.contains(message.id) {
+            let messageId = message.id
+            let markedText = extrasMenuIsRussian ? "Отправитель увидит, что медиа открыто" : "The sender will see the media as opened"
+            actions.append(.action(ContextMenuActionItem(id: ForkMessageMenuItem.markMediaOpened, text: extrasMenuIsRussian ? "Отметить открытым" : "Mark as Opened", icon: { theme in
+                return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Eye"), color: theme.actionSheet.primaryTextColor)
+            }, action: { [weak controllerInteraction] _, f in
+                f(.default)
+                ForkReportedKeptMedia.insert(messageId)
+                let _ = (context.engine.messages.reportSelfDestructingMediaOpened(messageId: messageId)
+                |> deliverOnMainQueue).startStandalone(completed: {
+                    controllerInteraction?.displayUndo(.info(title: nil, text: markedText, timeout: nil, customUndoText: nil))
+                })
+            })))
+        }
         if extras.saveToCloudMenu, message.id.peerId != context.account.peerId, message.id.namespace == Namespaces.Message.Cloud, !isCopyProtected || ForkAyuForwardSettings.enabled {
             let saveTitle = forkSavedMessagesMenuTitle(chatPresentationInterfaceState.strings)
             actions.append(.action(ContextMenuActionItem(id: ForkMessageMenuItem.saveToSavedMessages, text: saveTitle, icon: { theme in
@@ -4426,5 +4443,23 @@ private final class ChatRateTranscriptionContextItemNode: ASDisplayNode, Context
     
     func actionNode(at point: CGPoint) -> ContextActionNodeProtocol {
         return self
+    }
+}
+
+/// Fork (Ghostgram): kept self-destructing media whose opening was reported in this run. The message stays
+/// unconsumed here until the server's update arrives, so without this the menu would offer the report again.
+private enum ForkReportedKeptMedia {
+    private static let ids = Atomic<Set<MessageId>>(value: Set())
+
+    static func contains(_ id: MessageId) -> Bool {
+        return self.ids.with { $0.contains(id) }
+    }
+
+    static func insert(_ id: MessageId) {
+        let _ = self.ids.modify { current in
+            var current = current
+            current.insert(id)
+            return current
+        }
     }
 }

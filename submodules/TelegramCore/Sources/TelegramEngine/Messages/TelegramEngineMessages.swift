@@ -324,6 +324,17 @@ public extension TelegramEngine {
             return _internal_markMessageContentAsConsumedInteractively(postbox: self.account.postbox, accountPeerId: self.account.peerId, messageId: messageId)
         }
 
+        /// Fork (Ghostgram): tells the sender that kept self-destructing media was opened
+        /// (`messages.readMessageContents`), without consuming it here; the server's update then applies as usual.
+        public func reportSelfDestructingMediaOpened(messageId: MessageId) -> Signal<Void, NoError> {
+            return self.account.postbox.transaction { transaction -> Void in
+                guard let message = transaction.getMessage(messageId), message.flags.contains(.Incoming) else {
+                    return
+                }
+                addSynchronizeConsumeMessageContentsOperation(transaction: transaction, messageIds: [messageId])
+            }
+        }
+
         public func installInteractiveReadMessagesAction(peerId: PeerId, threadId: Int64?) -> Disposable {
             return _internal_installInteractiveReadMessagesAction(postbox: self.account.postbox, stateManager: self.account.stateManager, peerId: peerId, threadId: threadId)
         }

@@ -785,6 +785,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [2360, 2361],
             [2045, 32, 34],
             [2046, 38, 1775, 40, 39, 41],
+            [2430, 2431],
             [42, 43]
         ])
     ]
@@ -957,6 +958,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         // 146 now belongs to Network; its original stable order is appropriate there.
         147: 133.3,     // Show 18+ Content, after Hide Blocked Messages
         148: 133.6,
+        2432: 133.7,    // Bypass Content Restrictions, after Show 18+ Content
+        2433: 133.8,
         2340: 109.0,    // Deleted Messages opens Message Saving.
         2341: 111.2,    // Save My Deleted Messages and Save Messages from Notifications follow Save Deleted Messages.
         2342: 111.4,
@@ -1384,6 +1387,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingToggle(38, .smallThings, ForkExtrasLocalizedString.allowSecretScreenshots, settings.allowSecretScreenshots, \.allowSecretScreenshots),
             .settingFooter(39, .smallThings, ForkExtrasLocalizedString.allowSecretScreenshotsFooter),
             .appearanceToggle(1775, russian ? "Скриншоты в защищённых чатах" : "Screenshots in Protected Chats", settings.allowProtectedScreenshots, \.allowProtectedScreenshots),
+            .appearanceToggle(2430, russian ? "Не сжигать исчезающие медиа" : "Keep Self-Destructing Media", settings.keepSelfDestructingMedia, \.keepSelfDestructingMedia),
+            .designFooter(2431, russian ? "Одноразовые и короткие по таймеру фото, видео и голосовые открываются без размытия, не исчезают, а отправитель не узнаёт, что вы их открыли. Чтобы сообщить ему, удерживайте медиа в чате и выберите «Отметить открытым». Секретные чаты не затрагиваются." : "View-once and short-timer photos, videos and voice messages open without the blur and don't disappear, and the sender isn't told you opened them. To tell them, press and hold the media in the chat and choose Mark as Opened. Secret chats aren't affected."),
             .settingToggle(40, .smallThings, ForkExtrasLocalizedString.expireTtlButton, settings.expireTtlButton, \.expireTtlButton),
             .settingFooter(41, .smallThings, ForkExtrasLocalizedString.expireTtlButtonFooter),
             .settingToggle(42, .smallThings, ForkExtrasLocalizedString.keepBannedChats, settings.keepBannedChats, \.keepBannedChats),
@@ -1686,6 +1691,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingFooter(133, .messageFilters, ForkExtrasLocalizedString.hideBlockedMessagesFooter),
             .settingToggle(147, .messageFilters, ForkExtrasLocalizedString.showSensitiveContent, settings.showSensitiveContent, \.showSensitiveContent),
             .settingFooter(148, .messageFilters, ForkExtrasLocalizedString.showSensitiveContentFooter),
+            .settingToggle(2432, .messageFilters, russian ? "Обходить ограничения контента" : "Bypass Content Restrictions", settings.bypassContentRestrictions, \.bypassContentRestrictions),
+            .settingFooter(2433, .messageFilters, russian ? "Чаты, боты и сообщения с пометкой «недоступно на вашем устройстве» открываются как обычно, по любой причине ограничения. Открытые чаты обновятся, когда вы зайдёте в них снова." : "Chats, bots and messages marked “unavailable on your device” open as usual, whatever the reason. Chats already open update when you open them again."),
             .settingToggle(134, .messageFilters, ForkExtrasLocalizedString.regexFilters, settings.regexMessageFiltersEnabled, \.regexMessageFiltersEnabled),
         ]
         if settings.regexMessageFiltersEnabled {

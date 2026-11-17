@@ -171,6 +171,9 @@ public extension Message {
         if MessageSavingBridge.settings.with({ $0.saveDeleted }) {
             return false
         }
+        if ForkKeepSelfDestructingMediaSettings.keeps(self) {
+            return false
+        }
         return self.containsSecretMedia
     }
     

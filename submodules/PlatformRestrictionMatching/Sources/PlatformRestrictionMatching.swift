@@ -18,6 +18,10 @@ public extension EngineRawMessage {
 
 public extension RestrictedContentMessageAttribute {
     func platformText(platform: String, contentSettings: ContentSettings) -> String? {
+        // Fork (Ghostgram) "Bypass Content Restrictions": the message is shown, copied and shared as it is.
+        if ForkContentRestrictionsBypassSettings.enabled {
+            return nil
+        }
         for rule in self.rules {
             if rule.reason == "sensitive" {
                 continue
