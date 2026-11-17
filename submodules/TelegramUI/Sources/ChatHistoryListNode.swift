@@ -2187,9 +2187,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
             ForkAIFeaturesSettings.hidden = settings.hideAIButton
             ForkAdminTitles.showsHiddenBadges = settings.showHiddenAdminBadges
             // The sticker nodes read the shape at layout time; project it before the history re-emits.
-            var mediaTweaks = BananaMediaTweaks.current
-            mediaTweaks.stickerShape = settings.stickerShape
-            BananaMediaTweaks.update(mediaTweaks)
+            BananaMediaTweaks.setStickerShape(settings.stickerShape)
             applyForkChatAppearanceSettings(settings)
             return MessageFilterSettingsFingerprint(
                 hideAds: settings.hideAds,

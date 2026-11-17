@@ -42,6 +42,17 @@ public enum BananaMediaTweaks {
         let _ = state.swap(next)
     }
 
+    /// Changes only the sticker shape, atomically. Chat history nodes call this off the main queue while
+    /// `SharedAccountContext` may be writing the whole state: a read-then-`update` there could put back the other
+    /// fields' old values.
+    public static func setStickerShape(_ value: Int32) {
+        let _ = state.modify { current in
+            var current = current
+            current.stickerShape = value
+            return current
+        }
+    }
+
     public static var accelerateUpload: Bool {
         return state.with { $0.accelerateUpload }
     }
