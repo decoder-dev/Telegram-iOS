@@ -53,6 +53,8 @@ public final class ChatListTitleView: UIView, NavigationBarTitleView, Navigation
     public var titleTextAlpha: CGFloat = 1.0 {
         didSet {
             self.titleNode.alpha = self.titleTextAlpha * (self.buttonView.isHighlighted ? 0.4 : 1.0)
+            // The status sticker belongs to the title: it fades out with it while the large title is shown.
+            self.titleCredibilityIconView?.alpha = (self.title.activity ? 0.0 : 1.0) * self.titleTextAlpha
         }
     }
     private let lockView: ChatListTitleLockView
@@ -439,7 +441,7 @@ public final class ChatListTitleView: UIView, NavigationBarTitleView, Navigation
                 containerSize: CGSize(width: 22.0, height: 22.0)
             )
             titleCredibilityIconTransition.setFrame(view: titleCredibilityIconView, frame: CGRect(origin: CGPoint(x: titleFrame.maxX + 2.0, y: floorToScreenPixels(titleFrame.midY - titleIconSize.height / 2.0)), size: titleIconSize))
-            titleCredibilityIconView.alpha = self.title.activity ? 0.0 : 1.0
+            titleCredibilityIconView.alpha = (self.title.activity ? 0.0 : 1.0) * self.titleTextAlpha
         } else {
             if let titleCredibilityIconView = self.titleCredibilityIconView {
                 self.titleCredibilityIconView = nil

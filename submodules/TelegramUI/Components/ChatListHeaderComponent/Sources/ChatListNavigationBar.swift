@@ -13,6 +13,8 @@ import EdgeEffect
 import GlassBackgroundComponent
 import SideColumnLayout
 import NavigationBarComponent
+import ChatListTitleView
+import EmojiStatusComponent
 
 private func searchScrollHeightValue() -> CGFloat {
     return 54.0
@@ -244,6 +246,9 @@ public final class ChatListNavigationBar: Component {
         private let edgeEffectView: EdgeEffectView
         private let largeTitleContainer = UIView()
         private let largeTitleLabel = UILabel()
+        /// The account's status sticker beside the large title; the small title's own fades out meanwhile.
+        private var largeTitleStatus: ComponentView<Empty>?
+        private var largeTitleStatusValue: NetworkStatusTitle.Status?
         private var largeTitleHeight: CGFloat = 0.0
         private var fullLargeTitleHeight: CGFloat = 0.0
 
@@ -392,6 +397,9 @@ public final class ChatListNavigationBar: Component {
                 }
             }
             if self.largeTitleContainer.alpha > 0.0 && self.largeTitleContainer.frame.contains(point) {
+                if let statusView = self.largeTitleStatus?.view, statusView.superview != nil, statusView.frame.contains(self.convert(point, to: self.largeTitleContainer)) {
+                    return statusView.hitTest(self.convert(point, to: statusView), with: event) ?? statusView
+                }
                 return nil
             }
             if point.y >= self.currentHeight {
@@ -767,7 +775,9 @@ public final class ChatListNavigationBar: Component {
             let visibleTitleHeight = max(0.0, self.largeTitleHeight - geometry.titleOffset)
             transition.setFrame(view: self.largeTitleContainer, frame: CGRect(x: component.leftInset + 16.0, y: headerContentFrame.maxY, width: titleWidth, height: visibleTitleHeight))
             let labelHeight = ceil(self.largeTitleLabel.font.lineHeight)
-            transition.setFrame(view: self.largeTitleLabel, frame: CGRect(x: 0.0, y: floor((self.largeTitleHeight - labelHeight) * 0.5) - geometry.titleOffset, width: titleWidth, height: labelHeight))
+            let largeTitleLabelFrame = CGRect(x: 0.0, y: floor((self.largeTitleHeight - labelHeight) * 0.5) - geometry.titleOffset, width: titleWidth, height: labelHeight)
+            transition.setFrame(view: self.largeTitleLabel, frame: largeTitleLabelFrame)
+            self.updateLargeTitleStatus(component: component, labelFrame: largeTitleLabelFrame, transition: transition)
             let storiesTitleFraction = component.storySubscriptions == nil ? 0.0 : min(1.0, storiesOffsetFraction)
             let largeTitleAlpha = geometry.titleFraction * max(0.0, min(1.0, 1.0 - component.secondaryTransition)) * (1.0 - storiesTitleFraction)
             transition.setAlpha(view: self.largeTitleContainer, alpha: largeTitleAlpha)
@@ -877,6 +887,70 @@ public final class ChatListNavigationBar: Component {
             }
         }
         
+        private func updateLargeTitleStatus(component: ChatListNavigationBar, labelFrame: CGRect, transition: ComponentTransition) {
+            let status = component.largeTitle == nil ? nil : component.primaryContent?.chatListTitle?.peerStatus
+            guard let status else {
+                if let largeTitleStatus = self.largeTitleStatus {
+                    self.largeTitleStatus = nil
+                    self.largeTitleStatusValue = nil
+                    largeTitleStatus.view?.removeFromSuperview()
+                }
+                return
+            }
+            let theme = component.theme
+            let content: EmojiStatusComponent.Content
+            var particleColor: UIColor?
+            switch status {
+            case .premium:
+                content = .premium(color: theme.list.itemAccentColor)
+            case let .emoji(emojiStatus):
+                content = .animation(content: .customEmoji(fileId: emojiStatus.fileId), size: CGSize(width: 56.0, height: 56.0), placeholderColor: theme.list.mediaPlaceholderColor, themeColor: theme.list.itemAccentColor, loopMode: .count(2))
+                if let color = emojiStatus.color {
+                    particleColor = UIColor(rgb: UInt32(bitPattern: color))
+                }
+            }
+            let statusView: ComponentView<Empty>
+            var statusTransition = transition
+            if let current = self.largeTitleStatus {
+                statusView = current
+                if self.largeTitleStatusValue != status {
+                    statusTransition = ComponentTransition(animation: .curve(duration: 0.2, curve: .easeInOut))
+                }
+            } else {
+                statusView = ComponentView()
+                self.largeTitleStatus = statusView
+                statusTransition = .immediate
+            }
+            self.largeTitleStatusValue = status
+            let iconSide = floor(labelFrame.height * 0.72)
+            let iconSize = statusView.update(
+                transition: statusTransition,
+                component: AnyComponent(EmojiStatusComponent(
+                    context: component.context,
+                    animationCache: component.context.animationCache,
+                    animationRenderer: component.context.animationRenderer,
+                    content: content,
+                    particleColor: particleColor,
+                    isVisibleForAnimations: true,
+                    action: { [weak self] in
+                        self?.openEmojiStatusSetup()
+                    }
+                )),
+                environment: {},
+                containerSize: CGSize(width: iconSide, height: iconSide)
+            )
+            guard let view = statusView.view else {
+                return
+            }
+            if view.superview == nil {
+                self.largeTitleContainer.addSubview(view)
+            }
+            let textWidth = min(labelFrame.width - iconSize.width - 6.0, ceil(self.largeTitleLabel.sizeThatFits(CGSize(width: labelFrame.width, height: labelFrame.height)).width))
+            let isRightToLeft = self.effectiveUserInterfaceLayoutDirection == .rightToLeft
+            let x = isRightToLeft ? labelFrame.maxX - textWidth - 6.0 - iconSize.width : labelFrame.minX + textWidth + 6.0
+            transition.setFrame(view: view, frame: CGRect(origin: CGPoint(x: x, y: floorToScreenPixels(labelFrame.midY - iconSize.height * 0.5)), size: iconSize))
+        }
+
         public func openEmojiStatusSetup() {
             if let headerContentView = self.headerContent.view as? ChatListHeaderComponent.View {
                 headerContentView.openEmojiStatusSetup()

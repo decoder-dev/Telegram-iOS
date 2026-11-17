@@ -97,5 +97,28 @@ class FilterListImport(unittest.TestCase):
         self.assertIsNone(re.search(r'URLSession\.shared\.dataTask\(with: request\) \{ data, _, _ in\n        Queue\.mainQueue\(\)\.async \{\n            statusController\.dismiss\(\)', source))
 
 
+
+class TitleStickerFollowsLargeTitle(unittest.TestCase):
+    NAV = 'submodules/TelegramUI/Components/ChatListHeaderComponent/Sources/ChatListNavigationBar.swift'
+    TITLE = 'submodules/TelegramUI/Components/ChatListTitleView/Sources/ChatListTitleView.swift'
+    STORIES = 'submodules/TelegramUI/Components/Stories/StoryPeerListComponent/Sources/StoryPeerListComponent.swift'
+
+    def test_small_title_sticker_fades_with_the_title(self):
+        title = read(self.TITLE)
+        self.assertIn('self.titleCredibilityIconView?.alpha = (self.title.activity ? 0.0 : 1.0) * self.titleTextAlpha', title)
+        self.assertIn('titleCredibilityIconView.alpha = (self.title.activity ? 0.0 : 1.0) * self.titleTextAlpha', title)
+        stories = read(self.STORIES)
+        self.assertIn('self.titleIconView?.view?.alpha = self.titleIconFractionAlpha * newValue', stories)
+        self.assertIn('titleIconView.alpha = titleIconAlpha * self.titleTextContainer.alpha', stories)
+
+    def test_large_title_shows_the_sticker_beside_it(self):
+        nav = read(self.NAV)
+        body = function_body(nav, 'private func updateLargeTitleStatus(')
+        self.assertIn('component.primaryContent?.chatListTitle?.peerStatus', body)
+        self.assertIn('self.largeTitleContainer.addSubview(view)', body)
+        self.assertIn('self?.openEmojiStatusSetup()', body)
+        self.assertIn('self.updateLargeTitleStatus(component: component, labelFrame: largeTitleLabelFrame, transition: transition)', nav)
+        self.assertIn('"//submodules/TelegramUI/Components/EmojiStatusComponent"', read('submodules/TelegramUI/Components/ChatListHeaderComponent/BUILD'))
+
 if __name__ == '__main__':
     unittest.main()
