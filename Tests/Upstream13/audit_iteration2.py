@@ -1,5 +1,5 @@
 """Audit iteration 2 (docs/quality/full_app_audit.md): VoIP push completion, hidden accounts in Siri and the widget
-picker, the settings-import protection prompt, document-picker lifetimes, the sticker-shape race, saved deleted media
+picker, the settings-import protection prompt, the duress log-out of hidden accounts, document-picker lifetimes, the sticker-shape race, saved deleted media
 copies and two outgoing-text-rule defects. Source-text checks; Swift builds in CI."""
 import pathlib
 import re
@@ -35,6 +35,19 @@ class HiddenAccounts(unittest.TestCase):
         self.assertIn('if hiddenAccounts.isHidden(record.id.int64) {\n                    continue', source)
         self.assertIn('return records.filter { !hiddenAccounts.isHidden($0.0.int64) }', source)
         self.assertNotIn('self.allAccounts.set(.single(', source)
+
+
+class DuressLogOut(unittest.TestCase):
+    def test_hidden_accounts_go_with_their_owner(self):
+        source = read('submodules/TelegramUIPreferences/Sources/DuressPasscode.swift')
+        body = source[source.index('        case .logOut:'):source.index('        case .eraseAll:')]
+        # A logged-out owner drops out of the hidden-accounts map, which would show what it hid.
+        self.assertIn('transaction.getSharedData(ApplicationSpecificSharedDataKeys.hiddenAccountsSettings)', body)
+        self.assertIn('chosen.formUnion(hidden.hiddenAccountIds(ownerAccountId: ownerId))', body)
+        self.assertLess(body.index('chosen.formUnion'), body.index('return (action, records.map'))
+        strings = read('submodules/SettingsUI/Sources/DuressPasscodeController.swift')
+        self.assertIn('together with the accounts they hide', strings)
+        self.assertIn('the accounts you check and the accounts they hide', strings)
 
 
 class SettingsImport(unittest.TestCase):

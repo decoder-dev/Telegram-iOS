@@ -46,8 +46,8 @@ enum DuressPasscodeStrings {
            : "Hidden accounts and the locked Archive close, and tapping Settings 10 times shows nothing until you unlock with your real passcode."
     }
     static var logOutFooter: String {
-        ru ? "Отмеченные ниже аккаунты выйдут на этом устройстве, скрытые аккаунты закроются. Чаты останутся в облаке, для входа понадобится номер телефона."
-           : "The accounts checked below are logged out on this device, and hidden accounts close. Chats stay in the cloud; signing back in needs the phone number."
+        ru ? "Отмеченные ниже аккаунты выйдут на этом устройстве вместе с аккаунтами, которые они скрывают, остальные скрытые аккаунты закроются. Чаты останутся в облаке, для входа понадобится номер телефона."
+           : "The accounts checked below are logged out on this device together with the accounts they hide, and other hidden accounts close. Chats stay in the cloud; signing back in needs the phone number."
     }
     static var eraseAllFooter: String {
         ru ? "С устройства удалятся все аккаунты вместе с чатами, медиа и кэшем. Чаты останутся в облаке. Сеансы будут видны на других устройствах, пока вы их не завершите."
@@ -60,8 +60,8 @@ enum DuressPasscodeStrings {
     }
     static var logOutConfirmTitle: String { ru ? "Выход из аккаунтов" : "Log Out of Accounts?" }
     static var logOutConfirmText: String {
-        ru ? "При вводе кода под принуждением отмеченные аккаунты выйдут на этом устройстве без предупреждения. Чтобы войти снова, понадобятся их номера телефонов."
-           : "When the duress passcode is entered, the accounts you check will be logged out on this device without any warning. Signing back in will need their phone numbers."
+        ru ? "При вводе кода под принуждением отмеченные аккаунты и скрытые ими аккаунты выйдут на этом устройстве без предупреждения. Чтобы войти снова, понадобятся их номера телефонов."
+           : "When the duress passcode is entered, the accounts you check and the accounts they hide will be logged out on this device without any warning. Signing back in will need their phone numbers."
     }
     static var eraseConfirmTitle: String { ru ? "Стирание всех данных" : "Erase All Data?" }
     static var eraseConfirmText: String {

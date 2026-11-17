@@ -106,7 +106,14 @@ public func performDuressPasscodeAction(accountManager: AccountManager<TelegramA
         case .hideSecrets:
             return (action, [])
         case .logOut:
-            let chosen = Set(settings.duressLogOutAccountIds)
+            var chosen = Set(settings.duressLogOutAccountIds)
+            // A logged-out owner leaves the hidden-accounts map (`keepingAccounts`), so the accounts it hid would show
+            // up in the account list right after the duress passcode. They go with their owner. A hidden account hides
+            // nobody, so one level is all there is.
+            let hidden = transaction.getSharedData(ApplicationSpecificSharedDataKeys.hiddenAccountsSettings)?.get(HiddenAccountsSettings.self) ?? .default
+            for ownerId in Array(chosen) {
+                chosen.formUnion(hidden.hiddenAccountIds(ownerAccountId: ownerId))
+            }
             return (action, records.map(\.id).filter { chosen.contains($0.int64) })
         case .eraseAll:
             return (action, records.map(\.id))
