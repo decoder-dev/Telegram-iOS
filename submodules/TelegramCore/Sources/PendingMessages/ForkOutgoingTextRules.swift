@@ -303,7 +303,8 @@ enum ForkWordReplacementStage {
 }
 
 enum ForkAntiCapsStage {
-    /// A text of at least four letters that is all, or at least 80%, capitals becomes sentence case.
+    /// A text of at least four cased letters that is all, or at least 80%, capitals becomes sentence case. Only letters
+    /// that have a case count: in Chinese, Japanese, Arabic or Hindi text an acronym like "NASA" is not shouting.
     static func edits(_ text: String, protected: [Range<Int>]) -> [ForkTextEdit] {
         var items: [(character: Character, range: Range<Int>)] = []
         var offset = 0
@@ -312,21 +313,24 @@ enum ForkAntiCapsStage {
             items.append((character, offset ..< (offset + length)))
             offset += length
         }
-        var letters = 0
+        var casedLetters = 0
         var uppercase = 0
-        var lowercase = 0
+        var uncasedLetters = 0
         for item in items where item.character.isLetter && !ForkProtectedRanges.intersects(item.range, protected) {
-            letters += 1
             if item.character.isUppercase {
                 uppercase += 1
+                casedLetters += 1
             } else if item.character.isLowercase {
-                lowercase += 1
+                casedLetters += 1
+            } else {
+                uncasedLetters += 1
             }
         }
-        guard letters >= 4 else {
+        // Mostly cased script: "这是NASA的API文档" (7 cased, 6 uncased) stays as written.
+        guard casedLetters >= 4, uncasedLetters * 4 <= casedLetters else {
             return []
         }
-        guard lowercase == 0 || Double(uppercase) / Double(letters) >= 0.8 else {
+        guard Double(uppercase) / Double(casedLetters) >= 0.8 else {
             return []
         }
         var result: [ForkTextEdit] = []
@@ -358,15 +362,8 @@ func forkApplyOutgoingTextRules(account: Account, peerId: PeerId, messages: [Enq
     if state.isEmpty {
         return .single(messages)
     }
-    let hasText = messages.contains(where: { message in
-        if case let .message(text, _, _, _, _, _, _, _, _, _) = message {
-            return !text.isEmpty
-        }
-        return false
-    })
-    if !hasText {
-        return .single(messages)
-    }
+    // Every batch takes the same postbox hop while a rule is on, text or not: a sticker sent right after a text would
+    // otherwise be inserted before it (its single transaction queued ahead of the text's second one) and arrive first.
     return account.postbox.transaction { transaction -> Bool in
         if let user = transaction.getPeer(peerId) as? TelegramUser, user.botInfo != nil {
             return true
