@@ -6,7 +6,7 @@ Statuses: **fixed** (changed, source checks pass), **verified** (seen working in
 
 ## Baseline
 
-- Branch `audit/stabilization` from `main` at `550246240b87070550df4e0d339d72f37b943441` (13.1.2, `versions.json`:
+- Iteration 1: branch `audit/stabilization` (merged into `main` as bd2c65d392) from `main` at `550246240b87070550df4e0d339d72f37b943441` (13.1.2, `versions.json`:
   Xcode 26.6, Bazel 9.2.0, macOS 26).
 - Audit environment: Windows 11, Git Bash, Python 3.14. **No Swift, Xcode, Bazel or simulator**, submodules not
   checked out. Nothing in this audit was compiled or run on a simulator; every Swift change is at most
@@ -34,14 +34,14 @@ Statuses: **fixed** (changed, source checks pass), **verified** (seen working in
 
 | | Subsystem | Main locations | Status |
 |---|---|---|---|
-| A | Auth, accounts, passcode, lock | `submodules/AuthorizationUI`, `AppLock`, `PasscodeUI`, `TelegramUIPreferences/HiddenAccountsSession`, `DuressPasscode`, `ArchivePasswordKeychain` | partial: passcode, duress, keychain reviewed; 2 fixed |
-| B | Chats and messages | `TelegramCore/TelegramEngine/Messages`, `ChatListUI`, `TelegramUI/Sources/Chat*`, Ghost Mode, MessageSaving | partial: Ghost Mode, Message Saving reviewed; 1 fixed |
-| C | Media and files | `GalleryUI`, `MediaPlayer`, `TelegramUI/Components/Chat/*Media*`, Camera | not started |
+| A | Auth, accounts, passcode, lock | `submodules/AuthorizationUI`, `AppLock`, `PasscodeUI`, `TelegramUIPreferences/HiddenAccountsSession`, `DuressPasscode`, `ArchivePasswordKeychain` | passcode, duress, keychain, hidden accounts in extensions reviewed; 3 fixed, 3 open (iteration 2) |
+| B | Chats and messages | `TelegramCore/TelegramEngine/Messages`, `ChatListUI`, `TelegramUI/Sources/Chat*`, Ghost Mode, MessageSaving | Ghost Mode, Message Saving, outgoing text rules reviewed; 4 fixed, 1 open |
+| C | Media and files | `GalleryUI`, `MediaPlayer`, `TelegramUI/Components/Chat/*Media*`, Camera | fork media code reviewed (iteration 2); 1 fixed, 4 open; upstream decoders not reviewed |
 | D | Networking | `MtProtoKit`, `TelegramCore/Network`, `TelegramVLESS`, `MTWebSocketTransport`, managed proxy, web proxy | fork transports reviewed; 2 fixed; upstream TLS risk noted |
-| E | Calls | `TelegramCallsUI`, `TgVoipWebrtc` (submodule not checked out) | not started |
+| E | Calls | `TelegramCallsUI`, `TgVoipWebrtc` (submodule not checked out) | CallKit/PushKit and fork call code reviewed; 1 fixed, 2 open; tgcalls not reviewed |
 | F | UI/UX | all screens; needs a simulator — not possible here | blocked (no simulator) |
-| G | Fork features | `ForkExtrasSettings`, `SettingsUI/Fork*`, `Banana*`, Ghost Mode, filters, local pins, menus | settings serialization and leaks reviewed; 1 fixed |
-| H | Security and storage | Postbox, Keychain, settings import/export, update check, deep links, translators | reviewed; 1 fixed, API key storage open |
+| G | Fork features | `ForkExtrasSettings`, `SettingsUI/Fork*`, `Banana*`, Ghost Mode, filters, local pins, menus | settings serialization, leaks, Ghostgram ports reviewed; 4 fixed |
+| H | Security and storage | Postbox, Keychain, settings import/export, update check, deep links, translators | reviewed; 2 fixed, API key storage open |
 
 ## Iteration 1
 
@@ -112,3 +112,70 @@ before anything changed; only confirmed defects were fixed. Fixes are pinned by 
 
 C (media pipeline), E (calls), F (UI — needs a simulator), A beyond passcode/duress (auth flows, QR login, 2FA),
 upstream Postbox and MTProto internals. Next: build this branch in CI (`Build sideload IPA`), then C and E.
+
+## Iteration 2 (on `main`, from bd2c65d392)
+
+Policy for this iteration: work directly on `main`, no branches or PRs. Same environment limits as iteration 1: no Swift,
+Xcode, Bazel or simulator here, so every Swift change below is **presumed fixed** until CI builds it.
+
+### Method
+
+Four read-only reviews in parallel: the Ghostgram ports (8df16d1c41, 550246240b), fork media code, calls + auth/hidden
+accounts, and the "suspected" list of iteration 1. Every finding was re-read in the source before a change. The fixes
+are pinned by `Tests/Upstream13/audit_iteration2.py` (in `client-regression`): 8 tests, 7 failures + 1 error on the
+unfixed tree, all pass on the fixed one. All 36 `Tests/*` directories give the same result before and after the
+changes on this machine (`python -m unittest discover` per directory, compared line by line).
+
+### Fixed (presumed: source checks pass, not built)
+
+| Pri | Area | Defect | Fix | Files |
+|---|---|---|---|---|
+| P0 | E | VoIP push: `completion()` ran synchronously at the end of the push handler, while the call was reported to CallKit only after the account was resolved asynchronously (up to 2 s on a cold start). PushKit requires the report before the completion handler; iOS kills the app and eventually stops VoIP pushes. | `completion` runs once, from `finishPush`, right after either report; every early exit uses it; after 5 s without a report a generic call is reported and ended first. The resolve-before-report privacy design is kept. | `TelegramUI/Sources/AppDelegate.swift` |
+| P1 | A/H | Siri contact search and the widget's chat picker listed every signed-in account, hidden ones included (names, top chats). | Both account lists drop accounts `HiddenAccountsSettings` hides. | `Telegram/SiriIntents/IntentHandler.swift` |
+| P1 | H | Settings import showed only "N settings will change": a crafted file could turn off Security switches, the passcode lock, link confirmations, screenshot protection, streamer mode and Ghost Mode. | Protective keys are counted separately; when any change, the alert names them and its default action keeps them; "Import Everything" is a separate destructive action. | `SettingsUI/Sources/BananaSettingsBackup.swift`, `BananaAboutController.swift` |
+| P1 | B/C | Message Saving: the copy of a deleted message's media was only scheduled on a background queue, and the caller deleted the original in the same transaction (secret chat cleared, channel range deleted), so the copy usually failed and the record pointed at nothing. | APFS clone made synchronously (one metadata call), byte copy only as fallback; copies get a fresh modification date so the 14-day unreferenced sweep does not remove them early. | `TelegramCore/Sources/MessageSaving/MessageSavingAttachments.swift` |
+| P2 | B | Outgoing text rules: a batch with text took an extra postbox hop that a sticker/voice batch did not, so a sticker sent right after a text could be inserted and sent first. | While a rule is on, every batch takes the same hop. | `TelegramCore/Sources/PendingMessages/ForkOutgoingTextRules.swift` |
+| P2 | B | Anti-Caps counted uncased letters (CJK, Arabic, Hindi...), so `这是NASA的API文档` was sent as `这是nasa的api文档`. | Only cased letters count, and they must be at least 80% of the letters. | same |
+| P2 | G | `BananaMediaTweaks` read-modify-write from a chat history node (AccountManager queue) raced the full write from `SharedAccountContext` (main): Upload Acceleration, Auto-Pause etc. could revert. | `setStickerShape` changes only that field inside `Atomic.modify`. | `TelegramCore/Sources/Arena/BananaMediaTweaks.swift`, `TelegramUI/Sources/ChatHistoryListNode.swift` |
+| P3 | G | Document-picker delegates were singletons holding the `AccountContext`; when UIKit dropped the presentation no callback came and the account stayed alive until the next import. | One delegate per picker, retained by the picker (associated object). | `SettingsUI/Sources/ForkExtrasController.swift`, `BananaAboutController.swift` |
+
+### Reviewed, no defect
+
+- Ghostgram ports: renderer formats (44.1 kHz stereo Int16 in `MediaPlayerAudioRenderer`, 48 kHz in ChunkMediaPlayerV2
+  checked from the sample buffer), voice changer buffer sizes and delay clamps, C object lifetimes, text-rule UTF-16
+  ranges and entity shifting, registration-date table (315 entries, sorted, bands consistent), kept-media hooks.
+- Media: shared static settings are `Atomic`; TikTok/Shorts download cleanup; Saved Attachments retry bounds; gallery
+  double-tap seek; camera zoom guards.
+- Calls/auth: `HiddenAccountsSession` locking, `switchToAccount` gating, ringing for hidden or archive-locked accounts,
+  push redaction, duress verification order, CallKit start watchdog, VLESS fail-closed for calls.
+- Iteration 1 suspicion "Message Saving defaults until sharedData arrives": **not a bug** (settings and account records
+  are emitted FIFO from the same AccountManager queue; accounts are created after the settings handler ran).
+
+### Open (confirmed, not changed in this iteration)
+
+- **P1, A**: Duress "Log Out" that includes the owner account un-hides the accounts it hid (the owner map becomes empty).
+  Needs a rule for owners in the duress list (keep hidden, or log out the hidden accounts too).
+- **P2, A/E**: calls of a hidden account donate `INStartCallIntent` (Siri suggestions) and land in Phone Recents;
+  `clearHiddenAccountTraces` removes only send-message donations.
+- **P2, A**: `HiddenAccountsSession.revealBlocked` (set by the duress code) is memory-only; a relaunch inside the
+  auto-lock window re-enables the Settings x10 reveal gesture (opening still needs the password).
+- **P2, A**: an already configured widget reads a hidden account's chats directly (`WidgetKitWidget/TodayViewController.swift`);
+  that target does not link `TelegramUIPreferences`, so the filter needs a small dependency change.
+- **P2, B**: an open chat is not marked read when Ghost "Don't Read" is turned off until a newer message is visible or
+  the chat is reopened (`ChatHistoryListNode` read pipeline ignores the setting).
+- **P2, C**: saved secret/view-once media and records outlive their chat and account (only Duress Erase All and the
+  manual clear remove them); old unscoped attachment names can match another account's message.
+- **P3, C**: saved copies with extensions outside the probe list (`MOV`, `heif`, `apk`) are never found again;
+  sticker-to-video export cancelled during `finishWriting`; banned-GIF fallback sends a GIF that the chat rejects.
+- **P3, E**: Extras > No Call Rating Prompt changes nothing: `CallControllerNodeV2` never shows the automatic rating
+  sheet, so the switch is inert (harmless).
+- **P3, D**: WebSocket probe slot ownership (iteration 1) confirmed; self-recovering.
+- **P3, voice**: the equalizer's Int16 path hard-clips at large boosts; a resumed voice recording uses the voice changer
+  settings of the moment it resumes.
+- **P2, H**: translator API keys in the unencrypted AccountManager database (scope: `ForkExtrasSettings` fields,
+  `ForkExtrasController` writer, `ForkTranslationBackends` readers).
+
+### Not covered yet
+
+F (UI: needs a simulator), upstream Postbox/MTProto internals, tgcalls, media decoders, auth flows (QR login, 2FA)
+beyond the fork's changes.
