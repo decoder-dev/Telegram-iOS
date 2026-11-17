@@ -82,7 +82,7 @@ enum BananaSecurityStrings { static var title="Security" }
 """
     stubs+='enum ForkExtrasLocalizedString { static func string(forKey key: String) -> String { key }\n'+'\n'.join('static let '+name+'="'+name+'"' for name in sorted(localized))+'\n}\n'
     badge=declaration(read('submodules/TelegramCore/Sources/Arena/BananaIdentityBadges.swift'),'public enum BananaLocalVerificationBadge:')
-    defs='\n'.join([badge,declaration(source,'private enum ForkExtrasDestination:'),declaration(source,'private enum ForkExtrasSection:'),focus,entry,*[declaration(source,'private func '+name+'(') for name in ['forkVisualLabelOptions','forkLocalVerificationOptions','forkStickerShapeOptions','forkDoubleTapSeekOptions','forkDoubleTapActionOptions','forkGlassTintOptions','forkGlassRimOptions','forkSendFormattingOptions','forkVideoQualityOptions','forkIntChoiceLabel']],factory])
+    defs='\n'.join([badge,declaration(source,'private enum ForkExtrasDestination:'),declaration(source,'private enum ForkExtrasSection:'),focus,entry,*[declaration(source,'private func '+name+'(') for name in ['forkVisualLabelOptions','forkLocalVerificationOptions','forkStickerShapeOptions','forkDoubleTapSeekOptions','forkDoubleTapActionOptions','forkGlassTintOptions','forkGlassRimOptions','forkSendFormattingOptions','forkVideoQualityOptions','forkVoiceChangerPresetOptions','forkVoiceChangerPitchOptions','forkVoiceChangerAmountOptions','forkEqualizerGainOptions','forkIntChoiceLabel']],factory])
     tests=r"""
 for russian in [false,true] {
  ForkPresentationLanguage.prefersRussianStrings=russian
