@@ -672,6 +672,33 @@ public enum MessageSavingStore {
         }
     }
 
+    /// Duress Passcode "Erase All": every saved deleted message and edit of every account, every durable media copy in
+    /// Saved Attachments and every file the notification extension staged. These live outside the account folders, so
+    /// removing the accounts left them behind in plaintext. Written through at once, also over a history this build
+    /// could not read (`loadFailed`), which would otherwise be kept on disk.
+    public static func eraseEverything() {
+        lock.lock()
+        self.memory = []
+        self.loaded = true
+        self.loadFailed = false
+        self.rebuildIndexesLocked()
+        // Above every snapshot taken so far, so a coalesced write still in flight can't put the old records back.
+        self.storeGeneration += 1
+        lock.unlock()
+        persistNow()
+
+        let attachments = MessageSavingBridge.savedAttachmentsDirectory
+        if let urls = try? FileManager.default.contentsOfDirectory(at: attachments, includingPropertiesForKeys: nil, options: []) {
+            for url in urls {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+        if let rootPath = self.notificationStagingRootPath {
+            MessageSavingNotificationStaging.removeAll(rootPath: rootPath)
+        }
+        notifyChanged()
+    }
+
     /// Deleted messages of every chat of one account. Edit history stays.
     public static func clearAllDeleted(accountPeerId: Int64) {
         removeDeleted { record in
