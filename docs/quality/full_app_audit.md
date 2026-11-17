@@ -127,7 +127,7 @@ simulator, so they stay *fixed (builds)*, not *verified*.
 
 Four read-only reviews in parallel: the Ghostgram ports (8df16d1c41, 550246240b), fork media code, calls + auth/hidden
 accounts, and the "suspected" list of iteration 1. Every finding was re-read in the source before a change. The fixes
-are pinned by `Tests/Upstream13/audit_iteration2.py` (in `client-regression`): 8 tests, 7 failures + 1 error on the
+are pinned by `Tests/Upstream13/audit_iteration2.py` (in `client-regression`): 9 tests, 8 failures + 1 error on the
 unfixed tree, all pass on the fixed one. All 36 `Tests/*` directories give the same result before and after the
 changes on this machine (`python -m unittest discover` per directory, compared line by line).
 
@@ -142,6 +142,7 @@ changes on this machine (`python -m unittest discover` per directory, compared l
 | P2 | B | Outgoing text rules: a batch with text took an extra postbox hop that a sticker/voice batch did not, so a sticker sent right after a text could be inserted and sent first. | While a rule is on, every batch takes the same hop. | `TelegramCore/Sources/PendingMessages/ForkOutgoingTextRules.swift` |
 | P2 | B | Anti-Caps counted uncased letters (CJK, Arabic, Hindi...), so `这是NASA的API文档` was sent as `这是nasa的api文档`. | Only cased letters count, and they must be at least 80% of the letters. | same |
 | P2 | G | `BananaMediaTweaks` read-modify-write from a chat history node (AccountManager queue) raced the full write from `SharedAccountContext` (main): Upload Acceleration, Auto-Pause etc. could revert. | `setStickerShape` changes only that field inside `Atomic.modify`. | `TelegramCore/Sources/Arena/BananaMediaTweaks.swift`, `TelegramUI/Sources/ChatHistoryListNode.swift` |
+| P1 | A | Duress "Log Out" of an owner account removed it from the hidden-accounts map, so the accounts it hid appeared in the account list right after the duress passcode. | Rule chosen by the owner of the project: the accounts a chosen owner hides are logged out with it; the settings footer and confirmation say so. (Commit after 7047befae0; not yet built.) | `TelegramUIPreferences/Sources/DuressPasscode.swift`, `SettingsUI/Sources/DuressPasscodeController.swift` |
 | P3 | G | Document-picker delegates were singletons holding the `AccountContext`; when UIKit dropped the presentation no callback came and the account stayed alive until the next import. | One delegate per picker, retained by the picker (associated object). | `SettingsUI/Sources/ForkExtrasController.swift`, `BananaAboutController.swift` |
 
 ### Reviewed, no defect
@@ -158,8 +159,6 @@ changes on this machine (`python -m unittest discover` per directory, compared l
 
 ### Open (confirmed, not changed in this iteration)
 
-- **P1, A**: Duress "Log Out" that includes the owner account un-hides the accounts it hid (the owner map becomes empty).
-  Needs a rule for owners in the duress list (keep hidden, or log out the hidden accounts too).
 - **P2, A/E**: calls of a hidden account donate `INStartCallIntent` (Siri suggestions) and land in Phone Recents;
   `clearHiddenAccountTraces` removes only send-message donations.
 - **P2, A**: `HiddenAccountsSession.revealBlocked` (set by the duress code) is memory-only; a relaunch inside the
