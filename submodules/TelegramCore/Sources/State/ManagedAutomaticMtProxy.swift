@@ -391,7 +391,13 @@ private func fetchAutomaticMtProxyListViaDoHTXT(name: String) -> Signal<String, 
                     body = parts.joined(separator: "\n")
                 }
                 task.resume()
-                _ = semaphore.wait(timeout: .now() + 9.0)
+                // `timeoutInterval` is an idle timeout, so a slow answer can outlast this wait. Then the
+                // task is cancelled and `body` is not read: the completion handler may still be writing
+                // it on URLSession's queue. After a signalled wait the handler has finished with it.
+                guard semaphore.wait(timeout: .now() + 9.0) == .success else {
+                    task.cancel()
+                    continue
+                }
                 if !body.isEmpty {
                     subscriber.putNext(body)
                     subscriber.putCompletion()
