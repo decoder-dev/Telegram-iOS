@@ -118,6 +118,11 @@ upstream Postbox and MTProto internals. Next: build this branch in CI (`Build si
 Policy for this iteration: work directly on `main`, no branches or PRs. Same environment limits as iteration 1: no Swift,
 Xcode, Bazel or simulator here, so every Swift change below is **presumed fixed** until CI builds it.
 
+**Build:** `Build sideload IPA` run 44099954225 on 8bcac0393e (Xcode 27, compile only, `create_release=false`) built
+the IPA with all iteration 2 changes, and its regression job passed. None of the changes was run on a device or
+simulator, so they stay *fixed (builds)*, not *verified*.
+`Client regression tests` run 44099873571 on 8bcac0393e (with `audit_iteration2`) passed.
+
 ### Method
 
 Four read-only reviews in parallel: the Ghostgram ports (8df16d1c41, 550246240b), fork media code, calls + auth/hidden
@@ -126,7 +131,7 @@ are pinned by `Tests/Upstream13/audit_iteration2.py` (in `client-regression`): 8
 unfixed tree, all pass on the fixed one. All 36 `Tests/*` directories give the same result before and after the
 changes on this machine (`python -m unittest discover` per directory, compared line by line).
 
-### Fixed (presumed: source checks pass, not built)
+### Fixed (source checks pass, builds in CI; not run on a device)
 
 | Pri | Area | Defect | Fix | Files |
 |---|---|---|---|---|
