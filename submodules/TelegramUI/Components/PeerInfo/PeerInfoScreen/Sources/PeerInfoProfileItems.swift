@@ -981,6 +981,18 @@ func infoItems(
             interaction.openPeerInfoContextMenu(.genericCopy(registrationDate), sourceNode, nil)
         }))
     }
+    // Fork (Ghostgram): where Telegram gave no registration date, an estimate from the user ID (on the device, from a
+    // built-in table). Telegram's own date, shown above with Show DC, always wins.
+    let serverRegistrationDate = (data.cachedData as? CachedUserData)?.peerStatusSettings?.registrationDate
+    if forkExtras.estimateRegistrationDate && !hideDiagnostics, case let .user(user)? = data.peer, !(forkExtras.showDC && serverRegistrationDate != nil), let estimate = ForkRegDateEstimate.estimate(userId: user.id.id._internalGetInt64Value()) {
+        let russian = ForkPresentationLanguage.prefersRussianStrings
+        let estimateText = serverRegistrationDate ?? ForkRegDateEstimate.text(estimate, russian: russian)
+        items[.peerInfoTrailing]!.append(PeerInfoScreenLabeledValueItem(id: AnyHashable("fork_reg_date_estimate"), label: russian ? "регистрация" : "registered", text: estimateText, textColor: .primary, action: { sourceNode, _ in
+            interaction.openPeerInfoContextMenu(.genericCopy(estimateText), sourceNode, nil)
+        }, longTapAction: { sourceNode in
+            interaction.openPeerInfoContextMenu(.genericCopy(estimateText), sourceNode, nil)
+        }))
+    }
     // Extras ▸ Profile ▸ chat creation date. The peer's `creationDate` is the server's `date`: for a channel or
     // supergroup the account belongs to, that is when it joined; otherwise when the chat was created.
     if forkExtras.showChatCreationDate {

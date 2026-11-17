@@ -178,6 +178,10 @@ final class ManagedAudioRecorderContext {
     
     private var recordingStateUpdateTimestamp: Double?
     
+    /// Fork (Ghostgram): the voice changer, fixed for the whole recording; it runs before the waveform and the encoder,
+    /// so the real voice is never stored (`ForkVoiceChanger`).
+    private let voiceChangerEffect: ForkVoiceRecorderEffect?
+    
     private var hasAudioSession = false
     private var audioSessionDisposable: Disposable?
     
@@ -217,6 +221,7 @@ final class ManagedAudioRecorderContext {
         self.queue = queue
         self.mediaManager = mediaManager
         self.oggWriter = TGOggOpusWriter()
+        self.voiceChangerEffect = ForkVoiceChanger.makeRecorderEffect()
         
         if let resumeData {
             self.dataItem = TGDataItem(data: resumeData.compressedData)
@@ -629,6 +634,8 @@ final class ManagedAudioRecorderContext {
                 self.audioBuffer.append(currentEncoderPacket.assumingMemoryBound(to: UInt8.self), count: currentEncoderPacketSize)
                 break
             } else {
+                // Fork (Ghostgram): the voice changer, in place and of the same length (`ForkVoiceChanger`).
+                self.voiceChangerEffect?.process(currentEncoderPacket.assumingMemoryBound(to: Int16.self), count: currentEncoderPacketSize / 2)
                 self.processWaveformPreview(samples: currentEncoderPacket.assumingMemoryBound(to: Int16.self), count: currentEncoderPacketSize / 2)
                 
                 self.oggWriter.writeFrame(currentEncoderPacket.assumingMemoryBound(to: UInt8.self), frameByteCount: UInt(currentEncoderPacketSize))

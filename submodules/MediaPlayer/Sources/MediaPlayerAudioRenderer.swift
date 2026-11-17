@@ -26,6 +26,8 @@ private final class AudioPlayerRendererBufferContext {
     var overflowData = Data()
     var overflowDataMaxChannelSampleIndex: Int64 = 0
     var renderTimestampTick: Int64 = 0
+    /// Fork (Ghostgram): this renderer's playback equalizer; nil for service sounds (`ForkPlaybackEqualizer`).
+    var forkEqualizer: ForkPlaybackEqualizer?
     
     init(timebase: CMTimebase, buffer: RingByteBuffer, lowWaterSize: Int, notifyLowWater: @escaping () -> Void, updatedRate: @escaping () -> Void, updatedLevel: @escaping (Float) -> Void) {
         self.timebase = timebase
@@ -129,6 +131,8 @@ private func rendererInputProc(refCon: UnsafeMutableRawPointer, ioActionFlags: U
                                 let consumeCount = bufferDataSize - dataOffset
                                 
                                 let actualConsumedCount = rendererBuffer.dequeue(bufferData.advanced(by: dataOffset), count: consumeCount)
+                                // Fork (Ghostgram): the playback equalizer, in place (44.1 kHz stereo Int16).
+                                context.forkEqualizer?.process(samples: bufferData.advanced(by: dataOffset), byteCount: actualConsumedCount, channels: 2, sampleRate: 44100)
                                 
                                 var samplePtr = bufferData.advanced(by: dataOffset).assumingMemoryBound(to: Int16.self)
                                 for _ in 0 ..< actualConsumedCount / 4 {
@@ -263,7 +267,7 @@ private final class AudioPlayerRendererContext {
         }
     }
     
-    init(controlTimebase: CMTimebase, audioSession: MediaPlayerAudioSessionControl, forAudioVideoMessage: Bool, playAndRecord: Bool, useVoiceProcessingMode: Bool, soundMuted: Bool, ambient: Bool, mixWithOthers: Bool, forceAudioToSpeaker: Bool, baseRate: Double, audioLevelPipe: ValuePipe<Float>, updatedRate: @escaping () -> Void, audioPaused: @escaping () -> Void) {
+    init(controlTimebase: CMTimebase, audioSession: MediaPlayerAudioSessionControl, forAudioVideoMessage: Bool, playAndRecord: Bool, useVoiceProcessingMode: Bool, soundMuted: Bool, ambient: Bool, mixWithOthers: Bool, forceAudioToSpeaker: Bool, baseRate: Double, audioLevelPipe: ValuePipe<Float>, updatedRate: @escaping () -> Void, audioPaused: @escaping () -> Void, forkEqualizerKind: ForkPlaybackEqualizerKind?) {
         assert(audioPlayerRendererQueue.isCurrent())
         
         self.audioSession = audioSession
@@ -296,6 +300,9 @@ private final class AudioPlayerRendererContext {
         }, updatedLevel: { level in
             audioLevelPipe.putNext(level)
         }))
+        if let forkEqualizer = ForkPlaybackEqualizer(kind: forkEqualizerKind) {
+            self.bufferContext.with { $0.forkEqualizer = forkEqualizer }
+        }
         self.bufferContextId = registerPlayerRendererBufferContext(self.bufferContext)
         
         notifyLowWater = { [weak self] in
@@ -885,7 +892,7 @@ public final class MediaPlayerAudioRenderer {
     private let audioClock: CMClock
     public let audioTimebase: CMTimebase
     
-    public init(audioSession: MediaPlayerAudioSessionControl, forAudioVideoMessage: Bool = false, playAndRecord: Bool, useVoiceProcessingMode: Bool = false, soundMuted: Bool, ambient: Bool, mixWithOthers: Bool, forceAudioToSpeaker: Bool, baseRate: Double, audioLevelPipe: ValuePipe<Float>, updatedRate: @escaping () -> Void, audioPaused: @escaping () -> Void) {
+    public init(audioSession: MediaPlayerAudioSessionControl, forAudioVideoMessage: Bool = false, playAndRecord: Bool, useVoiceProcessingMode: Bool = false, soundMuted: Bool, ambient: Bool, mixWithOthers: Bool, forceAudioToSpeaker: Bool, baseRate: Double, audioLevelPipe: ValuePipe<Float>, updatedRate: @escaping () -> Void, audioPaused: @escaping () -> Void, forkEqualizerKind: ForkPlaybackEqualizerKind? = nil) {
         var audioClock: CMClock?
         CMAudioClockCreate(allocator: nil, clockOut: &audioClock)
         if audioClock == nil {
@@ -902,7 +909,7 @@ public final class MediaPlayerAudioRenderer {
         self.audioTimebase = audioTimebase!
         
         audioPlayerRendererQueue.async {
-            let context = AudioPlayerRendererContext(controlTimebase: audioTimebase!, audioSession: audioSession, forAudioVideoMessage: forAudioVideoMessage, playAndRecord: playAndRecord, useVoiceProcessingMode: useVoiceProcessingMode, soundMuted: soundMuted, ambient: ambient, mixWithOthers: mixWithOthers, forceAudioToSpeaker: forceAudioToSpeaker, baseRate: baseRate, audioLevelPipe: audioLevelPipe, updatedRate: updatedRate, audioPaused: audioPaused)
+            let context = AudioPlayerRendererContext(controlTimebase: audioTimebase!, audioSession: audioSession, forAudioVideoMessage: forAudioVideoMessage, playAndRecord: playAndRecord, useVoiceProcessingMode: useVoiceProcessingMode, soundMuted: soundMuted, ambient: ambient, mixWithOthers: mixWithOthers, forceAudioToSpeaker: forceAudioToSpeaker, baseRate: baseRate, audioLevelPipe: audioLevelPipe, updatedRate: updatedRate, audioPaused: audioPaused, forkEqualizerKind: forkEqualizerKind)
             self.contextRef = Unmanaged.passRetained(context)
         }
     }

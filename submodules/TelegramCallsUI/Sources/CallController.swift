@@ -298,6 +298,10 @@ public final class CallController: ViewController {
         self.controllerNode.presentCallRating = { [weak self] callId, isVideo in
             if let strongSelf = self, !strongSelf.presentedCallRating {
                 strongSelf.presentedCallRating = true
+                // Fork (Ghostgram): "No Call Rating Prompt" in Extras › Media.
+                if strongSelf.sharedContext.immediateForkExtrasSettings.disableCallRating {
+                    return
+                }
                 
                 Queue.mainQueue().after(0.5, {
                     let window = strongSelf.window

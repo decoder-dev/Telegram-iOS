@@ -243,6 +243,31 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var keepSelfDestructingMedia: Bool
     /// Fork (Ghostgram): chats, bots and messages marked "unavailable on your device" for any reason open as usual.
     public var bypassContentRestrictions: Bool
+    /// Fork (Ghostgram): the voice changer of voice messages. Preset: 0 anonymous, 1 female, 2 male, 3 child, 4 robot,
+    /// 5 custom. The custom preset's pitch is in semitones (−12…12), its reverb and echo in percent (0…100).
+    public var voiceChangerEnabled: Bool
+    public var voiceChangerPreset: Int32
+    public var voiceChangerPitch: Int32
+    public var voiceChangerReverb: Int32
+    public var voiceChangerEcho: Int32
+    /// Fork (Ghostgram): outgoing text rules. Anti-caps turns ALL CAPS into sentence case; each replacement rule is a
+    /// line `source = replacement`, matched as a whole word, case-insensitively.
+    public var antiCaps: Bool
+    public var textReplacementRules: [String]
+    /// Fork (Ghostgram): no automatic rating sheet after a call. Rating from the call's message in the chat stays.
+    public var disableCallRating: Bool
+    /// Fork (Ghostgram): a user's profile shows when the account was most likely created, estimated on the device from
+    /// its ID, wherever Telegram gives no date itself.
+    public var estimateRegistrationDate: Bool
+    /// Fork (Ghostgram): the playback equalizer of voice messages, music and round videos (and of videos with
+    /// `equalizerVideos`). Five bands, 60 Hz to 14 kHz, in dB (−12…12).
+    public var equalizerEnabled: Bool
+    public var equalizerVideos: Bool
+    public var equalizerBand60: Int32
+    public var equalizerBand230: Int32
+    public var equalizerBand910: Int32
+    public var equalizerBand3600: Int32
+    public var equalizerBand14000: Int32
     /// Fork (Donutgram): media, sticker and playback options, projected into `BananaMediaTweaks`.
     public var accelerateUpload: Bool
     public var infiniteRecentStickers: Bool
@@ -724,6 +749,22 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.allowProtectedScreenshots = false
         self.keepSelfDestructingMedia = false
         self.bypassContentRestrictions = false
+        self.voiceChangerEnabled = false
+        self.voiceChangerPreset = 0
+        self.voiceChangerPitch = 0
+        self.voiceChangerReverb = 0
+        self.voiceChangerEcho = 0
+        self.antiCaps = false
+        self.textReplacementRules = []
+        self.disableCallRating = false
+        self.estimateRegistrationDate = false
+        self.equalizerEnabled = false
+        self.equalizerVideos = false
+        self.equalizerBand60 = 0
+        self.equalizerBand230 = 0
+        self.equalizerBand910 = 0
+        self.equalizerBand3600 = 0
+        self.equalizerBand14000 = 0
         self.accelerateUpload = false
         self.infiniteRecentStickers = false
         self.onlyAddedStickers = false
@@ -957,6 +998,22 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.allowProtectedScreenshots = try container.decodeIfPresent(Bool.self, forKey: "allowProtectedScreenshots") ?? false
         self.keepSelfDestructingMedia = try container.decodeIfPresent(Bool.self, forKey: "keepSelfDestructingMedia") ?? false
         self.bypassContentRestrictions = try container.decodeIfPresent(Bool.self, forKey: "bypassContentRestrictions") ?? false
+        self.voiceChangerEnabled = try container.decodeIfPresent(Bool.self, forKey: "voiceChangerEnabled") ?? false
+        self.voiceChangerPreset = min(5, max(0, try container.decodeIfPresent(Int32.self, forKey: "voiceChangerPreset") ?? 0))
+        self.voiceChangerPitch = min(12, max(-12, try container.decodeIfPresent(Int32.self, forKey: "voiceChangerPitch") ?? 0))
+        self.voiceChangerReverb = min(100, max(0, try container.decodeIfPresent(Int32.self, forKey: "voiceChangerReverb") ?? 0))
+        self.voiceChangerEcho = min(100, max(0, try container.decodeIfPresent(Int32.self, forKey: "voiceChangerEcho") ?? 0))
+        self.antiCaps = try container.decodeIfPresent(Bool.self, forKey: "antiCaps") ?? false
+        self.textReplacementRules = try container.decodeIfPresent([String].self, forKey: "textReplacementRules") ?? []
+        self.disableCallRating = try container.decodeIfPresent(Bool.self, forKey: "disableCallRating") ?? false
+        self.estimateRegistrationDate = try container.decodeIfPresent(Bool.self, forKey: "estimateRegistrationDate") ?? false
+        self.equalizerEnabled = try container.decodeIfPresent(Bool.self, forKey: "equalizerEnabled") ?? false
+        self.equalizerVideos = try container.decodeIfPresent(Bool.self, forKey: "equalizerVideos") ?? false
+        self.equalizerBand60 = min(12, max(-12, try container.decodeIfPresent(Int32.self, forKey: "equalizerBand60") ?? 0))
+        self.equalizerBand230 = min(12, max(-12, try container.decodeIfPresent(Int32.self, forKey: "equalizerBand230") ?? 0))
+        self.equalizerBand910 = min(12, max(-12, try container.decodeIfPresent(Int32.self, forKey: "equalizerBand910") ?? 0))
+        self.equalizerBand3600 = min(12, max(-12, try container.decodeIfPresent(Int32.self, forKey: "equalizerBand3600") ?? 0))
+        self.equalizerBand14000 = min(12, max(-12, try container.decodeIfPresent(Int32.self, forKey: "equalizerBand14000") ?? 0))
         self.accelerateUpload = try container.decodeIfPresent(Bool.self, forKey: "accelerateUpload") ?? false
         self.infiniteRecentStickers = try container.decodeIfPresent(Bool.self, forKey: "infiniteRecentStickers") ?? false
         self.onlyAddedStickers = try container.decodeIfPresent(Bool.self, forKey: "onlyAddedStickers") ?? false
@@ -1191,6 +1248,22 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.allowProtectedScreenshots, forKey: "allowProtectedScreenshots")
         try container.encode(self.keepSelfDestructingMedia, forKey: "keepSelfDestructingMedia")
         try container.encode(self.bypassContentRestrictions, forKey: "bypassContentRestrictions")
+        try container.encode(self.voiceChangerEnabled, forKey: "voiceChangerEnabled")
+        try container.encode(self.voiceChangerPreset, forKey: "voiceChangerPreset")
+        try container.encode(self.voiceChangerPitch, forKey: "voiceChangerPitch")
+        try container.encode(self.voiceChangerReverb, forKey: "voiceChangerReverb")
+        try container.encode(self.voiceChangerEcho, forKey: "voiceChangerEcho")
+        try container.encode(self.antiCaps, forKey: "antiCaps")
+        try container.encode(self.textReplacementRules, forKey: "textReplacementRules")
+        try container.encode(self.disableCallRating, forKey: "disableCallRating")
+        try container.encode(self.estimateRegistrationDate, forKey: "estimateRegistrationDate")
+        try container.encode(self.equalizerEnabled, forKey: "equalizerEnabled")
+        try container.encode(self.equalizerVideos, forKey: "equalizerVideos")
+        try container.encode(self.equalizerBand60, forKey: "equalizerBand60")
+        try container.encode(self.equalizerBand230, forKey: "equalizerBand230")
+        try container.encode(self.equalizerBand910, forKey: "equalizerBand910")
+        try container.encode(self.equalizerBand3600, forKey: "equalizerBand3600")
+        try container.encode(self.equalizerBand14000, forKey: "equalizerBand14000")
         try container.encode(self.accelerateUpload, forKey: "accelerateUpload")
         try container.encode(self.infiniteRecentStickers, forKey: "infiniteRecentStickers")
         try container.encode(self.onlyAddedStickers, forKey: "onlyAddedStickers")

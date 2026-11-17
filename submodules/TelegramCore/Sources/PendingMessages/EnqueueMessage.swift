@@ -1035,7 +1035,11 @@ private func opportunisticallyTransformOutgoingMedia(network: Network, postbox: 
 public func enqueueMessages(account: Account, peerId: PeerId, messages: [EnqueueMessage]) -> Signal<[MessageId?], NoError> {
     // Fork (Donutgram c7bb578): GIFs to a chat that bans them go out as silent videos when the
     // setting is on; otherwise this passes `messages` through synchronously.
-    return forkPrepareBannedGifVideos(account: account, peerId: peerId, messages: messages)
+    // Fork (Ghostgram): word replacement and anti-caps run first, on the text the user sent.
+    return forkApplyOutgoingTextRules(account: account, peerId: peerId, messages: messages)
+    |> mapToSignal { messages -> Signal<[EnqueueMessage], NoError> in
+        return forkPrepareBannedGifVideos(account: account, peerId: peerId, messages: messages)
+    }
     |> mapToSignal { messages -> Signal<[MessageId?], NoError> in
         return enqueuePreparedMessages(account: account, peerId: peerId, messages: messages)
     }
