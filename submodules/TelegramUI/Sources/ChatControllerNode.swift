@@ -5028,24 +5028,16 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                 mode: .edit(
                     saveRestoreStateId: self.chatLocation.peerId,
                     completion: { [weak self] text in
-                        guard let self, let controller = self.controller else {
+                        guard let self else {
                             return
                         }
-                        controller.updateChatPresentationInterfaceState(animated: true, interactive: true, { state in
-                            return state.updatedInterfaceState { interfaceState in
-                                return interfaceState.withUpdatedEffectiveInputState(chatTextInputState(fromComposedRichMessage: text))
-                            }.updatedInputMode({ _ in return .text })
-                        })
+                        self.applyAIComposeResult(text, activateInput: true)
                     },
                     send: { [weak self] text in
-                        guard let self, let controller = self.controller else {
+                        guard let self else {
                             return
                         }
-                        controller.updateChatPresentationInterfaceState(animated: true, interactive: true, { state in
-                            return state.updatedInterfaceState { interfaceState in
-                                return interfaceState.withUpdatedEffectiveInputState(chatTextInputState(fromComposedRichMessage: text))
-                            }
-                        })
+                        self.applyAIComposeResult(text, activateInput: false)
                         self.sendCurrentMessage()
                     },
                     sendContextActions: isEdit ? nil : self.chatLocation.peerId.flatMap { peerId in return TextProcessingScreen.SendContextActions(
@@ -5054,11 +5046,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                                 guard let self, let controller = self.controller else {
                                     return
                                 }
-                                controller.updateChatPresentationInterfaceState(animated: true, interactive: true, { state in
-                                    return state.updatedInterfaceState { interfaceState in
-                                        return interfaceState.withUpdatedEffectiveInputState(chatTextInputState(fromComposedRichMessage: text))
-                                    }
-                                })
+                                self.applyAIComposeResult(text, activateInput: false)
                                 switch mode {
                                 case .generic:
                                     controller.controllerInteraction?.sendCurrentMessage(false, parameters?.effect.flatMap(ChatSendMessageEffect.init))
@@ -5080,11 +5068,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                                 guard let self, let controller = self.controller else {
                                     return
                                 }
-                                controller.updateChatPresentationInterfaceState(animated: true, interactive: true, { state in
-                                    return state.updatedInterfaceState { interfaceState in
-                                        return interfaceState.withUpdatedEffectiveInputState(chatTextInputState(fromComposedRichMessage: text))
-                                    }
-                                })
+                                self.applyAIComposeResult(text, activateInput: false)
                                 controller.controllerInteraction?.scheduleCurrentMessage(params)
                             }
                         )
@@ -5107,6 +5091,54 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         }
     }
     
+    /// Puts the AI editor's result (Apply, Send and its long-press variants) into the input field. It goes the way the
+    /// input menu's Translate does, which works: one undoable change through `updateTextInputStateAndMode`. The editor
+    /// is then checked directly, since Send reads the editor and not the chat's copy, and once more after the sheet has
+    /// gone, because the chat lays out again as it reappears. Before this the chat's copy was set and the field kept the
+    /// old text, so Apply changed nothing and Send sent the original.
+    func applyAIComposeResult(_ text: ComposedRichMessage, activateInput: Bool) {
+        let state = chatTextInputState(fromComposedRichMessage: text)
+        let previousContent = self.textInputPanelNode?.inputTextState.content
+        if let interfaceInteraction = self.interfaceInteraction {
+            interfaceInteraction.updateTextInputStateAndMode { _, inputMode in
+                return (state, activateInput ? .text : inputMode)
+            }
+        } else {
+            self.controller?.updateChatPresentationInterfaceState(animated: true, interactive: true, { current in
+                return current.updatedInterfaceState { interfaceState in
+                    return interfaceState.withUpdatedEffectiveInputState(state)
+                }.updatedInputMode({ inputMode in activateInput ? .text : inputMode })
+            })
+        }
+        self.syncAIComposeResultIntoEditor(state)
+        Logger.shared.log("AICompose", "apply \(state.content.length) chars, field \(self.textInputPanelNode?.inputTextState.content.length ?? -1)")
+        if activateInput {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                // Only when the field is back to the text the editor started from: anything else is the user typing.
+                guard let self, let previousContent, self.textInputPanelNode?.inputTextState.content == previousContent else {
+                    return
+                }
+                if self.syncAIComposeResultIntoEditor(state) {
+                    Logger.shared.log("AICompose", "field reverted after the sheet closed, applied again")
+                }
+            }
+        }
+    }
+
+    @discardableResult
+    private func syncAIComposeResultIntoEditor(_ state: ChatTextInputState) -> Bool {
+        guard let textInputPanelNode = self.textInputPanelNode, textInputPanelNode.inputTextState.content != state.content else {
+            return false
+        }
+        textInputPanelNode.updateInputTextState(state)
+        self.controller?.updateChatPresentationInterfaceState(animated: false, interactive: false, { current in
+            return current.updatedInterfaceState { interfaceState in
+                return interfaceState.withUpdatedEffectiveInputState(state)
+            }
+        })
+        return true
+    }
+
     func maybeSendEphemeralMessage(sendNormally: @escaping () -> Void) {
         var isScheduledMessages = false
         if case .scheduledMessages = self.chatPresentationInterfaceState.subject {

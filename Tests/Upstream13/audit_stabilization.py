@@ -130,6 +130,25 @@ class SystemTranslatorReplaces(unittest.TestCase):
         self.assertIn('text: text,\n                replacementAction: replacementAction\n            )', source)
 
 
+class AIEditorPutsTheResultInTheField(unittest.TestCase):
+    NODE = 'submodules/TelegramUI/Sources/ChatControllerNode.swift'
+
+    def test_apply_and_send_go_through_the_field(self):
+        source = read(self.NODE)
+        compose = function_body(source, 'func openAICompose()')
+        # Apply, Send, long-press Send and Schedule: all four put the result in the field, none only in the chat's copy.
+        self.assertEqual(compose.count('self.applyAIComposeResult(text, activateInput: '), 4)
+        self.assertNotIn('withUpdatedEffectiveInputState(chatTextInputState(fromComposedRichMessage: text))', compose)
+        self.assertIn('self.applyAIComposeResult(text, activateInput: false)\n                        self.sendCurrentMessage()', compose)
+        apply = function_body(source, 'func applyAIComposeResult(')
+        self.assertIn('interfaceInteraction.updateTextInputStateAndMode', apply)
+        self.assertIn('self.syncAIComposeResultIntoEditor(state)', apply)
+        # The late re-apply only replaces the untouched original, never what the user typed since.
+        self.assertIn('self.textInputPanelNode?.inputTextState.content == previousContent', apply)
+        sync = function_body(source, 'private func syncAIComposeResultIntoEditor(')
+        self.assertIn('textInputPanelNode.updateInputTextState(state)', sync)
+
+
 class DraftSavedFromTheInputField(unittest.TestCase):
     def test_leaving_the_chat_saves_what_the_field_shows(self):
         body = function_body(read('submodules/TelegramUI/Sources/ChatController.swift'), 'func saveInterfaceState(includeScrollState: Bool = true)')
