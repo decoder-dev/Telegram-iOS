@@ -108,13 +108,16 @@ class Backup(unittest.TestCase):
         source = read(BACKUP)
         for key in ['"app": appName', '"version":', '"build":', '"exportedAt":', '"settings": object']:
             self.assertIn(key, source)
-        self.assertIn('for (key, value) in values where known.contains(key)', source)
+        self.assertIn('for (key, value) in values where known.contains(key) && (includingProtective || !isProtective(key))', source)
         self.assertIn('options: [.prettyPrinted, .sortedKeys]', source)
 
     def test_import_previews_and_applies_through_the_shared_settings(self):
         source = read(ABOUT)
         self.assertIn('BananaAboutStrings.changeCount(count)', source)
-        self.assertIn('updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in\n                            return BananaSettingsBackup.apply(values, to: current)', source)
+        self.assertIn('updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in\n                        return BananaSettingsBackup.apply(values, to: current, includingProtective: includingProtective)', source)
+        # A file that changes protective switches says so, and keeping them is the default action.
+        self.assertIn('if protectiveCount == 0 {', source)
+        self.assertIn('TextAlertAction(type: .defaultAction, title: BananaAboutStrings.importWithoutProtective, action: {\n                            importValues(includingProtective: false)', source)
         self.assertIn('forkExtrasPresentNativeController(activity, context: context)', source)
 
 

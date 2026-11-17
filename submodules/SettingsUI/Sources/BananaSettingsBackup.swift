@@ -35,6 +35,24 @@ enum BananaSettingsBackup {
         return lowercased.contains("apikey") || lowercased.contains("token") || lowercased.contains("password")
     }
 
+    /// Switches that protect the user: the Security page, the lock, link confirmations, screenshot protection, streamer
+    /// mode and Ghost Mode. A file from someone else can quietly turn them off among a hundred other changes, so an
+    /// import that changes any of them says so and offers to leave them as they are.
+    private static let protectiveKeys: Set<String> = [
+        "instantPasscodeLock",
+        "panicShakeLock",
+        "confirmTelegramLinks",
+        "confirmShareLinks",
+        "confirmChatPreviewEntry",
+        "allowSecretScreenshots",
+        "allowProtectedScreenshots",
+        "streamerMode",
+    ]
+
+    static func isProtective(_ key: String) -> Bool {
+        return protectiveKeys.contains(key) || key.hasPrefix("security") || key.hasPrefix("ghost")
+    }
+
     private static func jsonObject(_ settings: ForkExtrasSettings) -> [String: Any]? {
         guard let data = try? JSONEncoder().encode(settings) else {
             return nil
@@ -76,12 +94,13 @@ enum BananaSettingsBackup {
 
     /// `current` with the imported values laid over it. A value of the wrong type (a hand-edited file) is skipped
     /// rather than failing the whole import.
-    static func apply(_ values: [String: Any], to current: ForkExtrasSettings) -> ForkExtrasSettings {
+    /// `includingProtective: false` keeps every `isProtective` setting at its current value.
+    static func apply(_ values: [String: Any], to current: ForkExtrasSettings, includingProtective: Bool = true) -> ForkExtrasSettings {
         guard var object = jsonObject(current) else {
             return current
         }
         let known = Set(object.keys)
-        for (key, value) in values where known.contains(key) {
+        for (key, value) in values where known.contains(key) && (includingProtective || !isProtective(key)) {
             var candidate = object
             candidate[key] = value
             if settings(from: candidate) != nil {
@@ -93,11 +112,20 @@ enum BananaSettingsBackup {
 
     /// How many settings differ, as stored, between two values.
     static func changeCount(from current: ForkExtrasSettings, to updated: ForkExtrasSettings) -> Int {
+        return changedKeys(from: current, to: updated).count
+    }
+
+    /// How many of the changed settings are protective ones.
+    static func protectiveChangeCount(from current: ForkExtrasSettings, to updated: ForkExtrasSettings) -> Int {
+        return changedKeys(from: current, to: updated).filter(isProtective).count
+    }
+
+    private static func changedKeys(from current: ForkExtrasSettings, to updated: ForkExtrasSettings) -> [String] {
         guard let lhs = jsonObject(current), let rhs = jsonObject(updated) else {
-            return 0
+            return []
         }
         return Set(lhs.keys).union(rhs.keys).filter { key in
             return (lhs[key] as? NSObject) != (rhs[key] as? NSObject)
-        }.count
+        }
     }
 }

@@ -64,7 +64,16 @@ private enum BananaAboutStrings {
             return count == 1 ? "1 setting will change. Import it?" : "\(count) settings will change. Import them?"
         }
     }
+    static func protectiveChangeCount(_ total: Int, protective: Int) -> String {
+        if ru {
+            return "Изменится настроек: \(total), из них настроек защиты: \(protective) (раздел «Безопасность», блокировка, подтверждение ссылок, скриншоты, режим призрака)."
+        } else {
+            return "\(total) settings will change, \(protective) of them protective: Security, lock, link confirmations, screenshots, Ghost Mode."
+        }
+    }
     static var importAction: String { ru ? "Импортировать" : "Import" }
+    static var importWithoutProtective: String { ru ? "Без настроек защиты" : "Keep My Protection Settings" }
+    static var importAll: String { ru ? "Импортировать всё" : "Import Everything" }
     static var imported: String { ru ? "Настройки импортированы." : "Settings imported." }
     static var resetHeader: String { ru ? "ДАННЫЕ НА УСТРОЙСТВЕ" : "LOCAL DATA" }
     static var resetCache: String { ru ? "Сбросить кэш при запуске" : "Reset Cache on Next Launch" }
@@ -314,16 +323,18 @@ private func bananaAboutEntries(settings: ForkExtrasSettings, state: BananaAbout
     return entries
 }
 
-/// The document picker keeps its delegate weakly, so the delegate is a shared object; the completion (and the
-/// context it holds) is let go as soon as the picker is done.
+/// One delegate per picker, freed with it (`forkAttachDocumentPickerDelegate`); the completion (and the context it
+/// holds) is also let go as soon as the picker is done.
 private final class BananaSettingsFilePicker: NSObject, UIDocumentPickerDelegate {
-    static let shared = BananaSettingsFilePicker()
     private var completion: ((URL?) -> Void)?
 
-    func present(context: AccountContext, completion: @escaping (URL?) -> Void) {
+    private init(completion: @escaping (URL?) -> Void) {
         self.completion = completion
+    }
+
+    static func present(context: AccountContext, completion: @escaping (URL?) -> Void) {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json], asCopy: true)
-        picker.delegate = self
+        forkAttachDocumentPickerDelegate(picker, BananaSettingsFilePicker(completion: completion))
         picker.allowsMultipleSelection = false
         forkExtrasPresentNativeController(picker, context: context)
     }
@@ -362,7 +373,9 @@ func bananaAboutController(context: AccountContext) -> ViewController {
         DispatchQueue.global(qos: .userInitiated).async {
             let values = BananaSettingsBackup.importedValues(from: data)
             let current = context.sharedContext.immediateForkExtrasSettings
-            let count = values.map { BananaSettingsBackup.changeCount(from: current, to: BananaSettingsBackup.apply($0, to: current)) } ?? 0
+            let updated = values.map { BananaSettingsBackup.apply($0, to: current) }
+            let count = updated.map { BananaSettingsBackup.changeCount(from: current, to: $0) } ?? 0
+            let protectiveCount = updated.map { BananaSettingsBackup.protectiveChangeCount(from: current, to: $0) } ?? 0
             DispatchQueue.main.async {
                 guard let values else {
                     presentText(BananaAboutStrings.notASettingsFile)
@@ -372,19 +385,35 @@ func bananaAboutController(context: AccountContext) -> ViewController {
                     presentText(BananaAboutStrings.nothingToChange)
                     return
                 }
+                func importValues(includingProtective: Bool) {
+                    // Through the same shared-data write the Extras switches use, so every runtime projection follows.
+                    actionsDisposable.add((updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                        return BananaSettingsBackup.apply(values, to: current, includingProtective: includingProtective)
+                    }
+                    |> deliverOnMainQueue).start(completed: {
+                        presentText(BananaAboutStrings.imported)
+                    }))
+                }
                 let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-                presentControllerImpl?(textAlertController(context: context, title: BananaAboutStrings.importSettings, text: BananaAboutStrings.changeCount(count), actions: [
-                    TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
-                    TextAlertAction(type: .defaultAction, title: BananaAboutStrings.importAction, action: {
-                        // Through the same shared-data write the Extras switches use, so every runtime projection follows.
-                        actionsDisposable.add((updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
-                            return BananaSettingsBackup.apply(values, to: current)
-                        }
-                        |> deliverOnMainQueue).start(completed: {
-                            presentText(BananaAboutStrings.imported)
-                        }))
-                    })
-                ]))
+                if protectiveCount == 0 {
+                    presentControllerImpl?(textAlertController(context: context, title: BananaAboutStrings.importSettings, text: BananaAboutStrings.changeCount(count), actions: [
+                        TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                        TextAlertAction(type: .defaultAction, title: BananaAboutStrings.importAction, action: {
+                            importValues(includingProtective: true)
+                        })
+                    ]))
+                } else {
+                    // The protective switches change only when the user picks that on purpose.
+                    presentControllerImpl?(textAlertController(context: context, title: BananaAboutStrings.importSettings, text: BananaAboutStrings.protectiveChangeCount(count, protective: protectiveCount), actions: [
+                        TextAlertAction(type: .defaultAction, title: BananaAboutStrings.importWithoutProtective, action: {
+                            importValues(includingProtective: false)
+                        }),
+                        TextAlertAction(type: .destructiveAction, title: BananaAboutStrings.importAll, action: {
+                            importValues(includingProtective: true)
+                        }),
+                        TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {})
+                    ], actionLayout: .vertical))
+                }
             }
         }
     }
@@ -442,7 +471,7 @@ func bananaAboutController(context: AccountContext) -> ViewController {
             forkExtrasPresentNativeController(activity, context: context)
         },
         importSettings: {
-            BananaSettingsFilePicker.shared.present(context: context, completion: { url in
+            BananaSettingsFilePicker.present(context: context, completion: { url in
                 guard let url, let data = try? Data(contentsOf: url) else {
                     return
                 }

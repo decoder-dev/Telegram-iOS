@@ -36,21 +36,33 @@ func forkExtrasPresentNativeController(_ controller: UIViewController, context: 
     context.sharedContext.applicationBindings.presentNativeController(controller)
 }
 
-/// Document-picker bridge for MessageSaving JSON import (AyuGram DB import parity).
+/// A document picker keeps its delegate weakly. The delegate is tied to the picker it serves instead of living in a
+/// singleton: when UIKit drops a presentation (the root controller is already presenting something), no callback
+/// ever comes, and a singleton would have kept the account context, postbox and network alive until the next import.
+private var forkDocumentPickerDelegateKey: UInt8 = 0
+
+func forkAttachDocumentPickerDelegate(_ picker: UIDocumentPickerViewController, _ delegate: NSObject & UIDocumentPickerDelegate) {
+    picker.delegate = delegate
+    objc_setAssociatedObject(picker, &forkDocumentPickerDelegateKey, delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+}
+
+/// Document-picker bridge for MessageSaving JSON import (AyuGram DB import parity). One per picker.
 private final class ForkExtrasMessageSavingImportPresenter: NSObject, UIDocumentPickerDelegate {
-    static let shared = ForkExtrasMessageSavingImportPresenter()
-    private var replace = false
+    private let replace: Bool
     private var context: AccountContext?
     private var present: ((ViewController) -> Void)?
 
-    func present(replace: Bool, context: AccountContext, present: @escaping (ViewController) -> Void) {
+    private init(replace: Bool, context: AccountContext, present: @escaping (ViewController) -> Void) {
         self.replace = replace
         self.context = context
         self.present = present
+    }
+
+    static func present(replace: Bool, context: AccountContext, present: @escaping (ViewController) -> Void) {
         // Includes JSON and folders so we can import either a bare records.json or a
         // full exportBundle() directory.
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json, .folder], asCopy: false)
-        picker.delegate = self
+        forkAttachDocumentPickerDelegate(picker, ForkExtrasMessageSavingImportPresenter(replace: replace, context: context, present: present))
         picker.allowsMultipleSelection = false
         forkExtrasPresentNativeController(picker, context: context)
     }
@@ -2121,10 +2133,10 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 title: ForkExtrasLocalizedString.importMessageSaving,
                 options: [
                     (ForkExtrasLocalizedString.importMessageSavingMerge, {
-                        ForkExtrasMessageSavingImportPresenter.shared.present(replace: false, context: context, present: { presentControllerImpl?($0) })
+                        ForkExtrasMessageSavingImportPresenter.present(replace: false, context: context, present: { presentControllerImpl?($0) })
                     }),
                     (ForkExtrasLocalizedString.importMessageSavingReplace, {
-                        ForkExtrasMessageSavingImportPresenter.shared.present(replace: true, context: context, present: { presentControllerImpl?($0) })
+                        ForkExtrasMessageSavingImportPresenter.present(replace: true, context: context, present: { presentControllerImpl?($0) })
                     }),
                 ],
                 destructiveTitles: [ForkExtrasLocalizedString.importMessageSavingReplace]
