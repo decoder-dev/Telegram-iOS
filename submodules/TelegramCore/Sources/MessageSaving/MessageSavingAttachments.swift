@@ -105,13 +105,32 @@ enum MessageSavingAttachments {
             return nil
         }
         let dest = destinationURL(message: message, source: source, mediaBox: mediaBox)
+        // The callers delete the original in the same transaction (a deleted secret chat, a cleared history), so a
+        // copy that only starts later on `ioQueue` usually found the file already gone and the record pointed at
+        // nothing. An APFS clone is one metadata call whatever the file's size: made here, the copy exists before
+        // the original is removed. Only where cloning is impossible (another volume) does the byte copy run later.
+        if clonefile(source, dest.path, 0) == 0 {
+            markFresh(dest.path)
+            return dest.path
+        }
+        if FileManager.default.fileExists(atPath: dest.path) {
+            return dest.path
+        }
         ioQueue.async {
             if FileManager.default.fileExists(atPath: dest.path) {
                 return
             }
-            try? FileManager.default.copyItem(atPath: source, toPath: dest.path)
+            if (try? FileManager.default.copyItem(atPath: source, toPath: dest.path)) != nil {
+                markFresh(dest.path)
+            }
         }
         return dest.path
+    }
+
+    /// A clone or copy keeps the source's modification date, and the unreferenced-file sweep goes by that date: a
+    /// copy of media cached weeks ago would be swept before the message that refers to it is deleted.
+    private static func markFresh(_ path: String) {
+        try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: path)
     }
 
     private static func destinationURL(message: Message, source: String, mediaBox: MediaBox) -> URL {
@@ -140,6 +159,7 @@ enum MessageSavingAttachments {
         let dest = destinationURL(message: message, source: source, mediaBox: mediaBox)
         do {
             try FileManager.default.copyItem(atPath: source, toPath: dest.path)
+            markFresh(dest.path)
             return dest.path
         } catch {
             // Lost a race with a concurrent copy of the same message — that is still success.
