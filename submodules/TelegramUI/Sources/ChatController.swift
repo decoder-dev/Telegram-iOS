@@ -8908,6 +8908,12 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         
         let timestamp = Int32(Date().timeIntervalSince1970)
         var interfaceState = self.presentationInterfaceState.interfaceState.withUpdatedTimestamp(timestamp)
+        // The draft is what the input field shows now, as `ChatControllerNode` and Send already take it: the
+        // controller's copy can lag behind the editor, and leaving the chat then saved an older or empty draft.
+        if let textInputPanelNode = self.chatDisplayNode.textInputPanelNode {
+            interfaceState = interfaceState.withUpdatedEffectiveInputState(textInputPanelNode.inputTextState)
+        }
+        Logger.shared.log("ChatDraft", "save peer \(peerId.id._internalGetInt64Value()) thread \(threadId ?? 0): \(interfaceState.composeInputState.inputText.length) chars, editing \(interfaceState.editMessage != nil)")
         if includeScrollState {
             let scrollState = self.chatDisplayNode.historyNode.immediateScrollState()
             interfaceState = interfaceState.withUpdatedHistoryScrollState(scrollState)

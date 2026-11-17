@@ -27,6 +27,7 @@ swift_library(
         "//submodules/TelegramUI/Components/GlassBackgroundComponent",
         "//submodules/TelegramUI/Components/SideColumnLayout",
         "//submodules/TelegramUI/Components/NavigationBarComponent",
+        "//submodules/TelegramUI/Components/EmojiStatusComponent",
     ],
     visibility = [
         "//visibility:public",

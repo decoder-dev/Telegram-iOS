@@ -169,12 +169,13 @@ public final class WebProxySidecar {
                     }
                 }
                 
-                guard let ephemeralPort = NWEndpoint.Port(rawValue: 0) else {
-                    self.startInFlight = false
-                    completeOnce(.failure(WebProxyHttpCarrierError.sessionCreationFailed))
-                    return
-                }
-                let listener = try NWListener(using: .tcp, on: ephemeralPort)
+                // Loopback only, like the SOCKS5 bridge below. MtProto reaches this listener at
+                // 127.0.0.1 (see `.ready`), but `NWListener(using: .tcp, on: 0)` listens on every
+                // interface: any device on the same Wi-Fi could open streams through the user's
+                // relay session and push it to its stream limits.
+                let listenerParameters = NWParameters.tcp
+                listenerParameters.requiredLocalEndpoint = NWEndpoint.hostPort(host: "127.0.0.1", port: .any)
+                let listener = try NWListener(using: listenerParameters)
                 listener.newConnectionHandler = { [weak self] connection in
                     self?.accept(connection: connection)
                 }

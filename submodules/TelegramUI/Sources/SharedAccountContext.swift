@@ -1354,13 +1354,18 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkPlaybackEqualizerSettings.publish(enabled: settings.equalizerEnabled, gains: [settings.equalizerBand60, settings.equalizerBand230, settings.equalizerBand910, settings.equalizerBand3600, settings.equalizerBand14000], videos: settings.equalizerVideos)
         ForkVoiceChanger.update(ForkVoiceChanger.State(enabled: settings.voiceChangerEnabled, preset: settings.voiceChangerPreset, customPitch: settings.voiceChangerPitch, customReverb: settings.voiceChangerReverb, customEcho: settings.voiceChangerEcho))
         ForkExpireTtlSettings.enabled = settings.expireTtlButton
-        ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
         BananaVisualLabels.update(settings.visualLabels)
         BananaLocalVerificationBadges.update(settings.localVerificationBadges)
-        ForkRemovePingsSettings.enabled = settings.removePings
         ForkTelegramStatisticsSettings.enabled = settings.sendTelegramStatistics
-        ForkGhostScheduleSettings.enabled = settings.ghostScheduleMessages
-        ForkGhostSilentSendSettings.enabled = settings.ghostSendWithoutSound
+        // These four keep their own copy in UserDefaults so the first sends and the first chat list after a
+        // cold launch already follow them. The eager push at launch carries defaults, not the user's settings
+        // (`applyGhost: false`), and writing those would overwrite the very copy that was meant to bridge the gap.
+        if applyGhost {
+            ForkKeepBannedChatsSettings.enabled = settings.keepBannedChats
+            ForkRemovePingsSettings.enabled = settings.removePings
+            ForkGhostScheduleSettings.enabled = settings.ghostScheduleMessages
+            ForkGhostSilentSendSettings.enabled = settings.ghostSendWithoutSound
+        }
         ForkStoryCreationSettings.disabled = settings.disableStoryCreation
         ForkChannelPostReactionsSettings.hidden = settings.hideChannelPostReactions
         var hotFlags = ForkExtrasHotFlags.State(

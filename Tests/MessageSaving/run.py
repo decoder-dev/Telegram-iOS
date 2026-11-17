@@ -29,6 +29,14 @@ final class Logger {
     static let shared = Logger()
     func log(_ tag: String, _ message: @autoclosure () -> String) {}
 }
+// The notification extension's staging is wired in installBridge (cut above); stand in for it.
+enum MessageSavingNotificationStaging {
+    static var removedRoots: [String] = []
+    static func removeAll(rootPath: String) { removedRoots.append(rootPath) }
+}
+extension MessageSavingStore {
+    static var notificationStagingRootPath: String? = nil
+}
 func requireSuccess(_ result: Result<Int, MessageSavingStore.ImportError>) {
     guard case .success = result else { preconditionFailure("Expected successful import") }
 }
@@ -101,7 +109,22 @@ mixed.append(["id": "broken"])
 try JSONSerialization.data(withJSONObject: mixed).write(to: recordsFile)
 MessageSavingStore.resetForTesting(directory: database)
 precondition(!MessageSavingStore.historyReadFailed && MessageSavingStore.recordCount == 1)
-print("Partial copy, failed commit rollback, backup roundtrip, incomplete export, read retry and lenient load: passed")
+// Duress Erase All: records, Saved Attachments and the extension's staging go, also over an unreadable history.
+precondition(MessageSavingStore.recordCount == 1)
+try Data([9]).write(to: media.appendingPathComponent("kept.bin"))
+MessageSavingStore.notificationStagingRootPath = root.path
+MessageSavingStore.eraseEverything()
+precondition(MessageSavingStore.recordCount == 0)
+do { let files = try fm.contentsOfDirectory(atPath: media.path); precondition(files.isEmpty) }
+precondition(MessageSavingNotificationStaging.removedRoots == [root.path])
+do { let records = try JSONSerialization.jsonObject(with: Data(contentsOf: recordsFile)) as! [Any]; precondition(records.isEmpty) }
+try Data("broken-json".utf8).write(to: recordsFile)
+MessageSavingStore.resetForTesting(directory: database)
+precondition(MessageSavingStore.historyReadFailed)
+MessageSavingStore.eraseEverything()
+precondition(!MessageSavingStore.historyReadFailed && MessageSavingStore.recordCount == 0)
+do { let records = try JSONSerialization.jsonObject(with: Data(contentsOf: recordsFile)) as! [Any]; precondition(records.isEmpty) }
+print("Partial copy, failed commit rollback, backup roundtrip, incomplete export, read retry, lenient load and erase everything: passed")
 '''
 # Swift precondition's autoclosure is nonthrowing; perform throwing reads first.
 tests = tests.replace('precondition(try Data(contentsOf: originalFile) == Data([1,2,3]))',

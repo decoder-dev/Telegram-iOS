@@ -404,7 +404,10 @@ private func handleAyuFiltersImportDeepLink(context: AccountContext, presentatio
     // never allowed to turn filtering on (31 Oct audit, C-2: a tapped link silently installed and enabled filters).
     var request = URLRequest(url: url)
     request.timeoutInterval = 10.0
-    let task = URLSession.shared.dataTask(with: request) { data, _, _ in
+    // Ephemeral: the link's host is chosen by whoever sent it, so the request carries no cookies and
+    // leaves nothing in the shared URL cache.
+    let session = URLSession(configuration: .ephemeral)
+    let task = session.dataTask(with: request) { data, _, _ in
         Queue.mainQueue().async {
             statusController.dismiss()
 
@@ -452,6 +455,7 @@ private func handleAyuFiltersImportDeepLink(context: AccountContext, presentatio
         }
     }
     task.resume()
+    session.finishTasksAndInvalidate()
 }
 
 func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, url: String, forceExternal: Bool, presentationData: PresentationData, navigationController: NavigationController?, dismissInput: @escaping () -> Void) {

@@ -116,6 +116,11 @@ public func performDuressPasscodeAction(accountManager: AccountManager<TelegramA
         if accountIds.isEmpty {
             return .complete()
         }
+        if action == .eraseAll {
+            // Saved deleted and edited messages, their media copies and the notification extension's staged pushes are
+            // kept outside the account folders, so deleting the accounts alone left them on the device.
+            MessageSavingStore.eraseEverything()
+        }
         // Erasing drops the records at once, so the account folders are deleted now rather than after a network
         // logout that may never come (no connection). Logging out goes the usual way and ends the sessions too.
         return combineLatest(accountIds.map { id in

@@ -352,8 +352,13 @@ public final class StoryPeerListComponent: Component {
         private let titleView: UIImageView
         public var titleTextAlpha: CGFloat {
             get { return self.titleTextContainer.alpha }
-            set { self.titleTextContainer.alpha = newValue }
+            set {
+                self.titleTextContainer.alpha = newValue
+                // The status sticker fades with the title while the large title is shown.
+                self.titleIconView?.view?.alpha = self.titleIconFractionAlpha * newValue
+            }
         }
+        private var titleIconFractionAlpha: CGFloat = 1.0
         private var titleState: TitleState?
         private var titleViewAnimation: TitleAnimationState?
         
@@ -1611,7 +1616,8 @@ public final class StoryPeerListComponent: Component {
                 let titleIconFraction = 1.0 - collapsedState.activityFraction
                 let titleIconAlpha: CGFloat = titleIconFraction
                 let titleIconScale: CGFloat = titleIconFraction * 1.0 + (1.0 - titleIconFraction) * 0.1
-                titleIconView.alpha = titleIconAlpha
+                self.titleIconFractionAlpha = titleIconAlpha
+                titleIconView.alpha = titleIconAlpha * self.titleTextContainer.alpha
                 titleIconView.layer.transform = CATransform3DMakeScale(titleIconScale, titleIconScale, 1.0)
             }
             
