@@ -2712,11 +2712,32 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
         
         let phoneNumber = payloadJson["phoneNumber"] as? String
+
+        // PushKit's contract: the call must be reported to CallKit before `completion` runs, or iOS kills the app and,
+        // after a few times, stops delivering VoIP pushes to it. The account is resolved first (so a caller in a locked
+        // Archive or hidden account is never named), which happens asynchronously, so `completion` waits for the
+        // report. If resolving never finishes, a generic call is reported and ended, then `completion` runs.
+        var pushCompleted = false
+        let finishPush: () -> Void = {
+            if pushCompleted {
+                return
+            }
+            pushCompleted = true
+            Logger.shared.log("App \(self.episodeId) PushRegistry", "Invoking completion handler")
+            completion()
+        }
+        Queue.mainQueue().after(5.0, {
+            if !pushCompleted {
+                Logger.shared.log("App \(self.episodeId) PushRegistry", "Incoming call was not reported in time")
+                self.reportFailedIncomingCallKitCall()
+                finishPush()
+            }
+        })
         
         if let fromIdString = payloadJson["from_id"] as? String, let fromId = Int64(fromIdString), let groupCallIdString = payloadJson["group_call_id"] as? String, let groupCallId = Int64(groupCallIdString), let messageIdString = payloadJson["msg_id"] as? String, let messageId = Int32(messageIdString), let fromTitle = payloadJson["from_title"] as? String {
             guard let callKitIntegration = CallKitIntegration.shared else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "CallKitIntegration is not available")
-                completion()
+                finishPush()
                 return
             }
             
@@ -2772,6 +2793,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                                 }
                             }
                         )
+                        finishPush()
 
                         if shouldRedact {
                             // Never let it actually ring or connect — this is the closest iOS
@@ -2838,7 +2860,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             guard var updateString = payloadJson["updates"] as? String else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "updates is nil")
                 self.reportFailedIncomingCallKitCall()
-                completion()
+                finishPush()
                 return
             }
             
@@ -2850,18 +2872,18 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             guard let updateData = Data(base64Encoded: updateString) else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "Couldn't decode updateData")
                 self.reportFailedIncomingCallKitCall()
-                completion()
+                finishPush()
                 return
             }
             guard let callUpdate = AccountStateManager.extractIncomingCallUpdate(data: updateData) else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "Couldn't extract call update")
                 self.reportFailedIncomingCallKitCall()
-                completion()
+                finishPush()
                 return
             }
             guard let callKitIntegration = CallKitIntegration.shared else {
                 Logger.shared.log("App \(self.episodeId) PushRegistry", "CallKitIntegration is not available")
-                completion()
+                finishPush()
                 return
             }
             
@@ -2899,6 +2921,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                                 }
                             }
                         )
+                        finishPush()
 
                         if shouldRedact {
                             // Never let it actually ring or connect — this is the closest iOS
@@ -2940,9 +2963,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             })
         }
         
-        Logger.shared.log("App \(self.episodeId) PushRegistry", "Invoking completion handler")
-        
-        completion()
+        // `completion` runs from `finishPush`, once the call is reported (or given up on).
     }
     
     public func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) {
