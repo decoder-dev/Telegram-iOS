@@ -170,6 +170,8 @@ public final class ChunkMediaPlayerV2: ChunkMediaPlayer {
         var seekFromMinTimestamp: Double?
         var audioBufferTimingState: AudioBufferTimingState?
         var videoRotationAngle: Double = 0.0
+        /// Fork (Ghostgram): the playback equalizer of this player's audio (`ForkPlaybackEqualizer`).
+        var forkEqualizer: ForkPlaybackEqualizer?
     }
     
     private static let sharedDataQueue = Queue(name: "ChunkMediaPlayerV2-DataQueue")
@@ -268,8 +270,11 @@ public final class ChunkMediaPlayerV2: ChunkMediaPlayer {
         self.playerNode = playerNode
         playerNode.externalVideoRotationAngle = 0.0
         
+        let forkEqualizerKind: ForkPlaybackEqualizerKind = !video ? .audio : (isAudioVideoMessage ? .roundVideo : .video)
         self.loadedPartsMediaData = QueueLocalObject(queue: self.dataQueue, generate: {
-            return LoadedPartsMediaData()
+            let data = LoadedPartsMediaData()
+            data.forkEqualizer = ForkPlaybackEqualizer(kind: forkEqualizerKind)
+            return data
         })
         
         self.isSoundEnabled = enableSound
@@ -1238,6 +1243,8 @@ public final class ChunkMediaPlayerV2: ChunkMediaPlayer {
                             sampleBuffer,
                             state: &loadedPartsMediaData.audioBufferTimingState
                         )
+                        // Fork (Ghostgram): the playback equalizer, in place.
+                        loadedPartsMediaData.forkEqualizer?.process(sampleBuffer: sampleBuffer)
                     }
                     /*if !isVideo {
                         print("Enqueue audio \(CMSampleBufferGetPresentationTimeStamp(sampleBuffer).value) next: \(CMSampleBufferGetPresentationTimeStamp(sampleBuffer).value + 1024)")
@@ -1293,6 +1300,8 @@ public final class ChunkMediaPlayerV2: ChunkMediaPlayer {
                             sampleBuffer,
                             state: &loadedPartsMediaData.audioBufferTimingState
                         )
+                        // Fork (Ghostgram): the playback equalizer, in place.
+                        loadedPartsMediaData.forkEqualizer?.process(sampleBuffer: sampleBuffer)
                     }
                     /*if isVideo {
                         print("Enqueue video \(CMSampleBufferGetPresentationTimeStamp(sampleBuffer).value)")

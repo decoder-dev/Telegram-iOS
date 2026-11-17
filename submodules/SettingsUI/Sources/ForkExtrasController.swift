@@ -588,6 +588,7 @@ private final class ForkExtrasControllerArguments {
     let updateEditedMessageMark: (String) -> Void
     let updateGhostScheduleMessages: (Bool) -> Void
     let updateRegexFilterPatternsText: (String) -> Void
+    let updateTextReplacementRulesText: (String) -> Void
     let exportMessageSavingDatabase: () -> Void
     let importMessageSavingDatabase: () -> Void
     let openDestination: (ForkExtrasDestination) -> Void
@@ -611,6 +612,7 @@ private final class ForkExtrasControllerArguments {
         updateDeletedMessageMark: @escaping (String) -> Void,
         updateEditedMessageMark: @escaping (String) -> Void,
         updateGhostScheduleMessages: @escaping (Bool) -> Void,
+        updateTextReplacementRulesText: @escaping (String) -> Void,
         updateRegexFilterPatternsText: @escaping (String) -> Void,
         exportMessageSavingDatabase: @escaping () -> Void,
         importMessageSavingDatabase: @escaping () -> Void,
@@ -635,6 +637,7 @@ private final class ForkExtrasControllerArguments {
         self.updateEditedMessageMark = updateEditedMessageMark
         self.updateGhostScheduleMessages = updateGhostScheduleMessages
         self.updateRegexFilterPatternsText = updateRegexFilterPatternsText
+        self.updateTextReplacementRulesText = updateTextReplacementRulesText
         self.exportMessageSavingDatabase = exportMessageSavingDatabase
         self.importMessageSavingDatabase = importMessageSavingDatabase
         self.openDestination = openDestination
@@ -740,7 +743,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1606, 1710, 81, 82],
             [98, 99],
             [1511, 1520, 2040, 2041],
-            [2304, 2305]
+            [2304, 2305],
+            [2450, 2451, 2452, 2453]
         ]),
         (.messageActions, [
             [2320],
@@ -752,6 +756,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1910, 1911]
         ]),
         (.voiceAndRound, [
+            [2440, 2441, 2442, 2443, 2444, 2445, 2446],
+            [2460, 2461, 2462, 2463, 2464, 2465, 2466, 2467, 2468],
             [1609, 2110, 2111, 2112, 2113, 2114, 1544, 1545, 2115],
             [2042, 1515, 1516, 1559, 1612]
         ]),
@@ -759,6 +765,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [2202],
             [1608, 80, 84],
             [83],
+            [2455, 2456],
             [1613, 1554, 1555, 1556, 1614, 1982],
             [1750, 1751, 1752, 1753, 1754, 1755, 1756, 2021, 1757, 1758],
             [1860, 1861, 1862, 1863, 1864, 1865],
@@ -771,6 +778,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1739, 1731, 1732, 1730, 1733, 1734, 1980, 1981, 2106],
             [2034, 2035],
             [2362, 2363, 2364],
+            [2457, 2458],
             [2044]
         ]),
         (.profileMore, [
@@ -827,6 +835,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case exportMessageSavingDatabase
     case importMessageSavingDatabase
     case regexFiltersPatterns(String)
+    case textReplacementRules(String)
     case regexFiltersFooter(Int)
     case tabPreview(BananaTabBarLayout)
     case callsTab(Bool)
@@ -881,6 +890,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.messageSaving.rawValue
         case .regexFiltersPatterns, .regexFiltersFooter:
             return ForkExtrasSection.messageFilters.rawValue
+        case .textReplacementRules:
+            return ForkExtrasSection.appearance.rawValue
         case .tabPreview, .callsTab, .appearanceToggle, .visualPhoneNumber, .intChoice, .stickerSize:
             return ForkExtrasSection.appearance.rawValue
         case .outgoingPhotoQuality:
@@ -933,6 +944,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case .exportMessageSavingDatabase: return 127
         case .importMessageSavingDatabase: return 128
         case .regexFiltersPatterns: return 136
+        case .textReplacementRules: return 2452
         case .regexFiltersFooter: return 137
         }
     }
@@ -1177,6 +1189,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListMultilineInputItem(presentationData: presentationData, systemStyle: .glass, text: value, placeholder: ForkExtrasLocalizedString.regexFiltersPatterns, maxLength: ItemListMultilineInputItemTextLimit(value: 4000, display: false), sectionId: self.section, style: .blocks, capitalization: false, autocorrection: false, textUpdated: { value in
                 arguments.updateRegexFilterPatternsText(value)
             })
+        case let .textReplacementRules(value):
+            let russian = ForkPresentationLanguage.prefersRussianStrings
+            return ItemListMultilineInputItem(presentationData: presentationData, systemStyle: .glass, text: value, placeholder: russian ? "привет = здравствуйте" : "hi = hello", maxLength: ItemListMultilineInputItemTextLimit(value: 4000, display: false), sectionId: self.section, style: .blocks, capitalization: false, autocorrection: false, textUpdated: { value in
+                arguments.updateTextReplacementRulesText(value)
+            })
         case let .regexFiltersFooter(unusable):
             var text = ForkExtrasLocalizedString.regexFiltersFooter
             if unusable > 0 {
@@ -1254,6 +1271,42 @@ private func forkStickerShapeOptions(russian: Bool) -> [(String, Int32)] {
 }
 
 /// Donutgram's double-tap seek steps; 0 turns double-tap seeking off.
+private func forkVoiceChangerPresetOptions(russian: Bool) -> [(String, Int32)] {
+    return [
+        (russian ? "Анонимный" : "Anonymous", 0),
+        (russian ? "Женский" : "Female", 1),
+        (russian ? "Мужской" : "Male", 2),
+        (russian ? "Детский" : "Child", 3),
+        (russian ? "Робот" : "Robot", 4),
+        (russian ? "Свой" : "Custom", 5),
+    ]
+}
+
+private func forkVoiceChangerPitchOptions(russian: Bool) -> [(String, Int32)] {
+    return [Int32(-12), -9, -7, -5, -3, -2, -1, 0, 1, 2, 3, 5, 7, 9, 12].map { value -> (String, Int32) in
+        if value == 0 {
+            return (russian ? "Без изменений" : "Unchanged", value)
+        }
+        let sign = value > 0 ? "+" : "−"
+        return ("\(sign)\(abs(value)) " + (russian ? "пт." : "st"), value)
+    }
+}
+
+private func forkEqualizerGainOptions(russian: Bool) -> [(String, Int32)] {
+    return [Int32(-12), -9, -6, -4, -2, 0, 2, 4, 6, 9, 12].map { value -> (String, Int32) in
+        if value == 0 {
+            return ("0 " + (russian ? "дБ" : "dB"), value)
+        }
+        return ((value > 0 ? "+" : "−") + "\(abs(value)) " + (russian ? "дБ" : "dB"), value)
+    }
+}
+
+private func forkVoiceChangerAmountOptions(russian: Bool) -> [(String, Int32)] {
+    return [Int32(0), 10, 25, 40, 60, 80].map { value -> (String, Int32) in
+        return (value == 0 ? (russian ? "Выключено" : "Off") : "\(value)%", value)
+    }
+}
+
 private func forkDoubleTapSeekOptions(russian: Bool) -> [(String, Int32)] {
     return [Int32(0), 5, 10, 15, 30].map { seconds -> (String, Int32) in
         if seconds == 0 {
@@ -1388,7 +1441,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingFooter(39, .smallThings, ForkExtrasLocalizedString.allowSecretScreenshotsFooter),
             .appearanceToggle(1775, russian ? "Скриншоты в защищённых чатах" : "Screenshots in Protected Chats", settings.allowProtectedScreenshots, \.allowProtectedScreenshots),
             .appearanceToggle(2430, russian ? "Не сжигать исчезающие медиа" : "Keep Self-Destructing Media", settings.keepSelfDestructingMedia, \.keepSelfDestructingMedia),
-            .designFooter(2431, russian ? "Одноразовые и короткие по таймеру медиа открываются без размытия и не исчезают, а отправитель не узнаёт. Сообщить ему: удерживайте медиа → «Отметить открытым»." : "View-once and short-timer media opens without the blur and stays, and the sender isn't told. To tell them, press and hold the media and choose Mark as Opened."),
+            .designFooter(2431, russian ? "Одноразовые и короткие по таймеру медиа открываются без размытия и не исчезают, а отправитель об этом не узнаёт. Сообщить: удерживайте медиа → «Отметить открытым»." : "View-once and short-timer media open without the blur and stay, and the sender isn’t told. To tell them, press and hold the media and choose Mark as Opened."),
             .settingToggle(40, .smallThings, ForkExtrasLocalizedString.expireTtlButton, settings.expireTtlButton, \.expireTtlButton),
             .settingFooter(41, .smallThings, ForkExtrasLocalizedString.expireTtlButtonFooter),
             .settingToggle(42, .smallThings, ForkExtrasLocalizedString.keepBannedChats, settings.keepBannedChats, \.keepBannedChats),
@@ -1544,6 +1597,10 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .designFooter(1853, russian ? "При скрытом ИИ копируется исходный текст. Формат по умолчанию применяется только к обычному тексту." : "With AI hidden, Copy takes the original text. Default formatting applies only to plain text."),
             .appearanceToggle(2304, russian ? "Перевод перед отправкой" : "Translate Before Sending", settings.translateBeforeSending, \.translateBeforeSending),
             .designFooter(2305, russian ? "В меню кнопки «Отправить» появляется «Перевести»: текст заменяется переводом, язык запоминается для чата. Перевод выполняет выбранный переводчик." : "Adds Translate to the Send button's menu: the text is replaced with its translation, and the language is remembered for the chat. Uses your chosen translator."),
+            .designHeader(2450, russian ? "Правила текста" : "Text rules"),
+            .appearanceToggle(2451, russian ? "Антикапс" : "Anti-Caps", settings.antiCaps, \.antiCaps),
+            .textReplacementRules(settings.textReplacementRules.joined(separator: "\n")),
+            .designFooter(2453, russian ? "Антикапс: ТЕКСТ КАПСОМ становится обычным. Замена: одно правило в строке, «слово = замена». Ссылки, упоминания и код не меняются, ботам текст уходит как есть." : "Anti-Caps turns ALL CAPS into normal text. Replacement: one “word = replacement” rule per line. Links, mentions and code stay as they are; bots get it as typed."),
         ]
     case .messageActions:
         entries = [
@@ -1568,6 +1625,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingToggle(80, .calls, ForkExtrasLocalizedString.confirmBeforeCall, settings.confirmBeforeCall, \.confirmBeforeCall),
             .settingFooter(84, .calls, ForkExtrasLocalizedString.forceBuiltInMicFooter),
             .settingToggle(83, .calls, ForkExtrasLocalizedString.forceBuiltInMic, settings.forceBuiltInMic, \.forceBuiltInMic),
+            .appearanceToggle(2455, russian ? "Не просить оценить звонок" : "No Call Rating Prompt", settings.disableCallRating, \.disableCallRating),
+            .designFooter(2456, russian ? "После звонка не появляется окно с оценкой качества. Оценить звонок можно из его сообщения в чате." : "No quality rating sheet after a call. You can still rate a call from its message in the chat."),
             .designHeader(1613, russian ? "Ссылки TikTok и Shorts" : "TikTok and Shorts links"),
             .appearanceToggle(1554, russian ? "Скачивать TikTok" : "Download TikTok", settings.downloadTikTok, \.downloadTikTok),
             .designFooter(1982, russian ? "Если TikTok откажет в загрузке, запрос пойдёт через tikwm.com. Сервис увидит ссылку на пост без параметров шаринга и ваш IP." : "If TikTok refuses the download, the request goes through tikwm.com. The service sees the post link without sharing parameters and your IP address."),
@@ -1603,6 +1662,36 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ]
     case .voiceAndRound:
         entries = [
+            .designHeader(2440, russian ? "Смена голоса" : "Voice Changer"),
+            .appearanceToggle(2441, russian ? "Менять голос в голосовых" : "Change Voice in Voice Messages", settings.voiceChangerEnabled, \.voiceChangerEnabled),
+        ]
+        if settings.voiceChangerEnabled {
+            entries.append(.intChoice(2442, russian ? "Голос" : "Voice", forkIntChoiceLabel(forkVoiceChangerPresetOptions(russian: russian), settings.voiceChangerPreset)))
+            if settings.voiceChangerPreset == 5 {
+                entries.append(contentsOf: [
+                    .intChoice(2443, russian ? "Высота" : "Pitch", forkIntChoiceLabel(forkVoiceChangerPitchOptions(russian: russian), settings.voiceChangerPitch)),
+                    .intChoice(2444, russian ? "Реверберация" : "Reverb", forkIntChoiceLabel(forkVoiceChangerAmountOptions(russian: russian), settings.voiceChangerReverb)),
+                    .intChoice(2445, russian ? "Эхо" : "Echo", forkIntChoiceLabel(forkVoiceChangerAmountOptions(russian: russian), settings.voiceChangerEcho)),
+                ])
+            }
+        }
+        entries.append(.designFooter(2446, russian ? "Голос меняется прямо во время записи: настоящий голос не сохраняется и не отправляется. Кружки и звонки не затрагиваются." : "The voice is changed while you record: your real voice is never stored or sent. Round videos and calls aren't affected."))
+        entries.append(contentsOf: [
+            .designHeader(2460, russian ? "Эквалайзер" : "Equalizer"),
+            .appearanceToggle(2461, russian ? "Эквалайзер при прослушивании" : "Playback Equalizer", settings.equalizerEnabled, \.equalizerEnabled),
+        ])
+        if settings.equalizerEnabled {
+            entries.append(contentsOf: [
+                .intChoice(2462, russian ? "60 Гц" : "60 Hz", forkIntChoiceLabel(forkEqualizerGainOptions(russian: russian), settings.equalizerBand60)),
+                .intChoice(2463, russian ? "230 Гц" : "230 Hz", forkIntChoiceLabel(forkEqualizerGainOptions(russian: russian), settings.equalizerBand230)),
+                .intChoice(2464, russian ? "910 Гц" : "910 Hz", forkIntChoiceLabel(forkEqualizerGainOptions(russian: russian), settings.equalizerBand910)),
+                .intChoice(2465, russian ? "3,6 кГц" : "3.6 kHz", forkIntChoiceLabel(forkEqualizerGainOptions(russian: russian), settings.equalizerBand3600)),
+                .intChoice(2466, russian ? "14 кГц" : "14 kHz", forkIntChoiceLabel(forkEqualizerGainOptions(russian: russian), settings.equalizerBand14000)),
+                .appearanceToggle(2467, russian ? "Также для видео" : "Videos Too", settings.equalizerVideos, \.equalizerVideos),
+            ])
+        }
+        entries.append(.designFooter(2468, russian ? "Звук голосовых, музыки и кружков проходит через эквалайзер на этом устройстве. Собеседники слышат запись без изменений." : "Voice messages, music and round videos play through the equalizer on this device. Nothing changes for anyone else."))
+        entries += [
             .designHeader(1609, russian ? "Запись кружков" : "Recording round videos"),
             .appearanceToggle(2110, russian ? "Отсчёт перед записью кружка" : "Round Video Countdown", settings.roundVideoCountdown, \.roundVideoCountdown),
             .appearanceToggle(2111, russian ? "Записывать кружки в 60 FPS" : "Record Round Videos at 60 FPS", settings.roundVideoRecordAt60FPS, \.roundVideoRecordAt60FPS),
@@ -1642,6 +1731,8 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .appearanceToggle(2362, russian ? "Дата вступления в группу" : "Group Join Date", settings.showGroupJoinDate, \.showGroupJoinDate),
             .appearanceToggle(2363, russian ? "Сообщения человека в группах" : "Person's Messages in Groups", settings.showMessagesFromMember, \.showMessagesFromMember),
             .designFooter(2364, russian ? "В информации о группе видно, когда вы вступили. В профиле из группы есть «Сообщения в этом чате», а «Сообщения в общих группах» ищет по общим группам." : "A group's info shows when you joined it. A profile opened from a group offers Messages in This Chat; Messages in Common Groups searches the groups you share."),
+            .appearanceToggle(2457, russian ? "Примерная дата регистрации" : "Estimated Registration Date", settings.estimateRegistrationDate, \.estimateRegistrationDate),
+            .designFooter(2458, russian ? "В профиле видно, когда аккаунт, скорее всего, создан. Оценка по ID на устройстве, без запросов в сеть. Если дату сообщает Telegram, показывается она." : "A profile shows when the account was most likely created, estimated from its ID on the device with no network requests. A date Telegram gives itself is shown instead."),
             .destination(2044, russian ? "Ещё о профиле" : "More Profile Settings", .profileMore),
         ]
     case .profileMore:
@@ -1692,7 +1783,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingToggle(147, .messageFilters, ForkExtrasLocalizedString.showSensitiveContent, settings.showSensitiveContent, \.showSensitiveContent),
             .settingFooter(148, .messageFilters, ForkExtrasLocalizedString.showSensitiveContentFooter),
             .settingToggle(2432, .messageFilters, russian ? "Обходить ограничения контента" : "Bypass Content Restrictions", settings.bypassContentRestrictions, \.bypassContentRestrictions),
-            .settingFooter(2433, .messageFilters, russian ? "Чаты, боты и сообщения «недоступные на вашем устройстве» открываются как обычно, по любой причине. Открытый чат обновится, когда вы зайдёте в него снова." : "Chats, bots and messages “unavailable on your device” open as usual, whatever the reason. An open chat updates when you open it again."),
+            .settingFooter(2433, .messageFilters, russian ? "Чаты, боты и сообщения с пометкой «недоступно на вашем устройстве» открываются при любой причине. Открытые чаты обновятся при следующем входе." : "Chats, bots and messages marked “unavailable on your device” open as usual, whatever the reason. Chats already open update when you open them again."),
             .settingToggle(134, .messageFilters, ForkExtrasLocalizedString.regexFilters, settings.regexMessageFiltersEnabled, \.regexMessageFiltersEnabled),
         ]
         if settings.regexMessageFiltersEnabled {
@@ -1823,6 +1914,7 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
     let updateDisposable = MetaDisposable()
     /// Debounce regex pattern edits — each keystroke must not rewrite AccountManager + rebuild history filters.
     let regexPatternsDisposable = MetaDisposable()
+    let textRulesDisposable = MetaDisposable()
     var presentControllerImpl: ((ViewController) -> Void)?
     var pushControllerImpl: ((ViewController) -> Void)?
 
@@ -1951,6 +2043,26 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 }
                 return updated
             }.start())
+        },
+        updateTextReplacementRulesText: { value in
+            textRulesDisposable.set((
+                Signal<String, NoError>.single(value)
+                |> delay(0.4, queue: Queue.mainQueue())
+                |> mapToSignal { value in
+                    return updateForkExtrasSettingsInteractively(accountManager: context.sharedContext.accountManager) { current in
+                        var updated = current
+                        let rules = value
+                            .split(whereSeparator: { $0.isNewline })
+                            .map { String($0).trimmingCharacters(in: .whitespaces) }
+                            .filter { !$0.isEmpty }
+                        if updated.textReplacementRules == rules {
+                            return updated
+                        }
+                        updated.textReplacementRules = rules
+                        return updated
+                    }
+                }
+            ).start())
         },
         updateRegexFilterPatternsText: { value in
             regexPatternsDisposable.set((
@@ -2196,6 +2308,42 @@ public func forkExtrasController(context: AccountContext, focus: ForkExtrasContr
                 title = russian ? "Качество видео по умолчанию" : "Default video quality"
                 options = forkVideoQualityOptions(russian: russian)
                 keyPath = \.defaultVideoQuality
+            case 2462:
+                title = russian ? "60 Гц" : "60 Hz"
+                options = forkEqualizerGainOptions(russian: russian)
+                keyPath = \.equalizerBand60
+            case 2463:
+                title = russian ? "230 Гц" : "230 Hz"
+                options = forkEqualizerGainOptions(russian: russian)
+                keyPath = \.equalizerBand230
+            case 2464:
+                title = russian ? "910 Гц" : "910 Hz"
+                options = forkEqualizerGainOptions(russian: russian)
+                keyPath = \.equalizerBand910
+            case 2465:
+                title = russian ? "3,6 кГц" : "3.6 kHz"
+                options = forkEqualizerGainOptions(russian: russian)
+                keyPath = \.equalizerBand3600
+            case 2466:
+                title = russian ? "14 кГц" : "14 kHz"
+                options = forkEqualizerGainOptions(russian: russian)
+                keyPath = \.equalizerBand14000
+            case 2442:
+                title = russian ? "Голос" : "Voice"
+                options = forkVoiceChangerPresetOptions(russian: russian)
+                keyPath = \.voiceChangerPreset
+            case 2443:
+                title = russian ? "Высота голоса" : "Pitch"
+                options = forkVoiceChangerPitchOptions(russian: russian)
+                keyPath = \.voiceChangerPitch
+            case 2444:
+                title = russian ? "Реверберация" : "Reverb"
+                options = forkVoiceChangerAmountOptions(russian: russian)
+                keyPath = \.voiceChangerReverb
+            case 2445:
+                title = russian ? "Эхо" : "Echo"
+                options = forkVoiceChangerAmountOptions(russian: russian)
+                keyPath = \.voiceChangerEcho
             default:
                 return
             }

@@ -132,6 +132,13 @@ private final class MediaPlayerContext {
     private var continuePlayingWithoutSoundOnLostAudioSession: Bool
     private let storeAfterDownload: (() -> Void)?
     private let isAudioVideoMessage: Bool
+    /// Fork (Ghostgram): what the playback equalizer treats this player as (`ForkPlaybackEqualizer`).
+    private var forkEqualizerKind: ForkPlaybackEqualizerKind {
+        if !self.video {
+            return .audio
+        }
+        return self.isAudioVideoMessage ? .roundVideo : .video
+    }
     
     private var seekId: Int = 0
     
@@ -428,7 +435,7 @@ private final class MediaPlayerContext {
                             }
                         }
                     }
-                })
+                }, forkEqualizerKind: self.forkEqualizerKind)
                 self.audioRenderer = MediaPlayerAudioRendererContext(renderer: renderer)
                 renderer.start()
             }
@@ -511,7 +518,7 @@ private final class MediaPlayerContext {
                                 }
                             }
                         }
-                    })
+                    }, forkEqualizerKind: self.forkEqualizerKind)
                     self.audioRenderer = MediaPlayerAudioRendererContext(renderer: renderer)
                     renderer.start()
                 }
