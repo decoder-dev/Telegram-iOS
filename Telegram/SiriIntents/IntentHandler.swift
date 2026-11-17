@@ -189,10 +189,20 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
         let accountRecords = accountManager.accountRecords()
         |> take(1)
         
-        self.allAccounts.set(accountRecords
-        |> map { view -> [(AccountRecordId, PeerId, Bool)] in
+        // Accounts another account hides (HiddenAccountsSettings) are never offered here: Siri's contact search and
+        // the widget's chat picker would otherwise list their chats to anyone holding the unlocked phone.
+        let hiddenAccounts = accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.hiddenAccountsSettings])
+        |> take(1)
+        |> map { sharedData -> HiddenAccountsSettings in
+            return sharedData.entries[ApplicationSpecificSharedDataKeys.hiddenAccountsSettings]?.get(HiddenAccountsSettings.self) ?? .default
+        }
+        self.allAccounts.set(combineLatest(accountRecords, hiddenAccounts)
+        |> map { view, hiddenAccounts -> [(AccountRecordId, PeerId, Bool)] in
             var result: [(AccountRecordId, Int, PeerId, Bool)] = []
             for record in view.records {
+                if hiddenAccounts.isHidden(record.id.int64) {
+                    continue
+                }
                 let isLoggedOut = record.attributes.contains(where: { attribute in
                     if case .loggedOut = attribute {
                         return true
@@ -978,6 +988,7 @@ class DefaultIntentHandler: INExtension, INSendMessageIntentHandling, INSearchFo
 }
 
 private final class WidgetIntentHandler {
+    private var accountManager: AccountManager<TelegramAccountManagerTypes>?
     private let allAccounts = Promise<[(AccountRecordId, PeerId, Bool)]>()
     
     private let searchDisposable = MetaDisposable()
@@ -1059,9 +1070,18 @@ private final class WidgetIntentHandler {
                 return lhs.0 < rhs.0
             }
         })
-        self.allAccounts.set(.single(result.map { record -> (AccountRecordId, PeerId, Bool) in
-            return (record.0, record.2, record.3)
-        }))
+        // As in DefaultIntentHandler: the widget's chat picker never lists a hidden account's chats.
+        let accountManager: AccountManager<TelegramAccountManagerTypes> = setupAccountManager(basePath: rootPath + "/accounts-metadata", isTemporary: true, isReadOnly: false, useCaches: false, removeDatabaseOnError: false)
+        self.accountManager = accountManager
+        let records = result
+        self.allAccounts.set(accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.hiddenAccountsSettings])
+        |> take(1)
+        |> map { sharedData -> [(AccountRecordId, PeerId, Bool)] in
+            let hiddenAccounts = sharedData.entries[ApplicationSpecificSharedDataKeys.hiddenAccountsSettings]?.get(HiddenAccountsSettings.self) ?? .default
+            return records.filter { !hiddenAccounts.isHidden($0.0.int64) }.map { record -> (AccountRecordId, PeerId, Bool) in
+                return (record.0, record.2, record.3)
+            }
+        })
     }
     
     deinit {
