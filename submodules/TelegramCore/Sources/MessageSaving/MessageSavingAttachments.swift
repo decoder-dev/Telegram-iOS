@@ -55,10 +55,11 @@ enum MessageSavingAttachments {
         return "\(peerId)_\(namespace)_\(messageId)"
     }
 
+    /// Every extension a copy can be saved with (`destinationURL` writes any other one as `bin`), lower case.
     private static let knownExtensions: [String] = [
-        "jpg", "jpeg", "png", "webp", "heic", "gif", "mp4", "mov", "m4v", "webm",
-        "mp3", "m4a", "ogg", "opus", "pdf", "bin", "tgs", "tgv", "mkv", "avi",
-        "doc", "docx", "xls", "xlsx", "zip", "rar", "7z", "txt"
+        "jpg", "jpeg", "png", "webp", "heic", "heif", "gif", "bmp", "tiff", "mp4", "mov", "m4v", "webm", "3gp",
+        "mp3", "m4a", "ogg", "opus", "wav", "flac", "aac", "pdf", "bin", "tgs", "tgv", "mkv", "avi",
+        "doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv", "zip", "rar", "7z", "txt", "json", "epub", "apk", "ipa"
     ]
 
     private static func firstFile(withBase base: String, in directory: URL) -> String? {
@@ -67,6 +68,13 @@ enum MessageSavingAttachments {
         // inside Postbox transactions once the folder grows).
         for ext in knownExtensions {
             let path = directory.appendingPathComponent("\(base).\(ext)").path
+            if FileManager.default.fileExists(atPath: path) {
+                return path
+            }
+        }
+        // Older builds kept the source's own spelling (`IMG_0001.MOV`), and the file system is case-sensitive.
+        for ext in knownExtensions {
+            let path = directory.appendingPathComponent("\(base).\(ext.uppercased())").path
             if FileManager.default.fileExists(atPath: path) {
                 return path
             }
@@ -140,9 +148,11 @@ enum MessageSavingAttachments {
     }
 
     private static func destinationURL(message: Message, source: String, mediaBox: MediaBox) -> URL {
+        // Only an extension `firstFile` probes for: a copy saved as `.MOV` or `.apk` used to be written and then never
+        // found again, so the message showed no media and the next delete made another copy.
         let ext: String
-        let sourceExtension = (source as NSString).pathExtension
-        if !sourceExtension.isEmpty {
+        let sourceExtension = (source as NSString).pathExtension.lowercased()
+        if knownExtensions.contains(sourceExtension) {
             ext = sourceExtension
         } else {
             ext = "bin"
