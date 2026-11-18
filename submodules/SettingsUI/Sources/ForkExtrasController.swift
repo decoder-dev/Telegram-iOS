@@ -839,7 +839,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case accentSaturation(Int32)
     case translationBackend(ForkTranslationBackend)
     /// A translation service's API key: id, title, the stored key and the setting it writes.
-    case translationApiKey(Int32, String, String, WritableKeyPath<ForkExtrasSettings, String>)
+    case translationApiKey(Int32, String, String, ForkTranslationAPIKeys.Service)
     case transcriptionBackend(ForkTranscriptionBackend)
     case scrollToNextChat(Bool)
     case deletedMessageMark(String)
@@ -1156,15 +1156,11 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: ForkExtrasLocalizedString.translationBackend, label: forkTranslationBackendTitle(backend), sectionId: self.section, style: .blocks, action: {
                 arguments.openTranslationBackend()
             }, tag: BananaSettingsItemTag(id: self.stableId))
-        case let .translationApiKey(_, title, value, keyPath):
+        case let .translationApiKey(_, title, value, service):
             // Typed in a secure field: the key is the user's own and should not show up in screenshots or recordings.
-            let accountManager = arguments.context.sharedContext.accountManager
+            // Kept in the Keychain, not with the other settings (`ForkTranslationAPIKeys`).
             return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: title, textColor: presentationData.theme.list.itemPrimaryTextColor), text: value, placeholder: ForkPresentationLanguage.prefersRussianStrings ? "Ключ API" : "API Key", type: .password, spacing: 10.0, clearType: .always, maxLength: 128, tag: BananaSettingsItemTag(id: self.stableId), sectionId: self.section, textUpdated: { value in
-                let _ = updateForkExtrasSettingsInteractively(accountManager: accountManager) { current in
-                    var updated = current
-                    updated[keyPath: keyPath] = value
-                    return updated
-                }.start()
+                ForkTranslationAPIKeys.setKey(value, for: service)
             }, action: {})
         case let .transcriptionBackend(backend):
             let label: String
@@ -1556,10 +1552,10 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ]
         // A key row shows while its service can be used: chosen above, or next in line with Automatic Fallback.
         if settings.translationBackend == .deepl || settings.translationFallback {
-            entries.append(.translationApiKey(2300, "DeepL", settings.deeplApiKey, \.deeplApiKey))
+            entries.append(.translationApiKey(2300, "DeepL", ForkTranslationAPIKeys.key(.deepl), .deepl))
         }
         if settings.translationBackend == .yandex || settings.translationFallback {
-            entries.append(.translationApiKey(2301, russian ? "Яндекс" : "Yandex", settings.yandexApiKey, \.yandexApiKey))
+            entries.append(.translationApiKey(2301, russian ? "Яндекс" : "Yandex", ForkTranslationAPIKeys.key(.yandex), .yandex))
         }
     case .messagesMore:
         entries = [

@@ -64,12 +64,12 @@ class TranslatorRows(unittest.TestCase):
         self.assertIn('[2304, 2305]', source)
         self.assertIn('.appearanceToggle(2302, russian ? "Резервный переводчик" : "Automatic Fallback", settings.translationFallback, \\.translationFallback)', source)
         self.assertIn('.appearanceToggle(2304, russian ? "Перевод перед отправкой" : "Translate Before Sending", settings.translateBeforeSending, \\.translateBeforeSending)', source)
-        self.assertIn('.translationApiKey(2300, "DeepL", settings.deeplApiKey, \\.deeplApiKey)', source)
-        self.assertIn('.translationApiKey(2301, russian ? "Яндекс" : "Yandex", settings.yandexApiKey, \\.yandexApiKey)', source)
+        self.assertIn('.translationApiKey(2300, "DeepL", ForkTranslationAPIKeys.key(.deepl), .deepl)', source)
+        self.assertIn('.translationApiKey(2301, russian ? "Яндекс" : "Yandex", ForkTranslationAPIKeys.key(.yandex), .yandex)', source)
 
     def test_keys_are_typed_in_a_secure_field(self):
         source = read(EXTRAS)
-        item = source.split('case let .translationApiKey(_, title, value, keyPath):', 1)[1].split('        case ', 1)[0]
+        item = source.split('case let .translationApiKey(_, title, value, service):', 1)[1].split('        case ', 1)[0]
         self.assertIn('type: .password', item)
 
     def test_picker_offers_every_backend(self):

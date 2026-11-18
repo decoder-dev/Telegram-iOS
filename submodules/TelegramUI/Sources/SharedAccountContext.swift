@@ -608,6 +608,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     }).start()
                 }
             }
+            if applicationBindings.isMainApp {
+                // Translator keys an older build kept in this (unencrypted) database go to the Keychain.
+                ForkTranslationAPIKeys.migrateFromSettings(settings, accountManager: accountManager)
+            }
             let _ = immediateForkExtrasSettingsValue.swap(settings)
             // Single owner of NSE projection (change-gated inside sync).
             ForkExtrasNotificationBridge.sync(settings)

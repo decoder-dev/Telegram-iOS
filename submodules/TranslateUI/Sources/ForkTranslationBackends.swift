@@ -33,9 +33,9 @@ public func forkTranslationBackends(settings: ForkExtrasSettings) -> [ForkTransl
 private func hasTranslationKey(_ backend: ForkTranslationBackend, settings: ForkExtrasSettings) -> Bool {
     switch backend {
     case .deepl:
-        return !settings.deeplApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return ForkTranslationAPIKeys.hasKey(.deepl)
     case .yandex:
-        return !settings.yandexApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return ForkTranslationAPIKeys.hasKey(.yandex)
     case .default, .system, .google:
         return true
     }
@@ -197,11 +197,11 @@ private func translateTexts(backend: ForkTranslationBackend, settings: ForkExtra
         // DeepL takes at most 50 texts per request.
         let chunks = stride(from: 0, to: texts.count, by: 50).map { Array(texts[$0 ..< min($0 + 50, texts.count)]) }
         return translateInChunks(chunks, { chunk in
-            return deeplTranslate(texts: chunk, toLang: toLang, apiKey: settings.deeplApiKey)
+            return deeplTranslate(texts: chunk, toLang: toLang, apiKey: ForkTranslationAPIKeys.key(.deepl))
         })
     case .yandex:
         return translateInChunks(yandexChunks(texts), { chunk in
-            return yandexTranslate(texts: chunk, toLang: toLang, apiKey: settings.yandexApiKey)
+            return yandexTranslate(texts: chunk, toLang: toLang, apiKey: ForkTranslationAPIKeys.key(.yandex))
         })
     case .default, .system:
         return .single(texts.map { _ -> String? in nil })
