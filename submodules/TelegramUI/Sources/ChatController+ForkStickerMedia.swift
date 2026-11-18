@@ -113,6 +113,7 @@ private func forkStickerVideo(context: AccountContext, size: CGSize, frameCount:
         }
         writer.startSession(atSourceTime: .zero)
         let cancelled = Atomic<Bool>(value: false)
+        let finishing = Atomic<Bool>(value: false)
         var index = 0
         var duration = 0.0
         var finished = false
@@ -168,6 +169,7 @@ private func forkStickerVideo(context: AccountContext, size: CGSize, frameCount:
             }
             if index == frameCount {
                 finished = true
+                let _ = finishing.swap(true)
                 writer.endSession(atSourceTime: CMTime(seconds: duration, preferredTimescale: 60_000))
                 input.markAsFinished()
                 writer.finishWriting {
@@ -203,6 +205,11 @@ private func forkStickerVideo(context: AccountContext, size: CGSize, frameCount:
         return ActionDisposable {
             let _ = cancelled.swap(true)
             forkStickerExportQueue.async {
+                // `finishWriting` is in flight (the status stays `.writing` until it ends): its completion sees
+                // `cancelled` and disposes the file, so the writer is not cancelled and the file not removed under it.
+                if finishing.with({ $0 }) {
+                    return
+                }
                 if writer.status == .writing {
                     writer.cancelWriting()
                 }

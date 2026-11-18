@@ -44,6 +44,11 @@ private func forkIsConvertibleGif(_ file: TelegramMediaFile) -> Bool {
 
 /// Copies the GIF's data into a fresh local resource and re-labels it as a silent streaming video.
 private func forkLocalGifVideo(account: Account, peerId: PeerId, reference: AnyMediaReference, file: TelegramMediaFile) -> Signal<AnyMediaReference?, NoError> {
+    // An inline-bot GIF sent without its content has no data to fetch: the conversion used to wait out the whole
+    // timeout below before giving up, and the message sat pending for a minute.
+    if file.resource is EmptyMediaResource {
+        return .single(nil)
+    }
     let signal: Signal<AnyMediaReference?, NoError> = Signal { subscriber in
         let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
         let fetchDisposable = fetchedMediaResource(mediaBox: account.postbox.mediaBox, userLocation: .peer(peerId), userContentType: .video, reference: reference.resourceReference(file.resource)).start(error: { _ in
@@ -105,6 +110,8 @@ func forkPrepareBannedGifVideos(account: Account, peerId: PeerId, messages: [Enq
             return forkLocalGifVideo(account: account, peerId: peerId, reference: reference, file: file)
             |> map { converted -> EnqueueMessage in
                 guard let converted = converted else {
+                    // Sent as it is: the chat refuses it and the message shows as failed. Dropping it would lose the
+                    // message without a word.
                     return message
                 }
                 // Sending as an inline-bot result would keep the server's GIF classification.
