@@ -1634,7 +1634,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
             .settingFooter(84, .calls, ForkExtrasLocalizedString.forceBuiltInMicFooter),
             .settingToggle(83, .calls, ForkExtrasLocalizedString.forceBuiltInMic, settings.forceBuiltInMic, \.forceBuiltInMic),
             .appearanceToggle(2455, russian ? "Не просить оценить звонок" : "No Call Rating Prompt", settings.disableCallRating, \.disableCallRating),
-            .designFooter(2456, russian ? "После звонка не появляется окно с оценкой качества. Оценить звонок можно из его сообщения в чате." : "No quality rating sheet after a call. You can still rate a call from its message in the chat."),
+            .designFooter(2456, russian ? "Сейчас Telegram сам не просит оценить звонок, так что переключатель понадобится, если окно оценки вернётся. Оценить звонок можно из его сообщения в чате." : "Telegram does not ask to rate calls at the moment; this switch takes effect if the rating sheet comes back. You can still rate a call from its message in the chat."),
             .designHeader(1613, russian ? "Ссылки TikTok и Shorts" : "TikTok and Shorts links"),
             .appearanceToggle(1554, russian ? "Скачивать TikTok" : "Download TikTok", settings.downloadTikTok, \.downloadTikTok),
             .designFooter(1982, russian ? "Если TikTok откажет в загрузке, запрос пойдёт через tikwm.com. Сервис увидит ссылку на пост без параметров шаринга и ваш IP." : "If TikTok refuses the download, the request goes through tikwm.com. The service sees the post link without sharing parameters and your IP address."),
