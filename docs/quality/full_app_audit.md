@@ -175,7 +175,7 @@ source text of the changed code (`donut_deleted_messages`, `duress_and_local_pin
 assertions were moved to the new code with the same intent. All 36 `Tests/*` directories give the same result as on
 ae2066dc8a on this machine.
 
-### Fixed (presumed: source checks pass; built together with iteration 4)
+### Fixed (source checks pass, builds in CI; not run on a device)
 
 | Pri | Area | Defect | Fix | Files |
 |---|---|---|---|---|
@@ -197,9 +197,10 @@ alone and needed the duress reveal block too. Both harnesses got stubs (4ccfad78
 Three read-only reviews located and confirmed each item; every patch was re-read in the source before it was applied.
 Pinned by `Tests/Upstream13/audit_iteration4.py` (in `client-regression`): 7 tests, 5 failures + 2 errors on the unfixed
 tree, all pass on the fixed one. All 36 `Tests/*` directories give the same result as on 3e27984783 on this machine.
-CI runs once, for iterations 3 and 4 together.
+CI ran once, for iterations 3 and 4 together, on 6c72687452: `Client regression tests` 44254276483 and
+`Build sideload IPA` 44254277702 (Xcode 27, compile only) both passed.
 
-### Fixed (presumed: source checks pass, not built yet)
+### Fixed (source checks pass, builds in CI; not run on a device)
 
 | Pri | Area | Defect | Fix | Files |
 |---|---|---|---|---|
