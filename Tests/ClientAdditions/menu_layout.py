@@ -79,6 +79,7 @@ struct BananaTabBarLayout: Equatable { let hidden: Bool; let contacts: Bool; let
 enum ForkExtrasHotFlags { static func hidesTabBar(_ value: Bool,isPad: Bool) -> Bool { value && !isPad } }
 enum ForkRegexMessageFilters { static func unusablePatternCount(_ patterns: [String]) -> Int { 0 } }
 enum BananaSecurityStrings { static var title="Security" }
+enum ForkTranslationAPIKeys { enum Service: Equatable { case deepl, yandex }; static func key(_ service: Service) -> String { "" } }
 """
     stubs+='enum ForkExtrasLocalizedString { static func string(forKey key: String) -> String { key }\n'+'\n'.join('static let '+name+'="'+name+'"' for name in sorted(localized))+'\n}\n'
     badge=declaration(read('submodules/TelegramCore/Sources/Arena/BananaIdentityBadges.swift'),'public enum BananaLocalVerificationBadge:')

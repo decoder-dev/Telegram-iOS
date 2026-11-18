@@ -33,6 +33,8 @@ public enum EnginePeer {
 ''' + session + settings + hidden + coding_key + '''
 // Hashing is outside this settings serialization test; legacy-hash fixtures bypass this stub.
 func archivePasswordHash(_ value: String) -> String { value }
+// The duress reveal block is kept in the Keychain beside the duress passcode; here it is kept in memory.
+enum DuressPasscodeKeychain { static var storedRevealBlocked = false; static func isRevealBlocked() -> Bool { storedRevealBlocked }; static func setRevealBlocked(_ value: Bool) { storedRevealBlocked = value } }
 ''')
     (tests / 'SessionTests.swift').write_text((root / 'Tests/ArchiveLock/SessionTests.swift').read_text())
     (tests / 'SettingsTests.swift').write_text((root / 'Tests/ArchiveLock/SettingsTests.swift').read_text())
