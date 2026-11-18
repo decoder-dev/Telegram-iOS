@@ -39,8 +39,11 @@ final class MTWebSocketFallbackCoordinator {
         /// When the fallback was last engaged. Nil while WebSocket is in use.
         var fallbackSince: Double?
         var fallbackRetryInterval: Double = MTWebSocketFallbackCoordinator.initialFallbackRetryInterval
-        /// A probe has been let through and has not yet reported an outcome, so no second one is.
-        var isProbing = false
+        /// The probe that has been let through and has not yet reported an outcome, so no second one is. Only the
+        /// connection holding this token reports the probe's failure or gives the slot back: an older connection
+        /// closing or failing alongside used to free the slot of the current probe, or charge its backoff.
+        var probeToken: Int?
+        var nextProbeToken = 0
     }
 
     private let state = Atomic<State>(value: State())
@@ -50,51 +53,55 @@ final class MTWebSocketFallbackCoordinator {
     /// This consumes a probe permission, so it is a method rather than a property: while the
     /// fallback is engaged it answers true exactly once per wait, and false to everything else until
     /// that attempt has reported success or failure.
-    func shouldAttemptWebSocket() -> Bool {
+    func shouldAttemptWebSocket() -> (allowed: Bool, probeToken: Int?) {
         let timestamp = ProcessInfo.processInfo.systemUptime
-        var grantedProbe = false
+        var grantedProbeToken: Int?
         let state = self.state.modify { state in
             var state = state
             guard let fallbackSince = state.fallbackSince else {
                 return state
             }
-            if !state.isProbing, timestamp - fallbackSince >= state.fallbackRetryInterval {
-                state.isProbing = true
-                grantedProbe = true
+            if state.probeToken == nil, timestamp - fallbackSince >= state.fallbackRetryInterval {
+                state.nextProbeToken += 1
+                state.probeToken = state.nextProbeToken
+                grantedProbeToken = state.nextProbeToken
             }
             return state
         }
         if state.fallbackSince == nil {
-            return true
+            return (true, nil)
         }
-        if grantedProbe {
+        if grantedProbeToken != nil {
             Logger.shared.log("MTWebSocket", "[WS] probing whether WebSocket works again after \(Int(state.fallbackRetryInterval))s on direct transport")
         }
-        return grantedProbe
+        return (grantedProbeToken != nil, grantedProbeToken)
     }
 
-    func abortProbe() {
+    func abortProbe(probeToken: Int?) {
+        guard let probeToken = probeToken else {
+            return
+        }
         _ = self.state.modify { state in
             var state = state
-            if state.isProbing {
+            if state.probeToken == probeToken {
                 // Clear the probe slot without backing off further — MTProto asked us to close
                 // (path rebuild / pause / short-lived media worker), not a network failure.
-                state.isProbing = false
+                state.probeToken = nil
             }
             return state
         }
     }
 
-    func recordAllEndpointsFailed() {
+    func recordAllEndpointsFailed(probeToken: Int?) {
         let timestamp = ProcessInfo.processInfo.systemUptime
         var engagedFallback = false
         var probeFailed = false
         let state = self.state.modify { state in
             var state = state
-            if state.isProbing {
+            if state.probeToken != nil, state.probeToken == probeToken {
                 // The one connection let through to test the water went down with everything else.
                 // Stay in the fallback and wait longer before spending another.
-                state.isProbing = false
+                state.probeToken = nil
                 state.fallbackSince = timestamp
                 state.fallbackRetryInterval = min(
                     MTWebSocketFallbackCoordinator.maximumFallbackRetryInterval,
@@ -135,7 +142,7 @@ final class MTWebSocketFallbackCoordinator {
             if state.fallbackSince != nil {
                 // Whatever was in the way is gone: the probe carried MTProto traffic.
                 state.fallbackSince = nil
-                state.isProbing = false
+                state.probeToken = nil
                 state.fallbackRetryInterval = MTWebSocketFallbackCoordinator.initialFallbackRetryInterval
                 liftedFallback = true
             }
@@ -197,6 +204,8 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         private let isMediaConnection: Bool
         private let isTestingEnvironment: Bool
         private let fallbackCoordinator: MTWebSocketFallbackCoordinator?
+        /// Set when the coordinator let this connection through as its fallback probe.
+        private let probeToken: Int?
 
         private var connection: NWConnection?
         private var reportedDisconnection = false
@@ -256,7 +265,8 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             datacenterId: Int,
             isMediaConnection: Bool,
             isTestingEnvironment: Bool,
-            fallbackCoordinator: MTWebSocketFallbackCoordinator?
+            fallbackCoordinator: MTWebSocketFallbackCoordinator?,
+            probeToken: Int?
         ) {
             self.queue = queue
             self.delegate = delegate
@@ -265,6 +275,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             self.isMediaConnection = isMediaConnection
             self.isTestingEnvironment = isTestingEnvironment
             self.fallbackCoordinator = fallbackCoordinator
+            self.probeToken = probeToken
             let frontConfig = WebSocketEndpointPlanConfig(fronts: WebSocketFrontBootstrap.templates, order: .frontsFirst)
             self.endpointSelector = WebSocketEndpointSelector(candidates: WebSocketEndpointPlanner.candidates(
                 datacenterId: datacenterId,
@@ -281,7 +292,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             self.connectTimeoutTimer?.invalidate()
             self.viabilityLossTimer?.invalidate()
             if !self.recordedAttemptOutcome && !self.didReceivePayload {
-                self.fallbackCoordinator?.abortProbe()
+                self.fallbackCoordinator?.abortProbe(probeToken: self.probeToken)
             }
             self.discardCurrentConnection()
         }
@@ -817,7 +828,7 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         /// Reports this attempt to the fallback coordinator, at most once. A connection that carried
         /// payload has already reported success; one that ended without any — including one that never
         /// got past the handshake — counts against the endpoints. An intentional disconnect (path
-        /// rebuild / pause) must abort a probe without backing off, otherwise `isProbing` sticks
+        /// rebuild / pause) must abort a probe without backing off, otherwise the probe slot sticks
         /// forever and WS never returns.
         private func recordAttemptFailureIfNeeded() {
             if self.recordedAttemptOutcome || self.didReceivePayload {
@@ -825,10 +836,10 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
             }
             self.recordedAttemptOutcome = true
             if self.didRequestDisconnect {
-                self.fallbackCoordinator?.abortProbe()
+                self.fallbackCoordinator?.abortProbe(probeToken: self.probeToken)
                 return
             }
-            self.fallbackCoordinator?.recordAllEndpointsFailed()
+            self.fallbackCoordinator?.recordAllEndpointsFailed(probeToken: self.probeToken)
         }
 
         private func cancelWithError(error: Error?) {
@@ -904,7 +915,8 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
         datacenterId: Int,
         isMediaConnection: Bool,
         isTestingEnvironment: Bool,
-        fallbackCoordinator: MTWebSocketFallbackCoordinator?
+        fallbackCoordinator: MTWebSocketFallbackCoordinator?,
+        probeToken: Int?
     ) {
         let queue = MTWebSocketConnectionInterface.sharedQueue
         self.queue = queue
@@ -916,7 +928,8 @@ final class MTWebSocketConnectionInterface: NSObject, MTTcpConnectionInterface {
                 datacenterId: datacenterId,
                 isMediaConnection: isMediaConnection,
                 isTestingEnvironment: isTestingEnvironment,
-                fallbackCoordinator: fallbackCoordinator
+                fallbackCoordinator: fallbackCoordinator,
+                probeToken: probeToken
             )
         })
     }

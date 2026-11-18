@@ -458,7 +458,8 @@ func applyWebSocketTransport(context: MTContext, webSocketTransportEnabled: Bool
         }
         let activeFallbackCoordinator = webSocketFallbackToDirect ? fallbackCoordinator : nil
         context.makeTcpConnectionInterface = { delegate, delegateQueue, datacenterId, isMedia, isTestingEnv in
-            if let fallbackCoordinator = activeFallbackCoordinator, !fallbackCoordinator.shouldAttemptWebSocket() {
+            let decision = activeFallbackCoordinator?.shouldAttemptWebSocket()
+            if let decision = decision, !decision.allowed {
                 // WebSocket has failed repeatedly and the coordinator is holding this connection on
                 // direct transport. Returning nil would make MTTcpConnection fall through to
                 // GCDAsyncSocket; with Network.framework always-on, hand back the same raw-TCP
@@ -470,7 +471,7 @@ func applyWebSocketTransport(context: MTContext, webSocketTransportEnabled: Bool
                 }
                 return nil
             }
-            return MTWebSocketConnectionInterface(delegate: delegate, delegateQueue: delegateQueue, datacenterId: datacenterId, isMediaConnection: isMedia, isTestingEnvironment: isTestingEnv, fallbackCoordinator: activeFallbackCoordinator)
+            return MTWebSocketConnectionInterface(delegate: delegate, delegateQueue: delegateQueue, datacenterId: datacenterId, isMediaConnection: isMedia, isTestingEnvironment: isTestingEnv, fallbackCoordinator: activeFallbackCoordinator, probeToken: decision?.probeToken)
         }
     } else {
         setDefaultTcpConnectionInterface(context: context, useNetworkFramework: useNetworkFramework)
