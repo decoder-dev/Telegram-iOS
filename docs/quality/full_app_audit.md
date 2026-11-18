@@ -159,27 +159,57 @@ changes on this machine (`python -m unittest discover` per directory, compared l
 
 ### Open (confirmed, not changed in this iteration)
 
-- **P2, A/E**: calls of a hidden account donate `INStartCallIntent` (Siri suggestions) and land in Phone Recents;
-  `clearHiddenAccountTraces` removes only send-message donations.
-- **P2, A**: `HiddenAccountsSession.revealBlocked` (set by the duress code) is memory-only; a relaunch inside the
-  auto-lock window re-enables the Settings x10 reveal gesture (opening still needs the password).
-- **P2, A**: an already configured widget reads a hidden account's chats directly (`WidgetKitWidget/TodayViewController.swift`);
-  that target does not link `TelegramUIPreferences`, so the filter needs a small dependency change.
-- **P2, B**: an open chat is not marked read when Ghost "Don't Read" is turned off until a newer message is visible or
-  the chat is reopened (`ChatHistoryListNode` read pipeline ignores the setting).
-- **P2, C**: saved secret/view-once media and records outlive their chat and account (only Duress Erase All and the
-  manual clear remove them); old unscoped attachment names can match another account's message.
-- **P3, C**: saved copies with extensions outside the probe list (`MOV`, `heif`, `apk`) are never found again;
-  sticker-to-video export cancelled during `finishWriting`; banned-GIF fallback sends a GIF that the chat rejects.
-- **P3, E**: Extras > No Call Rating Prompt changes nothing: `CallControllerNodeV2` never shows the automatic rating
-  sheet, so the switch is inert (harmless).
-- **P3, D**: WebSocket probe slot ownership (iteration 1) confirmed; self-recovering.
-- **P3, voice**: the equalizer's Int16 path hard-clips at large boosts; a resumed voice recording uses the voice changer
-  settings of the moment it resumes.
-- **P2, H**: translator API keys in the unencrypted AccountManager database (scope: `ForkExtrasSettings` fields,
-  `ForkExtrasController` writer, `ForkTranslationBackends` readers).
+None of the P2 or P3 items above is open any more: the P2 ones were fixed in iteration 3, the P3 ones in
+iteration 4.
 
 ### Not covered yet
 
 F (UI: needs a simulator), upstream Postbox/MTProto internals, tgcalls, media decoders, auth flows (QR login, 2FA)
 beyond the fork's changes.
+
+## Iteration 3 (on `main`, from ae2066dc8a): the open P2 items
+
+Same environment and policy as iteration 2. Pinned by `Tests/Upstream13/audit_iteration3.py` (in `client-regression`):
+7 tests, 4 failures + 3 errors on the unfixed tree, all pass on the fixed one. Four existing tests asserted the old
+source text of the changed code (`donut_deleted_messages`, `duress_and_local_pins`, `translate_before_sending`); their
+assertions were moved to the new code with the same intent. All 36 `Tests/*` directories give the same result as on
+ae2066dc8a on this machine.
+
+### Fixed (presumed: source checks pass; built together with iteration 4)
+
+| Pri | Area | Defect | Fix | Files |
+|---|---|---|---|---|
+| P2 | A/E | A hidden account's outgoing calls were donated to Siri (`INStartCallIntent`) and every CallKit call went into Phone Recents; hiding an account removed only its message donations. | No donation while the account is hidden; call donations are grouped per account (`startCallIntentGroupIdentifier`) and deleted by `clearHiddenAccountTraces`. While any account is hidden (stored settings, so also on a VoIP cold start) the provider runs with `includesCallsInRecents = false`. Call donations made before this change carry no group and cannot be deleted. Trade-off: Recents also stay empty for visible accounts while one is hidden; CallKit has no per-call switch. | `TelegramCallsUI/Sources/CallKitIntegration.swift`, `TelegramIntents/Sources/TelegramIntents.swift`, `ChatListUI/Sources/ArchiveLockHelpers.swift`, `TelegramUI/Sources/SharedAccountContext.swift` |
+| P2 | A | The duress reveal block was memory-only: a relaunch inside the auto-lock window re-enabled Settings x10. | The flag is stored in the duress passcode's Keychain record, set by `blockReveal`, cleared by `allowReveal`, checked by `isRevealBlocked`. | `TelegramUIPreferences/Sources/DuressPasscode.swift`, `HiddenAccountsSession.swift`, `TelegramUI/Sources/TelegramRootController.swift` |
+| P2 | A | A widget configured before its account was hidden kept showing that account's chats. | The widget reads `HiddenAccountsSettings` and drops hidden accounts' items; the widget library links `TelegramUIPreferences`. | `Telegram/WidgetKitWidget/TodayViewController.swift`, `Telegram/BUILD` |
+| P2 | B | Turning Don't Read off restored the server read state of chats read only here, the open one too, which stayed unread until a newer message showed. | After the restore transaction completes, `ghostLocalReadsRestoredNotification` makes an open chat read what it shows again (ordered after the restore, which would otherwise undo it). | `TelegramCore/Sources/State/ManagedSynchronizePeerReadStates.swift`, `ManagedLocalInputActivities.swift`, `TelegramUI/Sources/ChatHistoryListNode.swift` |
+| P2 | C | A signed-out account's saved deleted messages, edits and media copies (secret/view-once included) stayed on the device in plaintext. Legacy unscoped attachment names could match another account's message. | `MessageSavingStore.eraseAccount` runs when an account record goes (main app only, not while the same user is signed in under another record). Legacy names are only matched for channels. Saved copies of a deleted chat are kept: keeping them is the feature. | `TelegramUIPreferences/Sources/MessageSavingStore.swift`, `TelegramCore/Sources/MessageSaving/MessageSavingAttachments.swift`, `SharedAccountContext.swift` |
+| P2 | H | DeepL and Yandex API keys were stored in the unencrypted settings database. | `ForkTranslationAPIKeys` keeps them in the Keychain (after first unlock, this device only); keys from an older build are moved there and cleared from the database on launch. | `TelegramUIPreferences/Sources/ForkTranslationAPIKeys.swift` (new), `TranslateUI/Sources/ForkTranslationBackends.swift`, `SettingsUI/Sources/ForkExtrasController.swift`, `SharedAccountContext.swift` |
+
+Not verified on a device: CallKit Recents behaviour, the widget refresh, and the Keychain migration need a real phone.
+
+The first CI run of iteration 3 (3e27984783) failed in `Tests/ClientAdditions/menu_layout.py`, which compiles the Extras
+entries in a harness that had no `ForkTranslationAPIKeys`; `Tests/ArchiveLock/run.py` compiles `HiddenAccountsSession`
+alone and needed the duress reveal block too. Both harnesses got stubs (4ccfad7804). The IPA was not built in that run.
+
+## Iteration 4 (on `main`, from 3e27984783): the P3 items
+
+Three read-only reviews located and confirmed each item; every patch was re-read in the source before it was applied.
+Pinned by `Tests/Upstream13/audit_iteration4.py` (in `client-regression`): 7 tests, 5 failures + 2 errors on the unfixed
+tree, all pass on the fixed one. All 36 `Tests/*` directories give the same result as on 3e27984783 on this machine.
+CI runs once, for iterations 3 and 4 together.
+
+### Fixed (presumed: source checks pass, not built yet)
+
+| Pri | Area | Defect | Fix | Files |
+|---|---|---|---|---|
+| P3 | C | A saved copy kept the source's extension (`MOV`, `heif`, `apk`...), which the lookup never probed: the copy was never found again. | Extensions are lower-cased, unknown ones saved as `bin`, the probe list is longer, upper-case copies of older builds are probed too. | `TelegramCore/Sources/MessageSaving/MessageSavingAttachments.swift` |
+| P3 | B | Sticker-to-video: a cancel or the timeout during `finishWriting` called `cancelWriting()` on a finishing writer and removed its file. | A `finishing` flag set before `finishWriting`; the cancel handler then leaves cleanup to the completion. | `TelegramUI/Sources/ChatController+ForkStickerMedia.swift` |
+| P3 | B | Banned-GIF conversion of an inline result without content waited out the 60 s timeout. | An `EmptyMediaResource` gives up at once. A GIF that cannot be converted is still sent and shows as failed (dropping it silently was rejected: the user would lose the message without a word). | `TelegramCore/Sources/PendingMessages/ForkBannedGifVideo.swift` |
+| P3 | E | No Call Rating Prompt promised to hide a sheet that Telegram no longer shows (`CallControllerNodeV2` never calls `presentCallRating`). | The setting and its guard stay (they work again if upstream re-wires the sheet); the footer now says what the switch does. | `SettingsUI/Sources/ForkExtrasController.swift` |
+| P3 | D | WebSocket fallback probe slot was a shared flag: any older connection closing or failing freed the current probe's slot or doubled its backoff. | A token per probe; only the connection holding it aborts the probe or charges its failure. | `TelegramCore/Sources/Network/MTWebSocketConnectionInterface.swift`, `Network.swift` |
+| P3 | voice | The Int16 equalizer path (all live playback) hard-clipped boosted peaks. | Soft-limited like the Float and offline paths (unchanged below 0.8 of full scale). | `ForkVoiceDSP/Sources/ForkVoiceDSP.c` |
+| P3 | voice | A recording continued from a draft took the voice changer settings of that moment. | The settings the recording began with are kept in its resume data; older drafts fall back to the current settings. | `TelegramUI/Sources/ForkVoiceChanger.swift`, `ManagedAudioRecorder.swift` |
+
+Not verified on a device: playback with a large equalizer boost, a voice draft continued after a settings change, and
+the WebSocket fallback on a network that blocks it.
