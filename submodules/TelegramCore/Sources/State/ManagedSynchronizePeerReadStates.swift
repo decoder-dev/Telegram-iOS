@@ -83,7 +83,11 @@ private final class SynchronizePeerReadStatesContextImpl {
             // This also handles an exception being enabled while global Don't Read stays on.
             // The helper leaves all still-hidden chats untouched.
             bananaRestoreGhostLocalReads(transaction: transaction, accountPeerId: accountPeerId)
-        }).start()
+        }).start(completed: {
+            // An open chat reads what it shows again (`ChatHistoryListNode`), now that its local read is gone: a read
+            // made before this transaction would have been undone by it.
+            NotificationCenter.default.post(name: ForkGhostModeSettings.ghostLocalReadsRestoredNotification, object: nil, userInfo: ["accountPeerId": accountPeerId.toInt64()])
+        })
     }
 
     private func scheduleRetry(peerId: PeerId, operation: PeerReadStateSynchronizationOperation) {

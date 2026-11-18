@@ -2908,11 +2908,31 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
     
     private func beginReadHistoryManagement() {
         let previousMaxIncomingMessageIndexByNamespace = Atomic<[MessageId.Namespace: MessageIndex]>(value: [:])
-        let readHistory = combineLatest(self.maxVisibleIncomingMessageIndex.get(), self.canReadHistory.get(), self.holdsReadsForSender.get())
+        // Turning Don't Read off gives the chats read only on this device the server's read state back, this one too:
+        // what is on screen has to be read again, though no newer message became visible.
+        let accountPeerId = self.context.account.peerId.toInt64()
+        let ghostLocalReadsRestored: Signal<Int, NoError> = Signal { subscriber in
+            let count = Atomic<Int>(value: 0)
+            subscriber.putNext(0)
+            let observer = NotificationCenter.default.addObserver(forName: ForkGhostModeSettings.ghostLocalReadsRestoredNotification, object: nil, queue: nil, using: { notification in
+                guard (notification.userInfo?["accountPeerId"] as? Int64) == accountPeerId else {
+                    return
+                }
+                subscriber.putNext(count.modify { $0 + 1 })
+            })
+            return ActionDisposable {
+                NotificationCenter.default.removeObserver(observer)
+            }
+        }
+        let lastGhostLocalReadsRestored = Atomic<Int>(value: 0)
+        let readHistory = combineLatest(self.maxVisibleIncomingMessageIndex.get(), self.canReadHistory.get(), self.holdsReadsForSender.get(), ghostLocalReadsRestored)
         
-        self.readHistoryDisposable.set((readHistory |> deliverOnMainQueue).startStrict(next: { [weak self] messageIndex, canRead, holdsReadsForSender in
+        self.readHistoryDisposable.set((readHistory |> deliverOnMainQueue).startStrict(next: { [weak self] messageIndex, canRead, holdsReadsForSender, ghostLocalReadsRestoredCount in
             guard let strongSelf = self else {
                 return
+            }
+            if lastGhostLocalReadsRestored.swap(ghostLocalReadsRestoredCount) != ghostLocalReadsRestoredCount {
+                let _ = previousMaxIncomingMessageIndexByNamespace.swap([:])
             }
             if !canRead || holdsReadsForSender {
                 return

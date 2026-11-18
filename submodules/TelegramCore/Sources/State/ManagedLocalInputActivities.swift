@@ -523,6 +523,9 @@ public enum ForkBlockedPeersFilter {
 /// Mirrors AyuGram's granular Ghost Mode toggles.
 public enum ForkGhostModeSettings {
     public static let didChangeNotification = Notification.Name("ForkGhostModeSettings.didChange")
+    /// Chats read only on this device went back to the server's read state (Don't Read was turned off, or a chat was
+    /// exempted). Posted once that transaction is done; `userInfo["accountPeerId"]` is the account's peer id as Int64.
+    public static let ghostLocalReadsRestoredNotification = Notification.Name("ForkGhostModeSettings.ghostLocalReadsRestored")
     public struct State: Equatable {
         public var suppressOutgoingActivity: Bool = false
         public var suppressOnline: Bool = false
