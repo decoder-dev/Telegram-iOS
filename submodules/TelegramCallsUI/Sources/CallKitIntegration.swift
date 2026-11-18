@@ -9,6 +9,7 @@ import AppBundle
 import AccountContext
 import TelegramAudio
 import TelegramVoip
+import TelegramUIPreferences
 
 private let sharedProviderDelegate: CallKitProviderDelegate? = {
     return CallKitProviderDelegate()
@@ -62,7 +63,16 @@ public final class CallKitIntegration {
     /// call has then not been started at all and the caller has to place it without CallKit.
     func startCall(context: AccountContext, peerId: EnginePeer.Id, phoneNumber: String?, localContactId: String?, isVideo: Bool, displayTitle: String, failed: (() -> Void)? = nil) {
         sharedProviderDelegate?.startCall(context: context, peerId: peerId, phoneNumber: phoneNumber, isVideo: isVideo, displayTitle: displayTitle, failed: failed)
-        self.donateIntent(peerId: peerId, displayTitle: displayTitle, localContactId: localContactId)
+        // A hidden account's calls must not turn up in Siri suggestions.
+        if HiddenAccountsSession.shared.state.owners[context.account.id.int64] == nil {
+            self.donateIntent(accountId: context.account.id.int64, peerId: peerId, displayTitle: displayTitle, localContactId: localContactId)
+        }
+    }
+
+    /// While any account is hidden, no call goes into the Phone app's Recents: an entry there names the other party and
+    /// stays after the account is hidden, and CallKit only has this switch for the whole provider, not per call.
+    public func setKeepsCallsOutOfRecents(_ value: Bool) {
+        sharedProviderDelegate?.setKeepsCallsOutOfRecents(value)
     }
     
     func answerCall(uuid: UUID) {
@@ -90,7 +100,7 @@ public final class CallKitIntegration {
         sharedProviderDelegate?.reportOutgoingCallConnected(uuid: uuid, at: date)
     }
     
-    private func donateIntent(peerId: EnginePeer.Id, displayTitle: String, localContactId: String?) {
+    private func donateIntent(accountId: Int64, peerId: EnginePeer.Id, displayTitle: String, localContactId: String?) {
         let handle = INPersonHandle(value: "tg\(peerId.id._internalGetInt64Value())", type: .unknown)
         let contact = INPerson(personHandle: handle, nameComponents: nil, displayName: displayTitle, image: nil, contactIdentifier: localContactId, customIdentifier: "tg\(peerId.id._internalGetInt64Value())")
     
@@ -98,6 +108,7 @@ public final class CallKitIntegration {
         
         let interaction = INInteraction(intent: intent, response: nil)
         interaction.direction = .outgoing
+        interaction.groupIdentifier = startCallIntentGroupIdentifier(accountId: accountId)
         interaction.donate { _ in
         }
     }
@@ -161,9 +172,21 @@ class CallKitProviderDelegate: NSObject, CXProviderDelegate {
         self.hasActiveCallsValue = hasActiveCallsValue
     }
     
-    private static func providerConfiguration() -> CXProviderConfiguration {
+    private var keepsCallsOutOfRecents = false
+
+    func setKeepsCallsOutOfRecents(_ value: Bool) {
+        if self.keepsCallsOutOfRecents == value {
+            return
+        }
+        self.keepsCallsOutOfRecents = value
+        Logger.shared.log("CallKitIntegration", "calls in Recents: \(!value)")
+        self.provider.configuration = CallKitProviderDelegate.providerConfiguration(includesCallsInRecents: !value)
+    }
+
+    private static func providerConfiguration(includesCallsInRecents: Bool = true) -> CXProviderConfiguration {
         let providerConfiguration = CXProviderConfiguration()
-        
+
+        providerConfiguration.includesCallsInRecents = includesCallsInRecents
         providerConfiguration.supportsVideo = true
         providerConfiguration.maximumCallsPerCallGroup = 1
         providerConfiguration.maximumCallGroups = 1

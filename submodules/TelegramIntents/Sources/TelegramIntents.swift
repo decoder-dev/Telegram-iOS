@@ -225,6 +225,11 @@ public func deleteSendMessageIntents(peerId: EnginePeer.Id) {
     }
 }
 
+/// The account's call donations (`CallKitIntegration` groups them per account).
+public func deleteStartCallIntents(accountId: Int64) {
+    INInteraction.delete(with: startCallIntentGroupIdentifier(accountId: accountId))
+}
+
 public func deleteAllSendMessageIntents() {
     if #available(iOS 10.0, *) {
         INInteraction.deleteAll()

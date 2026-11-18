@@ -95,9 +95,11 @@ private func clearDeliveredNotifications(forAccountId accountId: Int64) {
 }
 
 /// What the account left outside the app before it was hidden: its delivered notifications and the chats it donated to
-/// the share sheet and Siri suggestions (donations stop while it is hidden, see `donateSendMessageIntent`).
+/// the share sheet and Siri suggestions, and its calls (donations stop while it is hidden, see `donateSendMessageIntent`
+/// and `CallKitIntegration.startCall`; call donations made before they were grouped per account cannot be found).
 private func clearHiddenAccountTraces(context: AccountContext) {
     clearDeliveredNotifications(forAccountId: context.account.id.int64)
+    deleteStartCallIntents(accountId: context.account.id.int64)
     let _ = (context.account.postbox.transaction { transaction -> [EnginePeer.Id] in
         var peerIds = transaction.chatListGetAllPeerIds()
         peerIds.append(context.account.peerId)

@@ -208,6 +208,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     
     private let registeredNotificationTokensDisposable = MetaDisposable()
     private let hiddenAccountIdsDisposable = MetaDisposable()
+    private let hiddenAccountCallRecentsDisposable = MetaDisposable()
     private let hiddenAccountLeaveDisposable = MetaDisposable()
     private let hiddenAccountSwitchDisposable = MetaDisposable()
     private let hiddenAccountArchiveUnlockDisposable = MetaDisposable()
@@ -1192,6 +1193,16 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         })
         
         if applicationBindings.isMainApp {
+            // The Phone app's Recents outlive the app session too. The stored settings, not the owners in force: they are
+            // read before any account loads, so a call reported on a cold start (VoIP push) already sees them.
+            self.hiddenAccountCallRecentsDisposable.set((hiddenAccountsSettings(accountManager: accountManager)
+            |> map { settings -> Bool in
+                return !settings.owners.isEmpty
+            }
+            |> distinctUntilChanged
+            |> deliverOnMainQueue).startStrict(next: { hasHiddenAccounts in
+                CallKitIntegration.shared?.setKeepsCallsOutOfRecents(hasHiddenAccounts)
+            }))
             // Widgets and Spotlight outlive the app session, so a hidden account never reaches them.
             let visibleAccountContexts = combineLatest(self.activeAccountContexts, hiddenAccountsSettings(accountManager: accountManager))
             |> map { activeAccounts, hiddenSettings -> [AccountContext] in
@@ -1453,6 +1464,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         assertionFailure("SharedAccountContextImpl is not supposed to be deallocated")
         self.registeredNotificationTokensDisposable.dispose()
         self.hiddenAccountIdsDisposable.dispose()
+        self.hiddenAccountCallRecentsDisposable.dispose()
         self.hiddenAccountLeaveDisposable.dispose()
         self.hiddenAccountSwitchDisposable.dispose()
         self.hiddenAccountArchiveUnlockDisposable.dispose()

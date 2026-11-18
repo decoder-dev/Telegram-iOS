@@ -87,7 +87,7 @@ class DuressPasscode(unittest.TestCase):
         self.assertIn('public func blockReveal()', hidden)
         self.assertIn('public func allowReveal()', hidden)
         gesture = read(ROOT_CONTROLLER)
-        self.assertIn('if HiddenAccountsSession.shared.state.revealBlocked {\n                return\n            }', gesture)
+        self.assertIn('if HiddenAccountsSession.shared.isRevealBlocked {\n                return\n            }', gesture)
 
     def test_duress_passcode_goes_with_the_passcode(self):
         source = read(APP_LOCK)

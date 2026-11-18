@@ -15,6 +15,7 @@ import SwiftSignalKit
 import TelegramCore
 import OpenSSLEncryptionProvider
 import WidgetItemsUtils
+import TelegramUIPreferences
 
 import GeneratedSources
 
@@ -137,9 +138,9 @@ private func getCommonTimeline(friends: [Friend]?, in context: TimelineProviderC
         }
     }
     
-    var friendsByAccount: [Signal<[ParsedPeer], NoError>] = []
+    var friendsByAccount: [(Int64, Signal<[ParsedPeer], NoError>)] = []
     for (accountId, items) in itemsByAccount {
-        friendsByAccount.append(accountTransaction(rootPath: rootPath, id: AccountRecordId(rawValue: accountId), encryptionParameters: encryptionParameters, isReadOnly: true, useCopy: false, transaction: { postbox, transaction -> [ParsedPeer] in
+        friendsByAccount.append((accountId, accountTransaction(rootPath: rootPath, id: AccountRecordId(rawValue: accountId), encryptionParameters: encryptionParameters, isReadOnly: true, useCopy: false, transaction: { postbox, transaction -> [ParsedPeer] in
             guard let state = transaction.getState() as? AuthorizedAccountState else {
                 return []
             }
@@ -203,10 +204,24 @@ private func getCommonTimeline(friends: [Friend]?, in context: TimelineProviderC
         })
         |> `catch` { _ -> Signal<[ParsedPeer], NoError> in
             return .single([])
-        })
+        }))
     }
     
-    let _ = combineLatest(friendsByAccount).start(next: { allPeers in
+    // A widget configured before its account was hidden still names that account's chats: the chat picker leaves hidden
+    // accounts out (`WidgetIntentHandler`), but the configuration stays. Their chats are left out here too.
+    let accountManager: AccountManager<TelegramAccountManagerTypes> = setupAccountManager(basePath: rootPath + "/accounts-metadata", isTemporary: true, isReadOnly: false, useCaches: false, removeDatabaseOnError: false)
+    let hiddenAccounts = accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.hiddenAccountsSettings])
+    |> take(1)
+    |> map { sharedData -> HiddenAccountsSettings in
+        return sharedData.entries[ApplicationSpecificSharedDataKeys.hiddenAccountsSettings]?.get(HiddenAccountsSettings.self) ?? .default
+    }
+    
+    let _ = (hiddenAccounts
+    |> mapToSignal { hiddenAccounts -> Signal<[[ParsedPeer]], NoError> in
+        return combineLatest(friendsByAccount.filter { !hiddenAccounts.isHidden($0.0) }.map { $0.1 })
+    }).start(next: { allPeers in
+        // The account manager has to stay open until its read is done.
+        let _ = accountManager
         var orderedPeers: [ParsedPeer] = []
         
         outer: for (accountId, peerId) in itemOrder {

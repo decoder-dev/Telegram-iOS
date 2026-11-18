@@ -83,6 +83,11 @@ public struct HiddenAccountsSettings: Codable, Equatable {
     }
 }
 
+/// The group of an account's call donations to Siri (`INStartCallIntent`), so hiding the account can delete them.
+public func startCallIntentGroupIdentifier(accountId: Int64) -> String {
+    return "startCall_\(accountId)"
+}
+
 /// In-memory state of hidden accounts for this process.
 ///
 /// A hidden account is left out of the account list, the account switcher and every other account's badges until its
@@ -191,6 +196,9 @@ public final class HiddenAccountsSession {
     /// Settings × 10 on `ownerAccountId`. Returns false when it hides nothing, so there was nothing to show.
     @discardableResult
     public func reveal(ownerAccountId: Int64) -> Bool {
+        if self.isRevealBlocked {
+            return false
+        }
         var revealed = false
         self.update { state in
             if !state.revealBlocked && state.owners.values.contains(ownerAccountId) {
@@ -225,6 +233,12 @@ public final class HiddenAccountsSession {
         }
     }
 
+    /// Settings × 10 reveals nothing: the duress passcode opened the app, in this process or (stored with the duress
+    /// passcode) before a relaunch, and the real passcode has not been entered since.
+    public var isRevealBlocked: Bool {
+        return self.state.revealBlocked || DuressPasscodeKeychain.isRevealBlocked()
+    }
+
     /// The duress passcode opened the app: hide everything and keep it hidden until `allowReveal()`.
     public func blockReveal() {
         self.update { state in
@@ -232,6 +246,7 @@ public final class HiddenAccountsSession {
             state.unlockedAccountIds = []
             state.revealBlocked = true
         }
+        DuressPasscodeKeychain.setRevealBlocked(true)
     }
 
     /// The real passcode opened the app.
@@ -239,5 +254,6 @@ public final class HiddenAccountsSession {
         self.update { state in
             state.revealBlocked = false
         }
+        DuressPasscodeKeychain.setRevealBlocked(false)
     }
 }

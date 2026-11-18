@@ -1324,6 +1324,7 @@ swift_library(
         "//submodules/TelegramCore:TelegramCore",
         "//submodules/PasscodeCore",
         "//submodules/OpenSSLEncryptionProvider:OpenSSLEncryptionProvider",
+        "//submodules/TelegramUIPreferences:TelegramUIPreferences",
         "//Telegram:GeneratedSources",
     ],
 )

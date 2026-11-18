@@ -22,6 +22,8 @@ public enum DuressPasscodeKeychain {
     private struct Record: Codable {
         var kind: PostboxAccessChallengeData.Kind
         var verifier: String
+        /// Set when the duress passcode opened the app, cleared by the real passcode (`HiddenAccountsSession`).
+        var revealBlocked: Bool?
     }
 
     private static var query: [String: Any] {
@@ -69,6 +71,24 @@ public enum DuressPasscodeKeychain {
             return false
         }
         return localSecretMatchesVerifier(self.normalized(code, kind: kind), verifier: record.verifier)
+    }
+
+    /// The duress passcode opened the app and the real one has not been entered since. Kept here rather than in memory
+    /// only: a relaunch inside the auto-lock window opens the app without a passcode, and must not let Settings × 10
+    /// reveal anything.
+    public static func isRevealBlocked() -> Bool {
+        return self.load()?.revealBlocked ?? false
+    }
+
+    public static func setRevealBlocked(_ value: Bool) {
+        guard var record = self.load(), (record.revealBlocked ?? false) != value else {
+            return
+        }
+        record.revealBlocked = value ? true : nil
+        guard let data = try? JSONEncoder().encode(record) else {
+            return
+        }
+        let _ = SecItemUpdate(self.query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
     }
 
     @discardableResult
