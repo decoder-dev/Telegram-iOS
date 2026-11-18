@@ -706,12 +706,27 @@ public enum MessageSavingStore {
         }
     }
 
+    /// The account signed out of this device: its saved deleted messages, edits and their media copies go with it. They
+    /// were kept in plaintext outside the account folder (secret and view-once media included), and nothing could
+    /// show them any more.
+    public static func eraseAccount(accountPeerId: Int64) {
+        removeRecords { record in
+            record.accountPeerId == accountPeerId
+        }
+    }
+
     private static func removeDeleted(where predicate: (MessageSavingRecord) -> Bool) {
+        removeRecords { record in
+            record.kind == .deleted && predicate(record)
+        }
+    }
+
+    private static func removeRecords(where predicate: (MessageSavingRecord) -> Bool) {
         loadIfNeeded()
         lock.lock()
         var removedPaths: [String] = []
         memory.removeAll { record in
-            let matches = record.kind == .deleted && predicate(record)
+            let matches = predicate(record)
             if matches {
                 if let path = record.mediaPath {
                     removedPaths.append(path)

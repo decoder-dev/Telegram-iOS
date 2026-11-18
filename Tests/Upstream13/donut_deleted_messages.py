@@ -225,7 +225,7 @@ class DeletedMessagesPage(unittest.TestCase):
     def test_clear_all_keeps_edit_history(self):
         store = read(STORE)
         remove = function(store, 'private static func removeDeleted(where predicate:')
-        self.assertIn('let matches = record.kind == .deleted && predicate(record)', remove)
+        self.assertIn('removeRecords { record in\n            record.kind == .deleted && predicate(record)\n        }', remove)
 
 
 if __name__ == '__main__':

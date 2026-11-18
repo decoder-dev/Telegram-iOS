@@ -82,6 +82,12 @@ enum MessageSavingAttachments {
         if let path = firstFile(withBase: baseName(peerId: peerId, namespace: namespace, messageId: messageId, mediaBox: mediaBox), in: directory) {
             return path
         }
+        // A legacy name has no account in it. Message ids of private chats and basic groups are per account, so there
+        // the same name can be another account's message (with another account's media): only a channel's ids are
+        // the same for every account.
+        guard PeerId(peerId).namespace == Namespaces.Peer.CloudChannel else {
+            return nil
+        }
         return firstFile(withBase: legacyBaseName(peerId: peerId, namespace: namespace, messageId: messageId), in: directory)
     }
 
