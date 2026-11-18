@@ -1104,7 +1104,8 @@ void ForkAudioEqualizerProcessInt16(ForkAudioEqualizer *equalizer, int16_t *samp
     for (size_t i = 0; i < frames; i++) {
         int16_t *frame = samples + i * channels;
         for (size_t c = 0; c < processedChannels; c++) {
-            frame[c] = fv_float_to_int16(fv_eq_run(equalizer, c, (float)frame[c] * scale));
+            // Limited like the Float path: at a large boost a plain clamp to Int16 squared off the peaks.
+            frame[c] = fv_float_to_int16(fv_soft_limit(fv_eq_run(equalizer, c, (float)frame[c] * scale)));
         }
     }
 }

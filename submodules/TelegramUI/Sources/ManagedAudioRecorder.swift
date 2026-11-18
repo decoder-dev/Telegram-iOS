@@ -181,6 +181,9 @@ final class ManagedAudioRecorderContext {
     /// Fork (Ghostgram): the voice changer, fixed for the whole recording; it runs before the waveform and the encoder,
     /// so the real voice is never stored (`ForkVoiceChanger`).
     private let voiceChangerEffect: ForkVoiceRecorderEffect?
+    /// The voice changer settings the recording began with, kept in its resume data: a recording continued from a draft
+    /// sounds the same even if the settings changed in between.
+    private let voiceChangerState: ForkVoiceChanger.State
     
     private var hasAudioSession = false
     private var audioSessionDisposable: Disposable?
@@ -221,7 +224,9 @@ final class ManagedAudioRecorderContext {
         self.queue = queue
         self.mediaManager = mediaManager
         self.oggWriter = TGOggOpusWriter()
-        self.voiceChangerEffect = ForkVoiceChanger.makeRecorderEffect()
+        let voiceChangerState = resumeData.flatMap { ForkVoiceChanger.recordedState(resumeData: $0.resumeData) } ?? ForkVoiceChanger.current
+        self.voiceChangerState = voiceChangerState
+        self.voiceChangerEffect = ForkVoiceChanger.makeRecorderEffect(state: voiceChangerState)
         
         if let resumeData {
             self.dataItem = TGDataItem(data: resumeData.compressedData)
@@ -567,7 +572,8 @@ final class ManagedAudioRecorderContext {
         self.audioSessionDisposable = nil
         audioSessionDisposable?.dispose()
         
-        if let stateDict = state as? [String: Any] {
+        if var stateDict = state as? [String: Any] {
+            stateDict[ForkVoiceChanger.resumeDataKey] = ForkVoiceChanger.resumeDataValue(self.voiceChangerState)
             do {
                 let jsonData = try JSONSerialization.data(withJSONObject: stateDict, options: [])
                 self.resumeData = jsonData

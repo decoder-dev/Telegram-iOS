@@ -105,9 +105,35 @@ public enum ForkVoiceChanger {
         return ForkVoiceParamsIsIdentity(&p) ? nil : p
     }
 
-    /// The effect for a recording that starts now, or nil when the voice stays as it is.
-    static func makeRecorderEffect() -> ForkVoiceRecorderEffect? {
-        guard let params = self.params(for: self.current) else {
+    /// The key of the voice changer state in a paused recording's resume data; TGOggOpusWriter reads only its own keys.
+    static let resumeDataKey = "forkVoiceChanger"
+
+    /// The state a recording began with, from its resume data; nil when the resume data has none (a draft saved by an
+    /// older build).
+    static func recordedState(resumeData: Data) -> State? {
+        guard let stateDict = (try? JSONSerialization.jsonObject(with: resumeData, options: [])) as? [String: Any], let dict = stateDict[self.resumeDataKey] as? [String: Any] else {
+            return nil
+        }
+        guard let enabled = dict["enabled"] as? NSNumber, let preset = dict["preset"] as? NSNumber, let customPitch = dict["customPitch"] as? NSNumber, let customReverb = dict["customReverb"] as? NSNumber, let customEcho = dict["customEcho"] as? NSNumber else {
+            return nil
+        }
+        return State(enabled: enabled.boolValue, preset: preset.int32Value, customPitch: customPitch.int32Value, customReverb: customReverb.int32Value, customEcho: customEcho.int32Value)
+    }
+
+    /// `state` as a JSON value for the resume data.
+    static func resumeDataValue(_ state: State) -> [String: Any] {
+        return [
+            "enabled": NSNumber(value: state.enabled),
+            "preset": NSNumber(value: state.preset),
+            "customPitch": NSNumber(value: state.customPitch),
+            "customReverb": NSNumber(value: state.customReverb),
+            "customEcho": NSNumber(value: state.customEcho)
+        ]
+    }
+
+    /// The effect for a recording with `state`, or nil when the voice stays as it is.
+    static func makeRecorderEffect(state: State) -> ForkVoiceRecorderEffect? {
+        guard let params = self.params(for: state) else {
             return nil
         }
         return ForkVoiceRecorderEffect(params: params, sampleRate: 48000)

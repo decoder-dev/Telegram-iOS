@@ -102,7 +102,7 @@ class VoiceChanger(unittest.TestCase):
         effect = source.index('self.voiceChangerEffect?.process(currentEncoderPacket.assumingMemoryBound(to: Int16.self), count: currentEncoderPacketSize / 2)')
         self.assertLess(effect, source.index('self.processWaveformPreview(samples: currentEncoderPacket'))
         self.assertLess(effect, source.index('self.oggWriter.writeFrame(currentEncoderPacket'))
-        self.assertIn('self.voiceChangerEffect = ForkVoiceChanger.makeRecorderEffect()', source)
+        self.assertIn('self.voiceChangerEffect = ForkVoiceChanger.makeRecorderEffect(state: voiceChangerState)', source)
 
     def test_a_failed_chain_writes_silence_not_the_real_voice(self):
         source = read(CHANGER)
