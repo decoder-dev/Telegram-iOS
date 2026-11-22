@@ -170,7 +170,7 @@ final class StoryItemsTable: Table {
                 
             var isCloseFriends = false
             var isLiveStream = false
-            let readBuffer = ReadBuffer(data: value.makeData())
+            let readBuffer = value
             var magic: UInt32 = 0
             readBuffer.read(&magic, offset: 0, length: 4)
             if magic == 0xabcd1234 {
@@ -224,7 +224,7 @@ final class StoryItemsTable: Table {
             var isCloseFriends = false
             var isLiveStream = false
             
-            let readBuffer = ReadBuffer(data: value.makeData())
+            let readBuffer = value
             var magic: UInt32 = 0
             readBuffer.read(&magic, offset: 0, length: 4)
             if magic == 0xabcd1234 {
@@ -278,110 +278,57 @@ final class StoryItemsTable: Table {
         return result
     }
     
+    private func expirationTimestamp(in value: ReadBuffer) -> Int32? {
+        guard value.length - value.offset >= 8 else {
+            return nil
+        }
+
+        var magic: UInt32 = 0
+        value.read(&magic, offset: 0, length: 4)
+        guard magic == 0xabcd1234 || magic == 0xabcd1235 else {
+            return nil
+        }
+
+        var length: Int32 = 0
+        value.read(&length, offset: 0, length: 4)
+        guard length > 0, value.length - value.offset >= Int(length) + 4 else {
+            return nil
+        }
+
+        value.skip(Int(length))
+        var timestamp: Int32 = 0
+        value.read(&timestamp, offset: 0, length: 4)
+        return timestamp == 0 ? nil : timestamp
+    }
+
     func getExpiredIds(belowTimestamp: Int32) -> [StoryId] {
         var ids: [StoryId] = []
-        
         self.valueBox.scan(self.table, values: { key, value in
-            let peerId = PeerId(key.getInt64(0))
-            let id = key.getInt32(8)
-            var expirationTimestamp: Int32?
-            
-            let readBuffer = ReadBuffer(data: value.makeData())
-            var magic: UInt32 = 0
-            readBuffer.read(&magic, offset: 0, length: 4)
-            if magic == 0xabcd1234 {
-                var length: Int32 = 0
-                readBuffer.read(&length, offset: 0, length: 4)
-                if length > 0 && readBuffer.offset + Int(length) <= readBuffer.length {
-                    readBuffer.skip(Int(length))
-                    if readBuffer.offset + 4 <= readBuffer.length {
-                        var expirationTimestampValue: Int32 = 0
-                        readBuffer.read(&expirationTimestampValue, offset: 0, length: 4)
-                        if expirationTimestampValue != 0 {
-                            expirationTimestamp = expirationTimestampValue
-                        }
-                    }
-                }
-            } else if magic == 0xabcd1235 {
-                var length: Int32 = 0
-                readBuffer.read(&length, offset: 0, length: 4)
-                if length > 0 && readBuffer.offset + Int(length) <= readBuffer.length {
-                    readBuffer.skip(Int(length))
-                    if readBuffer.offset + 4 <= readBuffer.length {
-                        var expirationTimestampValue: Int32 = 0
-                        readBuffer.read(&expirationTimestampValue, offset: 0, length: 4)
-                        if expirationTimestampValue != 0 {
-                            expirationTimestamp = expirationTimestampValue
-                        }
-                    }
-                }
+            if let timestamp = self.expirationTimestamp(in: value), timestamp <= belowTimestamp {
+                ids.append(StoryId(peerId: PeerId(key.getInt64(0)), id: key.getInt32(8)))
             }
-            
-            if let expirationTimestamp = expirationTimestamp {
-                if expirationTimestamp <= belowTimestamp {
-                    ids.append(StoryId(peerId: peerId, id: id))
-                }
-            }
-            
             return true
         })
-        
         return ids
     }
-    
-    func getMinExpirationTimestamp() -> (StoryId, Int32)? {
-        var minValue: (StoryId, Int32)?
-        self.valueBox.scan(self.table, values: { key, value in
-            let peerId = PeerId(key.getInt64(0))
-            let id = key.getInt32(8)
-            var expirationTimestamp: Int32?
-            
-            let readBuffer = ReadBuffer(data: value.makeData())
-            var magic: UInt32 = 0
-            readBuffer.read(&magic, offset: 0, length: 4)
-            if magic == 0xabcd1234 {
-                var length: Int32 = 0
-                readBuffer.read(&length, offset: 0, length: 4)
-                if length > 0 && readBuffer.offset + Int(length) <= readBuffer.length {
-                    readBuffer.skip(Int(length))
-                    if readBuffer.offset + 4 <= readBuffer.length {
-                        var expirationTimestampValue: Int32 = 0
-                        readBuffer.read(&expirationTimestampValue, offset: 0, length: 4)
-                        if expirationTimestampValue != 0 {
-                            expirationTimestamp = expirationTimestampValue
-                        }
-                    }
-                }
-            } else if magic == 0xabcd1235 {
-                var length: Int32 = 0
-                readBuffer.read(&length, offset: 0, length: 4)
-                if length > 0 && readBuffer.offset + Int(length) <= readBuffer.length {
-                    readBuffer.skip(Int(length))
-                    if readBuffer.offset + 4 <= readBuffer.length {
-                        var expirationTimestampValue: Int32 = 0
-                        readBuffer.read(&expirationTimestampValue, offset: 0, length: 4)
-                        if expirationTimestampValue != 0 {
-                            expirationTimestamp = expirationTimestampValue
-                        }
-                    }
-                }
+
+    func getMinExpirationTimestamp(peerId: PeerId? = nil) -> (StoryId, Int32)? {
+        var minimum: (StoryId, Int32)?
+        let collect: (ValueBoxKey, ReadBuffer) -> Bool = { key, value in
+            if let timestamp = self.expirationTimestamp(in: value),
+               minimum.map({ timestamp < $0.1 }) ?? true {
+                minimum = (StoryId(peerId: PeerId(key.getInt64(0)), id: key.getInt32(8)), timestamp)
             }
-            
-            if let expirationTimestamp = expirationTimestamp {
-                if let (_, currentTimestamp) = minValue {
-                    if expirationTimestamp < currentTimestamp {
-                        minValue = (StoryId(peerId: peerId, id: id), expirationTimestamp)
-                    }
-                } else {
-                    minValue = (StoryId(peerId: peerId, id: id), expirationTimestamp)
-                }
-            }
-            
             return true
-        })
-        return minValue
+        }
+        if let peerId {
+            self.valueBox.range(self.table, start: self.lowerBound(peerId: peerId), end: self.upperBound(peerId: peerId), values: collect, limit: 0)
+        } else {
+            self.valueBox.scan(self.table, values: collect)
+        }
+        return minimum
     }
-    
+
     public func replace(peerId: PeerId, entries: [StoryItemsTableEntry], topItemTable: StoryTopItemsTable, events: inout [Event], topItemEvents: inout [StoryTopItemsTable.Event]) {
         var previousKeys: [ValueBoxKey] = []
         self.valueBox.range(self.table, start: self.lowerBound(peerId: peerId), end: self.upperBound(peerId: peerId), keys: { key in

@@ -923,17 +923,7 @@ private final class ChatListViewSpaceState {
             }
         }
         
-        var cachedPeerDataUpdated = false
-        if !transaction.currentUpdatedCachedPeerData.isEmpty {
-            let _ = self.orderedEntries.mutableScan { entry in
-                if transaction.currentUpdatedCachedPeerData[entry.index.messageIndex.id.peerId] != nil {
-                    cachedPeerDataUpdated = true
-                }
-                return nil
-            }
-        }
-        
-        if !transaction.currentUpdatedMessageTagSummaries.isEmpty || !transaction.currentUpdatedMessageActionsSummaries.isEmpty || !transaction.updatedPeerThreadsSummaries.isEmpty || cachedPeerDataUpdated || !transaction.currentStoryTopItemEvents.isEmpty || !transaction.storyPeerStatesEvents.isEmpty || !transaction.currentUpdatedCachedPeerData.isEmpty {
+        if !transaction.currentUpdatedMessageTagSummaries.isEmpty || !transaction.currentUpdatedMessageActionsSummaries.isEmpty || !transaction.updatedPeerThreadsSummaries.isEmpty || !transaction.currentStoryTopItemEvents.isEmpty || !transaction.storyPeerStatesEvents.isEmpty || !transaction.currentUpdatedCachedPeerData.isEmpty {
             if self.orderedEntries.mutableScan({ entry in
                 switch entry {
                 case let .MessageEntry(entryData):
