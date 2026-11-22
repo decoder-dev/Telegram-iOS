@@ -22,6 +22,26 @@ enum UploadPartError {
     case invalidMedia
 }
 
+private func confirmedUploadPart(_ request: Signal<Api.Bool, MTRpcError>) -> Signal<Void, UploadPartError> {
+    return request
+    |> mapToSignal { result -> Signal<Api.Bool, MTRpcError> in
+        if case .boolFalse = result {
+            // Retry the same file id and part index before the file can be sent.
+            return request
+        }
+        return .single(result)
+    }
+    |> mapError { error -> UploadPartError in
+        return error.errorCode == 400 ? .invalidMedia : .generic
+    }
+    |> mapToSignal { result -> Signal<Void, UploadPartError> in
+        guard case .boolTrue = result else {
+            return .fail(.generic)
+        }
+        return .complete()
+    }
+}
+
 private func wrapMethodBody(_ body: (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.Bool>), useCompression: Bool) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.Bool>) {
     if useCompression {
         if let compressed = MTGzip.compress(body.1.makeData()) {
@@ -105,21 +125,11 @@ class Download: NSObject {
             saveFilePart = Api.functions.upload.saveFilePart(fileId: fileId, filePart: Int32(index), bytes: Buffer(data: data))
         }
         
-        return multiplexedManager.request(to: .main(datacenterId), consumerId: consumerId, resourceId: nil, data: wrapMethodBody(saveFilePart, useCompression: useCompression), tag: tag, continueInBackground: true, onFloodWaitError: onFloodWaitError, expectedResponseSize: nil)
-        |> mapError { error -> UploadPartError in
-            if error.errorCode == 400 {
-                return .invalidMedia
-            } else {
-               return .generic
-            }
-        }
-        |> mapToSignal { _ -> Signal<Void, UploadPartError> in
-            return .complete()
-        }
+        return confirmedUploadPart(multiplexedManager.request(to: .main(datacenterId), consumerId: consumerId, resourceId: nil, data: wrapMethodBody(saveFilePart, useCompression: useCompression), tag: tag, continueInBackground: true, onFloodWaitError: onFloodWaitError, expectedResponseSize: nil))
     }
     
     func uploadPart(fileId: Int64, index: Int, data: Data, asBigPart: Bool, bigTotalParts: Int? = nil, useCompression: Bool = false, onFloodWaitError: ((String) -> Void)? = nil) -> Signal<Void, UploadPartError> {
-        return Signal<Void, MTRpcError> { subscriber in
+        let upload = Signal<Api.Bool, MTRpcError> { subscriber in
             var saveFilePart: (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.Bool>)
             if asBigPart {
                 let totalParts: Int32
@@ -152,8 +162,13 @@ class Download: NSObject {
                 progress: nil,
                 completed: { result in
                     switch result {
-                    case .success:
-                        subscriber.putCompletion()
+                    case let .success(response):
+                        if let result = (response.result as? BoxedMessage)?.body as? Api.Bool {
+                            subscriber.putNext(result)
+                            subscriber.putCompletion()
+                        } else {
+                            subscriber.putError(MTRpcError(errorCode: 500, errorDescription: "TL_VERIFICATION_ERROR"))
+                        }
                     case let .failure(failure):
                         subscriber.putError(failure.error)
                     }
@@ -161,13 +176,8 @@ class Download: NSObject {
             )
             
             return self.addRequest(request)
-        } |> `catch` { value -> Signal<Void, UploadPartError> in
-            if value.errorCode == 400 {
-                return .fail(.invalidMedia)
-            } else {
-               return .fail(.generic)
-            }
         }
+        return confirmedUploadPart(upload)
     }
     
     func webFilePart(location: Api.InputWebFileLocation, offset: Int, length: Int) -> Signal<Data, NoError> {

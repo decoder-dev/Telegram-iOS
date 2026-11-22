@@ -1107,22 +1107,14 @@ public final class PendingMessageManager {
         messageContext.uploadDisposable.set((uploadSignal
         |> deliverOn(queue)
         |> `catch` { [weak self] _ -> Signal<PendingMessageUploadedContentResult, NoError> in
-            if let strongSelf = self {
-                let modify = strongSelf.postbox.transaction { transaction -> Void in
-                    transaction.updateMessage(id, update: { currentMessage in
-                        var storeForwardInfo: StoreMessageForwardInfo?
-                        if let forwardInfo = currentMessage.forwardInfo {
-                            storeForwardInfo = StoreMessageForwardInfo(authorId: forwardInfo.author?.id, sourceId: forwardInfo.source?.id, sourceMessageId: forwardInfo.sourceMessageId, date: forwardInfo.date, authorSignature: forwardInfo.authorSignature, psaType: forwardInfo.psaType, flags: forwardInfo.flags)
-                        }
-                        return .update(StoreMessage(id: id, customStableId: nil, globallyUniqueId: currentMessage.globallyUniqueId, groupingKey: currentMessage.groupingKey, threadId: currentMessage.threadId, timestamp: currentMessage.timestamp, flags: [.Failed], tags: currentMessage.tags, globalTags: currentMessage.globalTags, localTags: currentMessage.localTags, forwardInfo: storeForwardInfo, authorId: currentMessage.author?.id, text: currentMessage.text, attributes: currentMessage.attributes, media: currentMessage.media))
-                    })
-                }
-                return modify
-                |> mapToSignal { _ in
-                    return .complete()
-                }
+            guard let self else {
+                return .complete()
             }
-            return .complete()
+            // Removing the failed message from the pending set lets the peer's next upload start.
+            return failMessages(postbox: self.postbox, ids: [id])
+            |> mapToSignal { _ in
+                return .complete()
+            }
         }
         |> deliverOn(queue)).start(next: { [weak self] next in
             if let strongSelf = self {
@@ -1141,10 +1133,10 @@ public final class PendingMessageManager {
                     case let .content(content):
                         if let current = strongSelf.messageContexts[id] {
                             strongSelf.beginSendingMessage(messageContext: current, messageId: id, groupId: groupId, content: content)
-                            strongSelf.updateWaitingUploads(peerId: id.peerId)
                             if let groupId = groupId {
                                 strongSelf.beginSendingGroupIfPossible(groupId: groupId)
                             }
+                            strongSelf.updateWaitingUploads(peerId: id.peerId)
                         }
                 }
             }
@@ -1161,54 +1153,13 @@ public final class PendingMessageManager {
         assert(self.queue.isCurrent())
         
         let messageIdsForPeer: [MessageId] = self.messageContexts.keys.filter({ $0.peerId == peerId }).sorted()
-        loop: for contextId in messageIdsForPeer {
+        for contextId in messageIdsForPeer {
             let context = self.messageContexts[contextId]!
             if case let .waitingForUploadToStart(groupId, uploadSignal) = context.state {
                 if self.canBeginUploadingMessage(id: contextId, type: context.contentType ?? .media), !context.postponeSending {
-                    context.state = .uploading(groupId: groupId)
-                    let status = PendingMessageStatus(isRunning: true, progress: PendingMessageStatus.Progress(progress: 0.0))
-                    context.status = status
-                    for subscriber in context.statusSubscribers.copyItems() {
-                        subscriber(context.status, context.error)
-                    }
-                    
-                    let activityCategory: PeerActivitySpace.Category
-                    if let threadId = context.threadId {
-                        activityCategory = .thread(threadId)
-                    } else {
-                        activityCategory = .global
-                    }
-                    
-                    self.addContextActivityIfNeeded(context, peerId: PeerActivitySpace(peerId: peerId, category: activityCategory))
-                    self.updatePendingMediaUploads()
-                    context.uploadDisposable.set((uploadSignal
-                    |> deliverOn(self.queue)).start(next: { [weak self] next in
-                        if let strongSelf = self {
-                            assert(strongSelf.queue.isCurrent())
-                            
-                            switch next {
-                                case let .progress(progress):
-                                    if let current = strongSelf.messageContexts[contextId] {
-                                        let status = PendingMessageStatus(isRunning: true, progress: PendingMessageStatus.Progress(progress))
-                                        current.status = status
-                                        for subscriber in current.statusSubscribers.copyItems() {
-                                            subscriber(context.status, context.error)
-                                        }
-                                        strongSelf.updatePendingMediaUploads()
-                                    }
-                                case let .content(content):
-                                    if let current = strongSelf.messageContexts[contextId] {
-                                        strongSelf.beginSendingMessage(messageContext: current, messageId: contextId, groupId: groupId, content: content)
-                                        if let groupId = groupId {
-                                            strongSelf.beginSendingGroupIfPossible(groupId: groupId)
-                                        }
-                                        strongSelf.updateWaitingUploads(peerId: peerId)
-                                    }
-                            }
-                        }
-                    }))
+                    self.beginUploadingMessage(messageContext: context, id: contextId, threadId: context.threadId, groupId: groupId, uploadSignal: uploadSignal)
                 }
-                break loop
+                break
             }
         }
     }
