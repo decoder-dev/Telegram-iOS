@@ -186,7 +186,7 @@ func chatHistoryViewForLocation(
                             lastLoggedMaxReadIndex = view.maxReadIndex
                             Logger.shared.log("ChatUnreadPosition", "update-after-initial peer=\(peerDebugId()) update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
                         }
-                        return .HistoryView(view: view, type: .Generic(type: updateType), scrollPosition: nil, flashIndicators: false, originalScrollPosition: nil, initialData: combinedInitialData, id: location.id)
+                        return .HistoryView(view: view, type: .Generic(type: updateType), scrollPosition: nil, flashIndicators: false, originalScrollPosition: lockedInitialScrollPosition, initialData: combinedInitialData, id: location.id)
                     } else {
                         if view.isLoading || (view.entries.isEmpty && (view.holeEarlier || view.holeLater)) {
                             Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=history update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")

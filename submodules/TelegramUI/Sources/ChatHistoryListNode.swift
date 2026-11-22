@@ -2232,22 +2232,23 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         // Coalesce blocked-list page loads: switchToLatest cancels prior delayed emissions so a
         // 200-peer fetch does not rebuild every open history 20 times.
         //
-        // Revision 0 is the promise's seed — it means no blocked-list update has happened in this
-        // process yet, so there is nothing to coalesce. It must not be delayed: `combineLatest`
-        // holds its first output until *both* inputs have produced one, so delaying the seed puts
-        // the full 0.25s in front of the first history transition of every chat that is opened.
-        let historyViewUpdateForBlocked = historyViewUpdate
-        historyViewUpdate = combineLatest(
-            historyViewUpdateForBlocked,
-            ForkBlockedPeersFilter.updates
-            |> map { revision -> Signal<UInt64, NoError> in
-                if revision == 0 {
+        // Use the current snapshot immediately for each history subscription. Waiting for it
+        // can let a subsequent history update replace the initial scroll before the list sees it.
+        let blockedPeersUpdates = deferred {
+            let isFirstRevision = Atomic(value: true)
+            return ForkBlockedPeersFilter.updates
+            |> mapToSignal { revision -> Signal<UInt64, NoError> in
+                if isFirstRevision.swap(false) {
                     return .single(revision)
                 }
                 return .single(revision)
                 |> delay(0.25, queue: Queue.mainQueue())
             }
-            |> switchToLatest
+        }
+        let historyViewUpdateForBlocked = historyViewUpdate
+        historyViewUpdate = combineLatest(
+            historyViewUpdateForBlocked,
+            blockedPeersUpdates
         )
         |> map { update, _ -> (ChatHistoryViewUpdate, Int, ChatHistoryLocationInput?, ClosedRange<Int32>?, Set<MessageId>) in
             return update
@@ -2613,8 +2614,14 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                     assert(update.1 >= previousVersion)
                 }
                                 
+                var transitionType = type
                 if scrollPosition == nil, let originalScrollPosition = originalScrollPosition {
                     switch originalScrollPosition {
+                    case .unread where previous?.id != id:
+                        // Other inputs can still hold back the first transition until a newer
+                        // view arrives. Apply the initial unread position once for this location.
+                        updatedScrollPosition = originalScrollPosition
+                        transitionType = .Initial(fadeIn: false)
                     case let .index(subject, position, _, _, highlight, displayLink, setupReply):
                         if case .upperBound = subject.index {
                             if let previous = previous, previous.filteredEntries.isEmpty {
@@ -2638,7 +2645,7 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                     reason = ChatHistoryViewTransitionReason.InteractiveChanges
                     updatedScrollPosition = nil
                 } else {
-                    switch type {
+                    switch transitionType {
                         case let .Initial(fadeIn):
                             reason = ChatHistoryViewTransitionReason.Initial(fadeIn: fadeIn)
                         case let .Generic(genericType):
