@@ -213,26 +213,36 @@ private final class CameraContext {
         NotificationCenter.default.removeObserver(self)
     }
         
-    private var isSessionRunning = false
+    private var wantsCapture = false
+    private var captureGeneration: UInt64 = 0
+    private var didScheduleRuntimeRecovery = false
+
     func startCapture() {
+        guard !self.invalidated else {
+            return
+        }
+        self.wantsCapture = true
         guard !self.session.session.isRunning else {
             return
         }
         Logger.shared.log("CameraContext", "startCapture")
-        self.session.session.startRunning()
-        self.isSessionRunning = self.session.session.isRunning
+        self.startSession()
     }
     
     func stopCapture(invalidate: Bool = false) {
+        self.wantsCapture = false
+        self.captureGeneration &+= 1
+        self.didScheduleRuntimeRecovery = false
         // Mirrors startCapture's guard. AVCaptureSession.stopRunning() is a synchronous, expensive
         // call, and callers driven by layout/scroll can reach here on every frame — MediaPicker's
         // visibleItemsUpdated did exactly that, logging ~120 no-op stops per second while the
         // camera cell was scrolled out of view. An invalidate still has to run its teardown.
-        guard self.session.session.isRunning || invalidate else {
+        guard !self.invalidated, self.session.session.isRunning || invalidate else {
             return
         }
         Logger.shared.log("CameraContext", "stopCapture(invalidate: \(invalidate))")
         if invalidate {
+            self.invalidated = true
             self.mainDeviceContext?.device.resetZoom()
             
             self.configure {
@@ -241,7 +251,6 @@ private final class CameraContext {
         }
         
         self.session.session.stopRunning()
-        self.isSessionRunning = false
     }
     
     func focus(at point: CGPoint, autoFocus: Bool) {
@@ -783,8 +792,11 @@ private final class CameraContext {
 
     @objc private func sessionInterruptionEnded(notification: NSNotification) {
         Logger.shared.log("Camera", "Session interruption ended")
-        
-        if self.mainDeviceContext?.output.isRecording == true {
+
+        self.queue.justDispatch { [weak self] in
+            guard let self, self.canRecoverCapture else {
+                return
+            }
             // The capture session uses the application audio session
             // (`usesApplicationAudioSession == true`). During a phone call iOS
             // deactivates it; when the call ends the capture session restarts and
@@ -792,16 +804,15 @@ private final class CameraContext {
             // the app reactivates its AVAudioSession. Nothing did that, so a round
             // video message recorded across a call kept a live video track with a
             // permanently silent audio track (upstream issue #2113).
-            self.queue.async {
+            if self.mainDeviceContext?.output.isRecording == true {
                 do {
                     try AVAudioSession.sharedInstance().setActive(true, options: [.notifyOthersOnDeactivation])
                 } catch {
                     Logger.shared.log("Camera", "Failed to reactivate audio session after interruption: \(error)")
                 }
             }
+            self.restartSessionIfNeeded()
         }
-        
-        self.restartSessionIfNeeded()
     }
     
     @objc private func sessionRuntimeError(notification: NSNotification) {
@@ -812,34 +823,42 @@ private final class CameraContext {
         let error = AVError(_nsError: errorValue)
         Logger.shared.log("Camera", "Runtime error: \(error)")
     
-        if error.code == .mediaServicesWereReset {
-            self.restartSessionIfNeeded()
-        } else {
-            // Everything else used to be logged and abandoned, which leaves a camera the user
-            // is looking at permanently dead. Most of these are transient — another process
-            // took priority, media services hiccupped — so give it one delayed retry rather
-            // than none. One, not a loop: a session that cannot start is not going to be
-            // argued into it, and retrying forever would spin the capture stack.
+        self.queue.async { [weak self] in
+            guard let self, self.wantsCapture, !self.didScheduleRuntimeRecovery else {
+                return
+            }
+            // A runtime error can arrive inside startRunning(), including on the first start.
+            // Wait for it to return and retry once until the session starts or capture stops.
+            self.didScheduleRuntimeRecovery = true
+            let generation = self.captureGeneration
             self.queue.after(0.5, { [weak self] in
-                self?.restartSessionIfNeeded()
+                guard let self, self.captureGeneration == generation else {
+                    return
+                }
+                self.restartSessionIfNeeded()
             })
         }
     }
 
-    /// Start the session again if this context believes it should be running. `startRunning`
-    /// is a no-op when the session is already live, so this is safe to call from any of the
-    /// recovery paths.
+    private var canRecoverCapture: Bool {
+        return self.wantsCapture && !self.session.session.isInterrupted && AVCaptureDevice.authorizationStatus(for: .video) == .authorized
+    }
+
+    private func startSession() {
+        self.session.session.startRunning()
+        if self.session.session.isRunning {
+            self.didScheduleRuntimeRecovery = false
+        }
+    }
+
     private func restartSessionIfNeeded() {
-        self.queue.async {
-            guard self.isSessionRunning, !self.session.session.isRunning else {
-                return
-            }
-            Logger.shared.log("CameraContext", "restarting session after interruption")
-            self.session.session.startRunning()
-            self.isSessionRunning = self.session.session.isRunning
-            if !self.isSessionRunning {
-                Logger.shared.log("CameraContext", "session did not restart")
-            }
+        guard self.canRecoverCapture, !self.session.session.isRunning else {
+            return
+        }
+        Logger.shared.log("CameraContext", "restarting capture session")
+        self.startSession()
+        if !self.session.session.isRunning {
+            Logger.shared.log("CameraContext", "session did not restart")
         }
     }
 

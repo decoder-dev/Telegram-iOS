@@ -2143,6 +2143,11 @@ public final class GroupCallParticipantsContext {
     }
     
     public func ensureHaveParticipants(ssrcs: Set<UInt32>) {
+        // The audio levels use zero for the local speaker. Only remote sources need a lookup.
+        let ssrcs = ssrcs.subtracting([0])
+        guard !ssrcs.isEmpty else {
+            return
+        }
         var missingSsrcs = Set<UInt32>()
         
         var existingSsrcs = Set<UInt32>()
@@ -2189,7 +2194,7 @@ public final class GroupCallParticipantsContext {
             
             strongSelf.missingSsrcs.subtract(ssrcs)
 
-            Logger.shared.log("GroupCallParticipantsContext", "did receive response for ssrcs=\(ssrcs), \(state.participants)")
+            Logger.shared.log("GroupCallParticipantsContext", "did receive response for ssrcs=\(ssrcs), count=\(state.participants.count)")
             
             var updatedState = strongSelf.stateValue.state
             

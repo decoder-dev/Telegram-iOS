@@ -85,3 +85,123 @@ with tempfile.TemporaryDirectory(prefix='picker-dismissal-') as directory:
     subprocess.run(['swift', str(path)], check=True, timeout=120)
 
 subprocess.run([sys.executable, str(root / 'Tests/Camera/permissions.py')], check=True)
+
+legacy = (root / 'submodules/Camera/CameraLegacy/Sources/LegacyCamera.swift').read_text(encoding='utf-8')
+start_stop = legacy[legacy.index('    private var wantsCapture ='):legacy.index('    func focus(at point:')]
+recovery = legacy[legacy.index('    @objc private func sessionRuntimeError('):legacy.index('    private static func describe(')]
+fixture = '''
+import Foundation
+
+struct AVError { init(_nsError: NSError) {} }
+let AVCaptureSessionErrorKey = "error"
+enum Authorization { case authorized, denied }
+struct AVCaptureDevice {
+    enum MediaType { case video }
+    static var authorization = Authorization.authorized
+    static func authorizationStatus(for: MediaType) -> Authorization { authorization }
+}
+struct Logger {
+    static let shared = Logger()
+    func log(_ tag: String, _ message: String) {}
+}
+final class Queue {
+    var delayed: [() -> Void] = []
+    func async(_ f: () -> Void) { f() }
+    func after(_ delay: Double, _ f: @escaping () -> Void) { delayed.append(f) }
+    func flush() { while !delayed.isEmpty { delayed.removeFirst()() } }
+}
+final class Session {
+    var isRunning = false
+    var isInterrupted = false
+    var startAttempts = 0
+    var errorsRemaining = 0
+    var onError: (() -> Void)?
+    func startRunning() {
+        startAttempts += 1
+        if errorsRemaining > 0 {
+            errorsRemaining -= 1
+            onError?()
+        } else {
+            isRunning = true
+        }
+    }
+    func stopRunning() { isRunning = false }
+}
+final class Device {
+    var device: Device { self }
+    func resetZoom() {}
+    func invalidate() {}
+}
+final class Camera {
+    let queue = Queue()
+    let session = (session: Session(), unused: false)
+    let mainDeviceContext: Device? = nil
+    var invalidated = false
+    func configure(_ f: () -> Void) { f() }
+    init() {
+        self.session.session.onError = { [weak self] in
+            self?.sessionRuntimeError(notification: NSNotification(name: Notification.Name("error"), object: nil,
+                userInfo: [AVCaptureSessionErrorKey: NSError(domain: "capture", code: -11819)]))
+        }
+    }
+''' + start_stop + recovery.replace('@objc ', '') + '''
+}
+
+let initialFailure = Camera()
+initialFailure.session.session.errorsRemaining = 1
+initialFailure.startCapture()
+precondition(initialFailure.session.session.startAttempts == 1)
+initialFailure.queue.flush()
+precondition(initialFailure.session.session.startAttempts == 2 && initialFailure.session.session.isRunning)
+
+let persistentFailure = Camera()
+persistentFailure.session.session.errorsRemaining = 10
+persistentFailure.startCapture()
+persistentFailure.queue.flush()
+precondition(persistentFailure.session.session.startAttempts == 2 && !persistentFailure.session.session.isRunning)
+
+let stopped = Camera()
+stopped.session.session.errorsRemaining = 1
+stopped.startCapture()
+stopped.stopCapture()
+stopped.queue.flush()
+precondition(stopped.session.session.startAttempts == 1)
+
+let reopened = Camera()
+reopened.session.session.errorsRemaining = 2
+reopened.startCapture()
+let oldRecovery = reopened.queue.delayed.removeFirst()
+reopened.stopCapture()
+reopened.startCapture()
+oldRecovery()
+precondition(reopened.session.session.startAttempts == 2)
+reopened.queue.flush()
+precondition(reopened.session.session.startAttempts == 3 && reopened.session.session.isRunning)
+
+let dismissed = Camera()
+dismissed.session.session.errorsRemaining = 1
+dismissed.startCapture()
+dismissed.stopCapture(invalidate: true)
+dismissed.queue.flush()
+dismissed.startCapture()
+precondition(dismissed.session.session.startAttempts == 1)
+
+let interrupted = Camera()
+interrupted.session.session.errorsRemaining = 1
+interrupted.startCapture()
+interrupted.session.session.isInterrupted = true
+interrupted.queue.flush()
+precondition(interrupted.session.session.startAttempts == 1)
+
+let denied = Camera()
+denied.session.session.errorsRemaining = 1
+denied.startCapture()
+AVCaptureDevice.authorization = .denied
+denied.queue.flush()
+precondition(denied.session.session.startAttempts == 1)
+print("Legacy camera: initial failure recovers once and stopped, interrupted or unauthorized capture stays stopped")
+'''
+with tempfile.TemporaryDirectory(prefix='legacy-camera-recovery-') as directory:
+    path = pathlib.Path(directory) / 'main.swift'
+    path.write_text(fixture, encoding='utf-8')
+    subprocess.run(['swift', str(path)], check=True, timeout=120)
