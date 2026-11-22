@@ -66,11 +66,20 @@ typedef struct ForkVoiceParams {
     float jitter;
     /// Share of the processed signal, 0…1. Below 1 the real voice is audible in the mix.
     float wet;
+    /// Optional reference pitch in Hz. Zero disables adaptation. Speech contours are preserved.
+    float referencePitchHz;
 } ForkVoiceParams;
 
 void ForkVoiceParamsSetIdentity(ForkVoiceParams *params);
 /// True when the chain would not change the sound (callers then skip it entirely).
 bool ForkVoiceParamsIsIdentity(const ForkVoiceParams *params);
+
+/// Control-side settings for a new capture. Pass NULL to disable. Read once when starting a call
+/// or a round video, off the realtime audio thread, before creating the capture's own chain.
+void ForkVoiceCaptureSetCallParams(const ForkVoiceParams * _Nullable params);
+bool ForkVoiceCaptureGetCallParams(ForkVoiceParams *params);
+void ForkVoiceCaptureSetRoundVideoParams(const ForkVoiceParams * _Nullable params);
+bool ForkVoiceCaptureGetRoundVideoParams(ForkVoiceParams *params);
 
 typedef struct ForkVoiceChain ForkVoiceChain;
 

@@ -54,7 +54,12 @@ final class CameraOutput: NSObject {
     private let metadataQueue = DispatchQueue(label: "")
     
     private var photoCaptureRequests = Atomic<[Int64: PhotoCaptureContext]>(value: [:])
-    private var videoRecorder: VideoRecorder?
+    private let recordingQueue: Queue
+    private let videoRecorderValue = Atomic<VideoRecorder?>(value: nil)
+    private var videoRecorder: VideoRecorder? {
+        get { self.videoRecorderValue.with { $0 } }
+        set { let _ = self.videoRecorderValue.swap(newValue) }
+    }
     
     private var captureOrientation: AVCaptureVideoOrientation = .portrait
         
@@ -62,7 +67,8 @@ final class CameraOutput: NSObject {
     var processAudioBuffer: ((CMSampleBuffer) -> Void)?
     var processCodes: (([CameraCode]) -> Void)?
         
-    init(exclusive: Bool, ciContext: CIContext, colorSpace: CGColorSpace, use32BGRA: Bool = false) {
+    init(recordingQueue: Queue, exclusive: Bool, ciContext: CIContext, colorSpace: CGColorSpace, use32BGRA: Bool = false) {
+        self.recordingQueue = recordingQueue
         self.exclusive = exclusive
         self.ciContext = ciContext
         self.colorSpace = colorSpace
@@ -283,11 +289,12 @@ final class CameraOutput: NSObject {
     }
     
     private var currentMode: RecorderMode = .default
-    private var recordingCompletionPipe = ValuePipe<VideoCaptureResult>()
-    func startRecording(mode: RecorderMode, position: Camera.Position? = nil, orientation: AVCaptureVideoOrientation, additionalOutput: CameraOutput? = nil) -> Signal<CameraRecordingData, CameraRecordingError> {
+    private var recordingCompletion: ValuePromise<VideoCaptureResult>?
+    func startRecording(mode: RecorderMode, position: Camera.Position? = nil, orientation: AVCaptureVideoOrientation, additionalOutput: CameraOutput? = nil, roundVideoVoiceEffect: RoundVideoVoiceEffectConfiguration? = nil) -> Signal<CameraRecordingData, CameraRecordingError> {
         guard self.videoRecorder == nil else {
             return .complete()
         }
+        self.recordingCompletion = nil
         
         Logger.shared.log("CameraOutput", "startRecording")
         
@@ -336,8 +343,20 @@ final class CameraOutput: NSObject {
         let outputFilePath = NSTemporaryDirectory() + outputFileName + ".mp4"
         let outputFileURL = URL(fileURLWithPath: outputFilePath)
         
+        let recordingCompletion = ValuePromise<VideoCaptureResult>()
+        weak var activeRecorder: VideoRecorder?
         let videoRecorder = VideoRecorder(
-            configuration: VideoRecorder.Configuration(videoSettings: videoSettings, audioSettings: audioSettings),
+            configuration: VideoRecorder.Configuration(videoSettings: videoSettings, audioSettings: audioSettings, roundVideoVoiceEffect: roundVideoVoiceEffect?.makeEffect(), audioTransformFailed: { [weak self] in
+                self?.recordingQueue.async { [weak self] in
+                    guard let self, let activeRecorder, self.videoRecorder === activeRecorder else {
+                        return
+                    }
+                    self.videoRecorder = nil
+                    // Stop can replace the start subscription before consuming its error.
+                    recordingCompletion.set(.failed)
+                    self.recordingFailurePipe.putNext(.audioInitializationError)
+                }
+            }),
             ciContext: self.ciContext,
             orientation: orientation,
             fileUrl: outputFileURL,
@@ -347,9 +366,9 @@ final class CameraOutput: NSObject {
                 }
                 if case let .success(transitionImage, duration, positionChangeTimestamps) = result {
                     if self.audioWatchdogTriggered {
-                        self.recordingCompletionPipe.putNext(.failed)
+                        recordingCompletion.set(.failed)
                     } else {
-                        self.recordingCompletionPipe.putNext(
+                        recordingCompletion.set(
                             .finished(
                                 main: VideoCaptureResult.Result(
                                     path: outputFilePath,
@@ -365,7 +384,7 @@ final class CameraOutput: NSObject {
                         )
                     }
                 } else {
-                    self.recordingCompletionPipe.putNext(.failed)
+                    recordingCompletion.set(.failed)
                 }
             }
         )
@@ -373,7 +392,9 @@ final class CameraOutput: NSObject {
             return .fail(.videoRecorderInitializationError)
         }
         
+        activeRecorder = videoRecorder
         videoRecorder.start()
+        self.recordingCompletion = recordingCompletion
         self.videoRecorder = videoRecorder
         
         self.lastAudioSampleWallTime = nil
@@ -403,15 +424,22 @@ final class CameraOutput: NSObject {
     }
     
     func stopRecording() -> Signal<VideoCaptureResult, NoError> {
-        guard let videoRecorder = self.videoRecorder, videoRecorder.isRecording else {
+        guard let recordingCompletion = self.recordingCompletion else {
             return .complete()
         }
-        videoRecorder.stop()
+        if let videoRecorder = self.videoRecorder, videoRecorder.isRecording {
+            videoRecorder.stop()
+        }
         
-        return self.recordingCompletionPipe.signal()
+        return recordingCompletion.get()
         |> take(1)
-        |> afterDisposed {
-            self.videoRecorder = nil
+        |> afterDisposed { [weak self] in
+            self?.recordingQueue.async { [weak self] in
+                if let self, self.recordingCompletion === recordingCompletion {
+                    self.videoRecorder = nil
+                    self.recordingCompletion = nil
+                }
+            }
         }
     }
     

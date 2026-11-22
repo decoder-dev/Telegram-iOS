@@ -43,6 +43,7 @@ public enum Camera {
         public let reportAudioLevel: Bool
         public let isRoundVideo: Bool
         public let roundVideoProfile: RoundVideoRecordingProfile
+        public let roundVideoVoiceEffect: RoundVideoVoiceEffectConfiguration?
 
         public init(
             preset: Preset,
@@ -68,6 +69,7 @@ public enum Camera {
             self.reportAudioLevel = reportAudioLevel
             self.isRoundVideo = isRoundVideo
             self.roundVideoProfile = roundVideoProfile
+            self.roundVideoVoiceEffect = isRoundVideo && audio ? RoundVideoVoiceEffectConfiguration.current() : nil
         }
     }
 

@@ -768,7 +768,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [1910, 1911]
         ]),
         (.voiceAndRound, [
-            [2440, 2441, 2442, 2443, 2444, 2445, 2446],
+            [2440, 2441, 2447, 2448, 2442, 2443, 2444, 2445, 2446],
             [2460, 2461, 2462, 2463, 2464, 2465, 2466, 2467, 2468],
             [1609, 2110, 2111, 2112, 2113, 2114, 1544, 1545, 2115],
             [2042, 1515, 1516, 1559, 1612]
@@ -1286,6 +1286,7 @@ private func forkVoiceChangerPresetOptions(russian: Bool) -> [(String, Int32)] {
         (russian ? "Мужской" : "Male", 2),
         (russian ? "Детский" : "Child", 3),
         (russian ? "Робот" : "Robot", 4),
+        (russian ? "Доктор Ливси" : "Doctor Livesey", 6),
         (russian ? "Свой" : "Custom", 5),
     ]
 }
@@ -1672,8 +1673,10 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         entries = [
             .designHeader(2440, russian ? "Смена голоса" : "Voice Changer"),
             .appearanceToggle(2441, russian ? "Менять голос в голосовых" : "Change Voice in Voice Messages", settings.voiceChangerEnabled, \.voiceChangerEnabled),
+            .appearanceToggle(2447, russian ? "Менять голос в звонках" : "Change Voice in Calls", settings.voiceChangerInCallsEnabled, \.voiceChangerInCallsEnabled),
+            .appearanceToggle(2448, russian ? "Менять голос в кружках" : "Change Voice in Round Videos", settings.voiceChangerInRoundVideosEnabled, \.voiceChangerInRoundVideosEnabled),
         ]
-        if settings.voiceChangerEnabled {
+        if settings.voiceChangerEnabled || settings.voiceChangerInCallsEnabled || settings.voiceChangerInRoundVideosEnabled {
             entries.append(.intChoice(2442, russian ? "Голос" : "Voice", forkIntChoiceLabel(forkVoiceChangerPresetOptions(russian: russian), settings.voiceChangerPreset)))
             if settings.voiceChangerPreset == 5 {
                 entries.append(contentsOf: [
@@ -1683,7 +1686,7 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
                 ])
             }
         }
-        entries.append(.designFooter(2446, russian ? "Голос меняется прямо во время записи: настоящий голос не сохраняется и не отправляется. Кружки и звонки не затрагиваются." : "The voice is changed while you record: your real voice is never stored or sent. Round videos and calls aren't affected."))
+        entries.append(.designFooter(2446, russian ? "Выбранный голос применяется к вашему микрофону. Изменения настроек действуют с новой записи или звонка." : "The chosen voice effect applies to your microphone. Setting changes take effect on the next recording or call."))
         entries.append(contentsOf: [
             .designHeader(2460, russian ? "Эквалайзер" : "Equalizer"),
             .appearanceToggle(2461, russian ? "Эквалайзер при прослушивании" : "Playback Equalizer", settings.equalizerEnabled, \.equalizerEnabled),

@@ -13,6 +13,10 @@
 #define FV_BLOCK_FRAMES 1024
 #define FV_CONTROL_INTERVAL 32
 #define FV_MAX_CHANNELS 8
+#define FV_PITCH_ANALYSIS_RATE 4000
+#define FV_PITCH_ANALYSIS_HISTORY 256
+#define FV_PITCH_ANALYSIS_WINDOW 128
+#define FV_PITCH_ANALYSIS_MAX_LAG 72
 
 typedef struct FVBiquad {
     float b0;
@@ -200,11 +204,12 @@ static ForkVoiceParams fv_sanitized_params(const ForkVoiceParams *source) {
     p.vibratoDepth = fv_clampf(p.vibratoDepth, 0.0f, 1.0f);
     p.jitter = fv_clampf(p.jitter, 0.0f, 1.0f);
     p.wet = fv_clampf(p.wet, 0.0f, 1.0f);
+    p.referencePitchHz = p.referencePitchHz >= 65.0f ? fv_clampf(p.referencePitchHz, 65.0f, 350.0f) : 0.0f;
     return p;
 }
 
 static bool fv_pitch_active(const ForkVoiceParams *p) {
-    if (fabsf(p->pitchSemitones) > 0.01f) {
+    if (fabsf(p->pitchSemitones) > 0.01f || p->referencePitchHz > 0.0f) {
         return true;
     }
     if (p->vibratoDepth > 0.001f && p->vibratoRateHz > 0.01f) {
@@ -239,7 +244,63 @@ bool ForkVoiceParamsIsIdentity(const ForkVoiceParams *source) {
     return true;
 }
 
+// Only queried at capture setup. Audio processing uses the capture's private copy.
+typedef struct {
+    bool enabled;
+    ForkVoiceParams params;
+} FVCaptureSettings;
+
+static pthread_mutex_t fv_capture_settings_mutex = PTHREAD_MUTEX_INITIALIZER;
+static FVCaptureSettings fv_call_settings;
+static FVCaptureSettings fv_round_video_settings;
+
+static void fv_capture_set_params(FVCaptureSettings *settings, const ForkVoiceParams *params) {
+    pthread_mutex_lock(&fv_capture_settings_mutex);
+    settings->enabled = params != NULL;
+    if (params != NULL) {
+        settings->params = *params;
+    }
+    pthread_mutex_unlock(&fv_capture_settings_mutex);
+}
+
+static bool fv_capture_get_params(const FVCaptureSettings *settings, ForkVoiceParams *params) {
+    pthread_mutex_lock(&fv_capture_settings_mutex);
+    bool enabled = settings->enabled;
+    if (enabled) {
+        *params = settings->params;
+    }
+    pthread_mutex_unlock(&fv_capture_settings_mutex);
+    return enabled;
+}
+
+void ForkVoiceCaptureSetCallParams(const ForkVoiceParams *params) {
+    fv_capture_set_params(&fv_call_settings, params);
+}
+
+bool ForkVoiceCaptureGetCallParams(ForkVoiceParams *params) {
+    return fv_capture_get_params(&fv_call_settings, params);
+}
+
+void ForkVoiceCaptureSetRoundVideoParams(const ForkVoiceParams *params) {
+    fv_capture_set_params(&fv_round_video_settings, params);
+}
+
+bool ForkVoiceCaptureGetRoundVideoParams(ForkVoiceParams *params) {
+    return fv_capture_get_params(&fv_round_video_settings, params);
+}
+
 // MARK: - Voice chain
+
+typedef struct {
+    float history[FV_PITCH_ANALYSIS_HISTORY];
+    uint32_t writeIndex;
+    uint32_t samplesUntilEstimate;
+    uint32_t decimationCount;
+    float decimationSum;
+    float goalSemitones;
+    float shiftSemitones;
+    bool hasEstimate;
+} FVPitchAnalysis;
 
 struct ForkVoiceChain {
     ForkVoiceParams params;
@@ -264,6 +325,10 @@ struct ForkVoiceChain {
     float jitterTarget;
     uint32_t jitterCounter;
     uint32_t jitterPeriod;
+    FVPitchAnalysis pitchAnalysis;
+    uint32_t pitchAnalysisDecimation;
+    float pitchAnalysisRate;
+    float pitchAnalysisSmoothing;
 
     // Filters.
     bool timbreActive;
@@ -533,6 +598,10 @@ void ForkVoiceChainReset(ForkVoiceChain *chain) {
     chain->jitterValue = 0.0f;
     chain->jitterTarget = 0.0f;
     chain->jitterCounter = 0;
+    if (chain->params.referencePitchHz > 0.0f) {
+        memset(&chain->pitchAnalysis, 0, sizeof(chain->pitchAnalysis));
+        chain->pitchAnalysis.samplesUntilEstimate = FV_PITCH_ANALYSIS_HISTORY;
+    }
     chain->ringPhase = 0.0f;
     chain->chorusWrite = 0;
     chain->chorusPhase = 0.0f;
@@ -567,6 +636,11 @@ static void fv_chain_configure(ForkVoiceChain *chain, uint32_t sampleRate) {
         chain->pitchRatio = powf(2.0f, p->pitchSemitones / 12.0f);
         chain->vibratoIncrement = p->vibratoRateHz * (float)FV_CONTROL_INTERVAL / rate;
         chain->jitterPeriod = (uint32_t)(rate * 0.15f / (float)FV_CONTROL_INTERVAL) + 1;
+        if (p->referencePitchHz > 0.0f) {
+            chain->pitchAnalysisDecimation = (uint32_t)fmaxf(1.0f, roundf(rate / FV_PITCH_ANALYSIS_RATE));
+            chain->pitchAnalysisRate = rate / (float)chain->pitchAnalysisDecimation;
+            chain->pitchAnalysisSmoothing = 1.0f - expf(-(float)FV_CONTROL_INTERVAL / (0.18f * rate));
+        }
     }
 
     chain->timbreActive = fabsf(p->timbre) > 0.01f;
@@ -667,9 +741,75 @@ static void fv_chain_configure(ForkVoiceChain *chain, uint32_t sampleRate) {
     ForkVoiceChainReset(chain);
 }
 
+static void fv_pitch_analysis_estimate(ForkVoiceChain *chain) {
+    FVPitchAnalysis *analysis = &chain->pitchAnalysis;
+    const uint32_t mask = FV_PITCH_ANALYSIS_HISTORY - 1;
+    const uint32_t start = analysis->writeIndex - FV_PITCH_ANALYSIS_WINDOW;
+    float energy = 0.0f;
+    for (uint32_t i = 0; i < FV_PITCH_ANALYSIS_WINDOW; i++) {
+        float sample = analysis->history[(start + i) & mask];
+        energy += sample * sample;
+    }
+    if (energy < 0.01f) {
+        return;
+    }
+
+    const uint32_t minLag = (uint32_t)fmaxf(2.0f, floorf(chain->pitchAnalysisRate / 350.0f));
+    const uint32_t maxLag = (uint32_t)fminf(FV_PITCH_ANALYSIS_MAX_LAG, ceilf(chain->pitchAnalysisRate / 65.0f));
+    float normalizedDifference[FV_PITCH_ANALYSIS_MAX_LAG + 1];
+    float accumulatedDifference = 0.0f;
+    normalizedDifference[0] = 1.0f;
+    for (uint32_t lag = 1; lag <= maxLag; lag++) {
+        float difference = 0.0f;
+        for (uint32_t i = 0; i < FV_PITCH_ANALYSIS_WINDOW; i++) {
+            float delta = analysis->history[(start + i) & mask] - analysis->history[(start + i - lag) & mask];
+            difference += delta * delta;
+        }
+        accumulatedDifference += difference;
+        normalizedDifference[lag] = accumulatedDifference > 1e-6f ? difference * (float)lag / accumulatedDifference : 1.0f;
+    }
+    // Use the first confident minimum of the normalized difference to avoid period multiples.
+    for (uint32_t lag = minLag; lag < maxLag; lag++) {
+        float left = normalizedDifference[lag - 1];
+        float middle = normalizedDifference[lag];
+        float right = normalizedDifference[lag + 1];
+        if (middle < 0.18f && middle < left && middle <= right) {
+            float period = (float)lag + 0.5f * (left - right) / (left - 2.0f * middle + right);
+            float pitchHz = chain->pitchAnalysisRate / period;
+            float correction = fv_clampf(0.8f * 12.0f * log2f(chain->params.referencePitchHz / pitchHz), -7.0f, 7.0f);
+            // Move the speaker's average pitch, leaving syllable-to-syllable changes intact.
+            analysis->goalSemitones += (correction - analysis->goalSemitones) * (analysis->hasEstimate ? 0.06f : 1.0f);
+            analysis->hasEstimate = true;
+            return;
+        }
+    }
+}
+
+static inline void fv_pitch_analysis_feed(ForkVoiceChain *chain, float sample) {
+    FVPitchAnalysis *analysis = &chain->pitchAnalysis;
+    analysis->decimationSum += sample;
+    analysis->decimationCount += 1;
+    if (analysis->decimationCount == chain->pitchAnalysisDecimation) {
+        analysis->history[analysis->writeIndex] = analysis->decimationSum / (float)chain->pitchAnalysisDecimation;
+        analysis->writeIndex = (analysis->writeIndex + 1) & (FV_PITCH_ANALYSIS_HISTORY - 1);
+        analysis->decimationSum = 0.0f;
+        analysis->decimationCount = 0;
+        analysis->samplesUntilEstimate -= 1;
+        if (analysis->samplesUntilEstimate == 0) {
+            fv_pitch_analysis_estimate(chain);
+            analysis->samplesUntilEstimate = FV_PITCH_ANALYSIS_HISTORY;
+        }
+    }
+}
+
 static void fv_chain_update_pitch_control(ForkVoiceChain *chain) {
     const ForkVoiceParams *p = &chain->params;
     float semitones = p->pitchSemitones;
+    if (p->referencePitchHz > 0.0f) {
+        FVPitchAnalysis *analysis = &chain->pitchAnalysis;
+        analysis->shiftSemitones += (analysis->goalSemitones - analysis->shiftSemitones) * chain->pitchAnalysisSmoothing;
+        semitones += analysis->shiftSemitones;
+    }
     if (p->vibratoDepth > 0.001f && p->vibratoRateHz > 0.01f) {
         chain->vibratoPhase = fv_wrap_phase(chain->vibratoPhase + chain->vibratoIncrement);
         semitones += p->vibratoDepth * fv_chain_sine(chain, chain->vibratoPhase);
@@ -717,6 +857,9 @@ static void fv_chain_process_mono(ForkVoiceChain *chain, float *samples, size_t 
         float x = dry;
 
         if (chain->pitchActive) {
+            if (p->referencePitchHz > 0.0f) {
+                fv_pitch_analysis_feed(chain, dry);
+            }
             if (chain->controlCounter == 0) {
                 fv_chain_update_pitch_control(chain);
             }

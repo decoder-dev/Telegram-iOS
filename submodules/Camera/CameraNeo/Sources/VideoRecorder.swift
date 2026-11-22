@@ -218,6 +218,7 @@ final class VideoRecorder {
     private let statistics: VideoRecordingStatistics
     private let url: URL
     private let hasAudio: Bool
+    private let roundVideoVoiceEffect: RoundVideoVoiceEffect?
     private let durationUpdated: (Double) -> Void
     private let transitionImageUpdated: (UIImage?) -> Void
     private let runtimeFailure: (CameraRecordingError) -> Void
@@ -260,6 +261,7 @@ final class VideoRecorder {
         processor: RoundVideoFrameProcessor,
         url: URL,
         hasAudio: Bool,
+        roundVideoVoiceEffect: RoundVideoVoiceEffect? = nil,
         initialPosition: Camera.Position,
         mode: NeoCameraImpl.RoundVideoMode,
         usesMultiCam: Bool,
@@ -274,6 +276,7 @@ final class VideoRecorder {
         self.statistics = VideoRecordingStatistics(mode: mode, usesMultiCam: usesMultiCam, log: log, profile: processor.profile)
         self.url = url
         self.hasAudio = hasAudio
+        self.roundVideoVoiceEffect = roundVideoVoiceEffect
         self.activePosition = initialPosition
         self.durationUpdated = durationUpdated
         self.transitionImageUpdated = transitionImageUpdated
@@ -526,6 +529,17 @@ final class VideoRecorder {
             return
         }
 
+        let recordingBuffer: CMSampleBuffer
+        if let voiceEffect = self.roundVideoVoiceEffect {
+            guard let processed = voiceEffect.process(sampleBuffer) else {
+                self.fail(.audioInitializationError)
+                return
+            }
+            recordingBuffer = processed
+        } else {
+            recordingBuffer = sampleBuffer
+        }
+
         if self.audioFormatDescription == nil {
             self.audioFormatDescription = formatDescription
             if self.assetWriter != nil {
@@ -534,7 +548,7 @@ final class VideoRecorder {
         }
 
         self.pendingAudioBuffers.append(PendingAudioSample(
-            sampleBuffer: sampleBuffer,
+            sampleBuffer: recordingBuffer,
             timelinePresentationTime: timelinePresentationTime,
             timelineEndTime: timelineEndTime
         ))

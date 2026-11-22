@@ -314,9 +314,20 @@ private final class VideoRecorderImpl {
                     self.maybeFinish()
                     return
                 }
+                let recordingBuffer: CMSampleBuffer
+                if let voiceEffect = self.configuration.roundVideoVoiceEffect {
+                    guard let processed = voiceEffect.process(sampleBuffer) else {
+                        self.transitionToFailedStatus(error: .generic)
+                        self.cancelRecording(completion: self.configuration.audioTransformFailed)
+                        return
+                    }
+                    recordingBuffer = processed
+                } else {
+                    recordingBuffer = sampleBuffer
+                }
                 var result = false
                 if self.tryAppendingPendingAudioBuffers() {
-                    if self.tryAppendingAudioSampleBuffer(sampleBuffer) {
+                    if self.tryAppendingAudioSampleBuffer(recordingBuffer) {
                         result = true
                     }
                 }
@@ -509,10 +520,14 @@ final class VideoRecorder {
     struct Configuration {
         var videoSettings: [String: Any]
         var audioSettings: [String: Any]
+        let roundVideoVoiceEffect: RoundVideoVoiceEffect?
+        let audioTransformFailed: () -> Void
 
-        init(videoSettings: [String: Any], audioSettings: [String: Any]) {
+        init(videoSettings: [String: Any], audioSettings: [String: Any], roundVideoVoiceEffect: RoundVideoVoiceEffect? = nil, audioTransformFailed: @escaping () -> Void = {}) {
             self.videoSettings = videoSettings
             self.audioSettings = audioSettings
+            self.roundVideoVoiceEffect = roundVideoVoiceEffect
+            self.audioTransformFailed = audioTransformFailed
         }
 
         var hasAudio: Bool {

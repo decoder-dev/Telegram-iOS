@@ -53,12 +53,12 @@ final class CameraDeviceContext {
     let input = CameraInput()
     let output: CameraOutput
         
-    init(session: CameraSession, exclusive: Bool, additional: Bool, ciContext: CIContext, colorSpace: CGColorSpace, isRoundVideo: Bool = false) {
+    init(session: CameraSession, recordingQueue: Queue, exclusive: Bool, additional: Bool, ciContext: CIContext, colorSpace: CGColorSpace, isRoundVideo: Bool = false) {
         self.session = session
         self.exclusive = exclusive
         self.additional = additional
         self.isRoundVideo = isRoundVideo
-        self.output = CameraOutput(exclusive: exclusive, ciContext: ciContext, colorSpace: colorSpace, use32BGRA: isRoundVideo)
+        self.output = CameraOutput(recordingQueue: recordingQueue, exclusive: exclusive, ciContext: ciContext, colorSpace: colorSpace, use32BGRA: isRoundVideo)
     }
     
     func configure(position: Camera.Position, previewView: LegacyCameraSimplePreviewView?, audio: Bool, photo: Bool, metadata: Bool, preferWide: Bool = false, preferLowerFramerate: Bool = false, switchAudio: Bool = true) {
@@ -396,10 +396,10 @@ private final class CameraContext {
         if enabled {
             self.configure {
                 self.mainDeviceContext?.invalidate()
-                self.mainDeviceContext = CameraDeviceContext(session: self.session, exclusive: false, additional: false, ciContext: self.ciContext, colorSpace: self.colorSpace, isRoundVideo: self.initialConfiguration.isRoundVideo)
+                self.mainDeviceContext = CameraDeviceContext(session: self.session, recordingQueue: self.queue, exclusive: false, additional: false, ciContext: self.ciContext, colorSpace: self.colorSpace, isRoundVideo: self.initialConfiguration.isRoundVideo)
                 self.mainDeviceContext?.configure(position: .back, previewView: self.simplePreviewView, audio: self.initialConfiguration.audio, photo: self.initialConfiguration.photo, metadata: self.initialConfiguration.metadata)
             
-                self.additionalDeviceContext = CameraDeviceContext(session: self.session, exclusive: false, additional: true, ciContext: self.ciContext, colorSpace: self.colorSpace, isRoundVideo: self.initialConfiguration.isRoundVideo)
+                self.additionalDeviceContext = CameraDeviceContext(session: self.session, recordingQueue: self.queue, exclusive: false, additional: true, ciContext: self.ciContext, colorSpace: self.colorSpace, isRoundVideo: self.initialConfiguration.isRoundVideo)
                 self.additionalDeviceContext?.configure(position: .front, previewView: self.secondaryPreviewView, audio: false, photo: true, metadata: false)
             }
             self.mainDeviceContext?.output.processSampleBuffer = { [weak self] sampleBuffer, pixelBuffer, connection in
@@ -447,7 +447,7 @@ private final class CameraContext {
                 let preferWide = self.initialConfiguration.preferWide || self.initialConfiguration.isRoundVideo
                 let preferLowerFramerate = self.initialConfiguration.preferLowerFramerate || self.initialConfiguration.isRoundVideo
                 
-                self.mainDeviceContext = CameraDeviceContext(session: self.session, exclusive: true, additional: false, ciContext: self.ciContext, colorSpace: self.colorSpace, isRoundVideo: self.initialConfiguration.isRoundVideo)
+                self.mainDeviceContext = CameraDeviceContext(session: self.session, recordingQueue: self.queue, exclusive: true, additional: false, ciContext: self.ciContext, colorSpace: self.colorSpace, isRoundVideo: self.initialConfiguration.isRoundVideo)
                 self.mainDeviceContext?.configure(position: self.positionValue, previewView: self.simplePreviewView, audio: self.initialConfiguration.audio, photo: self.initialConfiguration.photo, metadata: self.initialConfiguration.metadata, preferWide: preferWide, preferLowerFramerate: preferLowerFramerate)
             }
             self.mainDeviceContext?.output.processSampleBuffer = { [weak self] sampleBuffer, pixelBuffer, connection in
@@ -689,7 +689,7 @@ private final class CameraContext {
         
         let orientation = self.simplePreviewView?.videoPreviewLayer.connection?.videoOrientation ?? .portrait
         if self.initialConfiguration.isRoundVideo {
-            return mainDeviceContext.output.startRecording(mode: .roundVideo, orientation: DeviceModel.current.isIpad ? orientation : .portrait, additionalOutput: self.additionalDeviceContext?.output)
+            return mainDeviceContext.output.startRecording(mode: .roundVideo, orientation: DeviceModel.current.isIpad ? orientation : .portrait, additionalOutput: self.additionalDeviceContext?.output, roundVideoVoiceEffect: self.initialConfiguration.roundVideoVoiceEffect)
         } else {
             if let additionalDeviceContext = self.additionalDeviceContext {
                 return combineLatest(
@@ -1028,6 +1028,8 @@ final class LegacyCamera: CameraProtocol {
                 if let context = self.contextRef?.takeUnretainedValue() {
                     disposable.set(context.startRecording().start(next: { value in
                         subscriber.putNext(value)
+                    }, error: { error in
+                        subscriber.putError(error)
                     }, completed: {
                         subscriber.putCompletion()
                     }))

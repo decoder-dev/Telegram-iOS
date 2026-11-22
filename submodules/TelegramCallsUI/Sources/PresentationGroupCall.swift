@@ -2971,6 +2971,7 @@ public final class PresentationGroupCallImpl: PresentationGroupCall {
 
         self.genericCallContext?.stop(account: self.account, reportCallId: nil, debugLog: self.debugLog)
         self.screencastIPCContext?.disableScreencast(account: self.account)
+        self.sharedAudioContext?.markVoiceCaptureFinished()
 
         self._canBeRemoved.set(.single(true))
         

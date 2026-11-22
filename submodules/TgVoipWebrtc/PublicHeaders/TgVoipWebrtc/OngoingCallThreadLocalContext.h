@@ -55,6 +55,8 @@
 
 - (instancetype _Nonnull)initWithDisableRecording:(bool)disableRecording enableSystemMute:(bool)enableSystemMute;
 
+- (bool)canReuseCompletedVoiceCaptureWithDisableRecording:(bool)disableRecording NS_SWIFT_NAME(canReuseCompletedVoiceCapture(disableRecording:));
+
 + (void)setupAudioSession;
 
 /// Server killswitch `ios_killswitch_disable_call_audio_device_fixes`. When enabled, devices created

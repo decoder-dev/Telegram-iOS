@@ -28,6 +28,9 @@
 #import "platform/darwin/CustomExternalCapturer.h"
 
 #include "platform/darwin/iOS/tgcalls_audio_device_module_ios.h"
+#include <ForkVoiceDSP/ForkVoiceDSP.h>
+#include <array>
+#include <cstring>
 
 #include "platform/darwin/iOS/RTCAudioSession.h"
 #include "platform/darwin/iOS/RTCAudioSessionConfiguration.h"
@@ -142,6 +145,125 @@ public:
     virtual void stop() = 0;
 };
 
+}
+
+struct CallCaptureVoiceSettings {
+    ForkVoiceParams params{};
+    bool enabled = false;
+
+    static CallCaptureVoiceSettings current(bool disableAudioInput) {
+        CallCaptureVoiceSettings settings;
+        settings.enabled = !disableAudioInput && ForkVoiceCaptureGetCallParams(&settings.params);
+        return settings;
+    }
+};
+
+// WebRTC's AudioDeviceBuffer supplies signed interleaved PCM16 in 10 ms blocks. This adapter
+// owns everything before the device starts and forwards all playout calls without processing.
+class CallCaptureVoiceTransport final : public webrtc::AudioTransport {
+public:
+    explicit CallCaptureVoiceTransport(const ForkVoiceParams &params) :
+        _chain(ForkVoiceChainCreate(&params, kMaxSampleRate)) {
+        if (_chain) {
+            ForkVoiceChainPrepare(_chain, 48000);
+        }
+    }
+
+    ~CallCaptureVoiceTransport() override {
+        ForkVoiceChainDestroy(_chain);
+    }
+
+    void setTarget(webrtc::AudioTransport *target) {
+        _target = target;
+    }
+
+    int32_t RecordedDataIsAvailable(const void *audioSamples, size_t frames, size_t bytesPerFrame,
+        size_t channels, uint32_t sampleRate, uint32_t totalDelayMS, int32_t clockDrift,
+        uint32_t currentMicLevel, bool keyPressed, uint32_t &newMicLevel) override {
+        if (auto samples = process(audioSamples, frames, bytesPerFrame, channels, sampleRate)) {
+            return _target->RecordedDataIsAvailable(samples, frames, bytesPerFrame, channels, sampleRate,
+                totalDelayMS, clockDrift, currentMicLevel, keyPressed, newMicLevel);
+        }
+        return 0;
+    }
+
+    int32_t RecordedDataIsAvailable(const void *audioSamples, size_t frames, size_t bytesPerFrame,
+        size_t channels, uint32_t sampleRate, uint32_t totalDelayMS, int32_t clockDrift,
+        uint32_t currentMicLevel, bool keyPressed, uint32_t &newMicLevel,
+        absl::optional<int64_t> estimatedCaptureTimeNS) override {
+        if (auto samples = process(audioSamples, frames, bytesPerFrame, channels, sampleRate)) {
+            return _target->RecordedDataIsAvailable(samples, frames, bytesPerFrame, channels, sampleRate,
+                totalDelayMS, clockDrift, currentMicLevel, keyPressed, newMicLevel, estimatedCaptureTimeNS);
+        }
+        return 0;
+    }
+
+    int32_t NeedMorePlayData(size_t frames, size_t bytesPerFrame, size_t channels, uint32_t sampleRate,
+        void *audioSamples, size_t &framesOut, int64_t *elapsedTimeMS, int64_t *ntpTimeMS) override {
+        return _target->NeedMorePlayData(frames, bytesPerFrame, channels, sampleRate, audioSamples,
+            framesOut, elapsedTimeMS, ntpTimeMS);
+    }
+
+    void PullRenderData(int bitsPerSample, int sampleRate, size_t channels, size_t frames,
+        void *audioSamples, int64_t *elapsedTimeMS, int64_t *ntpTimeMS) override {
+        _target->PullRenderData(bitsPerSample, sampleRate, channels, frames, audioSamples,
+            elapsedTimeMS, ntpTimeMS);
+    }
+
+private:
+    static constexpr uint32_t kMaxSampleRate = 96000;
+    static constexpr size_t kMaxChannels = 2;
+
+    const int16_t *process(const void *input, size_t frames, size_t bytesPerFrame, size_t channels, uint32_t sampleRate) {
+        if (channels == 0 || channels > kMaxChannels || bytesPerFrame != channels * sizeof(int16_t) ||
+            frames == 0 || frames > _samples.size() / channels || sampleRate < 8000 || sampleRate > kMaxSampleRate) {
+            return nullptr;
+        }
+        if (_chain && input) {
+            std::memcpy(_samples.data(), input, frames * bytesPerFrame);
+            ForkVoiceChainProcessInt16(_chain, _samples.data(), frames, channels, sampleRate);
+        } else {
+            // Keep the stream clock moving even if the effect could not be created.
+            std::memset(_samples.data(), 0, frames * bytesPerFrame);
+        }
+        return _samples.data();
+    }
+
+    ForkVoiceChain *_chain;
+    webrtc::AudioTransport *_target = nullptr;
+    std::array<int16_t, kMaxSampleRate / 100 * kMaxChannels> _samples{};
+};
+
+class CallCaptureVoiceAudioDeviceIOS : public webrtc::tgcalls_ios_adm::AudioDeviceModuleIOS {
+public:
+    CallCaptureVoiceAudioDeviceIOS(bool enableSystemMute, const ForkVoiceParams &params) :
+        AudioDeviceModuleIOS(false, false, enableSystemMute, 1), _transport(params) {
+    }
+
+    ~CallCaptureVoiceAudioDeviceIOS() override {
+        Terminate();
+    }
+
+    int32_t RegisterAudioCallback(webrtc::AudioTransport *audioCallback) override {
+        // Registration only succeeds while neither playout nor recording is active.
+        auto result = AudioDeviceModuleIOS::RegisterAudioCallback(audioCallback ? &_transport : nullptr);
+        if (result == 0) {
+            _transport.setTarget(audioCallback);
+        }
+        return result;
+    }
+
+private:
+    CallCaptureVoiceTransport _transport;
+};
+
+static rtc::scoped_refptr<webrtc::tgcalls_ios_adm::AudioDeviceModuleIOS> makeCallAudioDeviceIOS(
+    bool disableAudioInput, bool enableSystemMute, const CallCaptureVoiceSettings &voiceSettings) {
+    if (voiceSettings.enabled) {
+        return rtc::make_ref_counted<CallCaptureVoiceAudioDeviceIOS>(enableSystemMute, voiceSettings.params);
+    }
+    return rtc::make_ref_counted<webrtc::tgcalls_ios_adm::AudioDeviceModuleIOS>(false, disableAudioInput,
+        enableSystemMute, disableAudioInput ? 2 : 1);
 }
 
 class WrappedAudioDeviceModuleIOS : public tgcalls::DefaultWrappedAudioDeviceModule, public webrtc::AudioTransport {
@@ -814,12 +936,12 @@ public:
     static constexpr int kMaxConsecutiveStartAttempts = 6;
     static constexpr int kStartRetryIntervalMs = 500;
     
-    SharedAudioDeviceModuleImpl(bool disableAudioInput, bool enableSystemMute, bool legacyBehavior, std::function<void(bool started, std::string const &failure, int failedAttempts)> onStartResult) :
+    SharedAudioDeviceModuleImpl(bool disableAudioInput, bool enableSystemMute, bool legacyBehavior, const CallCaptureVoiceSettings &voiceSettings, std::function<void(bool started, std::string const &failure, int failedAttempts)> onStartResult) :
     _legacyBehavior(legacyBehavior),
     _onStartResult(std::move(onStartResult)) {
         RTC_DCHECK(tgcalls::StaticThreads::getThreads()->getWorkerThread()->IsCurrent());
         _safety = webrtc::PendingTaskSafetyFlag::Create();
-        auto sourceDeviceModule = rtc::make_ref_counted<webrtc::tgcalls_ios_adm::AudioDeviceModuleIOS>(false, disableAudioInput, enableSystemMute, disableAudioInput ? 2 : 1);
+        auto sourceDeviceModule = makeCallAudioDeviceIOS(disableAudioInput, enableSystemMute, voiceSettings);
         _audioDeviceModule = rtc::make_ref_counted<WrappedAudioDeviceModuleIOS>(sourceDeviceModule);
     }
     
@@ -917,6 +1039,7 @@ static std::atomic<bool> sharedCallAudioDeviceLegacyBehavior{false};
 
 @implementation SharedCallAudioDevice {
     std::shared_ptr<tgcalls::ThreadLocalObject<tgcalls::SharedAudioDeviceModule>> _audioDeviceModule;
+    CallCaptureVoiceSettings _voiceSettings;
     bool _legacyBehavior;
     bool _didReceiveAudioSessionState;
     bool _isAudioSessionActive;
@@ -937,6 +1060,8 @@ static std::atomic<bool> sharedCallAudioDeviceLegacyBehavior{false};
     if (self != nil) {
         _legacyBehavior = sharedCallAudioDeviceLegacyBehavior.load();
         bool legacyBehavior = _legacyBehavior;
+        _voiceSettings = CallCaptureVoiceSettings::current(disableRecording);
+        auto voiceSettings = _voiceSettings;
         __weak SharedCallAudioDevice *weakSelf = self;
         std::function<void(bool, std::string const &, int)> onStartResult = [weakSelf](bool started, std::string const &failure, int failedAttempts) {
             __strong SharedCallAudioDevice *strongSelf = weakSelf;
@@ -948,11 +1073,15 @@ static std::atomic<bool> sharedCallAudioDeviceLegacyBehavior{false};
                 handler(started, failure.empty() ? nil : [NSString stringWithUTF8String:failure.c_str()], failedAttempts);
             }
         };
-        _audioDeviceModule.reset(new tgcalls::ThreadLocalObject<tgcalls::SharedAudioDeviceModule>(tgcalls::StaticThreads::getThreads()->getWorkerThread(), [disableRecording, enableSystemMute, legacyBehavior, onStartResult]() mutable {
-            return std::static_pointer_cast<tgcalls::SharedAudioDeviceModule>(std::make_shared<SharedAudioDeviceModuleImpl>(disableRecording, enableSystemMute, legacyBehavior, onStartResult));
+        _audioDeviceModule.reset(new tgcalls::ThreadLocalObject<tgcalls::SharedAudioDeviceModule>(tgcalls::StaticThreads::getThreads()->getWorkerThread(), [disableRecording, enableSystemMute, legacyBehavior, voiceSettings, onStartResult]() mutable {
+            return std::static_pointer_cast<tgcalls::SharedAudioDeviceModule>(std::make_shared<SharedAudioDeviceModuleImpl>(disableRecording, enableSystemMute, legacyBehavior, voiceSettings, onStartResult));
         }));
     }
     return self;
+}
+
+- (bool)canReuseCompletedVoiceCaptureWithDisableRecording:(bool)disableRecording {
+    return !_voiceSettings.enabled && !CallCaptureVoiceSettings::current(disableRecording).enabled;
 }
 
 - (void)dealloc {
@@ -2170,7 +2299,7 @@ static void (*InternalVoipLoggingFunction)(NSString *) = NULL;
                     return audioDeviceModule->getSyncAssumingSameThread()->audioDeviceModule();
                 } else {
                     rtc::Thread *audioDeviceModuleThread = rtc::Thread::Current();
-                    auto resultModule = rtc::make_ref_counted<webrtc::tgcalls_ios_adm::AudioDeviceModuleIOS>(false, false, false, 1);
+                    auto resultModule = makeCallAudioDeviceIOS(false, false, CallCaptureVoiceSettings::current(false));
                     [queue dispatch:^{
                         __strong OngoingCallThreadLocalContextWebrtc *strongSelf = weakSelf;
                         if (strongSelf) {
@@ -2901,7 +3030,8 @@ useReferenceImpl:(bool)useReferenceImpl {
                     return audioDeviceModule->getSyncAssumingSameThread()->audioDeviceModule();
                 } else {
                     rtc::Thread *audioDeviceModuleThread = rtc::Thread::Current();
-                    auto resultModule = rtc::make_ref_counted<webrtc::tgcalls_ios_adm::AudioDeviceModuleIOS>(false, disableAudioInput, enableSystemMute, disableAudioInput ? 2 : 1);
+                    auto resultModule = makeCallAudioDeviceIOS(disableAudioInput, enableSystemMute,
+                        CallCaptureVoiceSettings::current(disableAudioInput));
                     if (resultModule) {
                         resultModule->mutedSpeechDetectionChanged = ^(bool value) {
                             if (onMutedSpeechActivityDetected) {

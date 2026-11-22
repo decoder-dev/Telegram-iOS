@@ -297,6 +297,7 @@ objc_library(
         "//third-party/webrtc",
         "//third-party/webrtc:webrtc_objc",
         "//submodules/MtProtoKit:MtProtoKit",
+        "//submodules/ForkVoiceDSP:ForkVoiceDSP",
         "//third-party/boringssl:crypto",
         "//third-party/boringssl:ssl",
         "//third-party/ogg:ogg",

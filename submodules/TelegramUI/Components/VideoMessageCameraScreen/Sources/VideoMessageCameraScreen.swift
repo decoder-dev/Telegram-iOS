@@ -816,9 +816,7 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                             }
                         }
                     }, error: { [weak self] _ in
-                        if let self, let controller = self.getController() {
-                            controller.completion(nil, nil, nil, nil)
-                        }
+                        self?.failVideoRecording()
                     }))
                 }
             }
@@ -831,6 +829,15 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                 self.updateScreenBrightness()
             }
         }
+
+        private func failVideoRecording() {
+            guard let controller = self.getController(), !controller.isDismissed else {
+                return
+            }
+            self.cancelVideoRecording()
+            controller.requestDismiss(animated: false)
+            controller.completion(nil, nil, nil, nil)
+        }
         
         func stopVideoRecording() {
             guard let controller = self.getController(), let camera = controller.camera else {
@@ -842,8 +849,10 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
             }
             controller.lastActionTimestamp = currentTimestamp
             
+            var didReceiveResult = false
             self.resultDisposable.set((camera.stopRecording()
             |> deliverOnMainQueue).startStrict(next: { [weak self] result in
+                didReceiveResult = true
                 if let self, let controller = self.getController(), case let .finished(mainResult, _, duration, _, _) = result {
                     self.completion.invoke(
                         .video(VideoMessageCameraScreen.CaptureResult.Video(
@@ -854,6 +863,12 @@ private final class VideoMessageCameraScreenComponent: CombinedComponent {
                         ))
                     )
                     controller.updateCameraState({ $0.updatedRecording(.none) }, transition: .spring(duration: 0.4))
+                } else if case .failed = result {
+                    self?.failVideoRecording()
+                }
+            }, completed: { [weak self] in
+                if !didReceiveResult {
+                    self?.failVideoRecording()
                 }
             }))
             

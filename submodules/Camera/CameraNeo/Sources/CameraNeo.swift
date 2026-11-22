@@ -357,6 +357,7 @@ final class CameraNeo: NSObject, CameraProtocol {
                         processor: processor,
                         url: outputUrl,
                         hasAudio: self.configuration.audio,
+                        roundVideoVoiceEffect: self.configuration.roundVideoVoiceEffect?.makeEffect(),
                         initialPosition: self.positionValue.with { $0 },
                         mode: self.roundVideoMode,
                         usesMultiCam: self.useMultiCam,

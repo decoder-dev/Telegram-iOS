@@ -243,9 +243,11 @@ public struct ForkExtrasSettings: Codable, Equatable {
     public var keepSelfDestructingMedia: Bool
     /// Fork (Ghostgram): chats, bots and messages marked "unavailable on your device" for any reason open as usual.
     public var bypassContentRestrictions: Bool
-    /// Fork (Ghostgram): the voice changer of voice messages. Preset: 0 anonymous, 1 female, 2 male, 3 child, 4 robot,
-    /// 5 custom. The custom preset's pitch is in semitones (−12…12), its reverb and echo in percent (0…100).
+    /// Voice changer. Preset: 0 anonymous, 1 female, 2 male, 3 child, 4 robot,
+    /// 5 custom, 6 Doctor Livesey. Custom pitch is in semitones (−12…12), reverb and echo in percent (0…100).
     public var voiceChangerEnabled: Bool
+    public var voiceChangerInCallsEnabled: Bool
+    public var voiceChangerInRoundVideosEnabled: Bool
     public var voiceChangerPreset: Int32
     public var voiceChangerPitch: Int32
     public var voiceChangerReverb: Int32
@@ -750,6 +752,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.keepSelfDestructingMedia = false
         self.bypassContentRestrictions = false
         self.voiceChangerEnabled = false
+        self.voiceChangerInCallsEnabled = false
+        self.voiceChangerInRoundVideosEnabled = false
         self.voiceChangerPreset = 0
         self.voiceChangerPitch = 0
         self.voiceChangerReverb = 0
@@ -999,7 +1003,9 @@ public struct ForkExtrasSettings: Codable, Equatable {
         self.keepSelfDestructingMedia = try container.decodeIfPresent(Bool.self, forKey: "keepSelfDestructingMedia") ?? false
         self.bypassContentRestrictions = try container.decodeIfPresent(Bool.self, forKey: "bypassContentRestrictions") ?? false
         self.voiceChangerEnabled = try container.decodeIfPresent(Bool.self, forKey: "voiceChangerEnabled") ?? false
-        self.voiceChangerPreset = min(5, max(0, try container.decodeIfPresent(Int32.self, forKey: "voiceChangerPreset") ?? 0))
+        self.voiceChangerInCallsEnabled = try container.decodeIfPresent(Bool.self, forKey: "voiceChangerInCallsEnabled") ?? false
+        self.voiceChangerInRoundVideosEnabled = try container.decodeIfPresent(Bool.self, forKey: "voiceChangerInRoundVideosEnabled") ?? false
+        self.voiceChangerPreset = min(6, max(0, try container.decodeIfPresent(Int32.self, forKey: "voiceChangerPreset") ?? 0))
         self.voiceChangerPitch = min(12, max(-12, try container.decodeIfPresent(Int32.self, forKey: "voiceChangerPitch") ?? 0))
         self.voiceChangerReverb = min(100, max(0, try container.decodeIfPresent(Int32.self, forKey: "voiceChangerReverb") ?? 0))
         self.voiceChangerEcho = min(100, max(0, try container.decodeIfPresent(Int32.self, forKey: "voiceChangerEcho") ?? 0))
@@ -1249,6 +1255,8 @@ public struct ForkExtrasSettings: Codable, Equatable {
         try container.encode(self.keepSelfDestructingMedia, forKey: "keepSelfDestructingMedia")
         try container.encode(self.bypassContentRestrictions, forKey: "bypassContentRestrictions")
         try container.encode(self.voiceChangerEnabled, forKey: "voiceChangerEnabled")
+        try container.encode(self.voiceChangerInCallsEnabled, forKey: "voiceChangerInCallsEnabled")
+        try container.encode(self.voiceChangerInRoundVideosEnabled, forKey: "voiceChangerInRoundVideosEnabled")
         try container.encode(self.voiceChangerPreset, forKey: "voiceChangerPreset")
         try container.encode(self.voiceChangerPitch, forKey: "voiceChangerPitch")
         try container.encode(self.voiceChangerReverb, forKey: "voiceChangerReverb")

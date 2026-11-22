@@ -836,6 +836,10 @@ public final class OngoingCallContext {
         public static func create(enableSystemMute: Bool, enableMicrophone: Bool) -> AudioDevice? {
             return AudioDevice(impl: SharedCallAudioDevice(disableRecording: !enableMicrophone, enableSystemMute: enableSystemMute))
         }
+
+        public func canReuseCompletedVoiceCapture(enableMicrophone: Bool) -> Bool {
+            return self.impl.canReuseCompletedVoiceCapture(disableRecording: !enableMicrophone)
+        }
         
         /// Server killswitch `ios_killswitch_disable_call_audio_device_fixes`: devices created after
         /// this call run the pre-2026-09-05 code paths (one-shot start without result checks or

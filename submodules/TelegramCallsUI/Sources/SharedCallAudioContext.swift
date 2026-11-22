@@ -52,6 +52,7 @@ public final class SharedCallAudioContext {
     /// context is retired the moment the next context is created instead of living on until its
     /// call object is released, which is at least 2 s after termination.
     private var isCallFinished: Bool = false
+    private var isVoiceCaptureFinished = false
     private var isRetired: Bool = false
 
     /// Server killswitch that puts the call audio device back on its pre-2026-09-05 code paths:
@@ -69,6 +70,11 @@ public final class SharedCallAudioContext {
     static func get(audioSession: ManagedAudioSession, callKitIntegration: CallKitIntegration?, defaultToSpeaker: Bool = false, reuseCurrent: Bool = false, enableMicrophone: Bool = true, legacyBehavior: Bool = false) -> SharedCallAudioContext {
         // Devices read the switch at creation, so it must be applied before the context is built.
         OngoingCallContext.AudioDevice.setLegacyBehaviorEnabled(legacyBehavior)
+
+        let previous = self.current
+        // Keep an ongoing call's effect through handoffs. A new call needs a clean delay line.
+        let replaceCompletedVoiceDevice = previous?.isVoiceCaptureFinished == true
+            && previous?.audioDevice?.canReuseCompletedVoiceCapture(enableMicrophone: enableMicrophone) == false
         
         // A context created for a CallKit call follows that call's activation cycle through
         // CallKitIntegration.audioSessionActive, and a caller without CallKit integration has no
@@ -78,7 +84,8 @@ public final class SharedCallAudioContext {
         // CallKit-bound context is retired below like any other finished context, and the new
         // context activates through ManagedAudioSession. The killswitch restores unconditional
         // reuse.
-        if let current = self.current, reuseCurrent, legacyBehavior || current.callKitIntegration === callKitIntegration {
+        if let current = previous, reuseCurrent, !replaceCompletedVoiceDevice,
+           legacyBehavior || current.callKitIntegration === callKitIntegration {
             // The reused context was configured for the call that created it (a 1:1 audio call
             // defaults to the receiver), so without this the caller's defaultToSpeaker is dropped
             // and a group call silently inherits the earpiece.
@@ -88,9 +95,9 @@ public final class SharedCallAudioContext {
             // It now belongs to a live call again; the previous owner's termination must not let a
             // later context retire it.
             current.isCallFinished = false
+            current.isVoiceCaptureFinished = false
             return current
         }
-        let previous = self.current
         let context = SharedCallAudioContext(audioSession: audioSession, callKitIntegration: callKitIntegration, defaultToSpeaker: defaultToSpeaker, enableMicrophone: enableMicrophone)
         self.current = context
         // A finished call's device kept running until its PresentationCallImpl was released and
@@ -98,7 +105,7 @@ public final class SharedCallAudioContext {
         // restarted it next to the new device (two Voice-Processing units), and the second start is
         // the one that fails. Retire it after the new holder has been pushed, so ManagedAudioSession
         // never sees an empty holder list in between (that would deactivate the real session).
-        if !legacyBehavior, let previous, previous.isCallFinished {
+        if let previous, replaceCompletedVoiceDevice || (!legacyBehavior && previous.isCallFinished) {
             previous.retire()
         }
         return context
@@ -107,6 +114,11 @@ public final class SharedCallAudioContext {
     /// The owning call has terminated for good. Lets the next `get` retire this context.
     func markCallFinished() {
         self.isCallFinished = true
+        self.markVoiceCaptureFinished()
+    }
+
+    func markVoiceCaptureFinished() {
+        self.isVoiceCaptureFinished = true
     }
     
     private func retire() {

@@ -3,6 +3,8 @@ replacement, anti-caps), No Call Rating Prompt and the estimated registration da
 build in CI."""
 import pathlib
 import re
+import subprocess
+import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -28,6 +30,8 @@ ESTIMATE = 'submodules/TelegramUI/Components/PeerInfo/PeerInfoScreen/Sources/For
 
 FIELDS = [
     ('voiceChangerEnabled', 'Bool', 'false'),
+    ('voiceChangerInCallsEnabled', 'Bool', 'false'),
+    ('voiceChangerInRoundVideosEnabled', 'Bool', 'false'),
     ('voiceChangerPreset', 'Int32', '0'),
     ('voiceChangerPitch', 'Int32', '0'),
     ('voiceChangerReverb', 'Int32', '0'),
@@ -61,15 +65,17 @@ class Settings(unittest.TestCase):
 
     def test_runtime_receives_the_settings(self):
         source = read(SHARED)
-        self.assertIn('ForkVoiceChanger.update(ForkVoiceChanger.State(enabled: settings.voiceChangerEnabled, preset: settings.voiceChangerPreset', source)
+        self.assertIn('ForkVoiceChanger.State(enabled: settings.voiceChangerEnabled, preset: settings.voiceChangerPreset', source)
+        self.assertIn('calls: settings.voiceChangerInCallsEnabled', source)
+        self.assertIn('roundVideos: settings.voiceChangerInRoundVideosEnabled', source)
         self.assertIn('ForkOutgoingTextSettings.current = ForkOutgoingTextSettings.State(rules: ForkOutgoingTextSettings.parseRules(settings.textReplacementRules), antiCaps: settings.antiCaps)', source)
         self.assertIn('ForkPlaybackEqualizerSettings.publish(enabled: settings.equalizerEnabled, gains: [settings.equalizerBand60, settings.equalizerBand230, settings.equalizerBand910, settings.equalizerBand3600, settings.equalizerBand14000], videos: settings.equalizerVideos)', source)
 
     def test_new_rows_have_unique_ids_and_groups(self):
         source = read(EXTRAS)
-        for row_id in list(range(2440, 2447)) + [2450, 2451, 2453, 2455, 2456, 2457, 2458] + list(range(2460, 2469)):
+        for row_id in list(range(2440, 2449)) + [2450, 2451, 2453, 2455, 2456, 2457, 2458] + list(range(2460, 2469)):
             self.assertEqual(len(re.findall(r'\(%d,' % row_id, source)), 1, row_id)
-        self.assertIn('[2440, 2441, 2442, 2443, 2444, 2445, 2446],', source)
+        self.assertIn('[2440, 2441, 2447, 2448, 2442, 2443, 2444, 2445, 2446],', source)
         self.assertIn('[2460, 2461, 2462, 2463, 2464, 2465, 2466, 2467, 2468],', source)
         self.assertIn('[2450, 2451, 2452, 2453]', source)
         # The rules editor has no id literal: its stableId is fixed in the enum.
@@ -92,10 +98,28 @@ class VoiceChanger(unittest.TestCase):
         self.assertIn('"//submodules/ForkVoiceDSP:ForkVoiceDSP"', read(MEDIA_BUILD))
         header = read(DSP_HEADER)
         source = read(DSP_SOURCE)
-        for name in ['ForkVoiceChainCreate', 'ForkVoiceChainProcessInt16', 'ForkVoiceChainDestroy', 'ForkAudioEqualizerSetParameters', 'ForkAudioEqualizerProcessInt16']:
+        for name in ['ForkVoiceChainCreate', 'ForkVoiceChainProcessInt16', 'ForkVoiceChainDestroy', 'ForkAudioEqualizerSetParameters', 'ForkAudioEqualizerProcessInt16', 'ForkVoiceCaptureSetCallParams', 'ForkVoiceCaptureGetCallParams', 'ForkVoiceCaptureSetRoundVideoParams', 'ForkVoiceCaptureGetRoundVideoParams']:
             self.assertIn(name, header)
             self.assertIn(name, source)
         self.assertNotRegex(header + source, r'\bGG[A-Z_]|\bgg_')
+
+    def test_livesey_keeps_the_custom_preset_id_and_has_independent_capture_controls(self):
+        source = read(CHANGER)
+        self.assertIn('case custom = 5', source)
+        self.assertIn('case doctorLivesey = 6', source)
+        self.assertIn('p.referencePitchHz = 190.0', source)
+        self.assertIn('min(6, max(0,', read(SETTINGS))
+        self.assertIn('"Доктор Ливси" : "Doctor Livesey", 6', read(EXTRAS))
+        self.assertIn('ForkVoiceCaptureSetCallParams(calls ? pointer : nil)', source)
+        self.assertIn('ForkVoiceCaptureSetRoundVideoParams(roundVideos ? pointer : nil)', source)
+
+    def test_reference_pitch_moves_low_and_high_voices_toward_the_character(self):
+        headers = (ROOT / DSP_HEADER).parent
+        fixture = ROOT / 'Tests/Upstream13/ForkVoiceReferencePitch.c'
+        with tempfile.TemporaryDirectory(prefix='reference-voice-pitch-') as directory:
+            executable = pathlib.Path(directory) / 'pitch-test'
+            subprocess.run(['clang', '-std=c11', '-O2', '-I', str(headers), str(ROOT / DSP_SOURCE), str(fixture), '-lm', '-pthread', '-o', str(executable)], check=True, timeout=30)
+            subprocess.run([str(executable)], check=True, timeout=30)
 
     def test_recorder_changes_the_voice_before_the_waveform_and_the_encoder(self):
         source = read(RECORDER)
@@ -143,6 +167,145 @@ class Calls(unittest.TestCase):
         guard = source.index('if strongSelf.sharedContext.immediateForkExtrasSettings.disableCallRating {\n                    return')
         self.assertLess(source.index('strongSelf.presentedCallRating = true'), guard)
         self.assertLess(guard, source.index('userInitiated: false'))
+
+
+class CallCaptureVoice(unittest.TestCase):
+    def test_shared_and_fallback_microphones_use_the_same_capture_adapter(self):
+        source = read('submodules/TgVoipWebrtc/Sources/OngoingCallThreadLocalContext.mm')
+        self.assertEqual(source.count('makeCallAudioDeviceIOS('), 4)  # Factory, shared device, 1:1, group.
+        self.assertEqual(source.count('make_ref_counted<webrtc::tgcalls_ios_adm::AudioDeviceModuleIOS>'), 1)
+        self.assertIn('"//submodules/ForkVoiceDSP:ForkVoiceDSP"', read('submodules/TgVoipWebrtc/BUILD'))
+
+    def test_only_completed_calls_replace_their_voice_capture_device(self):
+        source = read('submodules/TgVoipWebrtc/Sources/OngoingCallThreadLocalContext.mm')
+        self.assertIn('return !_voiceSettings.enabled && !CallCaptureVoiceSettings::current(disableRecording).enabled;', source)
+        shared = read('submodules/TelegramCallsUI/Sources/SharedCallAudioContext.swift')
+        self.assertIn('previous?.isVoiceCaptureFinished == true', shared)
+        self.assertIn('&& previous?.audioDevice?.canReuseCompletedVoiceCapture(enableMicrophone: enableMicrophone) == false', shared)
+        self.assertIn('reuseCurrent, !replaceCompletedVoiceDevice,', shared)
+        self.assertIn('replaceCompletedVoiceDevice || (!legacyBehavior && previous.isCallFinished)', shared)
+        group = read('submodules/TelegramCallsUI/Sources/PresentationGroupCall.swift')
+        self.assertLess(group.index('self.sharedAudioContext?.markVoiceCaptureFinished()'), group.index('self._canBeRemoved.set(.single(true))'))
+
+    def test_capture_preserves_frame_metadata_and_playout(self):
+        source = read('submodules/TgVoipWebrtc/Sources/OngoingCallThreadLocalContext.mm')
+        capture = source[source.index('struct CallCaptureVoiceSettings {'):source.index('class WrappedAudioDeviceModuleIOS :')]
+        fixture = r'''
+#include <ForkVoiceDSP/ForkVoiceDSP.h>
+#include <array>
+#include <cassert>
+#include <cstring>
+#include <memory>
+#include <optional>
+#include <utility>
+namespace absl { using std::optional; }
+namespace rtc {
+    template <typename T> using scoped_refptr = std::shared_ptr<T>;
+    template <typename T, typename... Args> scoped_refptr<T> make_ref_counted(Args&&... args) {
+        return std::make_shared<T>(std::forward<Args>(args)...);
+    }
+}
+namespace webrtc {
+    struct AudioTransport {
+        virtual ~AudioTransport() = default;
+        virtual int32_t RecordedDataIsAvailable(const void*, size_t, size_t, size_t, uint32_t, uint32_t, int32_t, uint32_t, bool, uint32_t&) = 0;
+        virtual int32_t RecordedDataIsAvailable(const void*, size_t, size_t, size_t, uint32_t, uint32_t, int32_t, uint32_t, bool, uint32_t&, absl::optional<int64_t>) = 0;
+        virtual int32_t NeedMorePlayData(size_t, size_t, size_t, uint32_t, void*, size_t&, int64_t*, int64_t*) = 0;
+        virtual void PullRenderData(int, int, size_t, size_t, void*, int64_t*, int64_t*) = 0;
+    };
+    namespace tgcalls_ios_adm {
+        struct AudioDeviceModuleIOS {
+            AudioTransport *callback = nullptr;
+            bool active = false;
+            AudioDeviceModuleIOS(bool, bool, bool, int) {}
+            virtual ~AudioDeviceModuleIOS() = default;
+            virtual int32_t RegisterAudioCallback(AudioTransport *value) {
+                if (active) return -1;
+                callback = value;
+                return 0;
+            }
+            int32_t Terminate() { active = false; callback = nullptr; return 0; }
+        };
+    }
+}
+''' + capture + r'''
+struct Sink: webrtc::AudioTransport {
+    size_t captured = 0;
+    int16_t received = 0;
+    int64_t captureTime = -1;
+    int32_t RecordedDataIsAvailable(const void *data, size_t frames, size_t bytesPerFrame, size_t channels, uint32_t rate, uint32_t delay, int32_t drift, uint32_t level, bool pressed, uint32_t &newLevel) override {
+        assert(frames == 480 && bytesPerFrame == 2 && channels == 1 && rate == 48000);
+        assert(delay == 13 && drift == 0 && level == 8 && pressed);
+        captured += frames;
+        received = static_cast<const int16_t *>(data)[0];
+        newLevel = 9;
+        return 21;
+    }
+    int32_t RecordedDataIsAvailable(const void *data, size_t frames, size_t bytesPerFrame, size_t channels, uint32_t rate, uint32_t delay, int32_t drift, uint32_t level, bool pressed, uint32_t &newLevel, absl::optional<int64_t> time) override {
+        captureTime = time.value_or(-1);
+        return RecordedDataIsAvailable(data, frames, bytesPerFrame, channels, rate, delay, drift, level, pressed, newLevel);
+    }
+    int32_t NeedMorePlayData(size_t, size_t, size_t, uint32_t, void *data, size_t &framesOut, int64_t *, int64_t *) override {
+        static_cast<int16_t *>(data)[0] = 1234;
+        framesOut = 1;
+        return 17;
+    }
+    void PullRenderData(int, int, size_t, size_t, void *data, int64_t *, int64_t *) override {
+        static_cast<int16_t *>(data)[0] = 4321;
+    }
+};
+int main() {
+    Sink sink;
+    auto original = makeCallAudioDeviceIOS(false, false, CallCaptureVoiceSettings::current(false));
+    assert(original->RegisterAudioCallback(&sink) == 0 && original->callback == &sink);
+
+    ForkVoiceParams params;
+    ForkVoiceParamsSetIdentity(&params);
+    params.gainDb = -6.0f;
+    ForkVoiceCaptureSetCallParams(&params);
+    const auto settings = CallCaptureVoiceSettings::current(false);
+    assert(settings.enabled);
+    auto device = makeCallAudioDeviceIOS(false, false, settings);
+    assert(device->RegisterAudioCallback(&sink) == 0 && device->callback != &sink);
+    device->active = true;
+    assert(device->RegisterAudioCallback(nullptr) == -1);
+    auto *callback = device->callback;
+    std::array<int16_t, 480> samples;
+    samples.fill(12000);
+    uint32_t level = 0;
+    assert(callback->RecordedDataIsAvailable(samples.data(), 480, 2, 1, 48000, 13, 0, 8, true, level, 77) == 21);
+    assert(sink.captureTime == 77 && sink.captured == 480 && sink.received != 12000 && level == 9);
+    assert(samples[0] == 12000);
+    assert(callback->RecordedDataIsAvailable(nullptr, 480, 2, 1, 48000, 13, 0, 8, true, level) == 21);
+    assert(sink.captured == 960 && sink.received == 0);
+    assert(callback->RecordedDataIsAvailable(samples.data(), 480, 8, 1, 48000, 13, 0, 8, true, level) == 0);
+    assert(sink.captured == 960);
+    int16_t playout = 0;
+    size_t framesOut = 0;
+    assert(callback->NeedMorePlayData(1, 2, 1, 48000, &playout, framesOut, nullptr, nullptr) == 17);
+    assert(playout == 1234 && framesOut == 1);
+    callback->PullRenderData(16, 48000, 1, 1, &playout, nullptr, nullptr);
+    assert(playout == 4321);
+    const auto noMic = CallCaptureVoiceSettings::current(true);
+    assert(!noMic.enabled);
+    auto stream = makeCallAudioDeviceIOS(true, false, noMic);
+    assert(stream->RegisterAudioCallback(&sink) == 0 && stream->callback == &sink);
+    ForkVoiceCaptureSetCallParams(nullptr);
+    assert(!CallCaptureVoiceSettings::current(false).enabled);
+    assert(callback->RecordedDataIsAvailable(samples.data(), 480, 2, 1, 48000, 13, 0, 8, true, level) == 21);
+    assert(sink.captured == 1440 && sink.received != 12000);
+}
+'''
+        with tempfile.TemporaryDirectory(prefix='call-capture-voice-') as directory:
+            directory = pathlib.Path(directory)
+            headers = ROOT / 'submodules/ForkVoiceDSP/PublicHeaders'
+            dsp = directory / 'dsp.o'
+            program = directory / 'main.cpp'
+            executable = directory / 'capture-test'
+            program.write_text(fixture, encoding='utf-8')
+            subprocess.run(['clang', '-std=c11', '-I', str(headers / 'ForkVoiceDSP'), '-c', str(ROOT / DSP_SOURCE), '-o', str(dsp)], check=True, timeout=30)
+            subprocess.run(['clang++', '-std=c++17', '-I', str(headers), str(program), str(dsp), '-o', str(executable)], check=True, timeout=30)
+            subprocess.run([str(executable)], check=True, timeout=30)
 
 
 class RegistrationDate(unittest.TestCase):

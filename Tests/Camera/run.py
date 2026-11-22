@@ -85,6 +85,8 @@ with tempfile.TemporaryDirectory(prefix='picker-dismissal-') as directory:
     subprocess.run(['swift', str(path)], check=True, timeout=120)
 
 subprocess.run([sys.executable, str(root / 'Tests/Camera/permissions.py')], check=True)
+if sys.platform == 'darwin':
+    subprocess.run([sys.executable, str(root / 'Tests/Camera/round_video_voice.py')], check=True)
 
 legacy = (root / 'submodules/Camera/CameraLegacy/Sources/LegacyCamera.swift').read_text(encoding='utf-8')
 start_stop = legacy[legacy.index('    private var wantsCapture ='):legacy.index('    func focus(at point:')]

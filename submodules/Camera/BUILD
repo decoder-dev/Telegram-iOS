@@ -51,6 +51,7 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
+        "//submodules/ForkVoiceDSP:ForkVoiceDSP",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/Utils/DeviceModel",
     ],

@@ -1372,7 +1372,11 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ForkContentRestrictionsBypassSettings.enabled = settings.bypassContentRestrictions
         ForkOutgoingTextSettings.current = ForkOutgoingTextSettings.State(rules: ForkOutgoingTextSettings.parseRules(settings.textReplacementRules), antiCaps: settings.antiCaps)
         ForkPlaybackEqualizerSettings.publish(enabled: settings.equalizerEnabled, gains: [settings.equalizerBand60, settings.equalizerBand230, settings.equalizerBand910, settings.equalizerBand3600, settings.equalizerBand14000], videos: settings.equalizerVideos)
-        ForkVoiceChanger.update(ForkVoiceChanger.State(enabled: settings.voiceChangerEnabled, preset: settings.voiceChangerPreset, customPitch: settings.voiceChangerPitch, customReverb: settings.voiceChangerReverb, customEcho: settings.voiceChangerEcho))
+        ForkVoiceChanger.update(
+            ForkVoiceChanger.State(enabled: settings.voiceChangerEnabled, preset: settings.voiceChangerPreset, customPitch: settings.voiceChangerPitch, customReverb: settings.voiceChangerReverb, customEcho: settings.voiceChangerEcho),
+            calls: settings.voiceChangerInCallsEnabled,
+            roundVideos: settings.voiceChangerInRoundVideosEnabled
+        )
         ForkExpireTtlSettings.enabled = settings.expireTtlButton
         BananaVisualLabels.update(settings.visualLabels)
         BananaLocalVerificationBadges.update(settings.localVerificationBadges)

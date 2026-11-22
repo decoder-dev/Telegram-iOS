@@ -6,7 +6,7 @@ import ForkVoiceDSP
 /// level meter and the Opus encoder see it, so the real voice is never written and every way of sending (at once,
 /// after listening, pause and continue, drafts, trimming) gets the changed file.
 ///
-/// The preset values are Ghostgram's; the effect graph is `ForkVoiceDSP`.
+/// The effect graph in `ForkVoiceDSP` also processes outgoing call and round video audio.
 public enum ForkVoiceChangerPreset: Int32, CaseIterable {
     case anonymous = 0
     case female = 1
@@ -14,6 +14,7 @@ public enum ForkVoiceChangerPreset: Int32, CaseIterable {
     case child = 3
     case robot = 4
     case custom = 5
+    case doctorLivesey = 6
 }
 
 public enum ForkVoiceChanger {
@@ -38,8 +39,19 @@ public enum ForkVoiceChanger {
 
     /// Main thread, from `SharedAccountContext` when the Extras settings change. The recorder reads it on its own queue
     /// when a recording starts.
-    public static func update(_ value: State) {
+    public static func update(_ value: State, calls: Bool, roundVideos: Bool) {
         let _ = self.state.swap(value)
+        var captureState = value
+        captureState.enabled = calls || roundVideos
+        if var params = self.params(for: captureState) {
+            withUnsafePointer(to: &params) { pointer in
+                ForkVoiceCaptureSetCallParams(calls ? pointer : nil)
+                ForkVoiceCaptureSetRoundVideoParams(roundVideos ? pointer : nil)
+            }
+        } else {
+            ForkVoiceCaptureSetCallParams(nil)
+            ForkVoiceCaptureSetRoundVideoParams(nil)
+        }
     }
 
     public static var current: State {
@@ -100,6 +112,17 @@ public enum ForkVoiceChanger {
             p.echoMix = Float(max(0, min(100, state.customEcho))) / 100.0
             p.echoDelayMs = 180.0
             p.echoFeedback = 0.3
+        case .doctorLivesey:
+            // Paperny's dialogue centers around 190 Hz and has strong lower mids.
+            p.referencePitchHz = 190.0
+            p.timbre = -0.15
+            p.bassDb = 1.5
+            p.midDb = 2.0
+            p.trebleDb = 0.75
+            p.distortion = 0.045
+            p.compression = 0.2
+            p.reverbMix = 0.025
+            p.reverbSize = 0.2
         }
         // A custom preset left at zero changes nothing: the recorder then skips the chain.
         return ForkVoiceParamsIsIdentity(&p) ? nil : p
