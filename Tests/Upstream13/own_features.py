@@ -1108,13 +1108,20 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation/overrid
         self.assertIn('UserDefaults.standard.set(now as NSNumber, forKey: backgroundIndexKey)', app)
         self.assertLess(app.index('forKey: backgroundIndexKey)'), app.index('Executing cleanup task'))
         iap = read('submodules/InAppPurchaseManager/Sources/InAppPurchaseManager.swift')
-        self.assertIn('min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, InAppPurchaseManager.maximumRetryExponent))), 900.0)', iap)
+        self.assertIn('min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, StoreProductCatalog.maximumRetryExponent))), 900.0)', iap)
         self.assertIn('private static let maximumRetryExponent = 7', iap)
         # Device log (30 Oct): every account context and every launch climbed the ladder again, 218 requests a
-        # day for a build with no products. A recent empty answer starts the retries at the ceiling.
-        self.assertIn('UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: InAppPurchaseManager.emptyProductsAnswerKey)', iap)
-        self.assertIn('self.productRequestRetryCount = InAppPurchaseManager.maximumRetryExponent', iap)
-        self.assertIn('UserDefaults.standard.removeObject(forKey: InAppPurchaseManager.emptyProductsAnswerKey)', iap)
+        # day for a build with no products. All accounts now share the same catalog and retry state.
+        self.assertIn('static let shared = StoreProductCatalog()', iap)
+        self.assertIn('return StoreProductCatalog.shared.availableProducts', iap)
+        manager_init = iap.split('public init(engine: SomeTelegramEngine)', 1)[1].split('deinit', 1)[0]
+        self.assertNotIn('requestProducts()', manager_init)
+        catalog_access = iap.split('var availableProducts: Signal<[SKProduct]', 1)[1].split('private func requestProducts()', 1)[0]
+        self.assertIn('deferred', catalog_access)
+        self.assertIn('self.requestProducts()', catalog_access)
+        self.assertIn('UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: StoreProductCatalog.emptyProductsAnswerKey)', iap)
+        self.assertIn('self.productRequestRetryCount = StoreProductCatalog.maximumRetryExponent', iap)
+        self.assertIn('UserDefaults.standard.removeObject(forKey: StoreProductCatalog.emptyProductsAnswerKey)', iap)
         self.assertIn('self.productRequestRetryCount = 0', iap)
         picker = read('submodules/LegacyMediaPickerUI/Sources/LegacyICloudFilePicker.swift')
         self.assertIn('source: "cancel"', picker)
@@ -1138,7 +1145,7 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation/overrid
         src = read('submodules/WalletContext/Sources/WalletContextImpl.swift')
         request = src.split('func requestServerWalletState(forceRefreshAfterCurrent: Bool = false) {', 1)[1].split('private func performServerWalletStateRequest', 1)[0]
         self.assertIn('!forceRefreshAfterCurrent', request)
-        self.assertIn('CFAbsoluteTimeGetCurrent() - self.serverStateLastFailureTimestamp < self.serverStateCooldown() - 0.5', request)
+        self.assertIn('self.serverStateRetryDelay() > 0.5', request)
         self.assertIn('self.scheduleServerStateRetry()', request)
         cooldown = src.split('func serverStateCooldown() -> TimeInterval {', 1)[1].split('func requestServerWalletState', 1)[0]
         self.assertIn('if self.walletScreenCount > 0 {\n            return base', cooldown)
@@ -1152,7 +1159,7 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation/overrid
         self.assertIn('if previousWalletCount == 0 && self.walletScreenCount > 0, self.serverStateLastFailureWasRefusal {', demand)
         self.assertIn('let failedAt = CFAbsoluteTimeGetCurrent()', src)
         self.assertIn('self.serverStateLastFailureTimestamp = failedAt', src)
-        self.assertIn('let delaySeconds = self.serverStateCooldown()', src)
+        self.assertIn('let delaySeconds = self.serverStateRetryDelay()', src)
 
     def test_ghost_flags_have_one_direction_from_settings_to_the_mirror(self):
         # 31 Oct audit, C-6: ForkGhostModeSettings mirrors the ghost fields of ForkExtrasSettings (read at cold launch,
@@ -1207,7 +1214,9 @@ print("Account-scoped ghost exceptions: isolation/persistence/revocation/overrid
         self.assertIn('error as? WalletGetStateError', refusal)
         self.assertIn('code >= 400 && code < 500', refusal)
         failure = src.split('self.logger.error("wallet_state_failed", error)', 1)[1].split('self.scheduleServerStateRetry()', 1)[0]
-        self.assertIn('if WalletContextImpl.isServerStateRefusal(error) {', failure)
+        self.assertIn('let serverRefused = WalletContextImpl.isServerStateRefusal(error)', failure)
+        self.assertIn('error: serverRefused ? .unavailable : .network', failure)
+        self.assertIn('if serverRefused {', failure)
         self.assertIn('self.serverStateRetryFailureCount = WalletContextImpl.serverStateMaximumFailureCount', failure)
         self.assertIn('self.serverStateLastFailureWasRefusal = true', failure)
         self.assertIn('UserDefaults.standard.set(failedAt, forKey: self.serverStateRefusalDefaultsKey)', failure)

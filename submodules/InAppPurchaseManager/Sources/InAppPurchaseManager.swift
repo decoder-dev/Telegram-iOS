@@ -247,21 +247,6 @@ public final class InAppPurchaseManager: NSObject {
     
     private let engine: SomeTelegramEngine
     
-    private var products: [Product] = []
-    private var productsPromise = Promise<[Product]>([])
-    private var productRequest: SKProductsRequest?
-    private var productRequestTimeoutTimer: SwiftSignalKit.Timer?
-    private var productRequestRetryTimer: SwiftSignalKit.Timer?
-    private var productRequestRetryCount: Int = 0
-    
-    /// When the store last answered with no products. Every account context has its own manager and the count above
-    /// starts from zero in each, so a build without products (a re-signed sideload) climbed the whole 10 s ... 15 min
-    /// ladder again for every account on every launch: 218 requests in one day's device log. A recent empty answer
-    /// starts the retries at the ceiling; the first request of a manager still goes out at once.
-    private static let emptyProductsAnswerKey = "InAppPurchaseManager.emptyProductsAnswerAt"
-    private static let emptyProductsAnswerMemory: Double = 24.0 * 60.0 * 60.0
-    private static let maximumRetryExponent = 7
-    
     private let stateQueue = Queue()
     private var paymentContexts: [String: PaymentTransactionContext] = [:]
     
@@ -276,19 +261,10 @@ public final class InAppPurchaseManager: NSObject {
                 
         super.init()
         
-        let emptyAnswerAt = UserDefaults.standard.double(forKey: InAppPurchaseManager.emptyProductsAnswerKey)
-        if emptyAnswerAt > 0.0, Date().timeIntervalSince1970 - emptyAnswerAt < InAppPurchaseManager.emptyProductsAnswerMemory {
-            self.productRequestRetryCount = InAppPurchaseManager.maximumRetryExponent
-        }
-        
         SKPaymentQueue.default().add(self)
-        self.requestProducts()
     }
     
     deinit {
-        self.productRequestTimeoutTimer?.invalidate()
-        self.productRequestRetryTimer?.invalidate()
-        self.productRequest?.cancel()
         SKPaymentQueue.default().remove(self)
     }
     
@@ -296,57 +272,11 @@ public final class InAppPurchaseManager: NSObject {
         return SKPaymentQueue.canMakePayments()
     }
     
-    private func requestProducts() {
-        Queue.mainQueue().async { [weak self] in
-            guard let self, self.products.isEmpty, self.productRequest == nil, self.productRequestRetryTimer == nil else {
-                return
-            }
-            Logger.shared.log("InAppPurchaseManager", "Requesting products")
-            let productRequest = SKProductsRequest(productIdentifiers: Set(productIdentifiers))
-            productRequest.delegate = self
-            self.productRequest = productRequest
-
-            let timeoutTimer = SwiftSignalKit.Timer(timeout: 30.0, repeat: false, completion: { [weak self, weak productRequest] in
-                guard let self, let productRequest, self.productRequest === productRequest else {
-                    return
-                }
-                Logger.shared.log("InAppPurchaseManager", "Product request timed out")
-                self.productRequest = nil
-                self.productRequestTimeoutTimer = nil
-                productRequest.cancel()
-                self.scheduleProductRequestRetry()
-            }, queue: Queue.mainQueue())
-            self.productRequestTimeoutTimer = timeoutTimer
-            timeoutTimer.start()
-            productRequest.start()
-        }
-    }
-
-    private func scheduleProductRequestRetry() {
-        guard self.products.isEmpty, self.productRequest == nil, self.productRequestRetryTimer == nil else {
-            return
-        }
-        // A build that cannot load its products (a re-signed sideload has none) would otherwise ask the
-        // store every 10 seconds for as long as it runs; back off to a 15 minute ceiling instead.
-        let delay = min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, InAppPurchaseManager.maximumRetryExponent))), 900.0)
-        self.productRequestRetryCount += 1
-        Logger.shared.log("InAppPurchaseManager", "Retrying product request in \(Int(delay)) seconds")
-        let retryTimer = SwiftSignalKit.Timer(timeout: delay, repeat: false, completion: { [weak self] in
-            guard let self else {
-                return
-            }
-            self.productRequestRetryTimer = nil
-            self.requestProducts()
-        }, queue: Queue.mainQueue())
-        self.productRequestRetryTimer = retryTimer
-        retryTimer.start()
-    }
-    
     public var availableProducts: Signal<[Product], NoError> {
-        self.requestProducts()
-        return self.productsPromise.get()
+        return StoreProductCatalog.shared.availableProducts
+        |> map { products in products.map { Product(skProduct: $0) } }
     }
-    
+
     public func restorePurchases(completion: @escaping (RestoreState) -> Void) {
         Logger.shared.log("InAppPurchaseManager", "Restoring purchases")
         self.onRestoreCompletion = completion
@@ -601,24 +531,125 @@ public final class InAppPurchaseManager: NSObject {
     }
 }
 
-extension InAppPurchaseManager: SKProductsRequestDelegate {
-    public func productsRequest(_ request: SKProductsRequest, didReceive response: SKProductsResponse) {
+private final class StoreProductCatalog: NSObject, SKProductsRequestDelegate {
+    static let shared = StoreProductCatalog()
+
+    private var products: [SKProduct] = []
+    private let productsPromise = Promise<[SKProduct]>([])
+    private var productRequest: SKProductsRequest?
+    private var productRequestTimeoutTimer: SwiftSignalKit.Timer?
+    private var productRequestRetryTimer: SwiftSignalKit.Timer?
+    private var productRequestRetryCount: Int = 0
+    private var storefrontRefreshScheduled = false
+
+    // The catalog belongs to the signed app and storefront. Every Telegram account shares the same request.
+    private static let emptyProductsAnswerKey = "InAppPurchaseManager.emptyProductsAnswerAt"
+    private static let emptyProductsAnswerMemory: Double = 24.0 * 60.0 * 60.0
+    private static let maximumRetryExponent = 7
+
+    private override init() {
+        super.init()
+        let emptyAnswerAt = UserDefaults.standard.double(forKey: StoreProductCatalog.emptyProductsAnswerKey)
+        if emptyAnswerAt > 0.0, Date().timeIntervalSince1970 - emptyAnswerAt < StoreProductCatalog.emptyProductsAnswerMemory {
+            self.productRequestRetryCount = StoreProductCatalog.maximumRetryExponent
+        }
+    }
+
+    var availableProducts: Signal<[SKProduct], NoError> {
+        return deferred {
+            self.requestProducts()
+            return self.productsPromise.get()
+        }
+    }
+
+    func storefrontDidChange() {
+        let queue = Queue.mainQueue()
+        queue.async {
+            guard !self.storefrontRefreshScheduled else { return }
+            UserDefaults.standard.removeObject(forKey: StoreProductCatalog.emptyProductsAnswerKey)
+            self.productRequestRetryCount = 0
+            guard !self.products.isEmpty || self.productRequest != nil || self.productRequestRetryTimer != nil else { return }
+            self.storefrontRefreshScheduled = true
+            // Each account observer may receive the same storefront event.
+            queue.justDispatch {
+                let previousRequest = self.productRequest
+                self.productRequest = nil
+                previousRequest?.cancel()
+                self.productRequestTimeoutTimer?.invalidate()
+                self.productRequestTimeoutTimer = nil
+                self.productRequestRetryTimer?.invalidate()
+                self.productRequestRetryTimer = nil
+                self.products = []
+                self.productsPromise.set(.single([]))
+                self.storefrontRefreshScheduled = false
+                self.requestProducts()
+            }
+        }
+    }
+
+    private func requestProducts() {
         Queue.mainQueue().async { [weak self] in
-            guard let self, self.productRequest === request else {
+            guard let self, !self.storefrontRefreshScheduled, self.products.isEmpty, self.productRequest == nil, self.productRequestRetryTimer == nil else {
+                return
+            }
+            Logger.shared.log("InAppPurchaseManager", "Requesting products")
+            let productRequest = SKProductsRequest(productIdentifiers: Set(productIdentifiers))
+            productRequest.delegate = self
+            self.productRequest = productRequest
+
+            let timeoutTimer = SwiftSignalKit.Timer(timeout: 30.0, repeat: false, completion: { [weak self, weak productRequest] in
+                guard let self, let productRequest, self.productRequest === productRequest else {
+                    return
+                }
+                Logger.shared.log("InAppPurchaseManager", "Product request timed out")
+                self.productRequest = nil
+                self.productRequestTimeoutTimer = nil
+                productRequest.cancel()
+                self.scheduleProductRequestRetry()
+            }, queue: Queue.mainQueue())
+            self.productRequestTimeoutTimer = timeoutTimer
+            timeoutTimer.start()
+            productRequest.start()
+        }
+    }
+
+    private func scheduleProductRequestRetry() {
+        guard self.products.isEmpty, self.productRequest == nil, self.productRequestRetryTimer == nil else {
+            return
+        }
+        // A build that cannot load its products (a re-signed sideload has none) would otherwise ask the
+        // store every 10 seconds for as long as it runs; back off to a 15 minute ceiling instead.
+        let delay = min(10.0 * pow(2.0, Double(min(self.productRequestRetryCount, StoreProductCatalog.maximumRetryExponent))), 900.0)
+        self.productRequestRetryCount += 1
+        Logger.shared.log("InAppPurchaseManager", "Retrying product request in \(Int(delay)) seconds")
+        let retryTimer = SwiftSignalKit.Timer(timeout: delay, repeat: false, completion: { [weak self] in
+            guard let self else {
+                return
+            }
+            self.productRequestRetryTimer = nil
+            self.requestProducts()
+        }, queue: Queue.mainQueue())
+        self.productRequestRetryTimer = retryTimer
+        retryTimer.start()
+    }
+
+    func productsRequest(_ request: SKProductsRequest, didReceive response: SKProductsResponse) {
+        Queue.mainQueue().async { [weak self] in
+            guard let self, !self.storefrontRefreshScheduled, self.productRequest === request else {
                 return
             }
             self.productRequest = nil
             self.productRequestTimeoutTimer?.invalidate()
             self.productRequestTimeoutTimer = nil
-            let products = response.products.map { Product(skProduct: $0) }
+            let products = response.products
 
-            Logger.shared.log("InAppPurchaseManager", "Received products \(products.map({ $0.skProduct.productIdentifier }).joined(separator: ", "))")
+            Logger.shared.log("InAppPurchaseManager", "Received \(products.count) products, \(response.invalidProductIdentifiers.count) unrecognized identifiers")
             guard !products.isEmpty else {
-                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: InAppPurchaseManager.emptyProductsAnswerKey)
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: StoreProductCatalog.emptyProductsAnswerKey)
                 self.scheduleProductRequestRetry()
                 return
             }
-            UserDefaults.standard.removeObject(forKey: InAppPurchaseManager.emptyProductsAnswerKey)
+            UserDefaults.standard.removeObject(forKey: StoreProductCatalog.emptyProductsAnswerKey)
             self.productRequestRetryTimer?.invalidate()
             self.productRequestRetryTimer = nil
             self.products = products
@@ -627,7 +658,7 @@ extension InAppPurchaseManager: SKProductsRequestDelegate {
         }
     }
 
-    public func request(_ request: SKRequest, didFailWithError error: Error) {
+    func request(_ request: SKRequest, didFailWithError error: Error) {
         Queue.mainQueue().async { [weak self] in
             guard let self, self.productRequest === request else {
                 return
@@ -654,6 +685,10 @@ private func getReceiptData() -> Data? {
 }
 
 extension InAppPurchaseManager: SKPaymentTransactionObserver {
+    public func paymentQueueDidChangeStorefront(_ queue: SKPaymentQueue) {
+        StoreProductCatalog.shared.storefrontDidChange()
+    }
+
     public func paymentQueue(_ queue: SKPaymentQueue, updatedTransactions transactions: [SKPaymentTransaction]) {
         self.stateQueue.async { [self] in
             let accountPeerId: String

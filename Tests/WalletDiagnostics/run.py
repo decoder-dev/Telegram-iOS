@@ -33,6 +33,26 @@ precondition((WalletGetStateError.generic as NSError).code == 0)
 precondition(WalletGetStateError.generic.diagnosticKind == "generic")
 print("Wallet RPC codes, bounded categories and sensitive-text redaction passed")
 '''
+context = (root / 'submodules/WalletContext/Sources/WalletContextImpl.swift').read_text(encoding='utf-8')
+start = context.index('    private func serverStateRetryDelay(')
+end = context.index('    func requestServerWalletState(', start)
+fixture = 'import CoreFoundation\n' + fixture + '''
+struct RetryContext {
+    let serverStateLastFailureTimestamp: CFAbsoluteTime
+    let cooldown: TimeInterval
+
+    func serverStateCooldown() -> TimeInterval { return self.cooldown }
+
+''' + context[start:end].replace('private func', 'func', 1) + '''
+}
+let retry = RetryContext(serverStateLastFailureTimestamp: 100, cooldown: 3600)
+precondition(retry.serverStateRetryDelay(now: 100) == 3600)
+precondition(retry.serverStateRetryDelay(now: 3500) == 200)
+precondition(retry.serverStateRetryDelay(now: 3700) == 0)
+precondition(retry.serverStateRetryDelay(now: 4000) == 0)
+precondition(retry.serverStateRetryDelay(now: 50) == 3600)
+print("Wallet state reuses the remaining cooldown across lifecycle changes")
+'''
 with tempfile.TemporaryDirectory() as directory:
     path = pathlib.Path(directory) / 'main.swift'
     path.write_text(fixture)
