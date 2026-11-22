@@ -15,8 +15,13 @@ def extract(path, start, end):
 
 health = extract('submodules/TelegramCore/Sources/Network/NetworkFrameworkTcpConnectionInterface.swift',
                  'struct NetworkEndpointHealth {', '\n}')
-commit = extract('submodules/TelegramCore/Sources/Network/FetchV2.swift',
-                 '        private func commitPendingReadyPart(', '\n        }').replace('private func', 'func', 1)
+fetch_source = 'submodules/TelegramCore/Sources/Network/FetchV2.swift'
+commit = extract(fetch_source, '        private func commitPendingReadyPart(', '\n        }').replace('private func', 'func', 1)
+priority = extract('submodules/Postbox/Sources/MediaBox.swift', 'public enum MediaBoxFetchPriority:', '\n}')
+part_alignment = extract(fetch_source, 'private let possiblePartLengths:', '\n}')
+range_filter_end = '\n                var maxPendingParts = state.maxPendingParts'
+range_filter = extract(fetch_source, '                var filteredRequiredRanges:', range_filter_end).removesuffix(range_filter_end)
+part_schedule = extract(fetch_source, '                    while state.pendingParts.count < maxPendingParts', '\n                    }')
 trim = extract('submodules/TelegramCore/Sources/State/AccountViewTracker.swift',
                '    func trimCachedData()', '\n    }')
 ws_connect = extract('submodules/TelegramCore/Sources/Network/MTWebSocketConnectionInterface.swift',
@@ -42,6 +47,45 @@ final class Fetch {
     func onNext(_ event: Event) { events.append(event) }
 '''
 fixture += commit + '\n}\n'
+fixture += part_alignment + '\n' + priority + '''
+struct PendingPart {
+    let partRange: Range<Int64>
+    let fetchRange: Range<Int64>
+}
+struct CdnReupload {
+    let ranges: RangeSet<Int64>
+}
+struct RequestedRange {
+    let value: Range<Int64>
+    let priority: MediaBoxFetchPriority
+}
+struct SchedulingState {
+    let partSize: Int64
+    let minPartSize: Int64
+    let maxPartSize: Int64
+    let partAlignment: Int64
+    let partDivision: Int64 = 1024 * 1024
+    let maxPendingParts = 6
+    var nextRangePriorityIndex = 0
+    var completedRanges = RangeSet<Int64>()
+    var pendingParts: [PendingPart] = []
+    var pendingReadyParts: [PendingPart] = []
+    var pendingCdnReuploads: [CdnReupload] = []
+}
+struct Scheduler {
+    let requiredRanges: [RequestedRange]
+    let knownSize: Int64?
+    let loggingIdentifier = "test"
+
+    func schedule(state: inout SchedulingState) -> [RangeSet<Int64>] {
+''' + range_filter + '''
+        let unscheduledRanges = filteredRequiredRanges
+        let maxPendingParts = state.maxPendingParts
+''' + part_schedule + '''
+        return unscheduledRanges
+    }
+}
+'''
 fixture += '''
 final class ImmediateQueue { func async(_ f: () -> Void) { f() } }
 final class PeerContext { var viewIds: Set<Int> = [] }
@@ -90,8 +134,51 @@ for id in UInt64(300)...320 {
     now += delay
 }
 
-// All permutations of a full block, final partial block and an empty read beyond EOF.
 let block: Int64 = 128 * 1024
+// A full download, playback and an explicit fetch may ask for the same bytes. A high-priority
+// subrange owns those bytes, and alignment must reserve the actual request in every bucket.
+let overlappingRanges = Scheduler(requiredRanges: [
+    RequestedRange(value: 0..<block, priority: .default),
+    RequestedRange(value: 0..<(block / 2), priority: .elevated),
+    RequestedRange(value: (block / 4)..<(block / 2), priority: .maximum),
+], knownSize: block)
+let geometries: [(partSize: Int64, minPartSize: Int64, maxPartSize: Int64, alignment: Int64, expectedRequests: Int)] = [
+    (block, 4096, 8 * block, 4096, 3),
+    (4 * block, 4096, 8 * block, 4096, 3),
+    (block, block, 2 * block, block, 1),
+]
+for (partSize, minPartSize, maxPartSize, alignment, expectedRequests) in geometries {
+    var state = SchedulingState(partSize: partSize, minPartSize: minPartSize, maxPartSize: maxPartSize, partAlignment: alignment)
+    let ranges = overlappingRanges.schedule(state: &state)
+    precondition(ranges == [RangeSet((block / 2)..<block), RangeSet(0..<(block / 4)), RangeSet((block / 4)..<(block / 2))])
+    precondition(state.pendingParts.count == expectedRequests)
+    precondition(Set(state.pendingParts.map(\\.fetchRange)).count == expectedRequests)
+    let pendingCount = state.pendingParts.count
+    _ = overlappingRanges.schedule(state: &state)
+    precondition(state.pendingParts.count == pendingCount, "An update must respect reservations from earlier passes")
+}
+
+let withinMasterAlignment = Scheduler(requiredRanges: [
+    RequestedRange(value: 0..<1024, priority: .default),
+    RequestedRange(value: 2048..<4096, priority: .maximum),
+], knownSize: block)
+var master = SchedulingState(partSize: block, minPartSize: 4096, maxPartSize: 8 * block, partAlignment: 4096)
+_ = withinMasterAlignment.schedule(state: &master)
+precondition(master.pendingParts.map(\\.fetchRange) == [0..<4096])
+
+// Disjoint priorities near a division boundary still align to one physical CDN part.
+let boundary = 8 * block
+let clippedRanges = Scheduler(requiredRanges: [
+    RequestedRange(value: (boundary - 32)..<(boundary - 24), priority: .default),
+    RequestedRange(value: (boundary - 8)..<(boundary + 200), priority: .elevated),
+], knownSize: boundary + 4)
+var cdn = SchedulingState(partSize: block, minPartSize: block, maxPartSize: 2 * block, partAlignment: block)
+let clipped = clippedRanges.schedule(state: &cdn)
+precondition(clipped[1] == RangeSet((boundary - 8)..<(boundary + 4)))
+precondition(cdn.pendingParts.map(\\.fetchRange) == [(boundary - block)..<boundary, boundary..<(boundary + block)])
+print("Multipart priority ranges, aligned reservations and division boundaries: passed")
+
+// All permutations of a full block, final partial block and an empty read beyond EOF.
 for order in [[0,1,2], [0,2,1], [1,0,2], [1,2,0], [2,0,1], [2,1,0]] {
     let fetch = Fetch()
     let state = FetchingState()

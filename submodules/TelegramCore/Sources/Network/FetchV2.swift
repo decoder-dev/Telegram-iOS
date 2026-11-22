@@ -688,7 +688,7 @@ private final class FetchImpl {
                         filteredRequiredRanges[i].subtract(pendingCdnReupload.ranges)
                     }
                     
-                    excludedInHigherPriorities.subtract(filteredRequiredRanges[i])
+                    excludedInHigherPriorities.formUnion(filteredRequiredRanges[i])
                 }
                 
                 var maxPendingParts = state.maxPendingParts
@@ -769,7 +769,10 @@ private final class FetchImpl {
                                 fetchRange: alignedRange
                             )
                             state.pendingParts.append(pendingPart)
-                            filteredRequiredRanges[priorityIndex].remove(contentsOf: storePartRange)
+                            // Alignment can cover bytes requested by other priorities in this update.
+                            for index in filteredRequiredRanges.indices {
+                                filteredRequiredRanges[index].remove(contentsOf: storePartRange)
+                            }
                             
                             found = true
                             break inner
