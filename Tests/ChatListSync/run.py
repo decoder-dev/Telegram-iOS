@@ -1,4 +1,4 @@
-"""Exercise the production pagination offset resolver and its nonblocking wiring."""
+"""Exercise nonblocking chat-list sync and notification update recovery."""
 import pathlib
 import subprocess
 import sys
@@ -7,6 +7,8 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "submodules/TelegramCore/Sources/State/FetchChatList.swift"
+ACCOUNT_STATE_SOURCE = SOURCE.with_name("AccountStateManager.swift")
+APPLICATION_SOURCE = ROOT / "submodules/TelegramUI/Sources/ApplicationContext.swift"
 
 class WiringTests(unittest.TestCase):
     def test_missing_peer_does_not_wait_forever(self):
@@ -28,6 +30,36 @@ class WiringTests(unittest.TestCase):
                 self.assertNotIn(".text", line)
                 self.assertNotIn(".title", line)
 
+    def test_only_nonempty_local_notification_batches_are_published(self):
+        source = ACCOUNT_STATE_SOURCE.read_text(encoding="utf-8")
+        start = source.index("let incomingNotificationIds = notificationMessageCandidates(")
+        batch = source[start:source.index("let minReactionTimestamp", start)]
+        self.assertIn("deleted: events.deletedMessageIds", batch)
+        self.assertIn("for id in incomingNotificationIds", batch)
+        self.assertIn("if let strongSelf = self, !messages.isEmpty", batch)
+        self.assertIn("strongSelf.notificationMessagesPipe.putNext(messages)", batch)
+        self.assertIn("guard !message.isLocallyDeleted", source)
+        self.assertIn("$0.id != message.id && !$0.isLocallyDeleted", source)
+
+    def test_foreground_notification_rechecks_deleted_messages_after_lookup(self):
+        source = APPLICATION_SOURCE.read_text(encoding="utf-8")
+        start = source.index("self.notificationMessagesDisposable.set")
+        notifications = source[start:source.index("self.termsOfServiceUpdatesDisposable.set", start)]
+        self.assertIn("guard !archiveNotificationShouldRedact(transaction: transaction,", notifications)
+        self.assertIn("messages.compactMap { transaction.getMessage($0.id) }.filter { !$0.isLocallyDeleted && !TelegramShadowBan.isHidden($0) }", notifications)
+        self.assertIn("currentFirstMessage.id == firstMessage.id", notifications)
+        self.assertLess(notifications.index("currentFirstMessage.id == firstMessage.id"), notifications.index("playIncomingMessageSound()"))
+
+    def test_standalone_poll_retries_stale_state_and_lets_too_long_fall_back(self):
+        source = ACCOUNT_STATE_SOURCE.read_text(encoding="utf-8")
+        start = source.index("        public func standalonePollDifference()")
+        poll = source[start:source.index("        private func insertProcessEvents", start)]
+        self.assertNotIn("preconditionFailure()", poll)
+        self.assertIn(".single((nil, true))", poll.split("case .differenceTooLong:", 1)[1].split("default:", 1)[0])
+        self.assertIn(".single((nil, false))", poll.split("if state.initialState.state != authorizedState", 1)[1])
+        self.assertIn("return (nil, false)", poll.split("if replayedState != nil", 1)[1])
+        self.assertIn("return isTerminalWithoutDifference", poll)
+
 
 def run_swift():
     source = SOURCE.read_text(encoding="utf-8")
@@ -36,10 +68,15 @@ def run_swift():
     offset_start = source.index("        let offset: Signal<")
     offset_block = source[offset_start:source.index("\n        return offset\n", offset_start)]
     offset_source = "func loadOffset(postbox: Postbox, upperBound: MessageIndex) -> Signal<(Int32, Int32, Api.InputPeer), NoError> {\n" + offset_block + "\nreturn offset\n}"
+    account_state = ACCOUNT_STATE_SOURCE.read_text(encoding="utf-8")
+    start = account_state.index("func notificationMessageCandidates(")
+    notification_candidates = account_state[start:account_state.index("\n}", start) + 2]
     fixture = r"""
 import Foundation
-struct PeerId { var namespace: Int32 }
-struct MessageId { var peerId: PeerId; var id: Int32 }
+struct PeerId: Hashable { var namespace: Int32 }
+struct MessageId: Hashable { var peerId: PeerId; var id: Int32; var namespace: Int32 = 0 }
+struct GlobalMessageIdsNamespace: Hashable { var peerIdNamespace: Int32; var messageIdNamespace: Int32 }
+enum DeletedMessageId: Hashable { case global(Int32), messageId(MessageId) }
 struct MessageIndex { var id: MessageId; var timestamp: Int32 }
 enum Namespaces { enum Peer { static let Empty: Int32 = -1 } }
 enum Api { enum InputPeer: Equatable { case inputPeerEmpty, user(Int64), channel(Int64), group(Int64) } }
@@ -80,13 +117,29 @@ precondition(result.0 == 0 && result.1 == 0 && result.2 == .inputPeerEmpty)
 let recovered = resolvedChatListOffset(upperBound: cursor, peer: Peer(input: .channel(2)))
 precondition(recovered.0 == cursor.timestamp && recovered.1 == cursor.id.id)
 print("Chat list offsets: absent peer, unusable peer, initial page, users/groups/channels and recovery passed")
+
+let globalPeer = PeerId(namespace: 0)
+let channelPeer = PeerId(namespace: 2)
+let globalNamespaces: Set<GlobalMessageIdsNamespace> = [GlobalMessageIdsNamespace(peerIdNamespace: 0, messageIdNamespace: 0)]
+let globalDeletion = MessageId(peerId: globalPeer, id: 30)
+let channelWithSameId = MessageId(peerId: channelPeer, id: 30)
+let differentMessageNamespace = MessageId(peerId: globalPeer, id: 30, namespace: 1)
+let exactDeletion = MessageId(peerId: channelPeer, id: 31)
+precondition(notificationMessageCandidates(
+    incoming: [globalDeletion, channelWithSameId, channelWithSameId, differentMessageNamespace, exactDeletion],
+    deleted: [.global(30), .messageId(exactDeletion)],
+    globalNamespaces: globalNamespaces
+) == [channelWithSameId, differentMessageNamespace])
+precondition(notificationMessageCandidates(incoming: [], deleted: [], globalNamespaces: globalNamespaces).isEmpty)
+print("Notification candidates: deletions, namespace boundaries and duplicate IDs passed")
 """
     with tempfile.TemporaryDirectory(prefix="chat-list-sync-") as tmp:
         path = pathlib.Path(tmp) / "main.swift"
-        path.write_text("\n\n".join([fixture, function, offset_source, tests]), encoding="utf-8")
+        path.write_text("\n\n".join([fixture, function, offset_source, notification_candidates, tests]), encoding="utf-8")
         subprocess.run(["swift", str(path)], check=True)
-        for name in ["FetchChatList.swift", "Holes.swift", "ResetState.swift"]:
+        for name in ["FetchChatList.swift", "Holes.swift", "ResetState.swift", "AccountStateManager.swift"]:
             subprocess.run(["swiftc", "-frontend", "-parse", str(SOURCE.parent / name)], check=True)
+        subprocess.run(["swiftc", "-frontend", "-parse", str(APPLICATION_SOURCE)], check=True)
 
 if __name__ == "__main__":
     result = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(WiringTests))

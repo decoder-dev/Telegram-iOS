@@ -396,18 +396,24 @@ final class AuthorizedApplicationContext {
                             // in-app foreground toast either — that's a separate code path from
                             // the OS push banner (NotificationService.swift) and was leaking
                             // sender name/text the same way.
-                            context.account.postbox.transaction { transaction -> Bool in
-                                return archiveNotificationShouldRedact(transaction: transaction, peerId: firstMessage.id.peerId)
+                            context.account.postbox.transaction { transaction -> [EngineRawMessage] in
+                                guard !archiveNotificationShouldRedact(transaction: transaction, peerId: firstMessage.id.peerId) else {
+                                    return []
+                                }
+                                // A later update may delete a message while this notification is queued.
+                                return messages.compactMap { transaction.getMessage($0.id) }.filter { !$0.isLocallyDeleted && !TelegramShadowBan.isHidden($0) }
                             }
                         )
-                        |> deliverOnMainQueue).start(next: { locked, shouldRedactForArchive in
+                        |> deliverOnMainQueue).start(next: { locked, messages in
                             guard let strongSelf = self else {
                                 return
                             }
 
-                            guard !locked, !shouldRedactForArchive else {
+                            guard !locked, UIApplication.shared.applicationState == .active,
+                                  let currentFirstMessage = messages.first, currentFirstMessage.id == firstMessage.id else {
                                 return
                             }
+                            let firstMessage = currentFirstMessage
                             // Fork extras: "suppress notifications for mentions / pinned messages". The
                             // Notification Service Extension applies the same filter to pushes, but a
                             // sideloaded build gets no APNs, so this in-app banner (and its sound) is

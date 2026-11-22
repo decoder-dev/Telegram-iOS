@@ -61,6 +61,18 @@ public enum DeletedMessageId: Hashable {
     case messageId(MessageId)
 }
 
+func notificationMessageCandidates(incoming: [MessageId], deleted: [DeletedMessageId], globalNamespaces: Set<GlobalMessageIdsNamespace>) -> [MessageId] {
+    let deletions = Set(deleted)
+    var seen = Set<MessageId>()
+    return incoming.filter { id in
+        guard seen.insert(id).inserted, !deletions.contains(.messageId(id)) else {
+            return false
+        }
+        let namespace = GlobalMessageIdsNamespace(peerIdNamespace: id.peerId.namespace, messageIdNamespace: id.namespace)
+        return !globalNamespaces.contains(namespace) || !deletions.contains(.global(id.id))
+    }
+}
+
 final class MessagesRemovedContext {
     private var messagesRemovedInteractively = Set<DeletedMessageId>()
     private var messagesRemovedRemotely = Set<DeletedMessageId>()
@@ -1234,10 +1246,17 @@ public final class AccountStateManager {
                     let _ = self.delayNotificatonsUntil.swap(events.delayNotificatonsUntil)
                 }
                 
+                // A difference can add and then delete the same message across merged slices.
+                // Never try to notify for an ID the server has already removed.
+                let incomingNotificationIds = notificationMessageCandidates(
+                    incoming: events.addedIncomingMessageIds,
+                    deleted: events.deletedMessageIds,
+                    globalNamespaces: self.postbox.seedConfiguration.globalMessageIdsPeerIdNamespaces
+                )
                 let signal = self.postbox.transaction { transaction -> [([Message], PeerGroupId, Bool, MessageHistoryThreadData?)] in
                     var messageList: [([Message], PeerGroupId, Bool, MessageHistoryThreadData?)] = []
                     
-                    for id in events.addedIncomingMessageIds {
+                    for id in incomingNotificationIds {
                         let (messages, notify, _, _, threadData) = messagesForNotification(transaction: transaction, id: id, alwaysReturnMessage: false)
                         if !messages.isEmpty {
                             messageList.append((messages, .root, notify, threadData))
@@ -1266,7 +1285,7 @@ public final class AccountStateManager {
                 
                 let _ = (signal
                 |> deliverOn(self.queue)).start(next: { [weak self] messages in
-                    if let strongSelf = self {
+                    if let strongSelf = self, !messages.isEmpty {
                         strongSelf.notificationMessagesPipe.putNext(messages)
                     }
                 }, completed: {
@@ -1458,7 +1477,7 @@ public final class AccountStateManager {
                 }
             }
             |> take(1)
-            |> mapToSignal { [weak self] state -> Signal<(difference: Api.updates.Difference?, finalStatte: AccountReplayedFinalState?, skipBecauseOfError: Bool), NoError> in
+            |> mapToSignal { [weak self] state -> Signal<(difference: Api.updates.Difference?, isTerminalWithoutDifference: Bool), NoError> in
                 if let authorizedState = state.state {
                     let flags: Int32 = 0
                     let ptsTotalLimit: Int32? = nil
@@ -1475,30 +1494,32 @@ public final class AccountStateManager {
                     |> retryRequest
                     
                     return request
-                    |> mapToSignal { difference -> Signal<(difference: Api.updates.Difference?, finalStatte: AccountReplayedFinalState?, skipBecauseOfError: Bool), NoError> in
+                    |> mapToSignal { difference -> Signal<(difference: Api.updates.Difference?, isTerminalWithoutDifference: Bool), NoError> in
                         guard let difference = difference else {
-                            return .single((nil, nil, true))
+                            return .single((nil, true))
                         }
                         switch difference {
                         case .differenceTooLong:
-                            preconditionFailure()
+                            // The extension can deliver the original push without a full account reset.
+                            Logger.shared.log("State", "standalone poll difference too long, using existing notification content")
+                            return .single((nil, true))
                         default:
                             return initialStateWithDifference(postbox: postbox, difference: difference)
-                            |> mapToSignal { state -> Signal<(difference: Api.updates.Difference?, finalStatte: AccountReplayedFinalState?, skipBecauseOfError: Bool), NoError> in
+                            |> mapToSignal { state -> Signal<(difference: Api.updates.Difference?, isTerminalWithoutDifference: Bool), NoError> in
                                 if state.initialState.state != authorizedState {
                                     Logger.shared.log("State", "pollDifference initial state \(authorizedState) != current state \(state.initialState.state)")
-                                    return .single((nil, nil, false))
+                                    return .single((nil, false))
                                 } else {
                                     return finalStateWithDifference(accountPeerId: accountPeerId, postbox: postbox, network: network, state: state, difference: difference, asyncResetChannels: nil)
                                     |> deliverOn(queue)
-                                    |> mapToSignal { finalState -> Signal<(difference: Api.updates.Difference?, finalStatte: AccountReplayedFinalState?, skipBecauseOfError: Bool), NoError> in
+                                    |> mapToSignal { finalState -> Signal<(difference: Api.updates.Difference?, isTerminalWithoutDifference: Bool), NoError> in
                                         if !finalState.state.preCachedResources.isEmpty {
                                             for (resource, data) in finalState.state.preCachedResources {
                                                 mediaBox.storeResourceData(resource.id, data: data)
                                             }
                                         }
                                         let removePossiblyDeliveredMessagesUniqueIds = self?.removePossiblyDeliveredMessagesUniqueIds ?? Dictionary()
-                                        return postbox.transaction { transaction -> (difference: Api.updates.Difference?, finalStatte: AccountReplayedFinalState?, skipBecauseOfError: Bool) in
+                                        return postbox.transaction { transaction -> (difference: Api.updates.Difference?, isTerminalWithoutDifference: Bool) in
                                             let startTime = CFAbsoluteTimeGetCurrent()
                                             let replayedState = try? replayFinalState(
                                                 accountManager: accountManager,
@@ -1524,10 +1545,10 @@ public final class AccountStateManager {
                                                 Logger.shared.log("State", "replayFinalState took \(deltaTime)s")
                                             }
                                             
-                                            if let replayedState = replayedState {
-                                                return (difference, replayedState, false)
+                                            if replayedState != nil {
+                                                return (difference, false)
                                             } else {
-                                                return (nil, nil, false)
+                                                return (nil, false)
                                             }
                                         }
                                     }
@@ -1536,22 +1557,23 @@ public final class AccountStateManager {
                         }
                     }
                 } else {
-                    return .single((nil, nil, false))
+                    return .single((nil, true))
                 }
             }
             |> deliverOn(self.queue)
             
             return signal
-            |> mapToSignal { difference, _, _ -> Signal<Bool, NoError> in
+            |> map { difference, isTerminalWithoutDifference -> Bool in
                 if let difference = difference {
                     switch difference {
                     case .differenceSlice:
-                        return .single(false)
+                        return false
                     default:
-                        return .single(true)
+                        return true
                     }
                 } else {
-                    return .single(true)
+                    // A concurrent writer invalidated this snapshot. The caller retries under its deadline.
+                    return isTerminalWithoutDifference
                 }
             }
         }
@@ -2449,6 +2471,9 @@ public func messagesForNotification(transaction: Transaction, id: MessageId, alw
         Logger.shared.log("AccountStateManager", "notification message doesn't exist")
         return ([], false, defaultCloudPeerNotificationSound, false, nil)
     }
+    guard !message.isLocallyDeleted else {
+        return ([], false, defaultCloudPeerNotificationSound, false, nil)
+    }
 
     var notify = true
     var muted = false
@@ -2564,7 +2589,7 @@ public func messagesForNotification(transaction: Transaction, id: MessageId, alw
         messageGroup = transaction.getMessageGroup(message.id)
     }
     if let messageGroup = messageGroup {
-        resultMessages.append(contentsOf: messageGroup.filter({ $0.id != message.id }))
+        resultMessages.append(contentsOf: messageGroup.filter({ $0.id != message.id && !$0.isLocallyDeleted }))
     }
     
     if notify {
