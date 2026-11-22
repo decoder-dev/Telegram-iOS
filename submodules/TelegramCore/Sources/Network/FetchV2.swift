@@ -5,6 +5,44 @@ import MtProtoKit
 import RangeSet
 internal import TelegramApi
 
+/// A player may open a new fetch for each byte range while still holding the original resource.
+/// Share recent replacements across those fetches, scoped to the account's revalidation context.
+final class FetchV2FileReferenceCache {
+    private final class Entry {
+        let originalReference: Data?
+        let resource: TelegramMediaResource
+        let reference: Data
+        let expiresAt: TimeInterval
+
+        init(originalReference: Data?, resource: TelegramMediaResource, reference: Data) {
+            self.originalReference = originalReference
+            self.resource = resource
+            self.reference = reference
+            self.expiresAt = ProcessInfo.processInfo.systemUptime + 5 * 60
+        }
+    }
+
+    private let entries = NSCache<NSString, Entry>()
+
+    init() {
+        self.entries.countLimit = 128
+    }
+
+    func replacement(for id: MediaResourceId, originalReference: Data?) -> (resource: TelegramMediaResource, reference: Data)? {
+        guard let entry = self.entries.object(forKey: id.stringRepresentation as NSString), entry.originalReference == originalReference, entry.expiresAt > ProcessInfo.processInfo.systemUptime else {
+            return nil
+        }
+        return (entry.resource, entry.reference)
+    }
+
+    func store(resource: TelegramMediaResource, reference: Data, originalReference: Data?) {
+        guard !reference.isEmpty, reference != originalReference else {
+            return
+        }
+        self.entries.setObject(Entry(originalReference: originalReference, resource: resource, reference: reference), forKey: resource.id.stringRepresentation as NSString)
+    }
+}
+
 /// Whether to log one line per fetched part, on top of the per-fetch lifecycle lines.
 ///
 /// A tester's log came back 38 MB across nineteen rotated files, and 16.5 MB of that — 43% of
@@ -345,12 +383,14 @@ private final class FetchImpl {
     
     private final class RefreshingFileReferenceState {
         let fetchLocation: FetchLocation
+        let completedRanges: RangeSet<Int64>
+        let downloadedUpperBound: Int64
         var disposable: Disposable?
         
-        init(
-            fetchLocation: FetchLocation
-        ) {
-            self.fetchLocation = fetchLocation
+        init(fetchingState: FetchingState) {
+            self.fetchLocation = fetchingState.fetchLocation
+            self.completedRanges = fetchingState.completedRanges
+            self.downloadedUpperBound = fetchingState.downloadedUpperBound
         }
         
         deinit {
@@ -461,6 +501,12 @@ private final class FetchImpl {
             self.consumerId = Int64.random(in: Int64.min ... Int64.max)
             
             self.knownSize = size
+
+            if resource is TelegramCloudMediaResourceWithFileReference, let info = parameters?.info as? TelegramCloudMediaResourceFetchInfo,
+               let cached = mediaReferenceRevalidationContext?.fetchFileReferenceCache.replacement(for: resource.id, originalReference: info.reference.apiFileReference) {
+                self.resource = cached.resource
+                self.updatedFileReference = cached.reference
+            }
             
             /*#if DEBUG
             self.updatedFileReference = Data()
@@ -841,8 +887,6 @@ private final class FetchImpl {
                     Logger.shared.log("FetchV2", "\(self.loggingIdentifier): refreshing file reference")
                     
                     if let info = self.parameters?.info as? TelegramCloudMediaResourceFetchInfo, let mediaReferenceRevalidationContext = self.mediaReferenceRevalidationContext {
-                        let fetchLocation = state.fetchLocation
-                        
                         state.disposable = (revalidateMediaResourceReference(
                             accountPeerId: self.accountPeerId,
                             postbox: self.postbox,
@@ -851,13 +895,16 @@ private final class FetchImpl {
                             info: info,
                             resource: self.resource
                         )
-                        |> deliverOn(self.queue)).startStrict(next: { [weak self] validationResult in
-                            guard let `self` = self else {
+                        |> deliverOn(self.queue)).startStrict(next: { [weak self, weak state] validationResult in
+                            guard let self, let state else {
                                 return
                             }
-                            
-                            if let validatedResource = validationResult.updatedResource as? TelegramCloudMediaResourceWithFileReference, let reference = validatedResource.fileReference {
-                                self.updatedFileReference = reference
+
+                            let isSameResource = self.resource.id == validationResult.updatedResource.id
+                            let updatedReference = (validationResult.updatedResource as? TelegramCloudMediaResourceWithFileReference)?.fileReference
+                            self.updatedFileReference = updatedReference
+                            if isSameResource, let updatedReference {
+                                self.mediaReferenceRevalidationContext?.fetchFileReferenceCache.store(resource: validationResult.updatedResource, reference: updatedReference, originalReference: info.reference.apiFileReference)
                             }
                             self.resource = validationResult.updatedResource
                             
@@ -867,8 +914,8 @@ private final class FetchImpl {
                              strongSelf.resourceReference = .empty
                              }*/
                             
-                            self.state = .fetching(FetchingState(
-                                fetchLocation: fetchLocation,
+                            let resumedState = FetchingState(
+                                fetchLocation: state.fetchLocation,
                                 partSize: self.defaultPartSize,
                                 minPartSize: 4 * 1024,
                                 maxPartSize: self.defaultPartSize,
@@ -876,7 +923,12 @@ private final class FetchImpl {
                                 partDivision: 1 * 1024 * 1024,
                                 maxPendingParts: self.masterPendingParts,
                                 decryptionState: nil
-                            ))
+                            )
+                            if isSameResource, self.encryptionKey == nil {
+                                resumedState.completedRanges = state.completedRanges
+                                resumedState.downloadedUpperBound = state.downloadedUpperBound
+                            }
+                            self.state = .fetching(resumedState)
                             
                             self.update()
                         }, error: { [weak self] _ in
@@ -1132,7 +1184,7 @@ private final class FetchImpl {
                         }
                         self.fallBackToMaster(sourceDatacenterId: sourceDatacenterId, reason: error, allowRedirect: tokenExpired)
                     case .fileReferenceExpired:
-                        self.state = .refreshingFileReference(RefreshingFileReferenceState(fetchLocation: state.fetchLocation))
+                        self.state = .refreshingFileReference(RefreshingFileReferenceState(fetchingState: state))
                     case .failure:
                         self.state = .failed
                     }

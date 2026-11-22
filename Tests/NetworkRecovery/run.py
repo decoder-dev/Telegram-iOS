@@ -18,10 +18,15 @@ health = extract('submodules/TelegramCore/Sources/Network/NetworkFrameworkTcpCon
 fetch_source = 'submodules/TelegramCore/Sources/Network/FetchV2.swift'
 commit = extract(fetch_source, '        private func commitPendingReadyPart(', '\n        }').replace('private func', 'func', 1)
 priority = extract('submodules/Postbox/Sources/MediaBox.swift', 'public enum MediaBoxFetchPriority:', '\n}')
+reference_cache = extract(fetch_source, 'final class FetchV2FileReferenceCache {', '\n}')
 part_alignment = extract(fetch_source, 'private let possiblePartLengths:', '\n}')
 range_filter_end = '\n                var maxPendingParts = state.maxPendingParts'
 range_filter = extract(fetch_source, '                var filteredRequiredRanges:', range_filter_end).removesuffix(range_filter_end)
 part_schedule = extract(fetch_source, '                    while state.pendingParts.count < maxPendingParts', '\n                    }')
+revalidation_source = 'submodules/TelegramCore/Sources/Network/FetchedMediaResource.swift'
+revalidation_error = extract(revalidation_source, 'enum RevalidateMediaReferenceError', '\n}')
+revalidation_end = '\n\nfinal class MediaReferenceRevalidationContext {'
+revalidation = extract(revalidation_source, 'private typealias MediaReferenceRevalidationResult', revalidation_end).removesuffix(revalidation_end)
 trim = extract('submodules/TelegramCore/Sources/State/AccountViewTracker.swift',
                '    func trimCachedData()', '\n    }')
 ws_connect = extract('submodules/TelegramCore/Sources/Network/MTWebSocketConnectionInterface.swift',
@@ -47,6 +52,14 @@ final class Fetch {
     func onNext(_ event: Event) { events.append(event) }
 '''
 fixture += commit + '\n}\n'
+fixture += '''
+struct MediaResourceId { let stringRepresentation: String }
+protocol TelegramMediaResource { var id: MediaResourceId { get } }
+struct CloudFile: TelegramMediaResource {
+    let id: MediaResourceId
+    let accessHash: Int64
+}
+''' + reference_cache + '\n'
 fixture += part_alignment + '\n' + priority + '''
 struct PendingPart {
     let partRange: Range<Int64>
@@ -135,6 +148,20 @@ for id in UInt64(300)...320 {
 }
 
 let block: Int64 = 128 * 1024
+let mediaId = MediaResourceId(stringRepresentation: "video")
+let staleReference = Data([1])
+let freshReference = Data([2])
+let fileReferenceCache = FetchV2FileReferenceCache()
+let updatedFile = CloudFile(id: mediaId, accessHash: 42)
+fileReferenceCache.store(resource: updatedFile, reference: freshReference, originalReference: staleReference)
+let replacement = fileReferenceCache.replacement(for: mediaId, originalReference: staleReference)
+precondition(replacement?.reference == freshReference && (replacement?.resource as? CloudFile)?.accessHash == 42)
+precondition(fileReferenceCache.replacement(for: mediaId, originalReference: Data([3])) == nil)
+precondition(fileReferenceCache.replacement(for: MediaResourceId(stringRepresentation: "other"), originalReference: staleReference) == nil)
+precondition(FetchV2FileReferenceCache().replacement(for: mediaId, originalReference: staleReference) == nil)
+fileReferenceCache.store(resource: updatedFile, reference: Data(), originalReference: staleReference)
+precondition(fileReferenceCache.replacement(for: mediaId, originalReference: staleReference)?.reference == freshReference)
+
 // A full download, playback and an explicit fetch may ask for the same bytes. A high-priority
 // subrange owns those bytes, and alignment must reserve the actual request in every bucket.
 let overlappingRanges = Scheduler(requiredRanges: [
@@ -235,6 +262,10 @@ with tempfile.TemporaryDirectory(prefix='telegram-recovery-') as tmp:
     file.write_text(handshake_fixture.replace('// PRODUCTION_HANDSHAKE', handshake), encoding='utf-8')
     subprocess.run(['swift', str(file)], check=True)
     file.write_text(fixture + health + tests)
+    subprocess.run(['swift', str(file)], check=True)
+    revalidation_fixture = (root / 'Tests/NetworkRecovery/RevalidationFixtures.swift').read_text(encoding='utf-8')
+    bag = (root / 'submodules/SSignalKit/SwiftSignalKit2/Source/Bag.swift').read_text(encoding='utf-8')
+    file.write_text(revalidation_fixture.replace('// PRODUCTION_REVALIDATION', bag + '\n' + revalidation_error + '\n' + revalidation))
     subprocess.run(['swift', str(file)], check=True)
     manager = (root / 'submodules/WebProxyTransport/Sources/WebProxyManager.swift').read_text()
     manager = manager.replace('import Network\n', '')

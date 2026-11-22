@@ -126,7 +126,7 @@ public func fetchedMediaResource(
     }
 }
 
-enum RevalidateMediaReferenceError {
+enum RevalidateMediaReferenceError: Error {
     case generic
 }
 
@@ -354,8 +354,15 @@ private enum MediaReferenceRevalidationKey: Hashable {
     case savedMusic(peer: PeerReference, fileId: Int64)
 }
 
+private typealias MediaReferenceRevalidationResult = Result<Any, RevalidateMediaReferenceError>
+private typealias MediaReferenceRevalidationRequest = (
+    _ next: @escaping (Any) -> Void,
+    _ error: @escaping (RevalidateMediaReferenceError) -> Void,
+    _ completed: @escaping () -> Void
+) -> Disposable
+
 private final class MediaReferenceRevalidationItemContext {
-    let subscribers = Bag<(Any) -> Void>()
+    let subscribers = Bag<(MediaReferenceRevalidationResult) -> Void>()
     let disposable: Disposable
     
     init(disposable: Disposable) {
@@ -370,7 +377,7 @@ private final class MediaReferenceRevalidationItemContext {
         return self.subscribers.isEmpty
     }
     
-    func addSubscriber(_ f: @escaping (Any) -> Void) -> Int {
+    func addSubscriber(_ f: @escaping (MediaReferenceRevalidationResult) -> Void) -> Int {
         return self.subscribers.add(f)
     }
     
@@ -393,7 +400,7 @@ private final class MediaReferenceRevalidationContextImpl {
         self.queue = queue
     }
     
-    func genericItem(key: MediaReferenceRevalidationKey, background: Bool, request: @escaping (@escaping (Any) -> Void, @escaping (RevalidateMediaReferenceError) -> Void) -> Disposable, _ f: @escaping (Any) -> Void) -> Disposable {
+    func genericItem(key: MediaReferenceRevalidationKey, background: Bool, request: MediaReferenceRevalidationRequest, _ f: @escaping (MediaReferenceRevalidationResult) -> Void) -> Disposable {
         let queue = self.queue
         
         let itemKey = MediaReferenceRevalidationKeyAndPlacement(key: key, background: background)
@@ -405,20 +412,25 @@ private final class MediaReferenceRevalidationContextImpl {
             let disposable = MetaDisposable()
             context = MediaReferenceRevalidationItemContext(disposable: disposable)
             self.itemContexts[itemKey] = context
-            disposable.set(request({ [weak self] result in
-                queue.async {
-                    guard let strongSelf = self else {
+            let finish: (MediaReferenceRevalidationResult) -> Void = { [weak self, weak context] result in
+                // A producer can finish synchronously, before the first subscriber is registered.
+                queue.justDispatch {
+                    guard let self, let context, self.itemContexts[itemKey] === context else {
                         return
                     }
-                    if let current = strongSelf.itemContexts[itemKey], current === context {
-                        strongSelf.itemContexts.removeValue(forKey: itemKey)
-                        for subscriber in current.subscribers.copyItems() {
-                            subscriber(result)
-                        }
+                    self.itemContexts.removeValue(forKey: itemKey)
+                    context.disposable.dispose()
+                    for subscriber in context.subscribers.copyItems() {
+                        subscriber(result)
                     }
                 }
-            }, { _ in
-            }))
+            }
+            // The first result wins. Completion without a value must also release waiting fetches.
+            disposable.set(request(
+                { finish(.success($0)) },
+                { finish(.failure($0)) },
+                { finish(.failure(.generic)) }
+            ))
         }
         
         let index = context.addSubscriber(f)
@@ -431,8 +443,8 @@ private final class MediaReferenceRevalidationContextImpl {
                 if let current = strongSelf.itemContexts[itemKey], current === context {
                     current.removeSubscriber(index)
                     if current.isEmpty {
-                        current.disposable.dispose()
                         strongSelf.itemContexts.removeValue(forKey: itemKey)
+                        current.disposable.dispose()
                     }
                 }
             }
@@ -443,6 +455,7 @@ private final class MediaReferenceRevalidationContextImpl {
 final class MediaReferenceRevalidationContext {
     private let queue: Queue
     private let impl: QueueLocalObject<MediaReferenceRevalidationContextImpl>
+    let fetchFileReferenceCache = FetchV2FileReferenceCache()
     
     init() {
         self.queue = Queue()
@@ -452,13 +465,18 @@ final class MediaReferenceRevalidationContext {
         })
     }
     
-    private func genericItem(key: MediaReferenceRevalidationKey, background: Bool, request: @escaping (@escaping (Any) -> Void, @escaping (RevalidateMediaReferenceError) -> Void) -> Disposable) -> Signal<Any, RevalidateMediaReferenceError> {
+    private func genericItem(key: MediaReferenceRevalidationKey, background: Bool, request: @escaping MediaReferenceRevalidationRequest) -> Signal<Any, RevalidateMediaReferenceError> {
         return Signal { subscriber in
             let disposable = MetaDisposable()
             self.impl.with { impl in
                 disposable.set(impl.genericItem(key: key, background: background, request: request, { result in
-                    subscriber.putNext(result)
-                    subscriber.putCompletion()
+                    switch result {
+                    case let .success(value):
+                        subscriber.putNext(value)
+                        subscriber.putCompletion()
+                    case let .failure(error):
+                        subscriber.putError(error)
+                    }
                 }))
             }
             return disposable
@@ -466,7 +484,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func message(accountPeerId: PeerId, postbox: Postbox, network: Network, background: Bool, message: MessageReference) -> Signal<Message, RevalidateMediaReferenceError> {
-        return self.genericItem(key: .message(message: message), background: background, request: { next, error in
+        return self.genericItem(key: .message(message: message), background: background, request: { next, error, completed in
             let source: Signal<FetchMessageHistoryHoleSource, NoError>
             if background {
                 source = network.background()
@@ -484,7 +502,7 @@ final class MediaReferenceRevalidationContext {
                 } else {
                     error(.generic)
                 }
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<Message, RevalidateMediaReferenceError> in
             if let next = next as? Message {
                 return .single(next)
@@ -495,7 +513,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func stickerPack(postbox: Postbox, network: Network, background: Bool, stickerPack: StickerPackReference) -> Signal<(StickerPackCollectionInfo, [ItemCollectionItem]), RevalidateMediaReferenceError> {
-        return self.genericItem(key: .stickerPack(stickerPack: stickerPack), background: background, request: { next, error in
+        return self.genericItem(key: .stickerPack(stickerPack: stickerPack), background: background, request: { next, error, completed in
             return (updatedRemoteStickerPack(postbox: postbox, network: network, reference: stickerPack)
             |> mapError { _ -> RevalidateMediaReferenceError in
             }).start(next: { value in
@@ -506,7 +524,7 @@ final class MediaReferenceRevalidationContext {
                 }
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<(StickerPackCollectionInfo, [ItemCollectionItem]), RevalidateMediaReferenceError> in
             if let next = next as? (StickerPackCollectionInfo, [ItemCollectionItem]) {
                 return .single(next)
@@ -537,7 +555,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func webPage(accountPeerId: EnginePeer.Id, postbox: Postbox, network: Network, background: Bool, webPage: WebpageReference) -> Signal<TelegramMediaWebpage, RevalidateMediaReferenceError> {
-        return self.genericItem(key: .webPage(webPage: webPage), background: background, request: { next, error in
+        return self.genericItem(key: .webPage(webPage: webPage), background: background, request: { next, error, completed in
             return (updatedRemoteWebpage(postbox: postbox, network: network, accountPeerId: accountPeerId, webPage: webPage)
             |> mapError { _ -> RevalidateMediaReferenceError in
             }).start(next: { value in
@@ -548,7 +566,7 @@ final class MediaReferenceRevalidationContext {
                 }
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<TelegramMediaWebpage, RevalidateMediaReferenceError> in
             if let next = next as? TelegramMediaWebpage {
                 return .single(next)
@@ -559,7 +577,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func savedGifs(postbox: Postbox, network: Network, background: Bool) -> Signal<[TelegramMediaFile.Accessor], RevalidateMediaReferenceError> {
-        return self.genericItem(key: .savedGifs, background: background, request: { next, error in
+        return self.genericItem(key: .savedGifs, background: background, request: { next, error, completed in
             let loadRecentGifs: Signal<[TelegramMediaFile.Accessor], NoError> = postbox.transaction { transaction -> [TelegramMediaFile.Accessor] in
                 return transaction.getOrderedListItems(collectionId: Namespaces.OrderedItemList.CloudRecentGifs).compactMap({ item -> TelegramMediaFile.Accessor? in
                     if let contents = item.contents.get(RecentMediaItem.self) {
@@ -578,7 +596,7 @@ final class MediaReferenceRevalidationContext {
                 next(value)
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<[TelegramMediaFile.Accessor], RevalidateMediaReferenceError> in
             if let next = next as? [TelegramMediaFile.Accessor] {
                 return .single(next)
@@ -589,7 +607,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func savedStickers(postbox: Postbox, network: Network, background: Bool) -> Signal<[TelegramMediaFile.Accessor], RevalidateMediaReferenceError> {
-        return self.genericItem(key: .savedStickers, background: background, request: { next, error in
+        return self.genericItem(key: .savedStickers, background: background, request: { next, error, completed in
             let loadSavedStickers: Signal<[TelegramMediaFile.Accessor], NoError> = postbox.transaction { transaction -> [TelegramMediaFile.Accessor] in
                 return transaction.getOrderedListItems(collectionId: Namespaces.OrderedItemList.CloudSavedStickers).compactMap({ item -> TelegramMediaFile.Accessor? in
                     if let contents = item.contents.get(SavedStickerItem.self) {
@@ -608,7 +626,7 @@ final class MediaReferenceRevalidationContext {
                 next(value)
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<[TelegramMediaFile.Accessor], RevalidateMediaReferenceError> in
             if let next = next as? [TelegramMediaFile.Accessor] {
                 return .single(next)
@@ -619,7 +637,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func recentStickers(postbox: Postbox, network: Network, background: Bool) -> Signal<[TelegramMediaFile.Accessor], RevalidateMediaReferenceError> {
-        return self.genericItem(key: .recentStickers, background: background, request: { next, error in
+        return self.genericItem(key: .recentStickers, background: background, request: { next, error, completed in
             let loadRecentStickers: Signal<[TelegramMediaFile.Accessor], NoError> = postbox.transaction { transaction -> [TelegramMediaFile.Accessor] in
                 return transaction.getOrderedListItems(collectionId: Namespaces.OrderedItemList.CloudRecentStickers).compactMap({ item -> TelegramMediaFile.Accessor? in
                     if let contents = item.contents.get(RecentMediaItem.self) {
@@ -638,7 +656,7 @@ final class MediaReferenceRevalidationContext {
                 next(value)
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<[TelegramMediaFile.Accessor], RevalidateMediaReferenceError> in
             if let next = next as? [TelegramMediaFile.Accessor] {
                 return .single(next)
@@ -649,7 +667,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func peer(accountPeerId: PeerId, postbox: Postbox, network: Network, background: Bool, peer: PeerReference) -> Signal<Peer, RevalidateMediaReferenceError> {
-        return self.genericItem(key: .peer(peer: peer), background: background, request: { next, error in
+        return self.genericItem(key: .peer(peer: peer), background: background, request: { next, error, completed in
             return (_internal_updatedRemotePeer(accountPeerId: accountPeerId, postbox: postbox, network: network, peer: peer)
             |> mapError { _ -> RevalidateMediaReferenceError in
                 return .generic
@@ -657,7 +675,7 @@ final class MediaReferenceRevalidationContext {
                 next(value)
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<Peer, RevalidateMediaReferenceError> in
             if let next = next as? Peer {
                 return .single(next)
@@ -674,7 +692,7 @@ final class MediaReferenceRevalidationContext {
         } else {
             key = .wallpapers
         }
-        return self.genericItem(key: key, background: background, request: { next, error in
+        return self.genericItem(key: key, background: background, request: { next, error, completed in
             let signal: Signal<[TelegramWallpaper]?, RevalidateMediaReferenceError>
             if let wallpaper = wallpaper, case let .slug(slug) = wallpaper {
                 signal = getWallpaper(network: network, slug: slug)
@@ -697,7 +715,7 @@ final class MediaReferenceRevalidationContext {
                 }
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<[TelegramWallpaper], RevalidateMediaReferenceError> in
             if let next = next as? [TelegramWallpaper] {
                 return .single(next)
@@ -708,7 +726,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func themes(postbox: Postbox, network: Network, background: Bool) -> Signal<[TelegramTheme], RevalidateMediaReferenceError> {
-        return self.genericItem(key: .themes, background: background, request: { next, error in
+        return self.genericItem(key: .themes, background: background, request: { next, error, completed in
             return (_internal_telegramThemes(postbox: postbox, network: network, accountManager: nil, forceUpdate: true)
             |> take(1)
             |> mapError { _ -> RevalidateMediaReferenceError in
@@ -716,7 +734,7 @@ final class MediaReferenceRevalidationContext {
                 next(value)
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<[TelegramTheme], RevalidateMediaReferenceError> in
             if let next = next as? [TelegramTheme] {
                 return .single(next)
@@ -727,14 +745,14 @@ final class MediaReferenceRevalidationContext {
     }
     
     func peerAvatars(accountPeerId: PeerId, postbox: Postbox, network: Network, background: Bool, peer: PeerReference) -> Signal<[TelegramPeerPhoto], RevalidateMediaReferenceError> {
-        return self.genericItem(key: .peerAvatars(peer: peer), background: background, request: { next, error in
+        return self.genericItem(key: .peerAvatars(peer: peer), background: background, request: { next, error, completed in
             return (_internal_requestPeerPhotos(accountPeerId: accountPeerId, postbox: postbox, network: network, peerId: peer.id)
             |> mapError { _ -> RevalidateMediaReferenceError in
             }).start(next: { value in
                 next(value)
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<[TelegramPeerPhoto], RevalidateMediaReferenceError> in
             if let next = next as? [TelegramPeerPhoto] {
                 return .single(next)
@@ -745,7 +763,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func attachBot(accountPeerId: PeerId, postbox: Postbox, network: Network, background: Bool, peer: PeerReference) -> Signal<AttachMenuBot, RevalidateMediaReferenceError> {
-        return self.genericItem(key: .attachBot(peer: peer), background: background, request: { next, error in
+        return self.genericItem(key: .attachBot(peer: peer), background: background, request: { next, error, completed in
             return (_internal_getAttachMenuBot(accountPeerId: accountPeerId, postbox: postbox, network: network, botId: peer.id, cached: false)
             |> mapError { _ -> RevalidateMediaReferenceError in
                 return .generic
@@ -753,7 +771,7 @@ final class MediaReferenceRevalidationContext {
                 next(value)
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<AttachMenuBot, RevalidateMediaReferenceError> in
             if let next = next as? AttachMenuBot {
                 return .single(next)
@@ -764,7 +782,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func story(accountPeerId: PeerId, postbox: Postbox, network: Network, background: Bool, peer: PeerReference, id: Int32) -> Signal<Stories.StoredItem, RevalidateMediaReferenceError> {
-        return self.genericItem(key: .story(peer: peer, id: id), background: background, request: { next, error in
+        return self.genericItem(key: .story(peer: peer, id: id), background: background, request: { next, error, completed in
             return (_internal_getStoriesById(accountPeerId: accountPeerId, postbox: postbox, network: network, peer: peer, ids: [id])
             |> castError(RevalidateMediaReferenceError.self)
             |> mapToSignal { result -> Signal<Stories.StoredItem, RevalidateMediaReferenceError> in
@@ -777,7 +795,7 @@ final class MediaReferenceRevalidationContext {
                 next(value)
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         })
         |> mapToSignal { next -> Signal<Stories.StoredItem, RevalidateMediaReferenceError> in
             if let next = next as? Stories.StoredItem {
@@ -789,7 +807,7 @@ final class MediaReferenceRevalidationContext {
     }
     
     func starsTransaction(accountPeerId: PeerId, postbox: Postbox, network: Network, background: Bool, transaction: StarsTransactionReference) -> Signal<StarsContext.State.Transaction, RevalidateMediaReferenceError> {
-        return self.genericItem(key: .starsTransaction(transaction: transaction), background: background, request: { next, error in
+        return self.genericItem(key: .starsTransaction(transaction: transaction), background: background, request: { next, error, completed in
             return (_internal_getStarsTransaction(accountPeerId: accountPeerId, postbox: postbox, network: network, transactionReference: transaction)
             |> castError(RevalidateMediaReferenceError.self)
             |> mapToSignal { result -> Signal<StarsContext.State.Transaction, RevalidateMediaReferenceError> in
@@ -802,7 +820,7 @@ final class MediaReferenceRevalidationContext {
                 next(value)
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<StarsContext.State.Transaction, RevalidateMediaReferenceError> in
             if let next = next as? StarsContext.State.Transaction {
                 return .single(next)
@@ -816,7 +834,7 @@ final class MediaReferenceRevalidationContext {
         guard let file = media as? TelegramMediaFile else {
             return .fail(.generic)
         }
-        return self.genericItem(key: .savedMusic(peer: peer, fileId: file.fileId.id), background: background, request: { next, error in
+        return self.genericItem(key: .savedMusic(peer: peer, fileId: file.fileId.id), background: background, request: { next, error, completed in
             return (_internal_getSavedMusicById(postbox: postbox, network: network, peer: peer, file: file)
             |> castError(RevalidateMediaReferenceError.self)
             |> mapToSignal { result -> Signal<TelegramMediaFile, RevalidateMediaReferenceError> in
@@ -829,7 +847,7 @@ final class MediaReferenceRevalidationContext {
                 next(value)
             }, error: { _ in
                 error(.generic)
-            })
+            }, completed: completed)
         }) |> mapToSignal { next -> Signal<TelegramMediaFile, RevalidateMediaReferenceError> in
             if let next = next as? TelegramMediaFile {
                 return .single(next)
@@ -840,14 +858,14 @@ final class MediaReferenceRevalidationContext {
     }
     
     func notificationSoundList(postbox: Postbox, network: Network, background: Bool) -> Signal<[TelegramMediaFile], RevalidateMediaReferenceError> {
-        return self.genericItem(key: .notificationSoundList, background: background, request: { next, error in
+        return self.genericItem(key: .notificationSoundList, background: background, request: { next, error, completed in
             return (requestNotificationSoundList(network: network, hash: 0)
             |> map { result -> [TelegramMediaFile] in
                 guard let result = result else {
                     return []
                 }
                 return result.sounds.map(\.file)
-            }).start(next: next)
+            }).start(next: next, completed: completed)
         }) |> mapToSignal { next -> Signal<[TelegramMediaFile], RevalidateMediaReferenceError> in
             if let next = next as? [TelegramMediaFile] {
                 return .single(next)
