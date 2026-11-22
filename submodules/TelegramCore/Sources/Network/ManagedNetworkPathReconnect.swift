@@ -10,44 +10,50 @@ private let pathReconnectDebounceSeconds: Double = 1.5
 func managedNetworkPathReconnect(network: Network) -> Signal<Never, NoError> {
     return Signal { _ in
         let monitor = NWPathMonitor()
+        let queue = Queue(name: "ManagedNetworkPathReconnect")
+        let disposed = Atomic(value: false)
         var lastSignature: String?
         var debounceTimer: SwiftSignalKit.Timer?
-        let debounceQueue = Queue()
         
         monitor.pathUpdateHandler = { path in
+            guard !disposed.with({ $0 }) else { return }
             // Only the interface the system prefers decides: `availableInterfaces` lists every interface that is up,
             // and extra ones (AWDL for AirDrop and Handoff, a tunnel for Private Relay) come and go on their own
             // while the route in use stays the same. Counting them rebuilt the transport (and the proxy connection)
             // 153 times in two days of one device's log, 70% of them with the cellular or Wi-Fi route unchanged.
             // A VPN taking over the default route still changes the preferred interface, so it still rebuilds.
-            let preferredInterface = path.availableInterfaces.first.map { String(describing: $0.type) } ?? "none"
+            let preferredInterface = path.availableInterfaces.first.map { "\($0.type):\($0.name)" } ?? "none"
             let signature = "\(String(describing: path.status))-\(preferredInterface)"
-            guard path.status == .satisfied else {
-                lastSignature = signature
-                return
-            }
-            guard let previous = lastSignature, previous != signature else {
-                lastSignature = signature
-                return
-            }
+            let previous = lastSignature
             lastSignature = signature
-            
-            debounceQueue.async {
+            guard path.status == .satisfied else {
+                // A previously scheduled rebuild is obsolete as soon as the route is lost.
                 debounceTimer?.invalidate()
-                debounceTimer = SwiftSignalKit.Timer(timeout: pathReconnectDebounceSeconds, repeat: false, completion: {
-                    Logger.shared.log("Network", "path changed (\(previous) → \(signature)), rebuilding transport")
-                    network.rebuildTransport()
-                }, queue: debounceQueue)
-                debounceTimer?.start()
+                debounceTimer = nil
+                return
             }
+            guard let previous, previous != signature else {
+                return
+            }
+            
+            debounceTimer?.invalidate()
+            debounceTimer = SwiftSignalKit.Timer(timeout: pathReconnectDebounceSeconds, repeat: false, completion: { timer in
+                guard debounceTimer === timer, !disposed.with({ $0 }) else { return }
+                debounceTimer = nil
+                Logger.shared.log("Network", "path changed (\(previous) → \(signature)), rebuilding transport")
+                network.rebuildTransport()
+            }, queue: queue)
+            debounceTimer?.start()
         }
-        monitor.start(queue: DispatchQueue(label: "ManagedNetworkPathReconnect"))
+        monitor.start(queue: queue.queue)
         
         return ActionDisposable {
-            debounceQueue.async {
-                debounceTimer?.invalidate()
-            }
+            let _ = disposed.swap(true)
             monitor.cancel()
+            queue.async {
+                debounceTimer?.invalidate()
+                debounceTimer = nil
+            }
         }
     }
 }
