@@ -8,13 +8,13 @@ import TelegramCore
 /// There is no other crash handler in this app, so nothing here competes with one. Every handler
 /// restores the default disposition and re-raises, which leaves the operating system's own crash
 /// report untouched — this only adds a breadcrumb the OS report cannot carry: *which launch stage*
-/// was running.
+/// was running, and *which instruction* faulted.
 ///
 /// Async-signal-safety is the whole design constraint of the signal path. Inside a signal handler
 /// almost nothing is legal: no allocation, no locks, no Foundation, no `String`. So the file
-/// descriptor and the record buffer are both prepared at install time, and the handler does
-/// nothing but fill four bytes and `write()` them. The `NSException` handler is not in signal
-/// context and may use Foundation freely.
+/// descriptor and every buffer are prepared at install time, and the handler does nothing but fill
+/// bytes and `write()` them. The `NSException` handler is not in signal context and may use
+/// Foundation freely.
 public enum ForkLaunchBreadcrumbs {
     /// Stages, written as a single byte, so the value must stay under 256.
     ///
@@ -71,6 +71,10 @@ public enum ForkLaunchBreadcrumbs {
     private static var alternateStack: UnsafeMutableRawPointer?
     private static var frameBuffer: UnsafeMutablePointer<UnsafeMutableRawPointer?>?
     private static let maximumFrames = 96
+    /// Scratch for the hex lines the handler writes. Building them with `String` would allocate,
+    /// which signal context forbids; this buffer is filled and handed to `write()` instead.
+    private static var textBuffer: UnsafeMutablePointer<UInt8>?
+    private static let textBufferCapacity = 128
     /// Touched from the signal handler, so it is a plain global rather than anything with a lock.
     private static var lastStage: UInt8 = 0
     private static var installed = false
@@ -107,6 +111,7 @@ public enum ForkLaunchBreadcrumbs {
         self.recordBuffer = buffer
 
         self.frameBuffer = UnsafeMutablePointer<UnsafeMutableRawPointer?>.allocate(capacity: self.maximumFrames)
+        self.textBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: self.textBufferCapacity)
 
         // MINSIGSTKSZ is the floor for an empty handler; `backtrace` walks frames and wants room.
         let alternateStackSize = max(Int(SIGSTKSZ), 64 * 1024)
@@ -124,9 +129,18 @@ public enum ForkLaunchBreadcrumbs {
         // so the disposition is installed through sigaction instead.
         // Annotated: `sigaction` names both this struct and the C function, and the annotation is
         // what tells the type checker which one a bare `sigaction()` means.
+        //
+        // SA_SIGINFO is what makes the record worth having. Without it the handler learns the
+        // signal number and nothing else, and — worse — `backtrace()` from a handler running on
+        // the alternate stack can only walk the handler's own frames, not the interrupted ones:
+        // the 2026-11-23 SIGSEGV record held a seven-frame handler chain (this handler, the
+        // platform trampoline, the Go runtime's forwarding frames) and not one faulting frame.
+        // With SA_SIGINFO the kernel hands the handler `siginfo` and the interrupted thread's
+        // `ucontext`, whose register state is the faulting context: program counter, link
+        // register and frame pointer, plus the faulting address for SIGSEGV/SIGBUS.
         var action: sigaction = sigaction()
-        action.__sigaction_u.__sa_handler = forkLaunchCrashSignalHandler
-        action.sa_flags = Int32(SA_ONSTACK) | Int32(SA_RESETHAND)
+        action.__sigaction_u.__sa_sigaction = forkLaunchCrashSignalHandler
+        action.sa_flags = Int32(SA_ONSTACK) | Int32(SA_RESETHAND) | Int32(SA_SIGINFO)
         sigemptyset(&action.sa_mask)
         for signalNumber in [SIGSEGV, SIGABRT, SIGBUS, SIGILL, SIGFPE, SIGTRAP] {
             sigaction(signalNumber, &action, nil)
@@ -168,7 +182,7 @@ public enum ForkLaunchBreadcrumbs {
         self.lastStage = stage.rawValue
     }
 
-    fileprivate static func writeCrashRecord(signalNumber: Int32) {
+    fileprivate static func writeCrashRecord(signalNumber: Int32, info: UnsafeMutablePointer<siginfo_t>?, context: UnsafeMutableRawPointer?) {
         guard self.fileDescriptor >= 0, let buffer = self.recordBuffer else {
             return
         }
@@ -176,16 +190,129 @@ public enum ForkLaunchBreadcrumbs {
         buffer[1] = UInt8(truncatingIfNeeded: signalNumber)
         buffer[2] = self.lastStage
         _ = write(self.fileDescriptor, buffer, self.recordSize)
+
+        // The interrupted thread's own registers, from the ucontext the kernel passed the
+        // handler. This memory is the kernel's and reading it is signal-safe. The faulting
+        // address answers "what did it dereference"; the program counter, symbolicated against
+        // the build's dSYM, answers "in which function".
+        var faultAddress: UInt = 0
+        if let info = info, let address = info.pointee.si_addr {
+            faultAddress = UInt(bitPattern: address)
+        }
+        var programCounter: UInt = 0
+        var linkRegister: UInt = 0
+        var framePointer: UInt = 0
+        #if arch(arm64)
+        if let context = context, let mcontext = context.assumingMemoryBound(to: ucontext_t.self).pointee.uc_mcontext {
+            let state = mcontext.pointee.__ss
+            programCounter = self.stripPointerAuthentication(UInt(state.__pc))
+            linkRegister = self.stripPointerAuthentication(UInt(state.__lr))
+            framePointer = UInt(state.__fp)
+        }
+        #elseif arch(x86_64)
+        if let context = context, let mcontext = context.assumingMemoryBound(to: ucontext_t.self).pointee.uc_mcontext {
+            let state = mcontext.pointee.__ss
+            programCounter = UInt(state.__rip)
+            framePointer = UInt(state.__rbp)
+        }
+        #endif
+        self.writeContextField(label: "fault=", value: faultAddress)
+        self.writeContextField(label: "pc=", value: programCounter)
+        self.writeContextField(label: "lr=", value: linkRegister)
+        self.writeContextField(label: "fp=", value: framePointer)
+        if let text = self.textBuffer {
+            text[0] = 0x0A
+            _ = write(self.fileDescriptor, text, 1)
+        }
+        // Durable before the stack walk below: the walk dereferences frame pointers taken from a
+        // crashed thread, and if one of them is wild the handler faults again and dies here. With
+        // the record and the register line already on disk, that still leaves a useful record.
+        fsync(self.fileDescriptor)
+
         // `backtrace` and `backtrace_symbols_fd` are both documented async-signal-safe, and the
-        // buffer they fill was allocated at install time. This is the difference between "died on
-        // signal 11" and knowing which ten functions were calling each other.
+        // buffer they fill was allocated at install time. When the interrupted frame pointer is
+        // known, walk the faulting thread's own frame chain instead: frames captured on the
+        // alternate stack show the handler, not the crash.
         if let frames = self.frameBuffer {
-            let count = backtrace(frames, Int32(self.maximumFrames))
+            var count: Int32 = 0
+            if programCounter != 0, framePointer != 0, let pcPointer = UnsafeMutableRawPointer(bitPattern: programCounter) {
+                frames[0] = pcPointer
+                count = 1 + self.walkFrameChain(from: framePointer, into: frames.advanced(by: 1), capacity: Int32(self.maximumFrames) - 1)
+            }
+            if count == 0 {
+                count = backtrace(frames, Int32(self.maximumFrames))
+            }
             if count > 0 {
                 backtrace_symbols_fd(frames, count, self.fileDescriptor)
             }
         }
         fsync(self.fileDescriptor)
+    }
+
+    /// On arm64e a return address can carry pointer-authentication bits in its top byte;
+    /// symbolication needs them gone. The mask keeps every iOS user-space address intact.
+    private static func stripPointerAuthentication(_ address: UInt) -> UInt {
+        #if arch(arm64)
+        return address & 0x0000000FFFFFFFFF
+        #else
+        return address
+        #endif
+    }
+
+    /// Writes `label` + "0x" + sixteen hex digits + a space, using only the preallocated buffer.
+    /// The label is a StaticString, whose bytes live in read-only data — no allocation anywhere.
+    private static func writeContextField(label: StaticString, value: UInt) {
+        guard let text = self.textBuffer else {
+            return
+        }
+        var length = 0
+        let labelLength = label.utf8CodeUnitCount
+        for index in 0 ..< labelLength {
+            text[length] = label.utf8Start[index]
+            length += 1
+        }
+        text[length] = 0x30 // '0'
+        text[length + 1] = 0x78 // 'x'
+        length += 2
+        var shift = 60
+        while shift >= 0 {
+            let nibble = UInt8((value >> shift) & 0xF)
+            text[length] = nibble < 10 ? 48 + nibble : 87 + nibble
+            length += 1
+            shift -= 4
+        }
+        text[length] = 0x20 // ' '
+        length += 1
+        _ = write(self.fileDescriptor, text, length)
+    }
+
+    /// Walks one thread's frame-pointer chain, collecting return addresses. A frame record is
+    /// [saved fp, saved lr]. The guards make a wild read unlikely: the chain must be 16-byte
+    /// aligned, strictly increasing (stacks grow down, so callers sit higher), stay within a
+    /// plausible single-frame distance, and remain in user space. Anything odd ends the walk —
+    /// a truncated stack is still a stack, and the register line was already written.
+    private static func walkFrameChain(from framePointer: UInt, into frames: UnsafeMutablePointer<UnsafeMutableRawPointer?>, capacity: Int32) -> Int32 {
+        var count: Int32 = 0
+        var current = framePointer
+        var previous: UInt = 0
+        while count < capacity {
+            if current == 0 || (current & 0xF) != 0 || current <= previous || current - previous > (1 << 20) || current >= 0x400000000 {
+                break
+            }
+            guard let frame = UnsafeMutablePointer<UInt64>(bitPattern: current) else {
+                break
+            }
+            let returnAddress = frame.advanced(by: 1).pointee
+            previous = current
+            current = UInt(frame.pointee)
+            let stripped = self.stripPointerAuthentication(UInt(returnAddress))
+            guard stripped != 0, let returnPointer = UnsafeMutableRawPointer(bitPattern: stripped) else {
+                break
+            }
+            frames.advanced(by: Int(count)).pointee = returnPointer
+            count += 1
+        }
+        return count
     }
 
     private static func writeExceptionRecord(name: String, reason: String) {
@@ -248,9 +375,9 @@ public enum ForkLaunchBreadcrumbs {
 
 /// Top-level so it can be used as a C function pointer: a closure that captures nothing still will
 /// not convert if it is declared inside a type in some toolchain versions, and this must not be a
-/// closure that allocates.
-private func forkLaunchCrashSignalHandler(_ signalNumber: Int32) {
-    ForkLaunchBreadcrumbs.writeCrashRecord(signalNumber: signalNumber)
+/// closure that allocates. SA_SIGINFO form: signal number, siginfo, ucontext.
+private func forkLaunchCrashSignalHandler(_ signalNumber: Int32, _ info: UnsafeMutablePointer<siginfo_t>?, _ context: UnsafeMutableRawPointer?) {
+    ForkLaunchBreadcrumbs.writeCrashRecord(signalNumber: signalNumber, info: info, context: context)
     // Hand the fault back to the default handler so the OS still writes its own report.
     signal(signalNumber, SIG_DFL)
     raise(signalNumber)
