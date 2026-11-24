@@ -257,7 +257,10 @@ public final class DirectAnimatedStickerNode: ASDisplayNode, AnimatedStickerNode
             
             self.frameUpdated(self.frameIndex, frameCount)
             
-            if !self.didComplete {
+            // A frame load finishing while playback is paused must not restart the
+            // timer: updatePlayback() schedules it when the node becomes visible again
+            // (upstream issue #2476).
+            if !self.didComplete && self.isPlaying {
                 self.startNextFrameTimerIfNeeded()
             }
             
