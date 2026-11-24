@@ -5,6 +5,7 @@
 #import <LegacyComponents/TGStringUtils.h>
 
 #import <Photos/Photos.h>
+#import <MobileCoreServices/MobileCoreServices.h>
 #import <LegacyComponents/UIImage+TG.h>
 
 #import <LegacyComponents/TGPhotoEditorUtils.h>
@@ -257,8 +258,88 @@
     return [self imageDataForAsset:asset allowNetworkAccess:allowNetworkAccess convertToJpeg:true];
 }
 
+// Sending a RAW asset as a document must deliver the original bytes:
+// requestImageDataForAsset returns a rendered JPEG while PHImageFileURLKey still
+// points at the original file, which produced e.g. a .DNG document containing JPEG
+// data (upstream issue #1050).
++ (SSignal *)_originalRawDataSignalForAsset:(TGMediaAsset *)asset allowNetworkAccess:(bool)allowNetworkAccess
+{
+    if (asset.backingAsset == nil)
+        return nil;
+
+    PHAssetResource *rawResource = nil;
+    for (PHAssetResource *resource in [PHAssetResource assetResourcesForAsset:asset.backingAsset])
+    {
+        NSString *resourceUTI = resource.uniformTypeIdentifier;
+        if (resourceUTI != nil && UTTypeConformsTo((__bridge CFStringRef)resourceUTI, CFSTR("public.camera-raw-image")))
+        {
+            rawResource = resource;
+            break;
+        }
+    }
+    if (rawResource == nil)
+        return nil;
+
+    return [[SSignal alloc] initWithGenerator:^id<SDisposable>(SSubscriber *subscriber)
+    {
+        NSString *tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSString alloc] initWithFormat:@"%x.raw", (int)arc4random()]];
+        NSURL *tempUrl = [NSURL fileURLWithPath:tempPath];
+        [[NSFileManager defaultManager] createFileAtPath:tempPath contents:nil attributes:nil];
+
+        PHAssetResourceRequestOptions *options = [[PHAssetResourceRequestOptions alloc] init];
+        if (allowNetworkAccess)
+        {
+            options.networkAccessAllowed = true;
+            options.progressHandler = ^(double progress)
+            {
+                [subscriber putNext:@(progress)];
+            };
+        }
+
+        PHAssetResourceRequestID token = [[PHAssetResourceManager defaultManager] writeDataForAssetResource:rawResource toFile:tempUrl options:options completionHandler:^(NSError * _Nullable error)
+        {
+            NSData *imageData = nil;
+            if (error == nil)
+                imageData = [[NSData alloc] initWithContentsOfFile:tempPath options:NSDataReadingMappedAlways error:nil];
+
+            if (imageData == nil)
+            {
+                [[NSFileManager defaultManager] removeItemAtPath:tempPath error:nil];
+                [subscriber putError:@true];
+                return;
+            }
+
+            TGMediaAssetImageData *data = [[TGMediaAssetImageData alloc] init];
+            data.fileURL = tempUrl;
+            data.fileName = rawResource.originalFilename;
+            data.fileUTI = rawResource.uniformTypeIdentifier;
+            data.imageData = imageData;
+
+            if (allowNetworkAccess)
+                [subscriber putNext:@(1.0f)];
+
+            [subscriber putNext:data];
+            [subscriber putCompletion];
+        }];
+
+        return [[SBlockDisposable alloc] initWithBlock:^
+        {
+            if (token != PHInvalidAssetResourceDataRequestID)
+                [[PHAssetResourceManager defaultManager] cancelDataRequest:token];
+            [[NSFileManager defaultManager] removeItemAtPath:tempPath error:nil];
+        }];
+    }];
+}
+
 + (SSignal *)imageDataForAsset:(TGMediaAsset *)asset allowNetworkAccess:(bool)allowNetworkAccess convertToJpeg:(bool)convertToJpeg
 {
+    if (!convertToJpeg)
+    {
+        SSignal *rawSignal = [self _originalRawDataSignalForAsset:asset allowNetworkAccess:allowNetworkAccess];
+        if (rawSignal != nil)
+            return rawSignal;
+    }
+
     SSignal *(^requestDataSignal)(bool) = ^SSignal *(bool networkAccessAllowed)
     {
         return [[SSignal alloc] initWithGenerator:^id<SDisposable>(SSubscriber *subscriber)
