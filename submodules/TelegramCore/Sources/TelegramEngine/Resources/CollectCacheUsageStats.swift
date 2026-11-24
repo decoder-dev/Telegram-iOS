@@ -375,23 +375,34 @@ func _internal_clearStorage(account: Account, peerId: EnginePeer.Id?, categories
             }
         }
         
-        mediaBox.storageBox.remove(peerId: peerId, contentTypes: mappedContentTypes, includeIds: includeIds, excludeIds: excludeIds, completion: { ids in
+        // Select the candidate ids first, delete the files, and drop the
+        // StorageBox records only for the files that were actually removed.
+        // Previously the records went first, so a file skipped for being in use
+        // lost its record forever: still counted by the stats census, but
+        // unreachable for every later clear (upstream issue #1587).
+        mediaBox.storageBox.select(peerId: peerId, contentTypes: mappedContentTypes, includeIds: includeIds, excludeIds: excludeIds, completion: { ids in
             var resourceIds: [MediaResourceId] = []
             for id in ids {
                 if let value = String(data: id, encoding: .utf8) {
                     resourceIds.append(MediaResourceId(value))
                 }
             }
-            let _ = mediaBox.removeCachedResources(resourceIds).start(next: { progress in
-                subscriber.putNext(progress)
-            }, completed: {
+            let _ = mediaBox.removeCachedResourcesWithResult(resourceIds).start(next: { removedIds in
+                var removedData: [Data] = []
+                for resourceId in removedIds {
+                    if let data = resourceId.stringRepresentation.data(using: .utf8) {
+                        removedData.append(data)
+                    }
+                }
+                mediaBox.storageBox.remove(ids: removedData)
+
                 if peerId == nil && categories.contains(.misc) {
                     let additionalPaths: [String] = [
                         "cache",
                         "animation-cache",
                         "short-cache",
                     ]
-                    
+
                     for item in additionalPaths {
                         let fullPath = mediaBox.basePath + "/\(item)"
                         if let enumerator = FileManager.default.enumerator(at: URL(fileURLWithPath: fullPath), includingPropertiesForKeys: [.isDirectoryKey], options: .skipsSubdirectoryDescendants) {
@@ -403,13 +414,12 @@ func _internal_clearStorage(account: Account, peerId: EnginePeer.Id?, categories
                             }
                         }
                     }
-                    
+
                     mediaBox.cacheStorageBox.reset()
-                    
-                    subscriber.putCompletion()
-                } else {
-                    subscriber.putCompletion()
                 }
+
+                subscriber.putNext(1.0)
+                subscriber.putCompletion()
             })
         })
         
@@ -514,15 +524,17 @@ func _internal_clearStorage(account: Account, messages: [Message]) -> Signal<Nev
                 extractMediaResourceIds(message: message, resourceIds: &resourceIds)
             }
             
-            var removeIds: [Data] = []
-            for resourceId in resourceIds {
-                if let id = resourceId.stringRepresentation.data(using: .utf8) {
-                    removeIds.append(id)
+            // Same record-vs-file ordering as clearStorage: drop the StorageBox
+            // records only for the files that were actually removed, otherwise a
+            // skipped in-use file becomes permanently unclearable (issue #1587).
+            let _ = mediaBox.removeCachedResourcesWithResult(Array(resourceIds)).start(next: { removedIds in
+                var removedData: [Data] = []
+                for resourceId in removedIds {
+                    if let data = resourceId.stringRepresentation.data(using: .utf8) {
+                        removedData.append(data)
+                    }
                 }
-            }
-            
-            mediaBox.storageBox.remove(ids: removeIds)
-            let _ = mediaBox.removeCachedResources(Array(resourceIds)).start(completed: {
+                mediaBox.storageBox.remove(ids: removedData)
                 subscriber.putCompletion()
             })
         }

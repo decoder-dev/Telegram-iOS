@@ -996,6 +996,71 @@ public final class StorageBox {
             }
         }
         
+        // Read-only counterpart of remove(peerId:...): returns the ids that match
+        // the selection without touching the tables, so callers can delete the
+        // files first and drop records only for the files actually removed.
+        func select(peerId: Int64?, contentTypes: [UInt8], includeIds: [Data], excludeIds: [Data], completion: @escaping ([Data]) -> Void) {
+            self.beginInternalTransaction {
+                var resultIds: [Data] = []
+
+                self.valueBox.begin()
+
+                var scannedIds: [Data: Data] = [:]
+
+                self.valueBox.scan(self.hashIdToInfoTable, values: { key, value in
+                    let info = ItemInfo(buffer: value)
+                    if !contentTypes.contains(info.contentType) {
+                        return true
+                    }
+                    scannedIds[key.getData(0, length: 16)] = info.id
+                    return true
+                })
+
+                for id in includeIds {
+                    scannedIds[md5Hash(id).data] = id
+                }
+
+                let excludeIds = Set(excludeIds)
+
+                if let peerId = peerId {
+                    var filteredHashIds: [Data] = []
+                    self.valueBox.scan(self.idToReferenceTable, keys: { key in
+                        let id = key.getData(0, length: 16)
+                        guard let realId = scannedIds[id] else {
+                            return true
+                        }
+                        if excludeIds.contains(realId) {
+                            return true
+                        }
+
+                        let itemPeerId = key.getInt64(16)
+
+                        if itemPeerId == peerId {
+                            filteredHashIds.append(id)
+                        }
+
+                        return true
+                    })
+                    for hashId in filteredHashIds {
+                        if let id = scannedIds[hashId] {
+                            resultIds.append(id)
+                        }
+                    }
+                } else {
+                    for (_, id) in scannedIds {
+                        if excludeIds.contains(id) {
+                            continue
+                        }
+                        resultIds.append(id)
+                    }
+                }
+
+                self.valueBox.commit()
+
+                completion(Array(resultIds))
+            }
+        }
+
         func remove(peerIds: Set<PeerId>, includeIds: [Data], excludeIds: [Data], completion: @escaping ([Data]) -> Void) {
             self.beginInternalTransaction {
                 var resultIds: [Data] = []
@@ -1163,6 +1228,14 @@ public final class StorageBox {
         }
     }
     
+    public func select(peerId: PeerId?, contentTypes: [UInt8], includeIds: [Data], excludeIds: [Data], completion: @escaping ([Data]) -> Void) {
+        self.impl.with { impl in
+            impl.select(peerId: peerId?.toInt64(), contentTypes: contentTypes, includeIds: includeIds, excludeIds: excludeIds, completion: { result in
+                completion(result)
+            })
+        }
+    }
+
     public func remove(peerId: PeerId?, contentTypes: [UInt8], includeIds: [Data], excludeIds: [Data], completion: @escaping ([Data]) -> Void) {
         self.impl.with { impl in
             impl.remove(peerId: peerId?.toInt64(), contentTypes: contentTypes, includeIds: includeIds, excludeIds: excludeIds, completion: { result in
