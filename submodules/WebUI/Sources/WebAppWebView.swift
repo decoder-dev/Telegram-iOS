@@ -352,10 +352,6 @@ final class WebAppWebView: WKWebView {
         return result
     }
     
-    override var inputAccessoryView: UIView? {
-        return nil
-    }
-    
     var origin: String? {
         guard let url = self.url else {
             return nil
