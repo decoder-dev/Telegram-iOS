@@ -354,6 +354,10 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
         self.webView.scrollView.delegate = self
         self.webView.scrollView.clipsToBounds = false
 
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(self.handlePullToRefresh), for: .valueChanged)
+        self.webView.scrollView.refreshControl = refreshControl
+
         self.webView.navigationDelegate = self
         self.webView.uiDelegate = self
         self.webView.addObserver(self, forKeyPath: #keyPath(WKWebView.title), options: [], context: nil)
@@ -739,7 +743,29 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
     func reload() {
         self.webView.reload()
     }
-    
+
+    @objc private func handlePullToRefresh() {
+        self.webView.reload()
+    }
+
+    private(set) var prefersDesktop = false
+
+    func setPrefersDesktop(_ value: Bool) {
+        guard value != self.prefersDesktop else {
+            return
+        }
+        self.prefersDesktop = value
+        // The mobile UA comes from configuration.applicationNameForUserAgent;
+        // assigning customUserAgent replaces the whole string, so a desktop UA
+        // makes responsive sites serve their desktop layout.
+        if value {
+            self.webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15"
+        } else {
+            self.webView.customUserAgent = nil
+        }
+        self.webView.reload()
+    }
+
     func navigateBack() {
         self.webView.goBack()
     }
@@ -1164,6 +1190,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
     }
     
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        self.webView.scrollView.refreshControl?.endRefreshing()
         self.updateState {$0
             .withUpdatedBackList(webView.backForwardList.backList.map { BrowserContentState.HistoryItem(webItem: $0) })
             .withUpdatedForwardList(webView.backForwardList.forwardList.map { BrowserContentState.HistoryItem(webItem: $0) })
@@ -1398,6 +1425,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
     
     
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        self.webView.scrollView.refreshControl?.endRefreshing()
         self.pendingMainFrameUrl = nil
         if [-1003, -1100].contains((error as NSError).code) {
             if let url = (error as NSError).userInfo["NSErrorFailingURLKey"] as? URL, url.absoluteString.hasPrefix("itms-appss:") {

@@ -519,6 +519,7 @@ public class BrowserScreen: ViewController, MinimizableController {
         case close
         case reload
         case stop
+        case toggleDesktopMode
         case navigateBack
         case navigateForward
         case share
@@ -633,6 +634,10 @@ public class BrowserScreen: ViewController, MinimizableController {
                     content.reload()
                 case .stop:
                     content.stop()
+                case .toggleDesktopMode:
+                    if let webContent = content as? BrowserWebContent {
+                        webContent.setPrefersDesktop(!webContent.prefersDesktop)
+                    }
                 case .navigateBack:
                     if content.currentState.canGoBack {
                         content.navigateBack()
@@ -1343,6 +1348,20 @@ public class BrowserScreen: ViewController, MinimizableController {
                 if case .webPage = contentState.contentType {
                     items.append(.action(ContextMenuActionItem(text: self.presentationData.strings.WebBrowser_Reload, icon: { theme in return generateTintedImage(image: UIImage(bundleImageName: "Instant View/Settings/Reload"), color: theme.contextMenu.primaryColor) }, action: { (controller, action) in
                         performAction.invoke(.reload)
+                        action(.default)
+                    })))
+                }
+
+                if case .webPage = contentState.contentType, let webContent = content as? BrowserWebContent {
+                    let prefersRussian = ForkPresentationLanguage.prefersRussianStrings
+                    let desktopTitle: String
+                    if webContent.prefersDesktop {
+                        desktopTitle = prefersRussian ? "Мобильная версия сайта" : "Request Mobile Website"
+                    } else {
+                        desktopTitle = prefersRussian ? "Десктопная версия сайта" : "Request Desktop Website"
+                    }
+                    items.append(.action(ContextMenuActionItem(text: desktopTitle, icon: { theme in return generateTintedImage(image: UIImage(systemName: "desktopcomputer"), color: theme.contextMenu.primaryColor) }, action: { (controller, action) in
+                        performAction.invoke(.toggleDesktopMode)
                         action(.default)
                     })))
                 }
