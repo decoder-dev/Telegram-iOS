@@ -180,6 +180,10 @@ public final class BatchVideoRenderingContext {
         var fetchDisposable: Disposable?
         var dataDisposable: Disposable?
         var dataPath: String?
+        // Mirrors ReadingContext.isFailed on the main queue: set when a decode round
+        // for an existing reader yields no frames, which only happens after a
+        // permanent failure.
+        var isDecodingFailed: Bool = false
         
         init(
             target: Target,
@@ -274,7 +278,21 @@ public final class BatchVideoRenderingContext {
     }
 
     private func updateDisplayLink() {
-        if !self.targetContexts.isEmpty {
+        // Run the link only while at least one target can still produce or display
+        // frames; a set of permanently failed decoders must not schedule work on
+        // every vsync forever (upstream issue #2477).
+        var needsDisplayLink = false
+        for (_, targetContext) in self.targetContexts {
+            if !targetContext.isDecodingFailed {
+                needsDisplayLink = true
+                break
+            }
+            if let targetState = targetContext.target?.batchVideoRenderingTargetState, !targetState.sampleBuffers.isEmpty {
+                needsDisplayLink = true
+                break
+            }
+        }
+        if needsDisplayLink {
             if self.displayLink == nil {
                 self.displayLink = SharedDisplayLinkDriver.shared.add { [weak self] _ in
                     guard let self else {
@@ -308,7 +326,10 @@ public final class BatchVideoRenderingContext {
                 target.batchVideoRenderingTargetState = targetState
             }
             
-            if targetState.sampleBuffers.count < 2 {
+            // Targets whose decoder has permanently failed (or whose file is still
+            // being fetched) can never produce a frame; queueing decode work for
+            // them on every display-link tick is pure churn (upstream issue #2477).
+            if !targetContext.isDecodingFailed && targetContext.readingContext != nil && targetState.sampleBuffers.count < 2 {
                 renderIds[id] = 2 - targetState.sampleBuffers.count
             }
         }
@@ -353,6 +374,12 @@ public final class BatchVideoRenderingContext {
                     for (id, targetSampleBuffers) in sampleBuffers {
                         guard let targetContext = self.targetContexts[id], let target = targetContext.target, let targetState = target.batchVideoRenderingTargetState else {
                             continue
+                        }
+                        // advance() only returns nil once the reader has failed
+                        // permanently, so an empty decode round for a target that had
+                        // a reader means it will never produce frames again.
+                        if targetSampleBuffers.isEmpty && readingContexts[id] != nil {
+                            targetContext.isDecodingFailed = true
                         }
                         targetState.addSampleBuffers(sampleBuffers: targetSampleBuffers)
                     }
