@@ -79,9 +79,12 @@ int main(void) {
         float low = renderTone(rates[i], 120.0f);
         float center = renderTone(rates[i], 190.0f);
         float high = renderTone(rates[i], 270.0f);
-        assert(low > 155.0f && low < 187.0f);
-        assert(center > 177.0f && center < 204.0f);
-        assert(high > 187.0f && high < 229.0f);
+        // With full correction the measured pitch of a steady tone lands on the 190 Hz
+        // reference from any direction (measured 190.5-190.9 through the Python port of the
+        // chain at every rate); the ranges keep slack for float32 vs float64 drift.
+        assert(low > 178.0f && low < 203.0f);
+        assert(center > 178.0f && center < 203.0f);
+        assert(high > 178.0f && high < 203.0f);
     }
     return 0;
 }

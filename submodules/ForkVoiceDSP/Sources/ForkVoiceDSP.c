@@ -776,7 +776,11 @@ static void fv_pitch_analysis_estimate(ForkVoiceChain *chain) {
         if (middle < 0.18f && middle < left && middle <= right) {
             float period = (float)lag + 0.5f * (left - right) / (left - 2.0f * middle + right);
             float pitchHz = chain->pitchAnalysisRate / period;
-            float correction = fv_clampf(0.8f * 12.0f * log2f(chain->params.referencePitchHz / pitchHz), -7.0f, 7.0f);
+            // Full correction (not a damped 0.8): the estimator reads the dry input, so there is
+            // no feedback to overdamp, and a 120 Hz voice must actually reach the reference, not
+            // stall ~20 Hz below it. The cap is +/-9 semitones: a 100 Hz voice needs 9.5 to reach
+            // 190 Hz and simply saturates at the cap instead of being stranded at +5.6.
+            float correction = fv_clampf(1.0f * 12.0f * log2f(chain->params.referencePitchHz / pitchHz), -9.0f, 9.0f);
             // Move the speaker's average pitch, leaving syllable-to-syllable changes intact.
             analysis->goalSemitones += (correction - analysis->goalSemitones) * (analysis->hasEstimate ? 0.06f : 1.0f);
             analysis->hasEstimate = true;

@@ -107,11 +107,29 @@ class VoiceChanger(unittest.TestCase):
         source = read(CHANGER)
         self.assertIn('case custom = 5', source)
         self.assertIn('case doctorLivesey = 6', source)
-        self.assertIn('p.referencePitchHz = 190.0', source)
+        self.assertIn('p.referencePitchHz = 198.0', source)
         self.assertIn('min(6, max(0,', read(SETTINGS))
         self.assertIn('"Доктор Ливси" : "Doctor Livesey", 6', read(EXTRAS))
         self.assertIn('ForkVoiceCaptureSetCallParams(calls ? pointer : nil)', source)
         self.assertIn('ForkVoiceCaptureSetRoundVideoParams(roundVideos ? pointer : nil)', source)
+
+    def test_livesey_preset_values_match_the_tuned_reference(self):
+        # The preset is tuned against a formant-synthesis Livesey reference (F0, band energies,
+        # spectral centroid); drifting a value audibly moves the voice away from the character.
+        source = read(CHANGER)
+        case = source[source.index('case .doctorLivesey:'):]
+        case = case[:case.index('}')]
+        for line in ['p.referencePitchHz = 198.0', 'p.timbre = 0.1', 'p.bassDb = 0.0',
+                     'p.midDb = -1.0', 'p.trebleDb = 0.75', 'p.distortion = 0.1',
+                     'p.compression = 0.2', 'p.reverbMix = 0.07', 'p.reverbSize = 0.2']:
+            self.assertIn(line, case)
+
+    def test_reference_pitch_correction_is_not_damped(self):
+        # The estimator reads the dry input, so the correction applies in full (gain 1.0) and
+        # the cap is +/-9 semitones: a 120 Hz voice must reach the 190 Hz region, not stall.
+        source = read(DSP_SOURCE)
+        self.assertIn('fv_clampf(1.0f * 12.0f * log2f(', source)
+        self.assertIn(', -9.0f, 9.0f)', source)
 
     def test_reference_pitch_moves_low_and_high_voices_toward_the_character(self):
         headers = (ROOT / DSP_HEADER).parent

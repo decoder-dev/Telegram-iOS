@@ -113,15 +113,19 @@ public enum ForkVoiceChanger {
             p.echoDelayMs = 180.0
             p.echoFeedback = 0.3
         case .doctorLivesey:
-            // Paperny's dialogue centers around 190 Hz and has strong lower mids.
-            p.referencePitchHz = 190.0
-            p.timbre = -0.15
-            p.bassDb = 1.5
-            p.midDb = 2.0
+            // Paperny's dialogue centers around 190 Hz. The reference sits at 198 Hz because the
+            // adaptive pitch loop measurably undershoots on real speech (smoothing + unvoiced
+            // frames), and 198 lands the output average on ~190. Tuned against a formant-synth
+            // Livesey reference (F0, band energies, spectral centroid): mild presence lift, mids
+            // stepped back, a touch of saturation and air for the chesty, larger-than-life read.
+            p.referencePitchHz = 198.0
+            p.timbre = 0.1
+            p.bassDb = 0.0
+            p.midDb = -1.0
             p.trebleDb = 0.75
-            p.distortion = 0.045
+            p.distortion = 0.1
             p.compression = 0.2
-            p.reverbMix = 0.025
+            p.reverbMix = 0.07
             p.reverbSize = 0.2
         }
         // A custom preset left at zero changes nothing: the recorder then skips the chain.
