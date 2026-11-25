@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import UIKit
 import Postbox
 import SwiftSignalKit
@@ -8913,7 +8913,9 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         if let textInputPanelNode = self.chatDisplayNode.textInputPanelNode {
             interfaceState = interfaceState.withUpdatedEffectiveInputState(textInputPanelNode.inputTextState)
         }
-        Logger.shared.log("ChatDraft", "save peer \(peerId.id._internalGetInt64Value()) thread \(threadId ?? 0): \(interfaceState.composeInputState.inputText.length) chars, editing \(interfaceState.editMessage != nil)")
+        if ForkInstrumentation.isEnabled {
+            Logger.shared.log("ChatDraft", "save peer \(peerId.id._internalGetInt64Value()) thread \(threadId ?? 0): \(interfaceState.composeInputState.inputText.length) chars, editing \(interfaceState.editMessage != nil)")
+        }
         if includeScrollState {
             let scrollState = self.chatDisplayNode.historyNode.immediateScrollState()
             interfaceState = interfaceState.withUpdatedHistoryScrollState(scrollState)

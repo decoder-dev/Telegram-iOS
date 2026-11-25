@@ -3399,7 +3399,7 @@ final class PostboxImpl {
             let commitMs = (beforeCommitTime - userCallbackTime) * 1000.0
             let sqliteMs = (endTime - beforeCommitTime) * 1000.0
             postboxLog("Postbox SLOW transaction \(transactionDuration * 1000.0) ms [user=\(String(format: "%.1f", userMs))ms commit=\(String(format: "%.1f", commitMs))ms sqlite=\(String(format: "%.1f", sqliteMs))ms], from: \(file):\(line)")
-        } else if transactionDuration > 0.01 {
+        } else if transactionDuration > 0.05 {
             postboxLog("Postbox transaction took \(transactionDuration * 1000.0) ms, from: \(file):\(line)")
         }
         
@@ -4197,7 +4197,7 @@ final class PostboxImpl {
             self.queue.async {
                 disposable.set(self.viewTracker.unsentMessageIdsViewSignal().start(next: { view in
                     // Empty is the steady state, and it was 1256 lines of it in one 13-hour log.
-                    if !view.ids.isEmpty {
+                    if !view.ids.isEmpty && ForkInstrumentation.isEnabled {
                         postboxLog("unsentMessageIdsView contents: \(view.ids)")
                     }
                     subscriber.putNext(view)

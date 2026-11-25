@@ -14,13 +14,21 @@ public final class ForkLiveToken {
 
     public init(kind: String) {
         self.kind = kind
-        let alive = ForkLiveToken.adjust(kind: kind, by: 1)
-        Logger.shared.log("Perf", "live \(kind): \(alive)")
+        if ForkInstrumentation.isEnabled {
+            let alive = ForkLiveToken.adjust(kind: kind, by: 1)
+            Logger.shared.log("Perf", "live \(kind): \(alive)")
+        } else {
+            let _ = ForkLiveToken.adjust(kind: kind, by: 1)
+        }
     }
 
     deinit {
-        let alive = ForkLiveToken.adjust(kind: self.kind, by: -1)
-        Logger.shared.log("Perf", "live \(self.kind): \(alive)")
+        if ForkInstrumentation.isEnabled {
+            let alive = ForkLiveToken.adjust(kind: self.kind, by: -1)
+            Logger.shared.log("Perf", "live \(self.kind): \(alive)")
+        } else {
+            let _ = ForkLiveToken.adjust(kind: self.kind, by: -1)
+        }
     }
 
     private static func adjust(kind: String, by delta: Int) -> Int {

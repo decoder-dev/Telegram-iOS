@@ -176,7 +176,9 @@ func chatHistoryViewForLocation(
                     let combinedInitialData = ChatHistoryCombinedInitialData(initialData: initialData, buttonKeyboardMessage: view.topTaggedMessages.first, cachedData: cachedData, cachedDataMessages: cachedDataMessages, readStateData: readStateData)
                     
                     if !isPossibleIntroLoaded {
-                        Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=businessIntro update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                        if ForkInstrumentation.isEnabled {
+                            Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=businessIntro update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                        }
                         return .Loading(initialData: combinedInitialData, type: .Generic(type: updateType))
                     }
                     
@@ -184,12 +186,16 @@ func chatHistoryViewForLocation(
                         if !hasLoggedPostInitialState || lastLoggedMaxReadIndex != view.maxReadIndex {
                             hasLoggedPostInitialState = true
                             lastLoggedMaxReadIndex = view.maxReadIndex
-                            Logger.shared.log("ChatUnreadPosition", "update-after-initial peer=\(peerDebugId()) update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                            if ForkInstrumentation.isEnabled {
+                                Logger.shared.log("ChatUnreadPosition", "update-after-initial peer=\(peerDebugId()) update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                            }
                         }
                         return .HistoryView(view: view, type: .Generic(type: updateType), scrollPosition: nil, flashIndicators: false, originalScrollPosition: lockedInitialScrollPosition, initialData: combinedInitialData, id: location.id)
                     } else {
                         if view.isLoading || (view.entries.isEmpty && (view.holeEarlier || view.holeLater)) {
-                            Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=history update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                            if ForkInstrumentation.isEnabled {
+                                Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=history update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                            }
                             return .Loading(initialData: combinedInitialData, type: .Generic(type: updateType))
                         }
                         var scrollPosition: ChatHistoryViewScrollPosition?
@@ -236,13 +242,17 @@ func chatHistoryViewForLocation(
                                 let minIndex = targetIndex - 40
                                 if minIndex <= 0 && view.holeEarlier {
                                     fadeIn = true
-                                    Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=missing-earlier-near-unread maxRead=\(maxReadIndex) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                                    if ForkInstrumentation.isEnabled {
+                                        Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=missing-earlier-near-unread maxRead=\(maxReadIndex) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                                    }
                                     return .Loading(initialData: combinedInitialData, type: .Generic(type: updateType))
                                 }
                                 if maxIndex >= view.entries.count {
                                     if view.holeLater {
                                         fadeIn = true
-                                        Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=missing-later-near-unread maxRead=\(maxReadIndex) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                                        if ForkInstrumentation.isEnabled {
+                                            Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=missing-later-near-unread maxRead=\(maxReadIndex) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                                        }
                                         return .Loading(initialData: combinedInitialData, type: .Generic(type: updateType))
                                     }
                                     if view.holeEarlier {
@@ -255,7 +265,9 @@ func chatHistoryViewForLocation(
                                         if case let .peer(peerId) = chatLocation, let combinedReadStates = view.fixedReadStates, case let .peer(readStates) = combinedReadStates, let readState = readStates[peerId], readState.count == incomingCount {
                                         } else {
                                             fadeIn = true
-                                            Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=missing-earlier-unread-count maxRead=\(maxReadIndex) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                                            if ForkInstrumentation.isEnabled {
+                                                Logger.shared.log("ChatUnreadPosition", "loading peer=\(peerDebugId()) reason=missing-earlier-unread-count maxRead=\(maxReadIndex) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                                            }
                                             return .Loading(initialData: combinedInitialData, type: .Generic(type: updateType))
                                         }
                                     }
@@ -280,7 +292,9 @@ func chatHistoryViewForLocation(
                             }
                         }
                         
-                        Logger.shared.log("ChatUnreadPosition", "initial peer=\(peerDebugId()) decision=\(scrollDecision) canScrollToRead=\(canScrollToRead) update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                        if ForkInstrumentation.isEnabled {
+                            Logger.shared.log("ChatUnreadPosition", "initial peer=\(peerDebugId()) decision=\(scrollDecision) canScrollToRead=\(canScrollToRead) update=\(updateType) maxRead=\(String(describing: view.maxReadIndex)) firstIncomingUnread=\(firstIncomingUnreadIndex()) anchor=\(view.anchorIndex) entries=\(entriesRange()) holes=\(view.holeEarlier)/\(view.holeLater)")
+                        }
                         preloaded = true
                         return .HistoryView(view: view, type: .Initial(fadeIn: fadeIn), scrollPosition: scrollPosition, flashIndicators: false, originalScrollPosition: nil, initialData: ChatHistoryCombinedInitialData(initialData: initialData, buttonKeyboardMessage: view.topTaggedMessages.first, cachedData: cachedData, cachedDataMessages: cachedDataMessages, readStateData: readStateData), id: location.id)
                     }

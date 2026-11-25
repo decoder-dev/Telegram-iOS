@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import UIKit
 import SwiftSignalKit
 import Display
@@ -4750,7 +4750,9 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                         }
                         return visibleMessages.joined(separator: ",")
                     }
-                    Logger.shared.log("ChatUnreadPosition", "list-applied peer=\(String(describing: strongSelf.chatLocation.peerId)) targetListIndex=\(scrollToItem.index) targetPosition=\(scrollToItem.position) reason=\(transition.reason) visibleRange=\(visibleRange) visibleMessages=\(visibleMessageSummary())")
+                    if ForkInstrumentation.isEnabled {
+                        Logger.shared.log("ChatUnreadPosition", "list-applied peer=\(String(describing: strongSelf.chatLocation.peerId)) targetListIndex=\(scrollToItem.index) targetPosition=\(scrollToItem.position) reason=\(transition.reason) visibleRange=\(visibleRange) visibleMessages=\(visibleMessageSummary())")
+                    }
                 }
                 strongSelf.currentAppliedDeleteAnimationCorrelationIds.removeAll()
                 

@@ -349,7 +349,9 @@ final class RustNetworkSession: NetworkEngineSession, RustEngineEventHandler {
             if self.isMain {
                 let _ = self.exportable.swap(!paused && !self.isDraining)
             }
-            rustEngineImportantLog("\(self.logPrefix) \(paused ? "pause" : "resume")")
+            if ForkInstrumentation.isEnabled {
+                rustEngineImportantLog("\(self.logPrefix) \(paused ? "pause" : "resume")")
+            }
             if !paused {
                 self.refreshSchemes()
                 self.resetConnectionWatchdogBackoff()

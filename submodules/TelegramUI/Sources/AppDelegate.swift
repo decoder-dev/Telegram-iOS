@@ -1923,7 +1923,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             // megabytes between ticks.
             if abs(value - previousReportedMemoryConsumption) > 8 * 1024 * 1024 {
                 previousReportedMemoryConsumption = value
-                Logger.shared.log("App \(self.episodeId)", "Memory consumption: \(value / (1024 * 1024)) MB")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("App \(self.episodeId)", "Memory consumption: \(value / (1024 * 1024)) MB")
+                }
                 
                 if self.contextValue?.context.sharedContext.immediateExperimentalUISettings.crashOnMemoryPressure == true {
                     let memoryUsageOverlayView: UILabel

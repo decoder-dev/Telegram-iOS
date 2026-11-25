@@ -83,10 +83,14 @@ class Download: NSObject {
         self.shouldKeepConnectionDisposable = (shouldKeepConnection |> distinctUntilChanged |> deliverOn(queue)).start(next: { [weak session] value in
             if let session = session {
                 if value {
-                    Logger.shared.log("Network", "Resume worker network connection")
+                    if ForkInstrumentation.isEnabled {
+                        Logger.shared.log("Network", "Resume worker network connection")
+                    }
                     session.setPaused(false)
                 } else {
-                    Logger.shared.log("Network", "Pause worker network connection")
+                    if ForkInstrumentation.isEnabled {
+                        Logger.shared.log("Network", "Pause worker network connection")
+                    }
                     session.setPaused(true)
                 }
             }

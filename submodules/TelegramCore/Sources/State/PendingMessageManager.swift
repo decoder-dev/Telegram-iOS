@@ -645,7 +645,9 @@ public final class PendingMessageManager {
             }
         }
         
-        Logger.shared.log("PendingMessageManager", "begin sending: \(ids)")
+        if ForkInstrumentation.isEnabled {
+            Logger.shared.log("PendingMessageManager", "begin sending: \(ids)")
+        }
         
         let disposable = MetaDisposable()
         let messages = self.postbox.messagesAtIds(ids)
@@ -660,8 +662,10 @@ public final class PendingMessageManager {
             if let strongSelf = self {
                 assert(strongSelf.queue.isCurrent())
                 
-                Logger.shared.log("PendingMessageManager", "begin sending, continued: \(ids)")
-                Logger.shared.log("PendingMessageManager", "beginSendingMessages messages.count: \(messages.count)")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("PendingMessageManager", "begin sending, continued: \(ids)")
+                    Logger.shared.log("PendingMessageManager", "beginSendingMessages messages.count: \(messages.count)")
+                }
                 
                 for message in messages.filter({ !$0.flags.contains(.Sending) }).sorted(by: { $0.id < $1.id }) {
                     guard let messageContext = strongSelf.messageContexts[message.id] else {
@@ -683,7 +687,9 @@ public final class PendingMessageManager {
                 var messagesToUpload: [(PendingMessageContext, Message, PendingMessageUploadedContentType, Signal<PendingMessageUploadedContentResult, PendingMessageUploadError>)] = []
                 var messagesToForward: [PendingForwardBatchKey: [(PendingMessageContext, Message, ForwardSourceInfoAttribute)]] = [:]
                 
-                Logger.shared.log("PendingMessageManager", "beginSendingMessages messageContexts.count: \(strongSelf.messageContexts.count)")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("PendingMessageManager", "beginSendingMessages messageContexts.count: \(strongSelf.messageContexts.count)")
+                }
                 
                 for (messageContext, _) in strongSelf.messageContexts.values.compactMap({ messageContext -> (PendingMessageContext, Message)? in
                     if case let .waitingForNewTopic(message) = messageContext.state {
@@ -828,7 +834,9 @@ public final class PendingMessageManager {
                 }
                 
                 if !messagesToUpload.isEmpty {
-                    Logger.shared.log("PendingMessageManager", "beginSendingMessages messagesToUpload.count: \(messagesToUpload.count)")
+                    if ForkInstrumentation.isEnabled {
+                        Logger.shared.log("PendingMessageManager", "beginSendingMessages messagesToUpload.count: \(messagesToUpload.count)")
+                    }
                 }
                 
                 for (messageContext, message, type, contentUploadSignal) in messagesToUpload {
@@ -844,7 +852,9 @@ public final class PendingMessageManager {
                 strongSelf.updatePendingMediaUploads()
                 
                 if !messagesToForward.isEmpty {
-                    Logger.shared.log("PendingMessageManager", "beginSendingMessages messagesToForward.count: \(messagesToForward.count)")
+                    if ForkInstrumentation.isEnabled {
+                        Logger.shared.log("PendingMessageManager", "beginSendingMessages messagesToForward.count: \(messagesToForward.count)")
+                    }
                 }
                 
                 let forwardGroupLimit = 100

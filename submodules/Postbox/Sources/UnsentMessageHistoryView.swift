@@ -1,4 +1,5 @@
 import Foundation
+import SwiftSignalKit
 
 final class UnsentMessageHistoryView {
     var ids: Set<MessageId>
@@ -21,7 +22,9 @@ final class UnsentMessageHistoryView {
     func replay(_ operations: [IntermediateMessageHistoryUnsentOperation]) -> Bool {
         var updated = false
         for operation in operations {
-            postboxLog("UnsentMessageHistoryView: operation: \(operation)")
+            if ForkInstrumentation.isEnabled {
+                postboxLog("UnsentMessageHistoryView: operation: \(operation)")
+            }
             switch operation {
                 case let .Insert(id):
                     if !self.ids.contains(id) {

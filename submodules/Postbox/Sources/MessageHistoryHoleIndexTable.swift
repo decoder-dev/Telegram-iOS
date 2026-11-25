@@ -1,4 +1,5 @@
 import Foundation
+import SwiftSignalKit
 
 struct MessageHistoryIndexHoleOperationKey: Hashable {
     let peerId: PeerId
@@ -470,7 +471,9 @@ final class MessageHistoryHoleIndexTable: Table {
         
         if !removeKeys.isEmpty {
             addMessageHistoryHoleOperation(.remove(range), peerId: peerId, threadId: nil, namespace: namespace, space: MessageHistoryHoleOperationSpace(space), to: &operations)
-            postboxLog("MessageHistoryHoleIndexTable: removeInternal peerId: \(peerId) namespace: \(namespace) space: \(space) range: \(range)")
+            if ForkInstrumentation.isEnabled {
+                postboxLog("MessageHistoryHoleIndexTable: removeInternal peerId: \(peerId) namespace: \(namespace) space: \(space) range: \(range)")
+            }
         }
     }
     

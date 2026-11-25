@@ -201,7 +201,9 @@ private final class FetchManagerCategoryContext {
             let (mediaReference, resourceReference, statsCategory, episode) = takeNew()
             entry = FetchManagerLocationEntry(id: id, episode: episode, mediaReference: mediaReference, resourceReference: resourceReference, statsCategory: statsCategory)
             
-            Logger.shared.log("FetchManager", "[\(entry.id.location)] Adding entry \(entry.resourceReference.resource.id.stringRepresentation) (\(self.entries.count) in queue)")
+            if ForkInstrumentation.isEnabled {
+                Logger.shared.log("FetchManager", "[\(entry.id.location)] Adding entry \(entry.resourceReference.resource.id.stringRepresentation) (\(self.entries.count) in queue)")
+            }
             self.logCensusIfNeeded()
             
             self.entries[id] = entry
@@ -279,7 +281,9 @@ private final class FetchManagerCategoryContext {
                     }
                     activeContext.disposable?.dispose()
                     let postbox = self.postbox
-                    Logger.shared.log("FetchManager", "[\(entry.id.location)] Begin fetching \(entry.resourceReference.resource.id.stringRepresentation) ranges: \(String(describing: parsedRanges))")
+                    if ForkInstrumentation.isEnabled {
+                        Logger.shared.log("FetchManager", "[\(entry.id.location)] Begin fetching \(entry.resourceReference.resource.id.stringRepresentation) ranges: \(String(describing: parsedRanges))")
+                    }
 
                     var userLocation: MediaResourceUserLocation = .other
                     switch entry.id.location {
@@ -463,7 +467,9 @@ private final class FetchManagerCategoryContext {
                 } else if ranges.isEmpty {
                 } else {
                     let postbox = self.postbox
-                    Logger.shared.log("FetchManager", "[\(entry.id.location)] Begin fetching \(entry.resourceReference.resource.id.stringRepresentation) ranges: \(String(describing: parsedRanges))")
+                    if ForkInstrumentation.isEnabled {
+                        Logger.shared.log("FetchManager", "[\(entry.id.location)] Begin fetching \(entry.resourceReference.resource.id.stringRepresentation) ranges: \(String(describing: parsedRanges))")
+                    }
                     
                     activeContext.disposable = (fetchedMediaResource(mediaBox: postbox.mediaBox, userLocation: userLocation, userContentType: userContentType, reference: entry.resourceReference, ranges: parsedRanges, statsCategory: entry.statsCategory, reportResultStatus: true, continueInBackground: entry.userInitiated)
                     |> mapToSignal { type -> Signal<FetchResourceSourceType, FetchResourceError> in
@@ -523,7 +529,9 @@ private final class FetchManagerCategoryContext {
             // cancelled one. Reading a log, that is the difference between "the client keeps
             // abandoning fetches" and "a video is streaming in ranges" — and there was nothing in
             // the line to tell them apart.
-            Logger.shared.log("FetchManager", "\(isCompleted ? "Completed" : "Cancel") fetching \(entry.resourceReference.resource.id.stringRepresentation) [\(entry.id.location), episode \(entry.episode)]")
+            if ForkInstrumentation.isEnabled {
+                Logger.shared.log("FetchManager", "\(isCompleted ? "Completed" : "Cancel") fetching \(entry.resourceReference.resource.id.stringRepresentation) [\(entry.id.location), episode \(entry.episode)]")
+            }
             self.entries.removeValue(forKey: id)
             entriesRemoved = true
             

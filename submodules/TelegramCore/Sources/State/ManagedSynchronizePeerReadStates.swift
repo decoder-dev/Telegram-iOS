@@ -123,23 +123,33 @@ private final class SynchronizePeerReadStatesContextImpl {
             var maybeOperation: PeerReadStateSynchronizationOperation?
             if let operation = self.currentState[peerId] {
                 maybeOperation = operation
-                Logger.shared.log("SynchronizePeerReadStates", "\(peerId): take new operation \(operation)")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("SynchronizePeerReadStates", "\(peerId): take new operation \(operation)")
+                }
             } else if let operation = self.pendingOperations[peerId] {
                 maybeOperation = operation
                 self.pendingOperations.removeValue(forKey: peerId)
-                Logger.shared.log("SynchronizePeerReadStates", "\(peerId): retrieve pending operation \(operation)")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("SynchronizePeerReadStates", "\(peerId): retrieve pending operation \(operation)")
+                }
             }
-            
+
             if let operation = maybeOperation {
                 if let current = self.activeOperations[peerId] {
                     if current.operation != operation {
-                        Logger.shared.log("SynchronizePeerReadStates", "\(peerId): store pending operation \(operation) (active is \(current.operation))")
+                        if ForkInstrumentation.isEnabled {
+                            Logger.shared.log("SynchronizePeerReadStates", "\(peerId): store pending operation \(operation) (active is \(current.operation))")
+                        }
                         self.pendingOperations[peerId] = operation
                     } else {
-                        Logger.shared.log("SynchronizePeerReadStates", "\(peerId): do nothing, no change in \(operation)")
+                        if ForkInstrumentation.isEnabled {
+                            Logger.shared.log("SynchronizePeerReadStates", "\(peerId): do nothing, no change in \(operation)")
+                        }
                     }
                 } else {
-                    Logger.shared.log("SynchronizePeerReadStates", "\(peerId): begin operation \(operation)")
+                    if ForkInstrumentation.isEnabled {
+                        Logger.shared.log("SynchronizePeerReadStates", "\(peerId): begin operation \(operation)")
+                    }
                     let operationDisposable = MetaDisposable()
                     let activeOperation = Operation(
                         operation: operation,
@@ -172,7 +182,9 @@ private final class SynchronizePeerReadStatesContextImpl {
                         }
                         if let activeOperation = activeOperation {
                             if let current = strongSelf.activeOperations[peerId], current === activeOperation {
-                                Logger.shared.log("SynchronizePeerReadStates", "\(peerId): operation completed \(operation)")
+                                if ForkInstrumentation.isEnabled {
+                                    Logger.shared.log("SynchronizePeerReadStates", "\(peerId): operation completed \(operation)")
+                                }
                                 strongSelf.activeOperations.removeValue(forKey: peerId)
                                 strongSelf.failureCounts.removeValue(forKey: peerId)
                                 strongSelf.update()

@@ -240,7 +240,9 @@ private final class CameraContext {
         guard !self.invalidated, self.session.session.isRunning || invalidate else {
             return
         }
-        Logger.shared.log("CameraContext", "stopCapture(invalidate: \(invalidate))")
+        if ForkInstrumentation.isEnabled {
+            Logger.shared.log("CameraContext", "stopCapture(invalidate: \(invalidate))")
+        }
         if invalidate {
             self.invalidated = true
             self.mainDeviceContext?.device.resetZoom()

@@ -244,7 +244,9 @@ func preparedChatHistoryViewTransition(from fromView: ChatHistoryView?, to toVie
                     selectedEntryIndex = "none"
                 }
                 let selectedListIndex = scrollToItem.map { String($0.index) } ?? "none"
-                Logger.shared.log("ChatUnreadPosition", "list-transition peer=\(String(describing: chatLocation.peerId)) requestedUnread=\(unreadIndex) selection=\(unreadScrollSelection) listIndex=\(selectedListIndex) entryIndex=\(selectedEntryIndex) entries=\(toView.filteredEntries.count) reason=\(reason)")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("ChatUnreadPosition", "list-transition peer=\(String(describing: chatLocation.peerId)) requestedUnread=\(unreadIndex) selection=\(unreadScrollSelection) listIndex=\(selectedListIndex) entryIndex=\(selectedEntryIndex) entries=\(toView.filteredEntries.count) reason=\(reason)")
+                }
             case let .positionRestoration(scrollIndex, relativeOffset):
                 var index = toView.filteredEntries.count - 1
                 for entry in toView.filteredEntries {

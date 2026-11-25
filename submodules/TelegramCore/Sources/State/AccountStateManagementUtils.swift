@@ -5057,22 +5057,30 @@ func replayFinalState(
                     updatedInnerState = AuthorizedAccountState.State(pts: updatedInnerState.pts, qts: updatedInnerState.qts, date: previousInnerState.date, seq: updatedInnerState.seq)
                 }
                 transaction.setState(currentState.changedState(updatedInnerState))
-                Logger.shared.log("State", "apply state \(updatedInnerState)")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("State", "apply state \(updatedInnerState)")
+                }
             case let .UpdateChannelState(peerId, pts):
                 var state = (transaction.getPeerChatState(peerId) as? ChannelState) ?? ChannelState(pts: pts, invalidatedPts: nil, synchronizedUntilMessageId: nil)
                 state = state.withUpdatedPts(pts)
                 transaction.setPeerChatState(peerId, state: state)
-                Logger.shared.log("State", "apply channel state \(peerId): \(state)")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("State", "apply channel state \(peerId): \(state)")
+                }
             case let .UpdateChannelInvalidationPts(peerId, pts):
                 var state = (transaction.getPeerChatState(peerId) as? ChannelState) ?? ChannelState(pts: 0, invalidatedPts: pts, synchronizedUntilMessageId: nil)
                 state = state.withUpdatedInvalidatedPts(pts)
                 transaction.setPeerChatState(peerId, state: state)
-                Logger.shared.log("State", "apply channel invalidation pts \(peerId): \(state)")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("State", "apply channel invalidation pts \(peerId): \(state)")
+                }
             case let .UpdateChannelSynchronizedUntilMessage(peerId, id):
                 var state = (transaction.getPeerChatState(peerId) as? ChannelState) ?? ChannelState(pts: 0, invalidatedPts: nil, synchronizedUntilMessageId: id)
                 state = state.withUpdatedSynchronizedUntilMessageId(id)
                 transaction.setPeerChatState(peerId, state: state)
-                Logger.shared.log("State", "apply channel synchronized until message \(peerId): \(state)")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("State", "apply channel synchronized until message \(peerId): \(state)")
+                }
             case let .UpdateNotificationSettings(subject, notificationSettings):
                 switch subject {
                 case let .peer(peerId, threadId):
