@@ -106,6 +106,7 @@ struct Logger {
     static let shared = Logger()
     func log(_ tag: String, _ message: String) {}
 }
+enum ForkInstrumentation { static let isEnabled = true }
 final class Queue {
     var delayed: [() -> Void] = []
     func async(_ f: () -> Void) { f() }
