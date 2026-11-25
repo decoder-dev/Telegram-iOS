@@ -282,10 +282,6 @@
 
     return [[SSignal alloc] initWithGenerator:^id<SDisposable>(SSubscriber *subscriber)
     {
-        NSString *tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSString alloc] initWithFormat:@"%x.raw", (int)arc4random()]];
-        NSURL *tempUrl = [NSURL fileURLWithPath:tempPath];
-        [[NSFileManager defaultManager] createFileAtPath:tempPath contents:nil attributes:nil];
-
         PHAssetResourceRequestOptions *options = [[PHAssetResourceRequestOptions alloc] init];
         if (allowNetworkAccess)
         {
@@ -296,24 +292,23 @@
             };
         }
 
-        PHAssetResourceRequestID token = [[PHAssetResourceManager defaultManager] writeDataForAssetResource:rawResource toFile:tempUrl options:options completionHandler:^(NSError * _Nullable error)
+        NSMutableData *assetData = [[NSMutableData alloc] init];
+        PHAssetResourceDataRequestID token = [[PHAssetResourceManager defaultManager] requestDataForAssetResource:rawResource options:options dataReceivedHandler:^(NSData * _Nonnull chunk)
         {
-            NSData *imageData = nil;
-            if (error == nil)
-                imageData = [[NSData alloc] initWithContentsOfFile:tempPath options:NSDataReadingMappedAlways error:nil];
-
-            if (imageData == nil)
+            [assetData appendData:chunk];
+        } completionHandler:^(NSError * _Nullable error)
+        {
+            if (error != nil || assetData.length == 0)
             {
-                [[NSFileManager defaultManager] removeItemAtPath:tempPath error:nil];
                 [subscriber putError:@true];
                 return;
             }
 
             TGMediaAssetImageData *data = [[TGMediaAssetImageData alloc] init];
-            data.fileURL = tempUrl;
+            data.fileURL = nil;
             data.fileName = rawResource.originalFilename;
             data.fileUTI = rawResource.uniformTypeIdentifier;
-            data.imageData = imageData;
+            data.imageData = assetData;
 
             if (allowNetworkAccess)
                 [subscriber putNext:@(1.0f)];
@@ -326,7 +321,6 @@
         {
             if (token != PHInvalidAssetResourceDataRequestID)
                 [[PHAssetResourceManager defaultManager] cancelDataRequest:token];
-            [[NSFileManager defaultManager] removeItemAtPath:tempPath error:nil];
         }];
     }];
 }
