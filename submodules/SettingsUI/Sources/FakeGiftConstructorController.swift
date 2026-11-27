@@ -151,13 +151,13 @@ private final class FakeGiftPreviewItemNode: ListViewItemNode, ItemListItemNode 
                     if let existing = self.animationNode {
                         animNode = existing
                     } else {
-                        animNode = DefaultAnimatedStickerNodeImpl()
+                        animNode = DefaultAnimatedStickerNodeImpl(lottieSettings: item.context.lottieRenderingSettings)
                         self.animationNode = animNode
                         self.cardContainerNode.addSubnode(animNode)
                     }
                     let animSize: CGFloat = 120.0
                     animNode.frame = CGRect(x: floor((cardWidth - animSize) / 2.0), y: floor((cardHeight - animSize) / 2.0) - 6.0, width: animSize, height: animSize)
-                    animNode.setup(source: AnimatedStickerResourceSource(account: item.context.account, resource: file.resource, isVideo: file.isVideoSticker), width: 240, height: 240, playbackMode: .loop, mode: .direct(cachePathPrefix: nil), lottieSettings: item.context.lottieRenderingSettings)
+                    animNode.setup(source: AnimatedStickerResourceSource(account: item.context.account, resource: file.resource, isVideo: file.isVideoSticker), width: 240, height: 240, playbackMode: .loop, mode: .direct(cachePathPrefix: nil))
                 } else {
                     self.animationNode?.stop()
                     self.animationNode?.removeFromSupernode()
@@ -253,13 +253,13 @@ private final class FakeGiftModelCellView: UIButton {
                 if let existing = self.animationNode {
                     animNode = existing
                 } else {
-                    animNode = DefaultAnimatedStickerNodeImpl()
+                    animNode = DefaultAnimatedStickerNodeImpl(lottieSettings: context.lottieRenderingSettings)
                     animNode.isUserInteractionEnabled = false
                     self.animationNode = animNode
                     self.addSubview(animNode.view)
                 }
                 animNode.frame = CGRect(x: 14.0, y: 10.0, width: 50.0, height: 50.0)
-                animNode.setup(source: AnimatedStickerResourceSource(account: context.account, resource: file.resource, isVideo: file.isVideoSticker), width: 100, height: 100, playbackMode: .loop, mode: .direct(cachePathPrefix: nil), lottieSettings: context.lottieRenderingSettings)
+                animNode.setup(source: AnimatedStickerResourceSource(account: context.account, resource: file.resource, isVideo: file.isVideoSticker), width: 100, height: 100, playbackMode: .loop, mode: .direct(cachePathPrefix: nil))
             }
         } else {
             self.cleanupAnimation()
