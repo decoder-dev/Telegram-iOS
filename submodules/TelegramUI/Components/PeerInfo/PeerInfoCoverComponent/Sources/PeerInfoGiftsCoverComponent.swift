@@ -286,7 +286,8 @@ public final class PeerInfoGiftsCoverComponent: Component {
             guard let component = self.component else { return }
             let location = gestureRecognizer.location(in: self)
             for (_, iconLayer) in self.iconLayers {
-                if iconLayer.frame.contains(location) {
+                let hitFrame = GhostSettings.profileV2 ? iconLayer.frame.insetBy(dx: -8.0, dy: -8.0) : iconLayer.frame
+                if iconLayer.opacity > 0.01, hitFrame.contains(location) {
                     component.action(iconLayer.gift)
                     break
                 }
@@ -297,7 +298,7 @@ public final class PeerInfoGiftsCoverComponent: Component {
 
         override public var accessibilityElements: [Any]? {
             get {
-                guard let component = self.component else { return [] }
+                guard let component = self.component, component.avatarTransitionFraction < 0.999 else { return [] }
                 let dateTimeFormat = component.context.sharedContext.currentPresentationData.with { $0 }.dateTimeFormat
                 var elements: [(frame: CGRect, element: GiftAccessibilityElement)] = []
                 var validIds = Set<AnyHashable>()
@@ -336,7 +337,8 @@ public final class PeerInfoGiftsCoverComponent: Component {
 
         public override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
             for (_, iconLayer) in self.iconLayers {
-                if iconLayer.frame.contains(point) { return true }
+                let hitFrame = GhostSettings.profileV2 ? iconLayer.frame.insetBy(dx: -8.0, dy: -8.0) : iconLayer.frame
+                if iconLayer.opacity > 0.01, hitFrame.contains(point) { return true }
             }
             return false
         }
@@ -486,7 +488,9 @@ public final class PeerInfoGiftsCoverComponent: Component {
                         iconLayer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
                         iconLayer.animateScale(from: 0.01, to: 1.0, duration: 0.2)
                     }
-                    iconLayer.startAnimations(index: index)
+                    if self.isCurrentlyInHierarchy {
+                        iconLayer.startAnimations(index: index)
+                    }
                 }
                 iconLayer.glowing = component.hasBackground
                 if let draggingId = self.draggingId, draggingId == id {
@@ -659,7 +663,8 @@ private class GiftIconLayer: SimpleLayer {
         guard GhostSettings.profileV2 else { return }
         if let backdropLayer = self.bubbleBackdropLayer {
             backdropLayer.setValue(1.0 as NSNumber, forKey: "scale")
-            backdropLayer.rasterizationScale = 1.0
+            backdropLayer.contentsScale = UIScreen.main.scale
+            backdropLayer.rasterizationScale = UIScreen.main.scale
             if let blurFilter = CALayer.blur() {
                 blurFilter.setValue(5.0 as NSNumber, forKey: "inputRadius")
                 backdropLayer.filters = [blurFilter]
