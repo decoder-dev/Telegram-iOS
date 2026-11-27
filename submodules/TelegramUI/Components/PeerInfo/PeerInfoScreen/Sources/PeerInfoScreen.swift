@@ -6065,7 +6065,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
     }
     
     private func updateBackgroundColor() {
-        let color: UIColor
+        var color: UIColor
         if self.paneContainerNode.currentPaneKey == .gifts {
             color = self.presentationData.theme.list.blocksBackgroundColor
         } else {
