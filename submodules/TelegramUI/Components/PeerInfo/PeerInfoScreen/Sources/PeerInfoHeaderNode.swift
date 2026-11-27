@@ -1,7 +1,5 @@
 import Foundation
 import UIKit
-import SettingsUI
-import PresentationDataUtils
 import AsyncDisplayKit
 import Display
 import TelegramCore
@@ -725,11 +723,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             } else {
                 credibilityIcon = .none
             }
-            let currentPeerId = self.context.account.peerId.id._internalGetInt64Value()
-            let isCurrentAccount = (peer.id == self.context.account.peerId) || self.isSettings || self.isMyProfile
-            if isCurrentAccount && FakeProfileManager.shared.isOrganizationVerificationEnabled(for: currentPeerId) && !BananaIdentityBadges.hidesVerification {
-                credibilityIcon = .verified
-            } else if peer.isVerified && !BananaIdentityBadges.hidesVerification {
+            if peer.isVerified && !BananaIdentityBadges.hidesVerification {
                 credibilityIcon = .verified
             }
             if let label = self.bananaVisualLabel(peer: peer) {
@@ -1074,8 +1068,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                         }
                         if case .premium = strongSelf.currentCredibilityIcon {
                             strongSelf.displayPremiumIntro?(strongSelf.titleCredibilityIconView, currentEmojiStatus, strongSelf.emojiStatusFileAndPackTitle.get(), false)
-                        } else if case .verified = strongSelf.currentCredibilityIcon {
-                            strongSelf.presentOrganizationVerificationAlert()
                         }
                     }
                 )),
@@ -1098,8 +1090,6 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                         }
                         if case .premium = strongSelf.currentCredibilityIcon {
                             strongSelf.displayPremiumIntro?(strongSelf.titleExpandedCredibilityIconView, currentEmojiStatus, strongSelf.emojiStatusFileAndPackTitle.get(), true)
-                        } else if case .verified = strongSelf.currentCredibilityIcon {
-                            strongSelf.presentOrganizationVerificationAlert()
                         }
                     }
                 )),
@@ -1148,7 +1138,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                         guard let self else {
                             return
                         }
-                        if let uniqueGiftSlug {
+                        if let uniqueGiftSlug, !self.isSettings {
                             self.openUniqueGift?(self.titleStatusIconView, uniqueGiftSlug)
                         } else {
                             self.displayPremiumIntro?(self.titleStatusIconView, currentEmojiStatus, self.emojiStatusFileAndPackTitle.get(), false)
@@ -1200,7 +1190,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                         guard let self else {
                             return
                         }
-                        if let uniqueGiftSlug {
+                        if let uniqueGiftSlug, !self.isSettings {
                             self.openUniqueGift?(self.titleExpandedStatusIconView, uniqueGiftSlug)
                         } else {
                             self.displayPremiumIntro?(self.titleExpandedStatusIconView, currentEmojiStatus, self.emojiStatusFileAndPackTitle.get(), true)
@@ -1346,22 +1336,8 @@ final class PeerInfoHeaderNode: ASDisplayNode {
                 let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: self.context.account.peerId, peerId: peer.id, settings: self.context.sharedContext.immediateForkExtrasSettings)
                 if hideOwnIdentity {
                     title = ForkExtrasSettings.streamerHiddenLabel
-                } else if case let .user(user) = peer {
-                    let currentPeerId = self.context.account.peerId.id._internalGetInt64Value()
-                    var phone = user.phone
-                    if (self.isSettings || self.isMyProfile) && FakeProfileManager.shared.isFakePhoneEnabled(for: currentPeerId) {
-                        let fakePhone = FakeProfileManager.shared.fakePhone(for: currentPeerId)
-                        if !fakePhone.isEmpty {
-                            phone = fakePhone
-                        }
-                    }
-                    if let phone {
-                        title = formatPhoneNumber(context: self.context, number: phone)
-                    } else if let addressName = peer.addressName {
-                        title = "@\(addressName)"
-                    } else {
-                        title = "_"
-                    }
+                } else if case let .user(user) = peer, let phone = user.phone {
+                    title = formatPhoneNumber(context: self.context, number: phone)
                 } else if let addressName = peer.addressName {
                     title = "@\(addressName)"
                 } else {
@@ -1376,20 +1352,9 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             
             if self.isSettings, case let .user(user) = peer {
                 let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: self.context.account.peerId, peerId: peer.id, settings: self.context.sharedContext.immediateForkExtrasSettings)
-                let currentPeerId = self.context.account.peerId.id._internalGetInt64Value()
-                var effectivePhone = user.phone ?? ""
-                if FakeProfileManager.shared.isFakePhoneEnabled(for: currentPeerId) {
-                    let fakePhone = FakeProfileManager.shared.fakePhone(for: currentPeerId)
-                    if !fakePhone.isEmpty {
-                        effectivePhone = fakePhone
-                    }
-                }
-                var subtitle = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : formatPhoneNumber(context: self.context, number: effectivePhone.isEmpty ? effectivePhone : forkDisplayedPhone(accountPeerId: self.context.account.peerId, peerId: peer.id, phone: effectivePhone, settings: self.context.sharedContext.immediateForkExtrasSettings))
-                var effectiveUsername = user.addressName
-                if let fakeUsername = FakeProfileManager.shared.fakeMainUsername(for: currentPeerId), !fakeUsername.isEmpty {
-                    effectiveUsername = fakeUsername
-                }
-                if !hideOwnIdentity, let mainUsername = effectiveUsername, !mainUsername.isEmpty {
+                var subtitle = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : formatPhoneNumber(context: self.context, number: forkDisplayedPhone(accountPeerId: self.context.account.peerId, peerId: peer.id, phone: user.phone ?? "", settings: self.context.sharedContext.immediateForkExtrasSettings))
+                
+                if !hideOwnIdentity, let mainUsername = user.addressName, !mainUsername.isEmpty {
                     subtitle = "\(subtitle) • @\(mainUsername)"
                 }
                 subtitleStringText = subtitle
@@ -1548,12 +1513,7 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         var subtitleRatingSize: CGSize?
 
-        let currentPeerId = self.context.account.peerId.id._internalGetInt64Value()
-        let isCurrentAccount = (self.peer?.id == self.context.account.peerId) || self.isSettings || self.isMyProfile
-        if isCurrentAccount && FakeProfileManager.shared.isRatingEnabled(for: currentPeerId), let points = FakeProfileManager.shared.ratingPoints(for: currentPeerId) {
-            self.currentStarRating = Self.calculateStarRating(for: points)
-            self.currentPendingStarRating = nil
-        } else if let cachedData = cachedData as? CachedUserData, let starRating = cachedData.starRating {
+        if let cachedData = cachedData as? CachedUserData, let starRating = cachedData.starRating {
             self.currentStarRating = starRating
             self.currentPendingStarRating = cachedData.pendingStarRating
         } else {
@@ -3141,53 +3101,5 @@ final class PeerInfoHeaderNode: ASDisplayNode {
         
         let maskAnchorPoint = CGPoint(x: 0.5, y: self.isAvatarExpanded ? 0.37 : 0.5)
         transition.updateAnchorPoint(layer: self.avatarListNode.maskNode.layer, anchorPoint: maskAnchorPoint)
-    }
-
-    private func presentOrganizationVerificationAlert() {
-        let peerId = self.context.account.peerId.id._internalGetInt64Value()
-        let isCurrentAccount = (self.peer?.id == self.context.account.peerId) || self.isSettings || self.isMyProfile
-        guard isCurrentAccount,
-              FakeProfileManager.shared.isOrganizationVerificationEnabled(for: peerId),
-              !BananaIdentityBadges.hidesVerification else {
-            return
-        }
-        let organizationName = FakeProfileManager.shared.organizationName(for: peerId)
-        let organizationDescription = FakeProfileManager.shared.organizationDescription(for: peerId)
-        let title = organizationName.isEmpty ? "Telegram" : organizationName
-        let text = organizationDescription.isEmpty ? "Эта страница официально подтверждена организацией \(title)." : organizationDescription
-        let presentationData = self.presentationData ?? self.context.sharedContext.currentPresentationData.with { $0 }
-        let alert = textAlertController(
-            context: self.context,
-            title: "Подтверждено: \(title)",
-            text: text,
-            actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})],
-            parseMarkdown: true
-        )
-        self.controller?.present(alert, in: .window(.root))
-    }
-
-    private static func calculateStarRating(for points: Int64) -> TelegramStarRating {
-        let thresholds: [Int64] = [
-            0, 2_500, 10_000, 25_000, 50_000, 100_000, 250_000,
-            500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000,
-            25_000_000, 50_000_000, 100_000_000
-        ]
-        let points = max(0, points)
-        var levelIndex = 0
-        for (index, threshold) in thresholds.enumerated() {
-            if points >= threshold {
-                levelIndex = index
-            } else {
-                break
-            }
-        }
-        let currentBase = thresholds[levelIndex]
-        let nextBase = levelIndex + 1 < thresholds.count ? thresholds[levelIndex + 1] : currentBase * 2
-        return TelegramStarRating(
-            level: Int32(levelIndex + 1),
-            currentLevelStars: currentBase,
-            stars: points,
-            nextLevelStars: nextBase
-        )
     }
 }

@@ -15,7 +15,6 @@ import DeviceAccess
 import TelegramStringFormatting
 import PeerNameColorItem
 import WalletContext
-import SettingsUI
 
 enum SettingsSection: Int, CaseIterable {
     case edit
@@ -28,7 +27,6 @@ enum SettingsSection: Int, CaseIterable {
     case shortcuts
     case advanced
     case bananaGram
-    case profileCustomization
     case payment
     case extra
     case support
@@ -296,11 +294,17 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         items[.bananaGram]!.append(bananaProxyItem)
     }
     let bananaRussian = ForkPresentationLanguage.prefersRussianStrings
+    items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(
+        id: 14,
+        label: .text(GhostSettings.profileV2 ? "✓" : ""),
+        text: bananaRussian ? "Profile v2 (подарки кружат)" : "Profile v2 (orbiting gifts)",
+        icon: PresentationResourcesSettings.myProfile,
+        action: {
+            GhostSettings.profileV2 = !GhostSettings.profileV2
+        }
+    ))
     items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 12, text: bananaRussian ? "Защита BananaGram" : "BananaGram Protection", icon: renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGreen), action: {
         interaction.openSettings(.bananaSecurity)
-    }))
-    items[.profileCustomization]!.append(PeerInfoScreenDisclosureItem(id: 14, label: .text(GhostSettings.profileV2 ? "✓" : ""), text: bananaRussian ? "Profile v2 (подарки кружат)" : "Profile v2 (orbiting gifts)", icon: PresentationResourcesSettings.myProfile, action: {
-        GhostSettings.profileV2 = !GhostSettings.profileV2
     }))
     items[.advanced]!.append(PeerInfoScreenDisclosureItem(id: 10, text: forkDeveloperModeSettingsTitle(presentationData.strings), icon: PresentationResourcesSettings.developerMode, action: {
         interaction.openSettings(.debug)
@@ -313,12 +317,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
             interaction.openSettings(.premium)
         }))
     }
-    let currentPeerId = context.account.peerId.id._internalGetInt64Value()
-    var effectiveStarsState = data.starsState
-    if let fakeStars = FakeProfileManager.shared.fakeStarsBalance(for: currentPeerId) {
-        effectiveStarsState = StarsContext.State(flags: effectiveStarsState?.flags ?? [], balance: StarsAmount(value: fakeStars, nanos: 0), subscriptions: effectiveStarsState?.subscriptions ?? [], canLoadMoreSubscriptions: false, transactions: effectiveStarsState?.transactions ?? [], canLoadMoreTransactions: false, isLoading: false)
-    }
-    if let starsState = effectiveStarsState {
+    if let starsState = data.starsState {
         if !isPremiumDisabled || abs(starsState.balance.value) > 0 {
             let balanceText: NSAttributedString
             if abs(starsState.balance.value) > 0 {
@@ -335,11 +334,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
             }))
         }
     }
-    var effectiveTonState = data.tonState
-    if let fakeTon = FakeProfileManager.shared.fakeTonBalance(for: currentPeerId) {
-        effectiveTonState = StarsContext.State(flags: effectiveTonState?.flags ?? [], balance: StarsAmount(value: FakeProfileManager.tonToNanos(fakeTon), nanos: 0), subscriptions: effectiveTonState?.subscriptions ?? [], canLoadMoreSubscriptions: false, transactions: effectiveTonState?.transactions ?? [], canLoadMoreTransactions: false, isLoading: false)
-    }
-    if let tonState = effectiveTonState {
+    if let tonState = data.tonState {
         if abs(tonState.balance.value) > 0 {
             let balanceText: NSAttributedString
             if abs(tonState.balance.value) > 0 {
@@ -361,9 +356,13 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
             interaction.openSettings(.businessSetup)
         }))
     }
-    items[.payment]!.append(PeerInfoScreenDisclosureItem(id: 105, label: .text(""), text: presentationData.strings.Settings_SendGift, icon: PresentationResourcesSettings.premiumGift, action: {
-        interaction.openSettings(.premiumGift)
-    }))
+    if let starsState = data.starsState {
+        if !isPremiumDisabled || starsState.balance > StarsAmount.zero {
+            items[.payment]!.append(PeerInfoScreenDisclosureItem(id: 105, label: .text(""), text: presentationData.strings.Settings_SendGift, icon: PresentationResourcesSettings.premiumGift, action: {
+                interaction.openSettings(.premiumGift)
+            }))
+        }
+    }
     
     if let settings = data.globalSettings {
         if settings.hasPassport {
@@ -500,25 +499,15 @@ func settingsEditingItems(data: PeerInfoScreenData?, state: PeerInfoState, conte
         }))
     }
     
-    let currentPeerId = context.account.peerId.id._internalGetInt64Value()
     if case let .user(user) = data.peer {
         let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: user.id, settings: context.sharedContext.immediateForkExtrasSettings)
-        var phone = user.phone
-        if FakeProfileManager.shared.isFakePhoneEnabled(for: currentPeerId) {
-            let fakePhone = FakeProfileManager.shared.fakePhone(for: currentPeerId)
-            if !fakePhone.isEmpty {
-                phone = fakePhone
-            }
-        }
-        let phoneLabel = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : (phone.flatMap({ formatPhoneNumber(context: context, number: forkDisplayedPhone(accountPeerId: context.account.peerId, peerId: user.id, phone: $0, settings: context.sharedContext.immediateForkExtrasSettings)) }) ?? "")
+        let phoneLabel = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : (user.phone.flatMap({ formatPhoneNumber(context: context, number: forkDisplayedPhone(accountPeerId: context.account.peerId, peerId: user.id, phone: $0, settings: context.sharedContext.immediateForkExtrasSettings)) }) ?? "")
         items[.info]!.append(PeerInfoScreenDisclosureItem(id: ItemPhoneNumber, label: .text(phoneLabel), text: presentationData.strings.Settings_PhoneNumber, icon: PresentationResourcesSettings.recentCalls, action: {
             interaction.openSettings(.phoneNumber)
         }))
     }
     var username = ""
-    if let fakeMain = FakeProfileManager.shared.fakeMainUsername(for: currentPeerId), !fakeMain.isEmpty {
-        username = "@\(fakeMain.replacingOccurrences(of: "@", with: ""))"
-    } else if let addressName = data.peer?.addressName, !addressName.isEmpty {
+    if let addressName = data.peer?.addressName, !addressName.isEmpty {
         let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: data.peer?.id ?? context.account.peerId, settings: context.sharedContext.immediateForkExtrasSettings)
         username = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : "@\(addressName)"
     }
