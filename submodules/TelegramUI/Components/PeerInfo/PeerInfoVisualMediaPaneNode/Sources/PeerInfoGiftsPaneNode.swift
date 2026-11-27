@@ -942,7 +942,7 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
             
             let edgeEffectFrame = CGRect(x: 0.0, y: 0.0, width: size.width, height: bottomPanelHeight)
             panelTransition.setFrame(view: panelEdgeEffectView, frame: edgeEffectFrame)
-            panelEdgeEffectView.update(content: presentationData.theme.list.blocksBackgroundColor, blur: false, rect: edgeEffectFrame, edge: .bottom, edgeSize: 40.0, transition: panelTransition)
+            panelEdgeEffectView.update(content: GhostSettings.glassProfile ? presentationData.theme.list.blocksBackgroundColor.withAlphaComponent(0.0) : presentationData.theme.list.blocksBackgroundColor, blur: false, rect: edgeEffectFrame, edge: .bottom, edgeSize: 40.0, transition: panelTransition)
             
             ComponentTransition.spring(duration: 0.4).setSublayerTransform(view: panelContentContainer, transform: CATransform3DMakeTranslation(0.0, bottomPanelHeight * (1.0 - panelVisibility), 0.0))
             panelContentContainer.accessibilityElementsHidden = panelVisibility == 0.0
@@ -999,10 +999,14 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
         var canReorder = false
         if case .all = self.currentCollection, let currentState = self.profileGifts.currentState {
             if case .All = currentState.filter {
-                for gift in currentState.gifts {
-                    if gift.pinnedToTop {
-                        canReorder = true
-                        break
+                if canManage && currentState.gifts.count > 1 {
+                    canReorder = true
+                } else {
+                    for gift in currentState.gifts {
+                        if gift.pinnedToTop {
+                            canReorder = true
+                            break
+                        }
                     }
                 }
             }
@@ -1166,6 +1170,8 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
             if case .unique = gift.gift {
                 isReorderableGift = true
             } else if case .collection = self.currentCollection {
+                isReorderableGift = true
+            } else if self.peerId == self.context.account.peerId {
                 isReorderableGift = true
             }
             
@@ -1477,7 +1483,7 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
         self.currentParams = (size, topInset, sideInset, bottomInset, deviceMetrics, visibleHeight, isScrollingLockedAtTop, expandProgress, navigationHeight, presentationData)
         self.presentationDataPromise.set(.single(presentationData))
         
-        self.backgroundNode.backgroundColor = presentationData.theme.list.blocksBackgroundColor
+        self.backgroundNode.backgroundColor = GhostSettings.glassProfile ? .clear : presentationData.theme.list.blocksBackgroundColor
         transition.updateFrame(node: self.backgroundNode, frame: CGRect(origin: CGPoint(x: 0.0, y: topInset), size: CGSize(width: size.width, height: size.height - topInset)))
         transition.updateFrame(node: self.scrollNode, frame: CGRect(origin: CGPoint(), size: size))
         
