@@ -705,6 +705,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
     case designHeader(Int32, String)
     case designFooter(Int32, String)
     case brandTheme(Bool)
+    case profileV2(Bool)
 
     /// The Extras screens that are made of explicit blocks, each block listing its rows in display order. A block is a
     /// rounded section: its header (16xx) first, its switches, and the footer that explains them last. Footers used to
@@ -786,6 +787,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             [2000, 2001, 2002, 2003, 2004]
         ]),
         (.profile, [
+            [2470, 2469, 2471],
             [55, 56, 1551, 1714, 2020, 1552, 1543, 58],
             [1739, 1731, 1732, 1730, 1733, 1734, 1980, 1981, 2106],
             [2034, 2035],
@@ -904,7 +906,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ForkExtrasSection.messageFilters.rawValue
         case .textReplacementRules:
             return ForkExtrasSection.appearance.rawValue
-        case .tabPreview, .callsTab, .appearanceToggle, .visualPhoneNumber, .intChoice, .stickerSize:
+        case .tabPreview, .callsTab, .appearanceToggle, .visualPhoneNumber, .intChoice, .stickerSize, .profileV2:
             return ForkExtrasSection.appearance.rawValue
         case .outgoingPhotoQuality:
             return ForkExtrasSection.chatExtras.rawValue
@@ -919,6 +921,7 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         case let .designHeader(id, _): return id
         case let .designFooter(id, _): return id
         case let .brandTheme(dark): return dark ? 1611 : 1610
+        case .profileV2: return 2469
         case .tabPreview: return 1507
         case .callsTab: return 1503
         case let .appearanceToggle(id, _, _, _): return id
@@ -1007,6 +1010,8 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
         switch self {
         case let .musicPolicy(_, title, _), let .appearanceToggle(_, title, _, _), let .settingToggle(_, _, title, _, _), let .intChoice(_, title, _):
             return title
+        case .profileV2:
+            return "Profile v2"
         case .callsTab:
             return ForkPresentationLanguage.prefersRussianStrings ? "Вкладка «Звонки»" : "Calls Tab"
         case .ghostModeMaster: return ForkExtrasLocalizedString.ghostModeMaster
@@ -1059,6 +1064,10 @@ private enum ForkExtrasEntry: ItemListNodeEntry {
             return ItemListSectionHeaderItem(presentationData: presentationData, text: title.uppercased(), sectionId: self.section)
         case let .brandTheme(dark):
             return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: dark ? "BananaGram Graphite" : "BananaGram Cream", label: ForkPresentationLanguage.prefersRussianStrings ? "Предпросмотр" : "Preview", sectionId: self.section, style: .blocks, action: { arguments.openBrandTheme(dark) }, tag: BananaSettingsItemTag(id: self.stableId))
+        case let .profileV2(value):
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: "Profile v2", value: value, maximumNumberOfLines: 0, sectionId: self.section, style: .blocks, updated: { value in
+                GhostSettings.profileV2 = value
+            }, tag: BananaSettingsItemTag(id: self.stableId))
         case let .tabPreview(layout):
             return BananaTabBarPreviewItem(context: arguments.context, theme: presentationData.theme, strings: presentationData.strings, sectionId: self.section, layout: layout)
         case let .callsTab(value):
@@ -1720,6 +1729,9 @@ private func forkExtrasControllerEntries(settings: ForkExtrasSettings, autoFetch
         ]
     case .profile:
         entries = [
+            .designHeader(2470, russian ? "Оформление профиля" : "Profile Appearance"),
+            .profileV2(GhostSettings.profileV2),
+            .designFooter(2471, russian ? "Подарки вращаются вокруг аватара и объединяются в Dynamic Island, а надетый подарок окрашивает профиль. При отключении используется стандартный вид Telegram." : "Gifts orbit the avatar and merge into Dynamic Island; the equipped gift tints the profile. Turn off to use Telegram's standard appearance."),
             .settingToggle(55, .privacy, ForkExtrasLocalizedString.showDC, settings.showDC, \.showDC),
             .settingToggle(56, .privacy, ForkExtrasLocalizedString.showProfileId, settings.showProfileId, \.showProfileId),
             .appearanceToggle(1551, russian ? "Точное время «был(а) в сети»" : "Exact Last Seen Time", settings.exactLastSeen, \.exactLastSeen),

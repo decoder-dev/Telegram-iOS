@@ -294,15 +294,6 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         items[.bananaGram]!.append(bananaProxyItem)
     }
     let bananaRussian = ForkPresentationLanguage.prefersRussianStrings
-    items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(
-        id: 14,
-        label: .text(GhostSettings.profileV2 ? "✓" : ""),
-        text: bananaRussian ? "Profile v2 (подарки кружат)" : "Profile v2 (orbiting gifts)",
-        icon: PresentationResourcesSettings.myProfile,
-        action: {
-            GhostSettings.profileV2 = !GhostSettings.profileV2
-        }
-    ))
     items[.bananaGram]!.append(PeerInfoScreenDisclosureItem(id: 12, text: bananaRussian ? "Защита BananaGram" : "BananaGram Protection", icon: renderSettingsSymbolIcon(systemName: "checkmark.shield.fill", color: .systemGreen), action: {
         interaction.openSettings(.bananaSecurity)
     }))

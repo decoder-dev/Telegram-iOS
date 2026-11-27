@@ -1,6 +1,6 @@
 import Foundation
 
-/// Profile v2 presentation toggles, persisted per device.
+/// Profile v2 presentation toggle, persisted per device.
 public enum GhostSettings {
     public static var profileV2: Bool {
         get {
@@ -11,18 +11,6 @@ public enum GhostSettings {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: "GhostProfileV2")
-        }
-    }
-
-    public static var glassProfile: Bool {
-        get {
-            if UserDefaults.standard.object(forKey: "GhostGlassProfile") == nil {
-                return true
-            }
-            return UserDefaults.standard.bool(forKey: "GhostGlassProfile")
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "GhostGlassProfile")
         }
     }
 }
