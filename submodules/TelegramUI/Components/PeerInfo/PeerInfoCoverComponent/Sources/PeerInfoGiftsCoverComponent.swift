@@ -233,7 +233,7 @@ public final class PeerInfoGiftsCoverComponent: Component {
         }
 
         private func updateOrbitLink() {
-            let needed = GhostSettings.profileV2 && self.isCurrentlyInHierarchy && !self.iconLayers.isEmpty
+            let needed = GhostSettings.profileV2 && self.isCurrentlyInHierarchy && self.orbitFraction < 0.001 && !self.iconLayers.isEmpty
             if needed, self.orbitLink == nil {
                 let link = CADisplayLink(target: OrbitTarget(view: self), selector: #selector(OrbitTarget.tick))
                 link.preferredFrameRateRange = CAFrameRateRange(minimum: 30.0, maximum: 60.0, preferred: 60.0)
@@ -259,6 +259,7 @@ public final class PeerInfoGiftsCoverComponent: Component {
             self.trackingLayer.didExitHierarchy = { [weak self] in
                 guard let self else { return }
                 self.isCurrentlyInHierarchy = false
+                self.updateAnimations()
                 self.updateOrbitLink()
             }
 
@@ -278,6 +279,7 @@ public final class PeerInfoGiftsCoverComponent: Component {
         deinit {
             self.giftsDisposable?.dispose()
             self.orbitLink?.invalidate()
+            self.dragDisabledScrollView?.isScrollEnabled = true
         }
 
         @objc private func tapped(_ gestureRecognizer: UITapGestureRecognizer) {
@@ -344,6 +346,8 @@ public final class PeerInfoGiftsCoverComponent: Component {
             for (_, iconLayer) in self.iconLayers {
                 if self.isCurrentlyInHierarchy {
                     iconLayer.startAnimations(index: index)
+                } else {
+                    iconLayer.stopAnimations()
                 }
                 index += 1
             }
@@ -914,6 +918,10 @@ private class GiftIconLayer: SimpleLayer {
         preconditionFailure()
     }
 
+    deinit {
+        self.particleTimer?.invalidate()
+    }
+
     override func layoutSublayers() {
         self.shadowLayer.frame = CGRect(origin: .zero, size: self.bounds.size).insetBy(dx: -8.0, dy: -8.0)
         let bubbleFrame = CGRect(origin: .zero, size: self.bounds.size).insetBy(dx: -8.0, dy: -8.0)
@@ -932,6 +940,9 @@ private class GiftIconLayer: SimpleLayer {
     }
 
     func startAnimations(index: Int) {
+        if GhostSettings.profileV2, self.bubbleLayer.superlayer != nil, self.bubbleLayer.animation(forKey: "ghost.wobble.transform.scale.x") == nil {
+            self.addWobble()
+        }
         let beginTime = Double(index) * 1.5
 
         if self.animation(forKey: "hover") == nil {
@@ -978,6 +989,16 @@ private class GiftIconLayer: SimpleLayer {
             glowAnimation.beginTime = beginTime
             self.shadowLayer.add(glowAnimation, forKey: "glow")
         }
+    }
+
+    func stopAnimations() {
+        self.removeAnimation(forKey: "hover")
+        self.animationLayer.removeAnimation(forKey: "wiggle")
+        self.shadowLayer.removeAnimation(forKey: "glow")
+        self.bubbleLayer.removeAnimation(forKey: "ghost.wobble.transform.scale.x")
+        self.bubbleLayer.removeAnimation(forKey: "ghost.wobble.transform.scale.y")
+        self.particleTimer?.invalidate()
+        self.particleTimer = nil
     }
 }
 
