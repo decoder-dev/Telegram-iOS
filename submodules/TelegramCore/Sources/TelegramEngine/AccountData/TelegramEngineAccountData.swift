@@ -126,28 +126,6 @@ public extension TelegramEngine {
                 apiEmojiStatus = .emojiStatusEmpty
             }
             
-            let currentPeerId = peerId.id._internalGetInt64Value()
-            let isFakeGift: Bool = {
-                if let emojiStatus, case let .starGift(id, _, _, slug, _, _, _, _, _) = emojiStatus.content {
-                    return FakeProfileManager.shared.fakeGifts(for: currentPeerId).contains(where: {
-                        $0.slug?.lowercased() == slug.lowercased() ||
-                        "fake-gift-\($0.id.uuidString.lowercased())" == slug.lowercased() ||
-                        $0.baseGiftId == id || $0.deterministicId == id
-                    })
-                }
-                return false
-            }()
-            if FakeProfileManager.shared.isVisualPremium(for: currentPeerId) || isFakeGift || FakeProfileManager.shared.fakeWornGiftStatus(for: currentPeerId) != nil {
-                if let emojiStatus, case let .starGift(id, fileId, title, slug, patternFileId, innerColor, outerColor, patternColor, textColor) = emojiStatus.content {
-                    FakeProfileManager.shared.setFakeEmojiStatusFileId(fileId, for: currentPeerId)
-                    FakeProfileManager.shared.setFakeWornGiftStatus(FakeWornGiftStatus(id: id, fileId: fileId, title: title, slug: slug, patternFileId: patternFileId, innerColor: innerColor, outerColor: outerColor, patternColor: patternColor, textColor: textColor, rawUniqueGiftData: starGift.serialize()), for: currentPeerId)
-                    FakeProfileManager.shared.setWornGift(slug: slug, id: id, for: currentPeerId)
-                } else {
-                    FakeProfileManager.shared.setFakeEmojiStatusFileId(nil, for: currentPeerId)
-                    FakeProfileManager.shared.clearWornGift(for: currentPeerId)
-                }
-            }
-
             let remoteApply = self.account.network.request(Api.functions.account.updateEmojiStatus(emojiStatus: apiEmojiStatus))
             |> `catch` { _ -> Signal<Api.Bool, NoError> in
                 return .single(.boolFalse)
@@ -173,15 +151,6 @@ public extension TelegramEngine {
         
         public func setEmojiStatus(file: TelegramMediaFile?, expirationDate: Int32?) -> Signal<Never, NoError> {
             let peerId = self.account.peerId
-            let currentPeerId = peerId.id._internalGetInt64Value()
-            if FakeProfileManager.shared.isVisualPremium(for: currentPeerId) || FakeProfileManager.shared.fakeWornGiftStatus(for: currentPeerId) != nil {
-                if let file {
-                    FakeProfileManager.shared.setFakeEmojiStatusFileId(file.fileId.id, for: currentPeerId)
-                } else {
-                    FakeProfileManager.shared.setFakeEmojiStatusFileId(nil, for: currentPeerId)
-                }
-                FakeProfileManager.shared.clearWornGift(for: currentPeerId)
-            }
             
             let remoteApply = self.account.network.request(Api.functions.account.updateEmojiStatus(emojiStatus: file.flatMap({ file in
                 var flags: Int32 = 0

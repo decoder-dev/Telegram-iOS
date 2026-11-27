@@ -580,10 +580,9 @@ public final class AccountContextImpl: AccountContext {
             strongSelf.tonGiftStickersPromise.set(.single(stickers))
         })
         
-        FakeProfileManager.shared.currentAccountPeerId = account.peerId.id._internalGetInt64Value()
         self.userLimitsConfigurationDisposable = (self.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: account.peerId))
         |> mapToSignal { peer -> Signal<(Bool, EngineConfiguration.UserLimits), NoError> in
-            let isPremium = FakeProfileManager.shared.isVisualPremium || (peer?.isPremium ?? false)
+            let isPremium = peer?.isPremium ?? false
             return self.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.UserLimits(isPremium: isPremium))
             |> map { userLimits in
                 return (isPremium, userLimits)

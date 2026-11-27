@@ -43,8 +43,7 @@ extension PeerInfoScreenNode {
                     break
                 }
             }
-            let canReorder = (hasVisibility && state.gifts.count > 1) || hasPinnedGifts || isCollection
-            return (state.filter, state.sorting, canReorder)
+            return (state.filter, state.sorting, hasPinnedGifts || isCollection)
         }
         |> distinctUntilChanged(isEqual: { lhs, rhs -> Bool in
             let filterEquals = lhs.0 == rhs.0

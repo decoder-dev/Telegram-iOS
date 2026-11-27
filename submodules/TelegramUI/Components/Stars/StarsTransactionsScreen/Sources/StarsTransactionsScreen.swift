@@ -577,14 +577,11 @@ final class StarsTransactionsScreenComponent: Component {
                 containerSize: CGSize(width: 120.0, height: 100.0)
             )
             
-            let currentPeerId = component.context.account.peerId.id._internalGetInt64Value()
             let formattedBalance: String
             if component.starsContext.ton {
-                let value = FakeProfileManager.shared.fakeTonBalance(for: currentPeerId).flatMap { FakeProfileManager.tonToNanos($0) } ?? self.starsState?.balance.value ?? 0
-                formattedBalance = formatTonAmountText(value, dateTimeFormat: environment.dateTimeFormat)
+                formattedBalance = formatTonAmountText(self.starsState?.balance.value ?? 0, dateTimeFormat: environment.dateTimeFormat)
             } else {
-                let value = FakeProfileManager.shared.fakeStarsBalance(for: currentPeerId) ?? self.starsState?.balance.value ?? 0
-                formattedBalance = formatStarsAmountText(StarsAmount(value: value, nanos: 0), dateTimeFormat: environment.dateTimeFormat)
+                formattedBalance = formatStarsAmountText(self.starsState?.balance ?? StarsAmount.zero, dateTimeFormat: environment.dateTimeFormat)
             }
             let smallLabelFont = Font.regular(floor(fontSize * 11.0 / 17.0))
             let labelFont = Font.semibold(floor(fontSize * 14.0 / 17.0))
@@ -688,17 +685,8 @@ final class StarsTransactionsScreenComponent: Component {
             contentHeight += descriptionSize.height
             contentHeight += 29.0
             
-            let fakeTonNanos = FakeProfileManager.shared.fakeTonBalance(for: currentPeerId).flatMap { FakeProfileManager.tonToNanos($0) }
-            let effectiveTonAvailable = StarsAmount(value: fakeTonNanos ?? self.revenueState?.balances.availableBalance.amount.value ?? 0, nanos: 0)
-            let effectiveTonOverall = StarsAmount(value: fakeTonNanos ?? self.revenueState?.balances.overallRevenue.amount.value ?? 0, nanos: 0)
-            let effectiveTonRate: Double = {
-                if let rate = self.revenueState?.usdRate, rate > 0.0 {
-                    return rate
-                }
-                return 5.30
-            }()
             let withdrawAvailable = (self.revenueState?.balances.overallRevenue.amount.value ?? 0) > 0
-            let tonWithdrawAvailable = effectiveTonAvailable > StarsAmount.zero
+            let tonWithdrawAvailable = (self.revenueState?.balances.availableBalance.amount ?? StarsAmount.zero) > StarsAmount.zero
              
             if component.starsContext.ton {
                 let proceedsSize = self.proceedsView.update(
@@ -720,16 +708,16 @@ final class StarsTransactionsScreenComponent: Component {
                                 theme: environment.theme,
                                 dateTimeFormat: environment.dateTimeFormat,
                                 title: environment.strings.Ton_AvailableBalance,
-                                value: CurrencyAmount(amount: effectiveTonAvailable, currency: .ton),
-                                rate: effectiveTonRate,
+                                value: self.revenueState?.balances.availableBalance ?? CurrencyAmount(amount: .zero, currency: .ton),
+                                rate: self.revenueState?.usdRate ?? 0.0,
                                 valueFontSize: fontSize
                             ))),
                             AnyComponentWithIdentity(id: 1, component: AnyComponent(StarsOverviewItemComponent(
                                 theme: environment.theme,
                                 dateTimeFormat: environment.dateTimeFormat,
                                 title: environment.strings.Ton_LifetimeProceeds,
-                                value: CurrencyAmount(amount: effectiveTonOverall, currency: .ton),
-                                rate: effectiveTonRate,
+                                value: self.revenueState?.balances.overallRevenue ?? CurrencyAmount(amount: .zero, currency: .ton),
+                                rate: self.revenueState?.usdRate ?? 0.0,
                                 valueFontSize: fontSize
                             )))
                         ],
@@ -794,16 +782,9 @@ final class StarsTransactionsScreenComponent: Component {
                             theme: environment.theme,
                             strings: environment.strings,
                             dateTimeFormat: environment.dateTimeFormat,
-                            count: {
-                                if component.starsContext.ton {
-                                    let value = FakeProfileManager.shared.fakeTonBalance(for: currentPeerId).flatMap { FakeProfileManager.tonToNanos($0) } ?? self.starsState?.balance.value ?? 0
-                                    return StarsAmount(value: value, nanos: 0)
-                                }
-                                let value = FakeProfileManager.shared.fakeStarsBalance(for: currentPeerId) ?? self.starsState?.balance.value ?? 0
-                                return StarsAmount(value: value, nanos: 0)
-                            }(),
+                            count: self.starsState?.balance ?? StarsAmount.zero,
                             currency: component.starsContext.ton ? .ton : .stars,
-                            rate: component.starsContext.ton ? effectiveTonRate : nil,
+                            rate: nil,
                             actionTitle: component.starsContext.ton ? environment.strings.Ton_WithdrawViaFragment : (withdrawAvailable ? environment.strings.Stars_Intro_BuyShort : environment.strings.Stars_Intro_Buy),
                             actionAvailable: (!premiumConfiguration.areStarsDisabled && !premiumConfiguration.isPremiumDisabled) && (!component.starsContext.ton || tonWithdrawAvailable),
                             actionIsEnabled: true,
@@ -1101,9 +1082,8 @@ final class StarsTransactionsScreenComponent: Component {
             }
             
             let initialTransactions = self.starsState?.transactions ?? []
-            let hasFakeTransactions = !FakeProfileManager.shared.fakeTransactions(for: currentPeerId, ton: component.starsContext.ton).isEmpty
             var panelItems: [StarsTransactionsPanelContainerComponent.Item] = []
-            if !initialTransactions.isEmpty || hasFakeTransactions {
+            if !initialTransactions.isEmpty {
                 let allTransactionsContext: StarsTransactionsContext
                 if let current = self.allTransactionsContext {
                     allTransactionsContext = current
@@ -1573,31 +1553,10 @@ public final class StarsTransactionsScreen: ViewControllerComponentContainer {
                 componentView.scrollToTop()
             }
         }
-        let currentPeerId = context.account.peerId.id._internalGetInt64Value()
-        if FakeProfileManager.shared.fakeTonBalance(for: currentPeerId) != nil || FakeProfileManager.shared.isVisualPremium(for: currentPeerId) {
-            let targetTitle = starsContext.ton ? "Звёзды" : "TON"
-            self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: targetTitle, style: .plain, target: self, action: #selector(self.switchStarsTon))
-        }
     }
-
+    
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-
-    @objc private func switchStarsTon() {
-        let newContext: StarsContext
-        if self.starsContext.ton {
-            newContext = self.context.engine.payments.peerStarsContext()
-        } else {
-            newContext = self.context.engine.payments.peerTonContext()
-        }
-        let controller = self.context.sharedContext.makeStarsTransactionsScreen(context: self.context, starsContext: newContext)
-        if let navigationController = self.navigationController as? NavigationController {
-            var controllers = navigationController.viewControllers
-            controllers.removeAll(where: { $0 === self })
-            controllers.append(controller)
-            navigationController.setViewControllers(controllers, animated: true)
-        }
     }
     
     deinit {

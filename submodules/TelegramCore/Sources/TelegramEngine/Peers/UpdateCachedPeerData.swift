@@ -503,10 +503,7 @@ func _internal_fetchAndUpdateCachedPeerData(accountPeerId: PeerId, peerId rawPee
                                             .withUpdatedBirthday(mappedBirthday)
                                             .withUpdatedPersonalChannel(personalChannel)
                                             .withUpdatedBotPreview(botPreview)
-                                            .withUpdatedStarGiftsCount({
-                                                let localCount = FakeProfileManager.shared.fakeGifts(for: peerId.id._internalGetInt64Value()).count
-                                                return localCount > 0 ? max(starGiftsCount ?? 0, Int32(localCount)) : starGiftsCount
-                                            }())
+                                            .withUpdatedStarGiftsCount(starGiftsCount)
                                             .withUpdatedStarRefProgram(mappedStarRefProgram)
                                             .withUpdatedVerification(verification)
                                             .withUpdatedSendPaidMessageStars(sendPaidMessageStars)
@@ -964,10 +961,7 @@ func _internal_fetchAndUpdateCachedPeerData(accountPeerId: PeerId, peerId rawPee
                                                     .withUpdatedAppliedBoosts(appliedBoosts)
                                                     .withUpdatedEmojiPack(emojiPack)
                                                     .withUpdatedVerification(verification)
-                                                    .withUpdatedStarGiftsCount({
-                                                let localCount = FakeProfileManager.shared.fakeGifts(for: peerId.id._internalGetInt64Value()).count
-                                                return localCount > 0 ? max(starGiftsCount ?? 0, Int32(localCount)) : starGiftsCount
-                                            }())
+                                                    .withUpdatedStarGiftsCount(starGiftsCount)
                                                     .withUpdatedSendPaidMessageStars(mappedSendPaidMessageStars)
                                                     .withUpdatedMainProfileTab(mappedMainProfileTab)
                                                     .withUpdatedGuardBotId(mappedGuardBotId)

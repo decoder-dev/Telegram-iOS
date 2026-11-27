@@ -1476,7 +1476,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             |> deliverOnMainQueue
             |> map { accountAndSettings -> AuthorizedApplicationContext? in
                 return accountAndSettings.flatMap { context, callListSettings in
-                    FakeProfileManager.shared.currentAccountPeerId = context.account.peerId.id._internalGetInt64Value()
                     return AuthorizedApplicationContext(sharedApplicationContext: sharedApplicationContext, mainWindow: self.mainWindow, context: context as! AccountContextImpl, accountManager: sharedApplicationContext.sharedContext.accountManager, showCallsTab: callListSettings.showTab, reinitializedNotificationSettings: {
                         let _ = (self.context.get()
                         |> take(1)
@@ -1924,7 +1923,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             // megabytes between ticks.
             if abs(value - previousReportedMemoryConsumption) > 8 * 1024 * 1024 {
                 previousReportedMemoryConsumption = value
-                Logger.shared.log("App \(self.episodeId)", "Memory consumption: \(value / (1024 * 1024)) MB")
+                if ForkInstrumentation.isEnabled {
+                    Logger.shared.log("App \(self.episodeId)", "Memory consumption: \(value / (1024 * 1024)) MB")
+                }
                 
                 if self.contextValue?.context.sharedContext.immediateExperimentalUISettings.crashOnMemoryPressure == true {
                     let memoryUsageOverlayView: UILabel

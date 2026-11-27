@@ -57,20 +57,6 @@ public enum UpdateNameColorAndEmojiError {
 }
 
 func _internal_updateNameColorAndEmoji(account: Account, nameColor: UpdateNameColor, profileColor: PeerNameColor?, profileBackgroundEmojiId: Int64?) -> Signal<Void, UpdateNameColorAndEmojiError> {
-    let currentPeerId = account.peerId.id._internalGetInt64Value()
-    if FakeProfileManager.shared.isVisualPremium(for: currentPeerId) || FakeProfileManager.shared.isVisualPremium {
-        if case let .preset(color, backgroundEmojiId) = nameColor {
-            FakeProfileManager.shared.setFakeNameColor(color.rawValue, for: currentPeerId)
-            FakeProfileManager.shared.setFakeReplyBackgroundEmojiId(backgroundEmojiId, for: currentPeerId)
-        }
-        if let profileColor {
-            FakeProfileManager.shared.setFakeProfileColor(profileColor.rawValue, for: currentPeerId)
-        } else {
-            FakeProfileManager.shared.setFakeProfileColor(nil, for: currentPeerId)
-            FakeProfileManager.shared.resetProfileColor(for: currentPeerId)
-        }
-        FakeProfileManager.shared.setFakeProfileBackgroundEmojiId(profileBackgroundEmojiId, for: currentPeerId)
-    }
     return account.postbox.transaction { transaction -> Signal<Peer, NoError> in
         guard let peer = transaction.getPeer(account.peerId) as? TelegramUser else {
             return .complete()

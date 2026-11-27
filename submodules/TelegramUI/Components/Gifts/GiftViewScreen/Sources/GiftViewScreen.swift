@@ -547,8 +547,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                     }
                     
                     if let _ = arguments.resellAmounts, !isOwn {
-                        let isTonResale = gift.resellForTonOnly || gift.resellAmounts?.contains(where: { $0.currency == .ton }) == true
-                        self.buyFormDisposable = (context.engine.payments.fetchBotPaymentForm(source: .starGiftResale(slug: gift.slug, toPeerId: context.account.peerId, ton: isTonResale, hideName: true, text: nil, entities: nil), themeParams: nil)
+                        self.buyFormDisposable = (context.engine.payments.fetchBotPaymentForm(source: .starGiftResale(slug: gift.slug, toPeerId: context.account.peerId, ton: gift.resellForTonOnly, hideName: true, text: nil, entities: nil), themeParams: nil)
                         |> deliverOnMainQueue).start(next: { [weak self] paymentForm in
                             guard let self else {
                                 return
@@ -1716,28 +1715,36 @@ private final class GiftViewSheetContent: CombinedComponent {
                 return
             }
             
-            let isOwnGift: Bool = {
-                if case .uniqueGift = self.subject, controller.profileGiftsContext == nil {
-                    return false
-                }
-                if let peerId = arguments.peerId, peerId == self.context.account.peerId {
-                    return true
-                }
-                if let profileGiftsContext = controller.profileGiftsContext, profileGiftsContext.peerId == self.context.account.peerId {
-                    return true
-                }
-                if controller.togglePinnedToTop != nil {
-                    return true
-                }
-                if gift.owner?.peerId == self.context.account.peerId {
-                    return true
-                }
-                return false
-            }()
-            guard isOwnGift, isStarGiftCraftable(gift: gift, canCraftAt: arguments.canCraftDate) else { return }
-
             controller.dismissAllTooltips()
-
+            
+            guard gift.hostPeerId == nil else {
+                self.presentActionLockedForHostedGift(gift: gift)
+                return
+            }
+                        
+            guard gift.giftAddress == nil else {
+                self.presentGiftUnavailableForCraftingFirst(gift: gift)
+                return
+            }
+            
+            let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
+            
+            let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
+            if let canCraftDate = arguments.canCraftDate, currentTime < canCraftDate {
+                let dateString = stringForFullDate(timestamp: canCraftDate, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat)
+                let alertController = textAlertController(
+                    context: self.context,
+                    title: presentationData.strings.Gift_Craft_Unavailable_Title,
+                    text: presentationData.strings.Gift_Craft_Unavailable_Text(dateString).string,
+                    actions: [
+                        TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})
+                    ],
+                    parseMarkdown: true
+                )
+                controller.present(alertController, in: .window(.root))
+                return
+            }
+            
             if let navigationController = controller.navigationController as? NavigationController {
                 controller.dismissAnimated()
                 
@@ -2261,29 +2268,12 @@ private final class GiftViewSheetContent: CombinedComponent {
                     })))
                 }
                           
-                let isOwnGift: Bool = {
-                    if case .uniqueGift = self.subject, controller.profileGiftsContext == nil {
-                        return false
-                    }
-                    if let peerId = arguments.peerId, peerId == self.context.account.peerId {
-                        return true
-                    }
-                    if let profileGiftsContext = controller.profileGiftsContext, profileGiftsContext.peerId == self.context.account.peerId {
-                        return true
-                    }
-                    if controller.togglePinnedToTop != nil {
-                        return true
-                    }
-                    if gift.owner?.peerId == self.context.account.peerId {
-                        return true
-                    }
-                    return false
-                }()
-                if isOwnGift && isStarGiftCraftable(gift: gift, canCraftAt: arguments.canCraftDate) {
+                if let _ = arguments.canCraftDate {
                     items.append(.action(ContextMenuActionItem(text: presentationData.strings.Gift_View_Context_Craft, icon: { theme in
                         return generateTintedImage(image: UIImage(bundleImageName: "Premium/Craft/Craft"), color: theme.contextMenu.primaryColor)
                     }, action: { [weak self] c, _ in
                         c?.dismiss(completion: nil)
+                        
                         self?.craftGift()
                     })))
                 }
@@ -2375,17 +2365,6 @@ private final class GiftViewSheetContent: CombinedComponent {
             self.pendingTakeOff = false
             self.inWearPreview = false
             self.updated(transition: .spring(duration: 0.4))
-
-            let currentPeerId = self.context.account.peerId.id._internalGetInt64Value()
-            let isFake = FakeProfileManager.shared.fakeGifts(for: currentPeerId).contains(where: {
-                $0.slug?.lowercased() == uniqueGift.slug.lowercased() ||
-                "fake-gift-\($0.id.uuidString.lowercased())" == uniqueGift.slug.lowercased() ||
-                ($0.baseGiftId != 0 && $0.giftNumber != 0 && $0.baseGiftId == uniqueGift.giftId && $0.giftNumber == uniqueGift.number) ||
-                $0.deterministicId == uniqueGift.id
-            })
-            if isFake || FakeProfileManager.shared.isVisualPremium(for: currentPeerId) {
-                FakeProfileManager.shared.setWornGift(slug: uniqueGift.slug, id: uniqueGift.id, for: currentPeerId)
-            }
             
             if let arguments = self.subject.arguments, let peerId = arguments.peerId, peerId.namespace == Namespaces.Peer.CloudChannel {
                 let _ = self.context.engine.peers.updatePeerStarGiftStatus(peerId: peerId, starGift: uniqueGift, expirationDate: nil).startStandalone()
@@ -2400,9 +2379,6 @@ private final class GiftViewSheetContent: CombinedComponent {
             self.pendingTakeOff = true
             self.pendingWear = false
             self.updated(transition: .spring(duration: 0.4))
-
-            let currentPeerId = self.context.account.peerId.id._internalGetInt64Value()
-            FakeProfileManager.shared.clearWornGift(for: currentPeerId)
             
             if let arguments = self.subject.arguments, let peerId = arguments.peerId, peerId.namespace == Namespaces.Peer.CloudChannel {
                 let _ = self.context.engine.peers.updatePeerEmojiStatus(peerId: peerId, fileId: nil, expirationDate: nil).startStandalone()
@@ -2513,18 +2489,26 @@ private final class GiftViewSheetContent: CombinedComponent {
             let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
             let giftTitle = "\(uniqueGift.title) #\(formatCollectibleNumber(uniqueGift.number, dateTimeFormat: presentationData.dateTimeFormat))"
             
-            let currentPeerId = self.context.account.peerId.id._internalGetInt64Value()
-            let effectivePrice = acceptedPrice
-                ?? (uniqueGift.resellForTonOnly ? uniqueGift.resellAmounts?.first(where: { $0.currency == .ton }) : nil)
-                ?? uniqueGift.resellAmounts?.first(where: { $0.currency == .stars })
-                ?? uniqueGift.resellAmounts?.first
-            let hasFakeBalance = (FakeProfileManager.shared.fakeTonBalance(for: currentPeerId) != nil) || (FakeProfileManager.shared.fakeStarsBalance(for: currentPeerId) != nil)
-            if !hasFakeBalance, let resellTooEarlyTimestamp = self.resellTooEarlyTimestamp {
+            if let resellTooEarlyTimestamp = self.resellTooEarlyTimestamp {
                 let dateString = stringForFullDate(timestamp: resellTooEarlyTimestamp, strings: presentationData.strings, dateTimeFormat: presentationData.dateTimeFormat)
                 let alertController = textAlertController(
                     context: context,
                     title: presentationData.strings.Gift_Buy_ErrorTooEarly_Title,
                     text: presentationData.strings.Gift_Buy_ErrorTooEarly_Text(dateString).string,
+                    actions: [
+                        TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})
+                    ],
+                    parseMarkdown: true
+                )
+                controller.present(alertController, in: .window(.root))
+                return
+            }
+            
+            guard let _ = self.buyForm else {
+                let alertController = textAlertController(
+                    context: context,
+                    title: nil,
+                    text: presentationData.strings.Gift_Buy_ErrorUnknown,
                     actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})],
                     parseMarkdown: true
                 )
@@ -2538,7 +2522,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                 recipientPeerId: recipientPeerId,
                 uniqueGift: uniqueGift,
                 showAttributes: false,
-                acceptedPrice: effectivePrice,
+                acceptedPrice: acceptedPrice,
                 skipConfirmation: skipConfirmation,
                 starsTopUpOptions: self.starsTopUpOptionsPromise.get(),
                 buyGift: controller.buyGift,
@@ -5001,14 +4985,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                                                     canWear = false
                                                 }
                                             } else {
-                                                let currentPeerId = component.context.account.peerId.id._internalGetInt64Value()
-                                                let isFake = FakeProfileManager.shared.fakeGifts(for: currentPeerId).contains(where: {
-                                                    $0.slug?.lowercased() == uniqueGift.slug.lowercased() ||
-                                                    "fake-gift-\($0.id.uuidString.lowercased())" == uniqueGift.slug.lowercased() ||
-                                                    ($0.baseGiftId != 0 && $0.giftNumber != 0 && $0.baseGiftId == uniqueGift.giftId && $0.giftNumber == uniqueGift.number) ||
-                                                    $0.deterministicId == uniqueGift.id
-                                                })
-                                                canWear = component.context.isPremium || FakeProfileManager.shared.isVisualPremium(for: currentPeerId) || isFake
+                                                canWear = component.context.isPremium
                                             }
                                             let _ = (ApplicationSpecificNotice.getStarGiftWearTips(accountManager: component.context.sharedContext.accountManager)
                                                      |> deliverOnMainQueue).start(next: { [weak state] count in
@@ -5133,31 +5110,8 @@ private final class GiftViewSheetContent: CombinedComponent {
                         attributeMap[attribute.attributeType] = attribute
                     }
                     
-                    let effectiveOwnerPeerId: EnginePeer.Id = {
-                        if case let .peerId(ownerId) = uniqueGift.owner {
-                            return ownerId
-                        }
-                        if wearOwnerPeerId != component.context.account.peerId {
-                            return wearOwnerPeerId
-                        }
-                        return component.subject.arguments?.peerId ?? component.context.account.peerId
-                    }()
-                    let isLocalOrMarketGift: Bool = {
-                        let fakeGifts = FakeProfileManager.shared.fakeGifts(for: effectiveOwnerPeerId.id._internalGetInt64Value())
-                        if let fake = fakeGifts.first(where: {
-                            ($0.slug != nil && !$0.slug!.isEmpty && $0.slug!.lowercased() == uniqueGift.slug.lowercased()) ||
-                            ($0.baseGiftId != 0 && $0.giftNumber != 0 && $0.baseGiftId == uniqueGift.giftId && $0.giftNumber == uniqueGift.number)
-                        }) {
-                            return fake.hideOriginalDetails
-                        }
-                        return false
-                    }()
-
                     var hasOriginalInfo = false
                     for type in order {
-                        if type == .originalInfo && isLocalOrMarketGift {
-                            continue
-                        }
                         if let attribute = attributeMap[type] {
                             var id: String
                             let title: String?
@@ -5745,13 +5699,6 @@ private final class GiftViewSheetContent: CombinedComponent {
                 pressedColor: theme.list.itemCheckColors.fillColor.withMultipliedAlpha(0.9)
             )
                         
-            let isStoreView: Bool = {
-                let giftScreen = controller() as? GiftViewScreen
-                if case .uniqueGift = component.subject, giftScreen?.profileGiftsContext == nil {
-                    return true
-                }
-                return false
-            }()
             let buttonComponent: ButtonComponent
             var buttonTransition = context.transition
             if let controller = controller() as? GiftViewScreen, let customAction = controller.customAction {
@@ -5812,11 +5759,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                             ], spacing: 3.0)
                         )
                     )
-                } else if !isChannelGift && !component.context.isPremium && !FakeProfileManager.shared.isVisualPremium(for: component.context.account.peerId.id._internalGetInt64Value()) && !FakeProfileManager.shared.fakeGifts(for: component.context.account.peerId.id._internalGetInt64Value()).contains(where: {
-                    $0.slug?.lowercased() == uniqueGift.slug.lowercased() ||
-                    "fake-gift-\($0.id.uuidString.lowercased())" == uniqueGift.slug.lowercased() ||
-                    $0.baseGiftId == uniqueGift.id || $0.deterministicId == uniqueGift.id
-                }) {
+                } else if !isChannelGift && !component.context.isPremium {
                     canWear = false
                     buttonContent = AnyComponentWithIdentity(
                         id: AnyHashable("wear_premium"),
@@ -6128,7 +6071,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                             state?.requestUpgradePreview()
                         }
                 )
-            } else if incoming && !converted && !savedToProfile && !isDismantled && !isStoreView {
+            } else if incoming && !converted && !savedToProfile && !isDismantled {
                 let buttonTitle = isChannelGift ? strings.Gift_View_Display_Channel : strings.Gift_View_Display
                 buttonComponent = ButtonComponent(
                         background: buttonBackground,
@@ -6141,7 +6084,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         action: { [weak state] in
                             state?.updateSavedToProfile(!savedToProfile)
                         })
-            } else if let resellAmount, isStoreView || (!incoming && !isMyOwnedUniqueGift) {
+            } else if !incoming, let resellAmount, !isMyOwnedUniqueGift {
                 if state.cachedStarImage == nil || state.cachedStarImage?.1 !== theme {
                     state.cachedStarImage = (generateTintedImage(image: UIImage(bundleImageName: "Item List/PremiumIcon"), color: theme.list.itemCheckColors.foregroundColor)!, theme)
                 }
@@ -6210,7 +6153,7 @@ private final class GiftViewSheetContent: CombinedComponent {
                         isEnabled: true,
                         displaysProgress: state.inProgress,
                         action: { [weak state] in
-                            state?.commitBuy(acceptedPrice: resellAmount, skipConfirmation: false)
+                            state?.commitBuy()
                         })
             } else {
                 buttonComponent = ButtonComponent(
@@ -6310,32 +6253,17 @@ private final class GiftViewSheetContent: CombinedComponent {
             // A disappeared gift keeps its menu, to be deleted from the
             // history, even once it has been dismantled.
             if ((uniqueGift != nil && !isDismantled) || isDisappearedGift) && !showWearPreview {
-                if let uniqueGift, !isDisappearedGift {
-                    let giftScreen = controller() as? GiftViewScreen
-                    let isStoreScreen: Bool = {
-                        if case .uniqueGift = component.subject, giftScreen?.profileGiftsContext == nil {
-                            return true
-                        }
-                        return false
-                    }()
-                    let isFromMyProfile = !isStoreScreen && (
-                        isMyOwnedUniqueGift ||
-                        component.subject.arguments?.peerId == component.context.account.peerId ||
-                        giftScreen?.profileGiftsContext?.peerId == component.context.account.peerId ||
-                        giftScreen?.togglePinnedToTop != nil
-                    )
-                    if isFromMyProfile && isStarGiftCraftable(gift: uniqueGift, canCraftAt: component.subject.arguments?.canCraftDate) {
-                        rightControlItems.append(GlassControlGroupComponent.Item(
-                            id: AnyHashable("craft"),
-                            content: .icon("Premium/Craft"),
-                            action: { [weak state] in
-                                guard let state else {
-                                    return
-                                }
-                                state.craftGift()
+                if uniqueGift != nil, !isDisappearedGift, let _ = component.subject.arguments?.canCraftDate {
+                    rightControlItems.append(GlassControlGroupComponent.Item(
+                        id: AnyHashable("craft"),
+                        content: .icon("Premium/Craft"),
+                        action: { [weak state] in
+                            guard let state else {
+                                return
                             }
-                        ))
-                    }
+                            state.craftGift()
+                        }
+                    ))
                 }
 
                 rightControlItems.append(GlassControlGroupComponent.Item(
@@ -7019,8 +6947,6 @@ public class GiftViewScreen: ViewControllerComponentContainer {
                             reference = .message(messageId: EngineMessage.Id(peerId: peerId, namespace: Namespaces.Message.Cloud, id: giftMessageId))
                         } else if let peerId, let savedId {
                             reference = .peer(peerId: peerId, id: savedId)
-                        } else if message.id.namespace == Namespaces.Message.Local {
-                            reference = .peer(peerId: peerId ?? message.id.peerId, id: savedId ?? 0)
                         } else {
                             reference = .message(messageId: message.id)
                         }
@@ -7031,15 +6957,11 @@ public class GiftViewScreen: ViewControllerComponentContainer {
                         var reference: StarGiftReference
                         if let peerId, let savedId {
                             reference = .peer(peerId: peerId, id: savedId)
-                        } else if message.id.namespace == Namespaces.Message.Local, case let .unique(uniqueGift) = gift {
-                            reference = .slug(slug: uniqueGift.slug)
                         } else {
                             reference = .message(messageId: message.id)
                         }
                         var incoming = false
-                        if message.id.namespace == Namespaces.Message.Local {
-                            incoming = message.flags.contains(.Incoming)
-                        } else if isUpgrade {
+                        if isUpgrade {
                             if message.author?.id != message.id.peerId {
                                 incoming = true
                             }
@@ -7087,27 +7009,10 @@ public class GiftViewScreen: ViewControllerComponentContainer {
                 } else if let numberValue = gift.number {
                     number = numberValue
                 }
-                let isLocalOrMarket: Bool = {
-                    if case let .unique(uniqueGift) = gift.gift {
-                        return FakeProfileManager.shared.fakeGifts(for: peerId.id._internalGetInt64Value()).contains(where: {
-                            $0.hideOriginalDetails && (
-                                ($0.slug != nil && !$0.slug!.isEmpty && $0.slug!.lowercased() == uniqueGift.slug.lowercased()) ||
-                                ($0.baseGiftId != 0 && $0.giftNumber != 0 && $0.baseGiftId == uniqueGift.giftId && $0.giftNumber == uniqueGift.number) ||
-                                $0.deterministicId == uniqueGift.id
-                            )
-                        })
-                    }
-                    return false
-                }()
-                let fromPeerId = (gift.nameHidden || isLocalOrMarket) ? nil : gift.fromPeer?.id
-                let fromPeerName = (gift.nameHidden || isLocalOrMarket) ? nil : gift.fromPeer?.debugDisplayTitle
-                let fromPeerCompactName = (gift.nameHidden || isLocalOrMarket) ? nil : gift.fromPeer?.compactDisplayTitle
-                let canCraftDate: Int32? = {
-                    guard case let .unique(uniqueGift) = gift.gift else { return nil }
-                    guard isStarGiftCraftable(gift: uniqueGift, canCraftAt: gift.canCraftAt) else { return nil }
-                    return gift.canCraftAt ?? 0
-                }()
-                return (peerId, fromPeerId, fromPeerName, fromPeerCompactName, messageId, gift.reference, false, gift.gift, gift.date, gift.convertStars, gift.text, gift.entities, gift.nameHidden, gift.savedToProfile, gift.pinnedToTop, false, false, false, gift.canUpgrade, gift.upgradeStars, gift.transferStars, resellAmounts, gift.canExportDate, nil, gift.canTransferDate, gift.canResaleDate, gift.prepaidUpgradeHash, gift.upgradeSeparate, gift.dropOriginalDetailsStars, nil, number, canCraftDate)
+                let fromPeerId = gift.nameHidden ? nil : gift.fromPeer?.id
+                let fromPeerName = gift.nameHidden ? nil : gift.fromPeer?.debugDisplayTitle
+                let fromPeerCompactName = gift.nameHidden ? nil : gift.fromPeer?.compactDisplayTitle
+                return (peerId, fromPeerId, fromPeerName, fromPeerCompactName, messageId, gift.reference, false, gift.gift, gift.date, gift.convertStars, gift.text, gift.entities, gift.nameHidden, gift.savedToProfile, gift.pinnedToTop, false, false, false, gift.canUpgrade, gift.upgradeStars, gift.transferStars, resellAmounts, gift.canExportDate, nil, gift.canTransferDate, gift.canResaleDate, gift.prepaidUpgradeHash, gift.upgradeSeparate, gift.dropOriginalDetailsStars, nil, number, gift.canCraftAt)
             case .soldOutGift:
                 return nil
             case .upgradePreview:

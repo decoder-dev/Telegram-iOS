@@ -514,10 +514,6 @@ public extension EnginePeer {
     }
     
     var isPremium: Bool {
-        let peerIdValue = self.id.id._internalGetInt64Value()
-        if FakeProfileManager.shared.isVisualPremium(for: peerIdValue) || (FakeProfileManager.shared.isVisualPremium && FakeProfileManager.shared.isCurrentAccountPeer(id: peerIdValue)) {
-            return true
-        }
         return self._asPeer().isPremium
     }
     

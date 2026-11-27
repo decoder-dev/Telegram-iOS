@@ -25,16 +25,12 @@ public func buyStarGiftImpl(
     completion: @escaping () -> Void
 ) {
     let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-
-    func action(_ currency: CurrencyAmount.Currency, _ message: GiftMessageScreen.Result, _ beforeCompletion: @escaping () -> Void) {
-        let currentPeerId = context.account.peerId.id._internalGetInt64Value()
-        let hasAnyFakeBalance = (FakeProfileManager.shared.fakeTonBalance(for: currentPeerId) != nil) || (FakeProfileManager.shared.fakeStarsBalance(for: currentPeerId) != nil)
-        let effectiveResellAmount = uniqueGift.resellAmounts?.first(where: { $0.currency == currency })
-            ?? (acceptedPrice?.currency == currency ? acceptedPrice : nil)
-            ?? uniqueGift.resellAmounts?.first
-            ?? (hasAnyFakeBalance ? (currency == .ton ? CurrencyAmount(amount: StarsAmount(value: 1_000_000_000, nanos: 0), currency: .ton) : CurrencyAmount(amount: StarsAmount(value: 100, nanos: 0), currency: .stars)) : nil)
-        guard let resellAmount = effectiveResellAmount else {
-            guard let controller = getController() else { return }
+                    
+    let action: (CurrencyAmount.Currency, GiftMessageScreen.Result, @escaping () -> Void) -> Void = { currency, message, beforeCompletion in
+        guard let resellAmount = uniqueGift.resellAmounts?.first(where: { $0.currency == currency }) else {
+            guard let controller = getController() else {
+                return
+            }
             let alertController = textAlertController(
                 context: context,
                 title: nil,
@@ -43,19 +39,21 @@ public func buyStarGiftImpl(
                 parseMarkdown: true
             )
             controller.present(alertController, in: .window(.root))
+            
             beforeCompletion()
             return
         }
+        
         let finalPrice: CurrencyAmount
         if let acceptedPrice, acceptedPrice.currency == currency {
             finalPrice = acceptedPrice
         } else {
             finalPrice = resellAmount
         }
-
-        func proceed() {
+        
+        let proceed: () -> Void = {
             updateProgress(true)
-            StarGiftsRealMediaCache.shared.stageUniqueGift(uniqueGift)
+            
             let buyGiftImpl: ((String, EnginePeer.Id, CurrencyAmount?, Bool, String?, [MessageTextEntity]?) -> Signal<Never, BuyStarGiftError>)
             if let buyGift {
                 buyGiftImpl = { slug, peerId, price, hideName, text, entities in
@@ -66,22 +64,19 @@ public func buyStarGiftImpl(
                     return context.engine.payments.buyStarGift(slug: slug, peerId: peerId, price: price, hideName: hideName, text: text, entities: entities)
                 }
             }
+            
             let _ = (buyGiftImpl(uniqueGift.slug, recipientPeerId, finalPrice, message.hideName, message.text, message.entities)
             |> deliverOnMainQueue).start(error: { error in
+                guard let controller = getController() else {
+                    return
+                }
                 beforeCompletion()
                 updateProgress(false)
-                guard let controller = getController() else { return }
+                
                 HapticFeedback().error()
+                
                 switch error {
-                case let .serverProvided(text):
-                    let alertController = textAlertController(
-                        context: context,
-                        title: nil,
-                        text: text,
-                        actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})],
-                        parseMarkdown: true
-                    )
-                    controller.present(alertController, in: .window(.root))
+                case .serverProvided:
                     return
                 case let .priceChanged(newPrice):
                     let errorTitle = presentationData.strings.Gift_Buy_ErrorPriceChanged_Title
@@ -92,6 +87,7 @@ public func buyStarGiftImpl(
                     case .ton:
                         originalPriceString = formatTonAmountText(finalPrice.amount.value, dateTimeFormat: presentationData.dateTimeFormat, maxDecimalPositions: nil, formatString: presentationData.strings.Currency_Grams)
                     }
+                    
                     let newPriceString: String
                     let buttonText: String
                     switch newPrice.currency {
@@ -104,6 +100,7 @@ public func buyStarGiftImpl(
                         buttonText = presentationData.strings.Gift_Buy_Confirm_BuyForTon(tonValueString).string
                     }
                     let errorText = presentationData.strings.Gift_Buy_ErrorPriceChanged_Text(originalPriceString, newPriceString).string
+                    
                     let alertController = textAlertController(
                         context: context,
                         title: errorTitle,
@@ -133,27 +130,15 @@ public func buyStarGiftImpl(
                     )
                     controller.present(alertController, in: .window(.root))
                 default:
-                    beforeCompletion()
-                    if hasAnyFakeBalance {
-                        completion()
-                    } else {
-                        let alertController = textAlertController(
-                            context: context,
-                            title: nil,
-                            text: presentationData.strings.Gift_Buy_ErrorUnknown,
-                            actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})],
-                            parseMarkdown: true
-                        )
-                        controller.present(alertController, in: .window(.root))
-                    }
-                    return
+                    let alertController = textAlertController(context: context, title: nil, text: presentationData.strings.Gift_Buy_ErrorUnknown, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})], parseMarkdown: true)
+                    controller.present(alertController, in: .window(.root))
                 }
             },
             completed: {
                 beforeCompletion()
                 completion()
-                Queue.mainQueue().after(0.5) { [weak context] in
-                    guard let context else { return }
+
+                Queue.mainQueue().after(2.5) {
                     switch finalPrice.currency {
                     case .stars:
                         context.starsContext?.load(force: true)
@@ -163,15 +148,15 @@ public func buyStarGiftImpl(
                 }
             })
         }
-
-        if hasAnyFakeBalance {
-            proceed()
-        } else if finalPrice.currency == .stars, let starsContext = context.starsContext, let starsState = context.starsContext?.currentState, starsState.balance < finalPrice.amount {
+        
+        if finalPrice.currency == .stars, let starsContext = context.starsContext, let starsState = context.starsContext?.currentState, starsState.balance < finalPrice.amount {
             let _ = (starsTopUpOptions
              |> filter { $0 != nil }
              |> take(1)
              |> deliverOnMainQueue).startStandalone(next: { options in
-                guard let controller = getController() else { return }
+                guard let controller = getController() else {
+                    return
+                }
                 let purchaseController = context.sharedContext.makeStarsPurchaseScreen(
                     context: context,
                     starsContext: starsContext,
@@ -180,16 +165,21 @@ public func buyStarGiftImpl(
                     targetPeerId: nil,
                     customTheme: nil,
                     completion: { stars in
-                        guard let starsContext = context.starsContext else { return }
+                        guard let starsContext = context.starsContext else {
+                            return
+                        }
                         updateProgress(true)
+                        
                         starsContext.add(balance: StarsAmount(value: stars, nanos: 0))
                         let _ = (starsContext.onUpdate
-                        |> take(1)
                         |> deliverOnMainQueue).start(next: {
                             Queue.mainQueue().after(0.1, {
-                                guard let starsContext = context.starsContext, let starsState = starsContext.currentState else { return }
+                                guard let starsContext = context.starsContext, let starsState = starsContext.currentState else {
+                                    return
+                                }
                                 if starsState.balance < finalPrice.amount {
                                     updateProgress(false)
+                                    
                                     buyStarGiftImpl(
                                         context: context,
                                         recipientPeerId: recipientPeerId,
@@ -208,14 +198,16 @@ public func buyStarGiftImpl(
                                 } else {
                                     proceed()
                                 }
-                            })
+                            });
                         })
                     }
                 )
                 controller.push(purchaseController)
             })
         } else if finalPrice.currency == .ton, let tonState = context.tonContext?.currentState, tonState.balance < finalPrice.amount {
-            guard let controller = getController() else { return }
+            guard let controller = getController() else {
+                return
+            }
             let needed = finalPrice.amount - tonState.balance
             var fragmentUrl = "https://fragment.com/ads/topup"
             if let data = context.currentAppConfiguration.with({ $0 }).data, let value = data["ton_topup_url"] as? String {
@@ -228,35 +220,26 @@ public func buyStarGiftImpl(
                     context.sharedContext.applicationBindings.openUrl(fragmentUrl)
                 }
             ))
+            
             beforeCompletion()
         } else {
             proceed()
         }
     }
-
+    
     if skipConfirmation {
-        let defaultCurrency = acceptedPrice?.currency ?? uniqueGift.resellAmounts?.first?.currency ?? (uniqueGift.resellForTonOnly ? .ton : .stars)
-        action(defaultCurrency, message ?? GiftMessageScreen.Result(hideName: true, text: nil, entities: nil), {})
+        action(acceptedPrice?.currency ?? .stars, message ?? GiftMessageScreen.Result(hideName: true, text: nil, entities: nil), {})
     } else {
         let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: recipientPeerId))
         |> deliverOnMainQueue).start(next: { peer in
-            guard let peer, let controller = getController() else { return }
+            guard let peer, let controller = getController() else {
+                return
+            }
             let presentConfirmation: (GiftMessageScreen.Result, GiftMessageScreen?) -> Void = { message, messageController in
-                let currentPeerId = context.account.peerId.id._internalGetInt64Value()
-                let hasAnyFakeBalance = (FakeProfileManager.shared.fakeTonBalance(for: currentPeerId) != nil) || (FakeProfileManager.shared.fakeStarsBalance(for: currentPeerId) != nil)
-                let effectiveUniqueGift: StarGift.UniqueGift = {
-                    if (uniqueGift.resellAmounts == nil || uniqueGift.resellAmounts?.isEmpty == true) && hasAnyFakeBalance {
-                        return uniqueGift.withResellAmounts([
-                            CurrencyAmount(amount: StarsAmount(value: 100, nanos: 0), currency: .stars),
-                            CurrencyAmount(amount: StarsAmount(value: 1_000_000_000, nanos: 0), currency: .ton)
-                        ])
-                    }
-                    return uniqueGift
-                }()
                 var dismissImpl: (() -> Void)?
                 let alertController = giftPurchaseAlertController(
                     context: context,
-                    gift: effectiveUniqueGift,
+                    gift: uniqueGift,
                     showAttributes: showAttributes,
                     peer: peer,
                     animateBalanceOverlay: showAttributes,
@@ -277,15 +260,12 @@ public func buyStarGiftImpl(
                     }
                 )
                 controller.present(alertController, in: .window(.root))
+
                 dismissImpl = { [weak alertController] in
                     alertController?.dismiss(completion: nil)
                 }
-                updateIsBalanceVisible(false)
-            }
 
-            if recipientPeerId == context.account.peerId {
-                presentConfirmation(GiftMessageScreen.Result(hideName: true, text: nil, entities: nil), nil)
-                return
+                updateIsBalanceVisible(false)
             }
 
             weak var messageController: GiftMessageScreen?
@@ -295,7 +275,9 @@ public func buyStarGiftImpl(
                 gift: uniqueGift,
                 dismissOnCompletion: false,
                 completion: { message in
-                    guard let messageController else { return }
+                    guard let messageController else {
+                        return
+                    }
                     presentConfirmation(message, messageController)
                 }
             )

@@ -575,19 +575,8 @@ private final class StarsContextImpl {
         self.peerId = account.peerId
         self.ton = ton
         
-        let currentPeerId = self.peerId.id._internalGetInt64Value()
-        if !self.ton, let fakeBalance = FakeProfileManager.shared.fakeStarsBalance(for: currentPeerId) {
-            let initialState = StarsContext.State(flags: [], balance: StarsAmount(value: fakeBalance, nanos: 0), subscriptions: [], canLoadMoreSubscriptions: false, transactions: [], canLoadMoreTransactions: false, isLoading: false)
-            self._state = initialState
-            self._statePromise.set(.single(initialState))
-        } else if self.ton, let fakeTon = FakeProfileManager.shared.fakeTonBalance(for: currentPeerId) {
-            let initialState = StarsContext.State(flags: [], balance: StarsAmount(value: FakeProfileManager.tonToNanos(fakeTon), nanos: 0), subscriptions: [], canLoadMoreSubscriptions: false, transactions: [], canLoadMoreTransactions: false, isLoading: false)
-            self._state = initialState
-            self._statePromise.set(.single(initialState))
-        } else {
-            self._state = nil
-            self._statePromise.set(.single(nil))
-        }
+        self._state = nil
+        self._statePromise.set(.single(nil))
         
         self.load(force: true)
         
@@ -653,15 +642,8 @@ private final class StarsContextImpl {
     }
     
     private func updateState(_ state: StarsContext.State) {
-        var updatedState = state
-        let currentPeerId = self.peerId.id._internalGetInt64Value()
-        if !self.ton, let fakeBalance = FakeProfileManager.shared.fakeStarsBalance(for: currentPeerId) {
-            updatedState.balance = StarsAmount(value: fakeBalance, nanos: 0)
-        } else if self.ton, let fakeTon = FakeProfileManager.shared.fakeTonBalance(for: currentPeerId) {
-            updatedState.balance = StarsAmount(value: FakeProfileManager.tonToNanos(fakeTon), nanos: 0)
-        }
-        self._state = updatedState
-        self._statePromise.set(.single(updatedState))
+        self._state = state
+        self._statePromise.set(.single(state))
     }
     
     var onUpdate: Signal<Void, NoError> {
@@ -1085,7 +1067,7 @@ public final class StarsContext {
         public var canLoadMoreTransactions: Bool
         public var isLoading: Bool
         
-        public init(flags: Flags, balance: StarsAmount, subscriptions: [Subscription], canLoadMoreSubscriptions: Bool, transactions: [Transaction], canLoadMoreTransactions: Bool, isLoading: Bool) {
+        init(flags: Flags, balance: StarsAmount, subscriptions: [Subscription], canLoadMoreSubscriptions: Bool, transactions: [Transaction], canLoadMoreTransactions: Bool, isLoading: Bool) {
             self.flags = flags
             self.balance = balance
             self.subscriptions = subscriptions
@@ -1240,7 +1222,7 @@ private final class StarsTransactionsContextImpl {
         }
         
         self._state = StarsTransactionsContext.State(transactions: initialTransactions, canLoadMore: true, isLoading: false)
-        self.updateState(self._state)
+        self._statePromise.set(.single(self._state))
         
         if case let .starsTransactionsContext(transactionsContext) = subject {
             self.stateDisposable = (transactionsContext.state
@@ -1350,48 +1332,8 @@ private final class StarsTransactionsContextImpl {
     }
     
     private func updateState(_ state: StarsTransactionsContext.State) {
-        var updatedState = state
-        if self.peerId == self.account.peerId {
-            let fakeList = FakeProfileManager.shared.fakeTransactions(for: self.peerId.id._internalGetInt64Value(), ton: self.ton)
-            if !fakeList.isEmpty {
-                var fakeTransactions: [StarsContext.State.Transaction] = []
-                for transaction in fakeList {
-                    if (self.mode == .incoming && !transaction.isIncoming) || (self.mode == .outgoing && transaction.isIncoming) {
-                        continue
-                    }
-                    let amountValue = transaction.isIncoming ? transaction.amount : -transaction.amount
-                    fakeTransactions.append(StarsContext.State.Transaction(
-                        flags: [.isLocal],
-                        id: transaction.id,
-                        count: CurrencyAmount(amount: StarsAmount(value: amountValue, nanos: 0), currency: transaction.isTon ? .ton : .stars),
-                        date: transaction.date,
-                        peer: .appStore,
-                        title: transaction.title,
-                        description: nil,
-                        photo: nil,
-                        transactionDate: nil,
-                        transactionUrl: nil,
-                        paidMessageId: nil,
-                        giveawayMessageId: nil,
-                        media: [],
-                        subscriptionPeriod: nil,
-                        starGift: nil,
-                        floodskipNumber: nil,
-                        starrefCommissionPermille: nil,
-                        starrefPeerId: nil,
-                        starrefAmount: nil,
-                        paidMessageCount: nil,
-                        premiumGiftMonths: nil,
-                        adsProceedsFromDate: nil,
-                        adsProceedsToDate: nil
-                    ))
-                }
-                let existingIds = Set(fakeTransactions.map { $0.id })
-                updatedState.transactions = fakeTransactions + updatedState.transactions.filter { !existingIds.contains($0.id) }
-            }
-        }
-        self._state = updatedState
-        self._statePromise.set(.single(updatedState))
+        self._state = state
+        self._statePromise.set(.single(state))
     }
 }
     
@@ -1651,133 +1593,6 @@ public final class StarsSubscriptionsContext {
 
 
 func _internal_sendStarsPaymentForm(account: Account, formId: Int64, source: BotPaymentInvoiceSource) -> Signal<SendBotPaymentResult, SendBotPaymentFormError> {
-    let currentPeerId = account.peerId.id._internalGetInt64Value()
-    if FakeProfileManager.shared.fakeStarsBalance(for: currentPeerId) != nil {
-        if case let .starGift(hideName, _, targetPeerId, giftId, text, entities) = source {
-            let targetPeerIdInt = targetPeerId.id._internalGetInt64Value()
-            let cachedGift = StarGiftsRealMediaCache.shared.genericGift(for: giftId)
-            let price = cachedGift?.price ?? 25
-            guard FakeProfileManager.shared.deductFakeStars(price, for: currentPeerId, title: "Подарок", subtitle: cachedGift?.title ?? "Покупка подарка") else {
-                return .fail(.generic)
-            }
-            let newGift = FakeStarGiftItem(
-                baseGiftId: giftId,
-                patternName: "Star",
-                giftNumber: Int32.random(in: 1...500),
-                ownerPeerId: targetPeerIdInt,
-                sendDate: Int32(Date().timeIntervalSince1970),
-                isUpgraded: false,
-                title: cachedGift?.title ?? "Gift",
-                upgradeStars: 500
-            )
-            FakeProfileManager.shared.addGift(newGift, for: targetPeerIdInt)
-
-            let dummyFile = TelegramMediaFile(
-                fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: giftId != 0 ? giftId : 999990),
-                partialReference: nil,
-                resource: EmptyMediaResource(),
-                previewRepresentations: [],
-                videoThumbnails: [],
-                immediateThumbnailData: nil,
-                mimeType: "application/x-tgsticker",
-                size: 0,
-                attributes: [.FileName(fileName: "Gift.tgs")],
-                alternativeRepresentations: []
-            )
-            let realFile = cachedGift?.file ?? StarGiftsRealMediaCache.shared.file(for: giftId) ?? dummyFile
-            let genericGift = cachedGift ?? StarGift.Gift(
-                id: giftId,
-                title: "Gift",
-                file: realFile,
-                price: price,
-                convertStars: max(1, Int64(Double(price) * 0.85)),
-                availability: nil,
-                soldOut: nil,
-                flags: [],
-                upgradeStars: 500,
-                releasedBy: nil,
-                perUserLimit: nil,
-                lockedUntilDate: nil,
-                auctionSlug: nil,
-                auctionGiftsPerRound: nil,
-                auctionStartDate: nil,
-                upgradeVariantsCount: nil,
-                background: nil
-            )
-            let isSelf = targetPeerId == account.peerId
-            let actionMedia = TelegramMediaAction(action: .starGift(
-                gift: .generic(genericGift),
-                convertStars: max(1, Int64(Double(price) * 0.85)),
-                text: text,
-                entities: entities,
-                nameHidden: hideName,
-                savedToProfile: isSelf,
-                converted: false,
-                upgraded: false,
-                canUpgrade: true,
-                upgradeStars: 500,
-                isRefunded: false,
-                isPrepaidUpgrade: false,
-                upgradeMessageId: nil,
-                peerId: targetPeerId,
-                senderId: account.peerId,
-                savedId: Int64(arc4random()),
-                prepaidUpgradeHash: nil,
-                giftMessageId: nil,
-                upgradeSeparate: false,
-                isAuctionAcquired: false,
-                toPeerId: targetPeerId,
-                number: Int32.random(in: 1...500)
-            ))
-            let timestamp = Int32(Date().timeIntervalSince1970)
-            var messageFlags: StoreMessageFlags = [.TopIndexable]
-            if isSelf {
-                messageFlags.insert(.Incoming)
-            }
-            let storeMessage = StoreMessage(
-                peerId: targetPeerId,
-                namespace: Namespaces.Message.Local,
-                customStableId: nil,
-                globallyUniqueId: Int64.random(in: Int64.min ... Int64.max),
-                groupingKey: nil,
-                threadId: nil,
-                timestamp: timestamp,
-                flags: messageFlags,
-                tags: [],
-                globalTags: [],
-                localTags: [],
-                forwardInfo: nil,
-                authorId: account.peerId,
-                text: "",
-                attributes: [],
-                media: [actionMedia]
-            )
-            return account.postbox.transaction { transaction in
-                let _ = transaction.addMessages([storeMessage], location: .UpperHistoryBlock)
-                updatePeerChatInclusionWithMinTimestamp(transaction: transaction, id: targetPeerId, minTimestamp: timestamp, forceRootGroupIfNotExists: true)
-            }
-            |> castError(SendBotPaymentFormError.self)
-            |> mapToSignal { _ -> Signal<SendBotPaymentResult, SendBotPaymentFormError> in
-                return .single(.done(receiptMessageId: nil, subscriptionPeerId: nil, uniqueStarGift: nil))
-            }
-        } else if case let .starGiftUpgrade(_, reference) = source {
-            let upgradePrice: Int64 = 500
-            var gifts = FakeProfileManager.shared.fakeGifts(for: currentPeerId)
-            var targetIndex: Int?
-            if case let .slug(slug) = reference {
-                targetIndex = gifts.firstIndex(where: { "fake-gift-\($0.id.uuidString)" == slug || $0.slug == slug })
-            }
-            if let index = targetIndex {
-                guard FakeProfileManager.shared.deductFakeStars(upgradePrice, for: currentPeerId, title: "Улучшение подарка", subtitle: "Превращение в NFT") else {
-                    return .fail(.generic)
-                }
-                gifts[index].isUpgraded = true
-                gifts[index].canUpgrade = false
-                FakeProfileManager.shared.setFakeGifts(gifts, for: currentPeerId)
-                return .single(.done(receiptMessageId: nil, subscriptionPeerId: nil, uniqueStarGift: nil))
-            }
-        }
-    }
     return account.postbox.transaction { transaction -> Api.InputInvoice? in
         return _internal_parseInputInvoice(transaction: transaction, source: source)
     }

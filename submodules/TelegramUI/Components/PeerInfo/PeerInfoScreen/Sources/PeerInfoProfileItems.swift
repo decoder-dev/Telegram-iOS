@@ -18,7 +18,6 @@ import WebUI
 import AvatarNode
 import PeerNameColorItem
 import BoostLevelIconComponent
-import SettingsUI
 import TelegramUIPreferences
 
 private let enabledPublicBioEntities: EnabledEntityTypes = [.allUrl, .mention, .hashtag]
@@ -102,7 +101,6 @@ func infoItems(
     }
     
     if case let .user(user) = data.peer {
-        let currentPeerId = context.account.peerId.id._internalGetInt64Value()
         let ItemCallList = 1000
         let ItemPersonalChannelHeader = 2000
         let ItemPersonalChannel = 2001
@@ -163,48 +161,6 @@ func infoItems(
                 }
                 interaction.openChat(peerId)
             }))
-        } else if isMyProfile && !FakeProfileManager.shared.fakeChannelTitle(for: currentPeerId).isEmpty {
-            let fakeChannel = TelegramChannel(
-                id: EnginePeer.Id(namespace: Namespaces.Peer.CloudChannel, id: EnginePeer.Id.Id._internalFromInt64Value(999999999)),
-                accessHash: nil,
-                title: FakeProfileManager.shared.fakeChannelTitle(for: currentPeerId),
-                username: nil,
-                photo: [],
-                creationDate: 0,
-                version: 0,
-                participationStatus: .member,
-                info: .broadcast(TelegramChannelBroadcastInfo(flags: [])),
-                flags: [],
-                restrictionInfo: nil,
-                adminRights: nil,
-                bannedRights: nil,
-                defaultBannedRights: nil,
-                usernames: [],
-                storiesHidden: nil,
-                nameColor: nil,
-                backgroundEmojiId: nil,
-                profileColor: nil,
-                profileBackgroundEmojiId: nil,
-                emojiStatus: nil,
-                approximateBoostLevel: nil,
-                subscriptionUntilDate: nil,
-                verificationIconFileId: nil,
-                sendPaidMessageStars: nil,
-                linkedMonoforumId: nil,
-                linkedCommunityId: nil
-            )
-            let fakePersonalChannelData = PeerInfoPersonalChannelData(
-                peer: EngineRenderedPeer(peer: EnginePeer(fakeChannel)),
-                subscriberCount: 1337,
-                topMessages: [],
-                storyStats: nil,
-                isLoading: false
-            )
-            let label = presentationData.strings.Conversation_StatusSubscribers(1337)
-            items[.personalChannel]?.append(PeerInfoScreenHeaderItem(id: ItemPersonalChannelHeader, text: presentationData.strings.Profile_PersonalChannelSectionTitle, label: label))
-            items[.personalChannel]?.append(PeerInfoScreenPersonalChannelItem(id: ItemPersonalChannel, context: context, data: fakePersonalChannelData, controller: { [weak interaction] in
-                return interaction?.getController()
-            }, action: {}))
         }
         
         if let linkedCommunityData = data.linkedCommunityData {
@@ -223,18 +179,11 @@ func infoItems(
             ))
         }
         
-        var effectivePhone = user.phone
-        if isMyProfile && FakeProfileManager.shared.isFakePhoneEnabled(for: currentPeerId) {
-            let fakePhone = FakeProfileManager.shared.fakePhone(for: currentPeerId)
-            if !fakePhone.isEmpty {
-                effectivePhone = fakePhone
-            }
-        }
-        if let phone = effectivePhone {
+        if let phone = user.phone {
             let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: user.id, settings: context.sharedContext.immediateForkExtrasSettings)
             let formattedPhone = hideOwnIdentity ? ForkExtrasSettings.streamerHiddenLabel : formatPhoneNumber(context: context, number: forkDisplayedPhone(accountPeerId: context.account.peerId, peerId: user.id, phone: phone, settings: context.sharedContext.immediateForkExtrasSettings))
             let label: String
-            if formattedPhone.hasPrefix("+888 ") || phone.hasPrefix("888") || phone.hasPrefix("+888") || (isMyProfile && FakeProfileManager.shared.isFakePhoneEnabled(for: currentPeerId)) {
+            if formattedPhone.hasPrefix("+888 ") {
                 label = presentationData.strings.UserInfo_AnonymousNumberLabel
             } else {
                 label = presentationData.strings.ContactInfo_PhoneLabelMobile
@@ -247,26 +196,10 @@ func infoItems(
                 interaction.requestLayout(animated)
             }))
         }
-        var effectiveUsernames = user.usernames
-        if isMyProfile {
-            for fakeUsername in FakeProfileManager.shared.fakeUsernames(for: currentPeerId) {
-                if !effectiveUsernames.contains(where: { $0.username.lowercased() == fakeUsername.username.lowercased() }) {
-                    effectiveUsernames.append(TelegramPeerUsername(flags: .isActive, username: fakeUsername.username))
-                }
-            }
-        }
-        var effectiveMainUsername = user.addressName ?? (isMyProfile ? effectiveUsernames.first?.username : nil)
-        if isMyProfile, let fakeMain = FakeProfileManager.shared.fakeMainUsername(for: currentPeerId), !fakeMain.isEmpty {
-            let clean = fakeMain.replacingOccurrences(of: "@", with: "")
-            effectiveMainUsername = clean
-            if !effectiveUsernames.contains(where: { $0.username.lowercased() == clean.lowercased() }) {
-                effectiveUsernames.insert(TelegramPeerUsername(flags: .isActive, username: clean), at: 0)
-            }
-        }
-        if let mainUsername = effectiveMainUsername {
+        if let mainUsername = user.addressName {
             let hideOwnIdentity = forkHidesOwnIdentity(accountPeerId: context.account.peerId, peerId: user.id, settings: context.sharedContext.immediateForkExtrasSettings)
             var additionalUsernames: String?
-            let usernames = effectiveUsernames.filter { $0.isActive && $0.username != mainUsername }
+            let usernames = user.usernames.filter { $0.isActive && $0.username != mainUsername }
             if !usernames.isEmpty && !hideOwnIdentity {
                 additionalUsernames = presentationData.strings.Profile_AdditionalUsernames(String(usernames.map { "@\($0.username)" }.joined(separator: ", "))).string
             }
@@ -292,50 +225,6 @@ func infoItems(
                     }, contextAction: hideOwnIdentity ? nil : { node, gesture, _ in
                         interaction.openUsernameContextMenu(node, gesture)
                     }, requestLayout: { animated in
-                        interaction.requestLayout(animated)
-                    }
-                )
-            )
-        }
-
-        if isMyProfile && FakeProfileManager.shared.isPublicBalanceEnabled(for: currentPeerId) {
-            let currency = FakeProfileManager.shared.publicBalanceCurrency(for: currentPeerId)
-            let amount = FakeProfileManager.shared.publicBalanceAmount(for: currentPeerId) ?? 0.0
-            let walletAddress = FakeProfileManager.shared.publicWalletAddress(for: currentPeerId)
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .decimal
-            formatter.groupingSeparator = " "
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = 2
-            let formattedAmount = "\(formatter.string(from: NSNumber(value: amount)) ?? "\(amount)") \(currency)"
-            let openCardAction: () -> Void = {
-                guard let controller = interaction.getController() else {
-                    return
-                }
-                let cardController = Ton3DCardScreen(
-                    context: context,
-                    balanceAmount: amount,
-                    currency: currency,
-                    walletAddress: walletAddress,
-                    cardholderName: EnginePeer(user).displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
-                )
-                controller.present(cardController, in: .window(.root))
-            }
-            items[currentPeerInfoSection]!.append(
-                PeerInfoScreenLabeledValueItem(
-                    id: 999901,
-                    label: "Кошелёк (\(currency))",
-                    text: formattedAmount,
-                    additionalText: walletAddress.isEmpty ? nil : "\(walletAddress.prefix(6))...\(walletAddress.suffix(4))",
-                    textColor: .accent,
-                    icon: .qrCode,
-                    action: { _, _ in
-                        openCardAction()
-                    },
-                    iconAction: {
-                        openCardAction()
-                    },
-                    requestLayout: { animated in
                         interaction.requestLayout(animated)
                     }
                 )
@@ -491,24 +380,9 @@ func infoItems(
                 items[currentPeerInfoSection]!.append(PeerInfoScreenBusinessHoursItem(id: ItemBusinessHours, label: presentationData.strings.PeerInfo_BusinessHours_Label, businessHours: businessHours, requestLayout: { animated in
                     interaction.requestLayout(animated)
                 }, longTapAction: nil, contextAction: workingHoursContextAction))
-            } else if isMyProfile && !FakeProfileManager.shared.fakeBusinessHours(for: currentPeerId).isEmpty {
-                items[currentPeerInfoSection]!.append(PeerInfoScreenLabeledValueItem(
-                    id: ItemBusinessHours,
-                    label: presentationData.strings.PeerInfo_BusinessHours_Label,
-                    text: FakeProfileManager.shared.fakeBusinessHours(for: currentPeerId),
-                    textColor: .primary,
-                    action: nil,
-                    requestLayout: { animated in
-                        interaction.requestLayout(animated)
-                    }
-                ))
             }
-
-            var effectiveBusinessLocation = cachedData.businessLocation
-            if effectiveBusinessLocation == nil && isMyProfile && !FakeProfileManager.shared.fakeBusinessLocation(for: currentPeerId).isEmpty {
-                effectiveBusinessLocation = TelegramBusinessLocation(address: FakeProfileManager.shared.fakeBusinessLocation(for: currentPeerId), coordinates: nil)
-            }
-            if let businessLocation = effectiveBusinessLocation {
+            
+            if let businessLocation = cachedData.businessLocation {
                 if let coordinates = businessLocation.coordinates {
                     let imageSignal = chatMapSnapshotImage(engine: context.engine, resource: MapSnapshotMediaResource(latitude: coordinates.latitude, longitude: coordinates.longitude, width: 90, height: 90))
                     items[currentPeerInfoSection]!.append(PeerInfoScreenAddressItem(
@@ -535,9 +409,6 @@ func infoItems(
         }
         
         if !isMyProfile {
-            items[currentPeerInfoSection]!.append(PeerInfoScreenActionItem(id: 6007, text: "Отправить подарок", color: .accent, icon: generateTintedImage(image: UIImage(bundleImageName: "Peer Info/Gifts/AddGift"), color: presentationData.theme.list.itemAccentColor), action: {
-                interaction.openPremiumGift()
-            }))
             if !data.isContact, user.botInfo == nil {
                 items[currentPeerInfoSection]!.append(PeerInfoScreenActionItem(id: ItemAddToContacts, text: presentationData.strings.PeerInfo_AddToContacts, action: {
                     interaction.openAddContact()
@@ -688,12 +559,7 @@ func infoItems(
                     }))
                 }
                                 
-                if isMyProfile && FakeProfileManager.shared.isOrganizationVerificationEnabled(for: currentPeerId) && !BananaIdentityBadges.hidesVerification {
-                    let organizationName = FakeProfileManager.shared.organizationName(for: currentPeerId)
-                    let organizationDescription = FakeProfileManager.shared.organizationDescription(for: currentPeerId)
-                    let text = organizationDescription.isEmpty ? "Эта страница официально подтверждена организацией \(organizationName)." : organizationDescription
-                    items[currentPeerInfoSection]!.append(PeerInfoScreenCommentItem(id: ItemVerification, text: text, linkAction: { _ in }))
-                } else if let verification = (data.cachedData as? CachedUserData)?.verification {
+                if let verification = (data.cachedData as? CachedUserData)?.verification {
                     let attributedPrefix = NSMutableAttributedString(string: "  ")
                     attributedPrefix.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: verification.iconFileId, file: nil), range: NSMakeRange(0, 1))
                     

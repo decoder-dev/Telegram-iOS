@@ -16,15 +16,14 @@ extension PeerInfoScreenNode {
         }
         
         let formattedPhoneNumber = formatPhoneNumber(context: self.context, number: value)
-        let isFakePhone = FakeProfileManager.shared.isFakePhoneEnabled && !FakeProfileManager.shared.fakePhone.isEmpty && (value == FakeProfileManager.shared.fakePhone || formattedPhoneNumber == formatPhoneNumber(context: self.context, number: FakeProfileManager.shared.fakePhone))
-        if gesture == nil, (formattedPhoneNumber.hasPrefix("+888") || value.hasPrefix("+888") || value.hasPrefix("888") || isFakePhone) {
+        if gesture == nil, formattedPhoneNumber.hasPrefix("+888") {
             let collectibleInfo = Promise<CollectibleItemInfoScreenInitialData?>()
             collectibleInfo.set(self.context.sharedContext.makeCollectibleItemInfoScreenInitialData(context: self.context, peerId: self.peerId, subject: .phoneNumber(value)))
             
             progress?.set(.single(true))
             let _ = (collectibleInfo.get()
             |> take(1)
-            |> deliverOnMainQueue).start(next: { [weak self, weak progress] initialData in
+            |> deliverOnMainQueue).start(next: { [weak self] initialData in
                 progress?.set(.single(false))
                 
                 guard let self else {
@@ -36,8 +35,6 @@ extension PeerInfoScreenNode {
                 } else {
                     self.context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: "https://fragment.com/numbers", forceExternal: true, presentationData: self.presentationData, navigationController: nil, dismissInput: {})
                 }
-            }, completed: { [weak progress] in
-                progress?.set(.single(false))
             })
             
             return
