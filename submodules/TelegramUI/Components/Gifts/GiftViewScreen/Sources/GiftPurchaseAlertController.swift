@@ -37,10 +37,8 @@ public func giftPurchaseAlertController(
     let presentationData = context.sharedContext.currentPresentationData.with { $0 }
     let strings = presentationData.strings
     
-    let currencyPromise = ValuePromise<CurrencyAmount.Currency>(.stars)
-    if gift.resellForTonOnly {
-        currencyPromise.set(.ton)
-    }
+    let defaultCurrency: CurrencyAmount.Currency = gift.resellForTonOnly ? .ton : (gift.resellAmounts?.first?.currency ?? .stars)
+    let currencyPromise = ValuePromise<CurrencyAmount.Currency>(defaultCurrency)
     
     var showAttributeInfoImpl: ((Any, String) -> Void)?
     
@@ -240,7 +238,7 @@ public func giftPurchaseAlertController(
         switch currency {
         case .stars:
             if let resellAmount = gift.resellAmounts?.first(where: { $0.currency == .stars }) {
-                buyString = strings.Gift_Buy_Confirm_BuyFor(Int32(resellAmount.amount.value))
+                buyString = strings.Gift_Buy_Confirm_BuyFor(Int32(clamping: resellAmount.amount.value))
             }
         case .ton:
             if let resellAmount = gift.resellAmounts?.first(where: { $0.currency == .ton }) {

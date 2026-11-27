@@ -277,6 +277,9 @@ extension HarnessSharedAccountContext {
     public func makeEditForumTopicScreen(context: AccountContext, peerId: EnginePeer.Id, threadId: Int64, threadInfo: EngineMessageHistoryThread.Info, isHidden: Bool) -> ViewController {
         fatalError("harness: SharedAccountContext.makeEditForumTopicScreen is not provided")
     }
+    public func makeFakeProfileSettingsController(context: AccountContext) -> ViewController {
+        fatalError("harness: SharedAccountContext.makeFakeProfileSettingsController is not provided")
+    }
     public func navigateToChatController(_ params: NavigateToChatControllerParams) {
         fatalError("harness: SharedAccountContext.navigateToChatController is not provided")
     }

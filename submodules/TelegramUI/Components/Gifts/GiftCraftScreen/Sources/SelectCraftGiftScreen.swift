@@ -157,8 +157,6 @@ final class SelectGiftPageContent: Component {
             }
             transition.setFrame(view: self.loadingView, frame: CGRect(origin: CGPoint(x: 0.0, y: contentHeight - 170.0), size: loadingSize))
             
-            let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
-            
             var itemFrame = CGRect(origin: CGPoint(x: itemSideInset, y: contentHeight), size: itemSize)
             var itemsHeight: CGFloat = 0.0
             var validIds: [AnyHashable] = []
@@ -209,27 +207,10 @@ final class SelectGiftPageContent: Component {
                                 isEditing: false,
                                 mode: .grid,
                                 action: { [weak self] in
-                                    guard let self, let component = self.component, let environment = self.environment else {
+                                    guard let self, let component = self.component else {
                                         return
                                     }
                                     HapticFeedback().impact(.light)
-                                    
-                                    let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
-                                    if let profileGift = self.giftMap[gift.gift.id], let canCraftDate = profileGift.canCraftAt, currentTime < canCraftDate {
-                                        let dateString = stringForFullDate(timestamp: canCraftDate, strings: environment.strings, dateTimeFormat: environment.dateTimeFormat)
-                                        let alertController = textAlertController(
-                                            context: component.context,
-                                            title: environment.strings.Gift_Craft_Unavailable_Title,
-                                            text: environment.strings.Gift_Craft_Unavailable_Text(dateString).string,
-                                            actions: [
-                                                TextAlertAction(type: .defaultAction, title: environment.strings.Common_OK, action: {})
-                                            ],
-                                            parseMarkdown: true
-                                        )
-                                        environment.controller()?.present(alertController, in: .window(.root))
-                                        return
-                                    }
-                                    
                                     component.selectGift(gift)
                                     component.dismiss()
                                 },
@@ -252,11 +233,7 @@ final class SelectGiftPageContent: Component {
                         }
                         itemTransition.setFrame(view: itemView, frame: itemFrame)
                         
-                        var canCraft = true
-                        if let profileGift = self.giftMap[gift.gift.id], let canCraftDate = profileGift.canCraftAt, currentTime < canCraftDate {
-                            canCraft = false
-                        }
-                        transition.setAlpha(view: itemView, alpha: canCraft ? 1.0 : 0.5)
+                        transition.setAlpha(view: itemView, alpha: 1.0)
                     }
                 }
                 

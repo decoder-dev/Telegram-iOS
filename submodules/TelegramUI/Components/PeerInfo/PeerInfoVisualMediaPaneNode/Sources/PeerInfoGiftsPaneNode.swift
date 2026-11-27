@@ -999,10 +999,14 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
         var canReorder = false
         if case .all = self.currentCollection, let currentState = self.profileGifts.currentState {
             if case .All = currentState.filter {
-                for gift in currentState.gifts {
-                    if gift.pinnedToTop {
-                        canReorder = true
-                        break
+                if canManage && currentState.gifts.count > 1 {
+                    canReorder = true
+                } else {
+                    for gift in currentState.gifts {
+                        if gift.pinnedToTop {
+                            canReorder = true
+                            break
+                        }
                     }
                 }
             }
@@ -1166,6 +1170,8 @@ public final class PeerInfoGiftsPaneNode: ASDisplayNode, PeerInfoPaneNode, UIScr
             if case .unique = gift.gift {
                 isReorderableGift = true
             } else if case .collection = self.currentCollection {
+                isReorderableGift = true
+            } else if self.peerId == self.context.account.peerId {
                 isReorderableGift = true
             }
             

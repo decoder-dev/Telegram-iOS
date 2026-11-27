@@ -3367,6 +3367,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         }
     }
     
+    public func makeFakeProfileSettingsController(context: AccountContext) -> ViewController {
+        return fakeProfileSettingsController(context: context)
+    }
+
     public func makeEditForumTopicScreen(context: AccountContext, peerId: EnginePeer.Id, threadId: Int64, threadInfo: EngineMessageHistoryThread.Info, isHidden: Bool) -> ViewController {
         let controller = ForumCreateTopicScreen(context: context, peerId: peerId, mode: .edit(threadId: threadId, threadInfo: threadInfo, isHidden: isHidden))
         controller.navigationPresentation = .modal

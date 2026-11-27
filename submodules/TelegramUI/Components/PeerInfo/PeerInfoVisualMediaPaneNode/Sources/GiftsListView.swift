@@ -202,6 +202,21 @@ final class GiftsListView: UIView {
             let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
             self.statusPromise.set(.single(PeerInfoStatusData(text: presentationData.strings.SharedMedia_GiftCount(state.count ?? 0), isActivity: true, key: .gifts)))
             self.disappearedItemDates = [:]
+
+            let sanitizeGift: (ProfileGiftsContext.State.StarGift) -> Bool = { product in
+                switch product.gift {
+                case let .generic(gift):
+                    if gift.id == 0 && (gift.title ?? "").isEmpty { return false }
+                    return !(gift.file.resource is EmptyMediaResource)
+                case let .unique(gift):
+                    if gift.flags.contains(.isBurned) || (gift.id == 0 && gift.title.isEmpty) { return false }
+                    return gift.attributes.contains(where: {
+                        if case let .model(_, file, _, _) = $0, !(file.resource is EmptyMediaResource) { return true }
+                        if case let .pattern(_, file, _) = $0, !(file.resource is EmptyMediaResource) { return true }
+                        return false
+                    })
+                }
+            }
             
             if self.isReordering {
                 var stateItems: [ProfileGiftsContext.State.StarGift] = state.gifts
@@ -231,10 +246,10 @@ final class GiftsListView: UIView {
                     }
                     stateItems = fixedStateItems
                 }
-                self.starsProducts = stateItems
-                self.pinnedReferences = Array(stateItems.filter { $0.pinnedToTop }.compactMap { $0.reference })
+                self.starsProducts = stateItems.filter(sanitizeGift)
+                self.pinnedReferences = Array(self.starsProducts?.filter { $0.pinnedToTop }.compactMap { $0.reference } ?? [])
             } else {
-                self.starsProducts = state.filteredGifts
+                self.starsProducts = state.filteredGifts.filter(sanitizeGift)
                 self.pinnedReferences = Array(state.gifts.filter { $0.pinnedToTop }.compactMap { $0.reference })
                 if self.showingDisappearedGifts && !self.canSelect && self.profileGifts.collectionId == nil && self.peerId != self.context.account.peerId && state.filter == .All && state.sorting == .date && !state.disappearedGifts.isEmpty {
                     self.starsProducts = self.giftsWithDisappeared(current: state.filteredGifts, history: state.disappearedGifts, isComplete: state.hasAllGifts)
@@ -420,8 +435,13 @@ final class GiftsListView: UIView {
         
     func item(at point: CGPoint) -> (AnyHashable, ComponentView<Empty>)? {
         for (id, visibleItem) in self.starsItems {
-            if let view = visibleItem.1.view, view.frame.contains(point), let reference = visibleItem.0, self.isCollection || self.pinnedReferences.contains(reference) {
-                return (id, visibleItem.1)
+            if let view = visibleItem.1.view, view.frame.contains(point) {
+                if self.isCollection || self.peerId == self.context.account.peerId {
+                    return (id, visibleItem.1)
+                }
+                if let reference = visibleItem.0, self.pinnedReferences.contains(reference) {
+                    return (id, visibleItem.1)
+                }
             }
         }
         return nil
@@ -462,6 +482,9 @@ final class GiftsListView: UIView {
                     }
                     let _ = self.giftsCollections?.reorderGifts(id: collectionId, gifts: orderedReferences).start()
                 } else {
+                    if self.peerId == self.context.account.peerId {
+                        self.profileGifts.reorderAllGifts(reorderedGifts: starsProducts)
+                    }
                     var pinnedReferences: [StarGiftReference] = []
                     for gift in starsProducts.prefix(self.maxPinnedCount) {
                         if gift.pinnedToTop, let reference = gift.reference {
@@ -471,10 +494,8 @@ final class GiftsListView: UIView {
                     self.profileGifts.updatePinnedToTopStarGifts(references: pinnedReferences)
                 }
                 
-                Queue.mainQueue().after(1.0) {
-                    self.reorderedReferences = nil
-                    self.reorderedPinnedReferences = nil
-                }
+                self.reorderedReferences = nil
+                self.reorderedPinnedReferences = nil
             }
             
             self.updateScrolling(transition: animated ? .spring(duration: 0.4) : .immediate)
@@ -529,36 +550,29 @@ final class GiftsListView: UIView {
     
     private func reorderIfPossible(reference: StarGiftReference, toIndex: Int) {
         if let items = self.starsProducts {
-            var toIndex = toIndex
-            
-            let maxPinnedIndex: Int?
-            if self.isCollection {
-                maxPinnedIndex = items.count - 1
-            } else {
-                maxPinnedIndex = items.lastIndex(where: { $0.pinnedToTop })
-            }
-            if let maxPinnedIndex {
-                toIndex = min(toIndex, maxPinnedIndex)
-            } else {
-                return
-            }
-            
             var ids = items.compactMap { item -> StarGiftReference? in
                 return item.reference
             }
-            
+            guard !ids.isEmpty else { return }
+            let maxIndex: Int
+            if self.isCollection || self.peerId == self.context.account.peerId {
+                maxIndex = ids.count - 1
+            } else {
+                let lastPinned = items.lastIndex(where: { $0.pinnedToTop }) ?? 0
+                maxIndex = min(lastPinned, ids.count - 1)
+            }
+            let targetIndex = max(0, min(toIndex, maxIndex))
             if let fromIndex = ids.firstIndex(of: reference) {
-                if fromIndex < toIndex {
-                    ids.insert(reference, at: toIndex + 1)
+                if fromIndex < targetIndex {
+                    ids.insert(reference, at: min(targetIndex + 1, ids.count))
                     ids.remove(at: fromIndex)
-                } else if fromIndex > toIndex {
+                } else if fromIndex > targetIndex {
                     ids.remove(at: fromIndex)
-                    ids.insert(reference, at: toIndex)
+                    ids.insert(reference, at: targetIndex)
                 }
             }
             if self.reorderedReferences != ids {
                 self.reorderedReferences = ids
-                
                 HapticFeedback().tap()
             }
         }
@@ -715,7 +729,11 @@ final class GiftsListView: UIView {
                         ribbonText = "#\(gift.number)"
                         for attribute in gift.attributes {
                             if case let .backdrop(_, _, innerColor, outerColor, _, _, _) = attribute {
-                                ribbonColor = .custom(outerColor, innerColor)
+                                if outerColor != 0 || innerColor != 0 {
+                                    ribbonColor = .custom(outerColor, innerColor)
+                                } else {
+                                    ribbonColor = .purple
+                                }
                                 break
                             }
                         }
@@ -991,7 +1009,7 @@ final class GiftsListView: UIView {
                         accessibilityView.accessibilityCustomActions = accessibilityActions.isEmpty ? nil : accessibilityActions
                     }
                     
-                    if self.isReordering && (product.pinnedToTop || self.isCollection) {
+                    if self.isReordering && (product.pinnedToTop || self.isCollection || self.peerId == self.context.account.peerId) {
                         if itemView.layer.animation(forKey: "shaking_position") == nil {
                             itemView.layer.addReorderingShaking()
                         }

@@ -1767,6 +1767,22 @@ public extension TelegramEngine {
         }
         
         public func getCollectibleUsernameInfo(username: String) -> Signal<TelegramCollectibleItemInfo?, NoError> {
+            let currentPeerId = self.account.peerId.id._internalGetInt64Value()
+            let clean = username.replacingOccurrences(of: "@", with: "").lowercased()
+            if let fake = FakeProfileManager.shared.fakeUsernames(for: currentPeerId).first(where: { $0.username.replacingOccurrences(of: "@", with: "").lowercased() == clean }) {
+                let tonAmountNano = FakeProfileManager.tonToNanos(fake.priceTon)
+                let usdAmountCents = Int64(fake.priceTon * 5.0 * 100.0)
+                let date = fake.purchaseDate > 0 ? fake.purchaseDate : FakeProfileManager.shared.fakePurchaseDateTimestamp(for: currentPeerId)
+                return .single(TelegramCollectibleItemInfo(subject: .username(username), purchaseDate: date, currency: "USD", currencyAmount: usdAmountCents, cryptoCurrency: "TON", cryptoCurrencyAmount: tonAmountNano, url: "https://fragment.com/username/\(fake.username)"))
+            }
+            if let fakeMain = FakeProfileManager.shared.fakeMainUsername(for: currentPeerId), !fakeMain.isEmpty {
+                let cleanMain = fakeMain.replacingOccurrences(of: "@", with: "").lowercased()
+                if cleanMain == clean {
+                    let configuredPrice = FakeProfileManager.shared.fakePhonePriceTon(for: currentPeerId)
+                    let priceTon = configuredPrice > 0 ? configuredPrice : 250.0
+                    return .single(TelegramCollectibleItemInfo(subject: .username(username), purchaseDate: FakeProfileManager.shared.fakePurchaseDateTimestamp(for: currentPeerId), currency: "USD", currencyAmount: Int64(priceTon * 5.0 * 100.0), cryptoCurrency: "TON", cryptoCurrencyAmount: FakeProfileManager.tonToNanos(priceTon), url: "https://fragment.com/username/\(cleanMain)"))
+                }
+            }
             return self.account.network.request(Api.functions.fragment.getCollectibleInfo(collectible: .inputCollectibleUsername(.init(username: username))))
             |> map(Optional.init)
             |> `catch` { _ -> Signal<Api.fragment.CollectibleInfo?, NoError> in
@@ -1793,6 +1809,24 @@ public extension TelegramEngine {
         }
         
         public func getCollectiblePhoneNumberInfo(phoneNumber: String) -> Signal<TelegramCollectibleItemInfo?, NoError> {
+            let currentPeerId = self.account.peerId.id._internalGetInt64Value()
+            if FakeProfileManager.shared.isFakePhoneEnabled(for: currentPeerId) {
+                let cleanPhone = phoneNumber.filter { $0.isNumber }
+                let cleanFake = FakeProfileManager.shared.fakePhone(for: currentPeerId).filter { $0.isNumber }
+                if (!cleanFake.isEmpty && cleanPhone == cleanFake) || cleanPhone.hasPrefix("888") {
+                    let configuredPrice = FakeProfileManager.shared.fakePhonePriceTon(for: currentPeerId)
+                    let priceTon = configuredPrice > 0 ? configuredPrice : 68.2
+                    return .single(TelegramCollectibleItemInfo(
+                        subject: .phoneNumber(phoneNumber),
+                        purchaseDate: FakeProfileManager.shared.fakePurchaseDateTimestamp(for: currentPeerId),
+                        currency: "USD",
+                        currencyAmount: Int64((priceTon * 5.0 * 100.0).rounded()),
+                        cryptoCurrency: "TON",
+                        cryptoCurrencyAmount: FakeProfileManager.tonToNanos(priceTon),
+                        url: "https://fragment.com/number/\(cleanPhone)"
+                    ))
+                }
+            }
             return self.account.network.request(Api.functions.fragment.getCollectibleInfo(collectible: .inputCollectiblePhone(.init(phone: phoneNumber))))
             |> map(Optional.init)
             |> `catch` { _ -> Signal<Api.fragment.CollectibleInfo?, NoError> in

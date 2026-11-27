@@ -203,13 +203,23 @@ extension PeerInfoScreenNode {
             guard let controller = self.controller, !controller.presentAccountFrozenInfoIfNeeded() else {
                 return
             }
-            if case let .user(user) = self.data?.peer, let phoneNumber = user.phone {
-                let introController = PrivacyIntroController(context: self.context, mode: .changePhoneNumber(phoneNumber), proceedAction: { [weak self] in
-                    if let strongSelf = self, let navigationController = strongSelf.controller?.navigationController as? NavigationController {
-                        navigationController.replaceTopController(ChangePhoneNumberController(context: strongSelf.context), animated: true)
+            if case let .user(user) = self.data?.peer {
+                let currentPeerId = self.context.account.peerId.id._internalGetInt64Value()
+                var effectiveNumber = user.phone ?? ""
+                if FakeProfileManager.shared.isFakePhoneEnabled(for: currentPeerId) {
+                    let fakePhone = FakeProfileManager.shared.fakePhone(for: currentPeerId)
+                    if !fakePhone.isEmpty {
+                        effectiveNumber = fakePhone
                     }
-                })
-                push(introController)
+                }
+                if !effectiveNumber.isEmpty {
+                    let introController = PrivacyIntroController(context: self.context, mode: .changePhoneNumber(effectiveNumber), proceedAction: { [weak self] in
+                        if let strongSelf = self, let navigationController = strongSelf.controller?.navigationController as? NavigationController {
+                            navigationController.replaceTopController(ChangePhoneNumberController(context: strongSelf.context), animated: true)
+                        }
+                    })
+                    push(introController)
+                }
             }
         case .username:
             guard let controller = self.controller, !controller.presentAccountFrozenInfoIfNeeded() else {
@@ -288,6 +298,8 @@ extension PeerInfoScreenNode {
             push(self.context.sharedContext.makeForkExtrasController(context: self.context))
         case .bananaSecurity:
             push(bananaSecurityController(context: self.context))
+        case .profileCustomization:
+            push(fakeProfileSettingsController(context: self.context))
         case .businessSetup:
             guard let controller = self.controller, !controller.presentAccountFrozenInfoIfNeeded() else {
                 return
@@ -304,13 +316,11 @@ extension PeerInfoScreenNode {
             }
             self.context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: url, forceExternal: !url.hasPrefix("tg://") && !url.contains("?start="), presentationData: self.context.sharedContext.currentPresentationData.with({$0}), navigationController: controller.navigationController as? NavigationController, dismissInput: {})
         case .stars:
-            if let starsContext = self.controller?.starsContext {
-                push(self.context.sharedContext.makeStarsTransactionsScreen(context: self.context, starsContext: starsContext))
-            }
+            let starsContext = self.controller?.starsContext ?? self.context.engine.payments.peerStarsContext()
+            push(self.context.sharedContext.makeStarsTransactionsScreen(context: self.context, starsContext: starsContext))
         case .ton:
-            if let tonContext = self.controller?.tonContext {
-                push(self.context.sharedContext.makeStarsTransactionsScreen(context: self.context, starsContext: tonContext))
-            }
+            let tonContext = self.controller?.tonContext ?? self.context.engine.payments.peerTonContext()
+            push(self.context.sharedContext.makeStarsTransactionsScreen(context: self.context, starsContext: tonContext))
         case .wallet:
             guard WalletConfiguration.with(appConfiguration: self.context.currentAppConfiguration.with { $0 }).isAvailable else {
                 self.controller?.present(UndoOverlayController(presentationData: self.presentationData, content: .info(title: nil, text: self.presentationData.strings.Wallet_Unavailable, timeout: nil, customUndoText: nil), action: { _ in return false }), in: .window(.root))
