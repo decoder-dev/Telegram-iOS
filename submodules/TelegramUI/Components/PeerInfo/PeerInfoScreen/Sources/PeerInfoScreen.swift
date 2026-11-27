@@ -6072,7 +6072,8 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             color = self.presentationData.theme.list.blocksBackgroundColor.mixedWith(self.presentationData.theme.list.plainBackgroundColor, alpha: self.effectiveAreaExpansionFraction)
         }
         if GhostSettings.profileV2, let peer = self.data?.peer, let status = peer.emojiStatus, case let .starGift(_, _, _, _, _, _, outerColor, _, _) = status.content {
-            color = UIColor(rgb: UInt32(bitPattern: outerColor))
+            let giftColor = UIColor(rgb: UInt32(bitPattern: outerColor))
+            color = color.mixedWith(giftColor, alpha: 0.18)
         }
         if let expansionBackgroundView = self.expansionBackgroundView {
             expansionBackgroundView.backgroundColor = color
